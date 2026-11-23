@@ -11,16 +11,24 @@ struct CanvasObjectControl<Content: View>: View {
     var allowsPhotoOverflow = false
     var preservesAspectRatio = false
     var selectsWithTap = true
+    var moveSpace: CoordinateSpace = .global
+    var swapTargetAt: ((CGPoint) -> CanvasPhotoSwap.Target?)? = nil
+    var onSwap: ((UUID) -> Void)? = nil
     var onDoubleClick: (() -> Void)? = nil
     let onSelect: () -> Void
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
 
     @FocusState private var focused: Bool
-    @GestureState private var dragPreview: CanvasAlignment.Result?
+    @GestureState private var dragPreview: DragPreview?
+
+    private struct DragPreview {
+        let placement: CanvasAlignment.Result
+        var swapTarget: CanvasPhotoSwap.Target? = nil
+    }
 
     var body: some View {
-        let visibleFrame = dragPreview?.frame ?? frame
+        let visibleFrame = dragPreview?.placement.frame ?? frame
         let reachable = visibleFrame.intersection(bounds).offsetBy(dx: -visibleFrame.minX, dy: -visibleFrame.minY)
         content(visibleFrame.size)
             .frame(width: visibleFrame.width, height: visibleFrame.height)
@@ -54,7 +62,8 @@ struct CanvasObjectControl<Content: View>: View {
                 }
             }
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
-            .preference(key: CanvasGuidePreference.self, value: dragPreview?.guides ?? [])
+            .preference(key: CanvasGuidePreference.self, value: dragPreview?.placement.guides ?? [])
+            .preference(key: CanvasSwapTargetPreference.self, value: dragPreview?.swapTarget)
     }
 
     private var tap: some Gesture {
@@ -65,25 +74,35 @@ struct CanvasObjectControl<Content: View>: View {
     }
 
     private func drag(_ corner: CanvasCorner? = nil) -> some Gesture {
-        DragGesture(minimumDistance: 3, coordinateSpace: .global)
+        DragGesture(minimumDistance: 3, coordinateSpace: moveSpace)
             .updating($dragPreview) { value, preview, _ in
-                preview = dragDestination(by: value.translation, resizing: corner)
+                preview = dragDestination(value, resizing: corner)
             }
             .onEnded { value in
-                if !selected { onSelect() }
-                let destination = dragDestination(by: value.translation, resizing: corner).frame
-                if destination != frame { onChange(destination) }
+                let destination = dragDestination(value, resizing: corner)
+                if let target = destination.swapTarget, let onSwap {
+                    onSwap(target.id)
+                } else {
+                    if !selected { onSelect() }
+                    if destination.placement.frame != frame { onChange(destination.placement.frame) }
+                }
             }
     }
 
-    private func dragDestination(by translation: CGSize, resizing corner: CanvasCorner?) -> CanvasAlignment.Result {
+    private func dragDestination(_ value: DragGesture.Value, resizing corner: CanvasCorner?) -> DragPreview {
         let targets = alignmentTargets.map { $0.intersection(bounds) }
         if let corner {
-            return corner.resizeDuringDrag(frame, by: translation, in: bounds, minimumSize: minimumSize,
-                                           preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
-                                           alignmentTargets: preservesAspectRatio ? targets : [])
+            return DragPreview(placement: corner.resizeDuringDrag(
+                frame, by: value.translation, in: bounds, minimumSize: minimumSize,
+                preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
+                alignmentTargets: preservesAspectRatio ? targets : []
+            ))
         }
-        return CanvasAlignment.duringDrag(adjustedFrame(by: translation), to: targets, within: movementBounds)
+        let proposed = adjustedFrame(by: value.translation)
+        if let target = swapTargetAt?(value.location) {
+            return DragPreview(placement: CanvasAlignment.Result(frame: proposed, guides: []), swapTarget: target)
+        }
+        return DragPreview(placement: CanvasAlignment.duringDrag(proposed, to: targets, within: movementBounds))
     }
 
     private func nudge(_ direction: MoveCommandDirection) {
@@ -118,6 +137,14 @@ struct CanvasObjectControl<Content: View>: View {
             let intersection = rect.intersection(bounds)
             return intersection.isEmpty ? Path() : Path(intersection)
         }
+    }
+}
+
+struct CanvasSwapTargetPreference: PreferenceKey {
+    static let defaultValue: CanvasPhotoSwap.Target? = nil
+
+    static func reduce(value: inout CanvasPhotoSwap.Target?, nextValue: () -> CanvasPhotoSwap.Target?) {
+        value = nextValue() ?? value
     }
 }
 

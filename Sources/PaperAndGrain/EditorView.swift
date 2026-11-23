@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 import UniformTypeIdentifiers
 import SwiftUI
 
@@ -25,12 +26,12 @@ struct EditorView: View {
     @State private var coverSide: CoverSide?
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
+    @State private var libraryHitFrames = LibraryHitFrames()
     @GestureState private var dragging: EditorDragPreview?
     @State private var showSpread = true
     @State private var gutterGuide = false
     @State private var showDelete = false
-    @State private var inspector: Inspector = .page
-    @State private var photoPanelMode: PhotoPanelMode = .library
+    @State private var inspectorNavigation = InspectorNavigation()
     @State private var filmScope: FilmScope = .book
     @State private var compareOriginal = false
     @State private var comparePhotoOriginal: UUID?
@@ -45,12 +46,63 @@ struct EditorView: View {
     @State private var undoTarget = EditorUndo()
     @State private var cropSession: CropSession?
 
-    private enum Inspector: String, CaseIterable {
+    fileprivate enum Inspector: String, CaseIterable {
         case page, photos, film
     }
 
-    private enum PhotoPanelMode: Hashable {
+    fileprivate enum PhotoPanelMode: Hashable {
         case library, adjust
+    }
+
+    @Observable fileprivate final class InspectorNavigation {
+        var tab: Inspector = .page
+        var photos: PhotoPanelMode = .library
+    }
+
+    private final class LibraryHitFrames {
+        var frames = LibraryPhotoFrames()
+    }
+
+    private var inspector: Inspector {
+        get { inspectorNavigation.tab }
+        nonmutating set { inspectorNavigation.tab = newValue }
+    }
+
+    private var photoPanelMode: PhotoPanelMode {
+        get { inspectorNavigation.photos }
+        nonmutating set { inspectorNavigation.photos = newValue }
+    }
+
+    private struct InspectorHost<Content: View>: View {
+        @Bindable var navigation: InspectorNavigation
+        let title: String
+        let pageTitle: String
+        let photosTitle: String
+        let filmTitle: String
+        let edge: Color
+        let finishAdjustment: () -> Void
+        @ViewBuilder let content: (Inspector, PhotoPanelMode) -> Content
+
+        var body: some View {
+            VStack(spacing: 0) {
+                Picker(title, selection: $navigation.tab) {
+                    Text(pageTitle).tag(Inspector.page)
+                    Text(photosTitle).tag(Inspector.photos)
+                    Text(filmTitle).tag(Inspector.film)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(14)
+                Rectangle().fill(edge).frame(height: 1)
+                content(navigation.tab, navigation.photos)
+            }
+            .onChange(of: navigation.tab) { _, tab in
+                if tab != .photos { finishAdjustment() }
+            }
+            .onChange(of: navigation.photos) { _, mode in
+                if mode != .adjust { finishAdjustment() }
+            }
+        }
     }
 
     private struct CanvasPhotoSelection {
@@ -100,6 +152,11 @@ struct EditorView: View {
 
     private enum AlignmentElement: Equatable {
         case photo(UUID), textBox(UUID)
+    }
+
+    private enum IncomingPhotoPlacement {
+        case position(CanvasAlignment.Result)
+        case swap(CanvasPhotoSwap.Target)
     }
 
     private struct CropSession {
@@ -218,12 +275,6 @@ struct EditorView: View {
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
             if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
-        }
-        .onChange(of: inspector) { _, mode in
-            if mode != .photos { finishPhotoAdjustmentEdit() }
-        }
-        .onChange(of: photoPanelMode) { _, mode in
-            if mode != .adjust { finishPhotoAdjustmentEdit() }
         }
         .onDisappear { adjustPreviewCleanup() }
         .overlay(alignment: .topLeading) {
@@ -704,7 +755,8 @@ struct EditorView: View {
             ForEach(composition.photos) { item in
                 if cropSession?.pageID != leaf.id || cropSession?.photoID != item.id {
                     let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id))
-                    canvasPhoto(item, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
+                    canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds, scale: scale,
+                                alignmentTargets: targets)
                 }
             }
             if let story = composition.story {
@@ -740,20 +792,49 @@ struct EditorView: View {
         }
         .overlayPreferenceValue(CanvasGuidePreference.self) { guides in
             ZStack(alignment: .topLeading) {
-                if let incomingPhoto {
+                if case let .position(placement) = incomingPhoto {
                     let border = Rectangle().strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
-                    positioned(border, in: incomingPhoto.frame)
-                }
-                let visibleGuides = guides + (incomingPhoto?.guides ?? [])
-                if !visibleGuides.isEmpty {
-                    CanvasAlignmentGuides(guides: visibleGuides)
+                    positioned(border, in: placement.frame)
+                    CanvasAlignmentGuides(guides: guides + placement.guides)
+                } else if !guides.isEmpty {
+                    CanvasAlignmentGuides(guides: guides)
                 }
             }
             .clipped()
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
+        .overlayPreferenceValue(CanvasSwapTargetPreference.self) { target in
+            ZStack(alignment: .topLeading) {
+                if case let .swap(incoming) = incomingPhoto {
+                    photoSwapIndicator(incoming)
+                } else if let target {
+                    photoSwapIndicator(target)
+                }
+            }
+            .clipped()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+        .coordinateSpace(name: leaf.id)
         .editorDropFrame(.canvasPage(leaf.id))
+    }
+
+    private func photoSwapIndicator(_ target: CanvasPhotoSwap.Target) -> some View {
+        let indicator = Rectangle()
+            .strokeBorder(.white, lineWidth: 4)
+            .overlay {
+                Rectangle().strokeBorder(pine, style: StrokeStyle(lineWidth: 2, dash: [6, 3]))
+            }
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(5)
+                    .background(pine, in: RoundedRectangle(cornerRadius: 4))
+                    .padding(5)
+            }
+        return positioned(indicator, in: target.frame)
     }
 
     private func alignmentTargets(in composition: PageComposition, at scale: CGFloat,
@@ -777,14 +858,22 @@ struct EditorView: View {
             }
     }
 
-    private func canvasPhoto(_ item: PageComposition.Photo, leaf: BookPage, bounds: CGRect, scale: CGFloat,
-                             alignmentTargets: [CGRect]) -> some View {
+    private func canvasPhoto(_ item: PageComposition.Photo, leaf: BookPage, composition: PageComposition,
+                             bounds: CGRect, scale: CGFloat, alignmentTargets: [CGRect]) -> some View {
         let frame = scaled(item.frame, by: scale)
         let active = leaf.id == page?.id && item.id == selectedPhoto && selectedBox == nil
+        let swapTargetAt: (CGPoint) -> CanvasPhotoSwap.Target? = { location in
+            guard let pageFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
+            let editorPoint = CGPoint(x: pageFrame.minX + location.x, y: pageFrame.minY + location.y)
+            guard dropFrames[.canvasViewport]?.contains(editorPoint) == true else { return nil }
+            return photoSwapTarget(item.id, at: location, in: bounds, composition: composition)
+        }
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
                                    accessibilityName: item.photo.name, alignmentTargets: alignmentTargets,
                                    allowsPhotoOverflow: true, preservesAspectRatio: true, selectsWithTap: false,
+                                   moveSpace: .named(leaf.id), swapTargetAt: swapTargetAt,
+                                   onSwap: { swapPhoto(item.id, with: $0, on: leaf.id) },
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
                                    onSelect: { selectCanvasPhoto(item.id, in: leaf) },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
@@ -974,22 +1063,16 @@ struct EditorView: View {
     }
 
     private var sidePanel: some View {
-        VStack(spacing: 0) {
-            Picker(tr("Ispettore", "Inspector"), selection: $inspector) {
-                Text(tr("Pagina", "Page")).tag(Inspector.page)
-                Text(tr("Foto", "Photos")).tag(Inspector.photos)
-                Text(tr("Pellicola", "Film")).tag(Inspector.film)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(14)
-            Rectangle().fill(edge).frame(height: 1)
-            if inspector == .photos {
-                photoInspector
+        InspectorHost(navigation: inspectorNavigation, title: tr("Ispettore", "Inspector"),
+                      pageTitle: tr("Pagina", "Page"), photosTitle: tr("Foto", "Photos"),
+                      filmTitle: tr("Pellicola", "Film"), edge: edge,
+                      finishAdjustment: finishPhotoAdjustmentEdit) { tab, photoMode in
+            if tab == .photos {
+                photoInspector(mode: photoMode)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 21) {
-                        if inspector == .page { pageInspector }
+                        if tab == .page { pageInspector }
                         else { filmInspector }
                     }
                     .padding(15)
@@ -1285,9 +1368,11 @@ struct EditorView: View {
         }
     }
 
-    private var photoInspector: some View {
+    private func photoInspector(mode: PhotoPanelMode) -> some View {
         VStack(spacing: 0) {
-            Picker(tr("Pannello foto", "Photo Panel"), selection: $photoPanelMode) {
+            Picker(tr("Pannello foto", "Photo Panel"), selection: Binding(
+                get: { photoPanelMode }, set: { photoPanelMode = $0 }
+            )) {
                 Text(tr("Libreria", "Library")).tag(PhotoPanelMode.library)
                 Text(tr("Regola", "Adjust")).tag(PhotoPanelMode.adjust)
             }
@@ -1295,7 +1380,7 @@ struct EditorView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, 15)
             .padding(.top, 11)
-            if photoPanelMode == .adjust {
+            if mode == .adjust {
                 ScrollView {
                     photoAdjustmentsInspector
                         .padding(15)
@@ -1379,7 +1464,10 @@ struct EditorView: View {
                     photoGrid.padding(.horizontal, 15).padding(.bottom, 8)
                 }
                 .frame(maxHeight: .infinity)
-                .editorDropFrame(.libraryViewport)
+                // Native photo hit testing reads these frames without updating the editor.
+                .libraryPhotoFrame()
+                .onPreferenceChange(LibraryPhotoFrames.self) { libraryHitFrames.frames = $0 }
+                .onDisappear { libraryHitFrames.frames = .init() }
                 if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
                     ViewThatFits(in: .vertical) {
                         selectedPhotoDetails(photo)
@@ -1489,7 +1577,7 @@ struct EditorView: View {
                                         : tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
                             .disabled(page == nil && coverSide == nil)
                         }
-                        .editorDropFrame(.libraryPhoto(photo.id))
+                        .libraryPhotoFrame(photo.id)
                 }
             }
         }
@@ -1519,13 +1607,8 @@ struct EditorView: View {
 
     private func selectPhoto(at point: CGPoint) {
         if inspector == .photos, photoPanelMode == .library,
-           dropFrames[.libraryViewport]?.contains(point) == true {
-            for (target, frame) in dropFrames where frame.contains(point) {
-                if case let .libraryPhoto(id) = target {
-                    selectLibraryPhoto(id)
-                    return
-                }
-            }
+           let id = libraryHitFrames.frames.photo(at: point) {
+            selectLibraryPhoto(id)
             return
         }
         guard dropFrames[.canvasViewport]?.contains(point) == true else { return }
@@ -1896,7 +1979,8 @@ struct EditorView: View {
         let limit = small ? 180 : (isLive ? 640 : 1440)
         let corrections = isLive ? draft : photo.adjustments
         let request = EditorPreviewRequest(url: url, limit: limit, look: look, lutURL: lutURL,
-                                           adjustments: original ? nil : corrections)
+                                           adjustments: original ? nil : corrections,
+                                           isFilmSwatch: settings != nil)
         return EditorPreview(request: request, crop: crop, fills: fills) {
             placeholder
         }
@@ -2337,11 +2421,20 @@ struct EditorView: View {
     }
 
     private func incomingPhotoPlacement(on leaf: BookPage, composition: PageComposition,
-                                        bounds: CGRect) -> CanvasAlignment.Result? {
+                                        bounds: CGRect) -> IncomingPhotoPlacement? {
         guard let dragging, case let .photo(id) = dragging.item, let photo = indexedPhoto(id),
               isPhotoDropTarget(.canvasPage(leaf.id)), let screenFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
         let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
-        return photoPlacement(photo, in: composition, at: location, bounds: bounds)
+        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition) {
+            return .swap(target)
+        }
+        return .position(photoPlacement(photo, in: composition, at: location, bounds: bounds))
+    }
+
+    private func photoSwapTarget(_ id: UUID, at point: CGPoint, in bounds: CGRect,
+                                 composition: PageComposition) -> CanvasPhotoSwap.Target? {
+        guard !NSEvent.modifierFlags.contains(.option) else { return nil }
+        return CanvasPhotoSwap.target(moving: id, at: point, in: bounds, composition: composition)
     }
 
     private func photoPlacement(_ photo: BookPhoto, in composition: PageComposition, at location: CGPoint,
@@ -2366,6 +2459,10 @@ struct EditorView: View {
         guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
         let composition = pageComposition(current)
+        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition) {
+            swapPhoto(id, with: target.id, on: leaf.id)
+            return
+        }
         let result = photoPlacement(photo, in: composition, at: location, bounds: bounds)
         let normalized = PageRect(result.frame, in: bounds).photoClamped
         if current.photoIDs.contains(id) {
@@ -2378,6 +2475,14 @@ struct EditorView: View {
                 pages[index].photoPlacements = placements
             }
         }
+        selectCanvasPhoto(id, in: leaf)
+    }
+
+    private func swapPhoto(_ id: UUID, with target: UUID, on pageID: UUID) {
+        guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+        var leaf = book.pages[index]
+        guard leaf.swapPhotos(id, target, in: pageComposition(leaf)) else { return }
+        editPages(tr("Scambia foto", "Swap Photos")) { $0[index] = leaf }
         selectCanvasPhoto(id, in: leaf)
     }
 

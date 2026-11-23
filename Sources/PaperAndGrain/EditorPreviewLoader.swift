@@ -7,6 +7,7 @@ struct EditorPreviewRequest: Hashable, Sendable {
     let look: FilmSettings
     let lutURL: URL?
     let adjustments: PhotoAdjustments?
+    var isFilmSwatch = false
 }
 
 actor EditorPreviewLoader {
@@ -37,6 +38,7 @@ actor EditorPreviewLoader {
 
     private let canvas = Lane(name: "PaperAndGrain.preview.canvas", qos: .userInitiated, megabytes: 80)
     private let thumbnails = Lane(name: "PaperAndGrain.preview.thumbnails", qos: .utility, megabytes: 20)
+    private let filmSwatches = Lane(name: "PaperAndGrain.preview.filmSwatches", qos: .userInitiated, megabytes: 4)
     private static let shared = EditorPreviewLoader { request in
         FilmRenderer.image(from: request.url, maxPixelSize: request.limit, settings: request.look,
                            lutURL: request.lutURL, adjustments: request.adjustments)
@@ -74,7 +76,8 @@ actor EditorPreviewLoader {
     }
 
     private func lane(for request: EditorPreviewRequest) -> Lane {
-        request.limit <= 180 ? thumbnails : canvas
+        if request.isFilmSwatch { return filmSwatches }
+        return request.limit <= 180 ? thumbnails : canvas
     }
 
     private func startNext(in lane: Lane) {

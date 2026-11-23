@@ -9,7 +9,7 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
 - `EditorView.swift` gestisce il libro aperto, il navigatore, l’ispettore e le interazioni.
 - `PageComposition.swift` risolve cornici, ritagli, testo e copertina in punti tipografici. `CanvasObjectControls.swift` gestisce lo spostamento e il ridimensionamento e `CanvasCropControl.swift` la modifica dell’immagine e della cornice durante il ritaglio. I trascinamenti distinguono foto e pagine.
-- `CanvasAlignment.swift` calcola l’aggancio fra foto e box. `CanvasAlignmentGuides.swift` disegna le guide temporanee sul canvas.
+- `CanvasAlignment.swift` calcola l’aggancio fra foto e box. `CanvasAlignmentGuides.swift` disegna le guide temporanee sul canvas. `CanvasPhotoSwap.swift` individua la foto sotto il puntatore durante il trascinamento e scambia le due cornici.
 - `CanvasDeleteShortcut.swift` intercetta Backspace, Canc e il clic nella finestra del libro. `EditorPhotoHitTest.swift` individua la foto sotto il puntatore usando la geometria della pagina. `EditorPreviewLoader.swift` separa il carico delle anteprime e delle miniature.
 - `EditorFilePanels.swift` presenta i selettori file e il controllo di stampa come schede asincrone della finestra. Gli errori operativi rimangono visibili nella finestra senza richiederne l’attivazione.
 - `PhotoAnalysis.swift` produce etichette e temi con Vision e ordina i risultati compatibili con un racconto.

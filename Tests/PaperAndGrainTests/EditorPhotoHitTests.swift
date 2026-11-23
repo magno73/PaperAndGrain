@@ -34,4 +34,13 @@ final class EditorPhotoHitTests: XCTestCase {
         XCTAssertFalse(EditorPhotoHitTest.onCover(at: CGPoint(x: 420, y: 340), frame: frame, geometry: geometry))
         XCTAssertFalse(EditorPhotoHitTest.onCover(at: CGPoint(x: 269, y: 250), frame: frame, geometry: geometry))
     }
+
+    func testLibraryTileCannotBeSelectedOutsideTheScrollViewport() {
+        let id = UUID()
+        let frames = LibraryPhotoFrames(viewport: CGRect(x: 600, y: 180, width: 260, height: 350),
+                                        tiles: [id: CGRect(x: 650, y: 157, width: 72, height: 56)])
+        XCTAssertEqual(frames.photo(at: CGPoint(x: 680, y: 200)), id)
+        XCTAssertNil(frames.photo(at: CGPoint(x: 680, y: 165)))
+        XCTAssertNil(frames.photo(at: CGPoint(x: 740, y: 200)))
+    }
 }

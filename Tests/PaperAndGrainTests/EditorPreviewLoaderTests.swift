@@ -43,14 +43,16 @@ final class EditorPreviewLoaderTests: XCTestCase {
         XCTAssertEqual(starts.count(first), 1)
     }
 
-    func testBlockedThumbnailAllowsCanvasRenderAndCancelledWorkNeverRuns() async throws {
+    func testBlockedThumbnailAllowsCanvasAndFilmSwatchAndCancelledWorkNeverRuns() async throws {
         let sample = try pixels()
         let starts = Starts()
         let first = request("first", size: 180)
         let obsolete = request("obsolete", size: 180)
         let current = request("current", size: 1440)
+        let swatch = request("current", size: 180, isFilmSwatch: true)
         let entered = expectation(description: "First thumbnail is rendering")
         let displayed = expectation(description: "Canvas rendered while thumbnails were busy")
+        let filmDisplayed = expectation(description: "Film swatch rendered while thumbnails were busy")
         let permitFinish = DispatchSemaphore(value: 0)
         defer { permitFinish.signal() }
         let loader = EditorPreviewLoader { request in
@@ -60,21 +62,25 @@ final class EditorPreviewLoaderTests: XCTestCase {
                 _ = permitFinish.wait(timeout: .now() + 5)
             }
             if request == current { displayed.fulfill() }
+            if request == swatch { filmDisplayed.fulfill() }
             return sample
         }
         let thumbnail = Task { await loader.load(first) }
         await fulfillment(of: [entered], timeout: 2)
         let hidden = Task { await loader.load(obsolete) }
         let canvas = Task { await loader.load(current) }
-        await fulfillment(of: [displayed], timeout: 2)
+        let film = Task { await loader.load(swatch) }
+        await fulfillment(of: [displayed, filmDisplayed], timeout: 2)
         hidden.cancel()
         let discarded = await hidden.value
         XCTAssertNil(discarded)
         permitFinish.signal()
         let visibleThumbnail = await thumbnail.value
         let visibleCanvas = await canvas.value
+        let visibleSwatch = await film.value
         XCTAssertNotNil(visibleThumbnail)
         XCTAssertNotNil(visibleCanvas)
+        XCTAssertNotNil(visibleSwatch)
         // A new thumbnail completes after any old request that remained on its FIFO lane.
         let following = await loader.load(request("following", size: 180))
         XCTAssertNotNil(following)
@@ -106,9 +112,10 @@ final class EditorPreviewLoaderTests: XCTestCase {
         XCTAssertEqual(starts.count(request), 1)
     }
 
-    private func request(_ name: String, size: Int, adjustments: PhotoAdjustments? = nil) -> EditorPreviewRequest {
+    private func request(_ name: String, size: Int, adjustments: PhotoAdjustments? = nil,
+                         isFilmSwatch: Bool = false) -> EditorPreviewRequest {
         EditorPreviewRequest(url: URL(fileURLWithPath: "/" + name + ".png"), limit: size, look: FilmSettings(),
-                             lutURL: nil, adjustments: adjustments)
+                             lutURL: nil, adjustments: adjustments, isFilmSwatch: isFilmSwatch)
     }
 
     private func pixels() throws -> CGImage {

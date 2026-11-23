@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.5.3 · 23 novembre 2026
+
+Due foto della stessa pagina si scambiano trascinando una foto all’interno dell’altra. Il bersaglio è evidenziato durante il trascinamento e **⌥** consente la sovrapposizione libera. Il cambio scheda dell’ispettore e le coordinate delle miniature in libreria aggiornano il pannello. I campioni Pellicola possono apparire mentre la coda delle miniature è impegnata. Verificati scambio di cornici, ritagli, persistenza, coordinate e indipendenza delle code. Restano da verificare il gesto nella finestra e i tempi di apertura dei pannelli sul progetto Namibia. La build risiede in `dist/0.5.3/`.
+
 ## 0.5.2 · 23 novembre 2026
 
 La selezione foto parte al rilascio del clic e mantiene il pannello aperto. L’ispettore **Pagina** offre undici modelli per la singola pagina. **Regola foto** e **Pellicola** si aprono dal fronte e dal retro della copertina. Le prove automatiche coprono classificazione del clic, selezione per posizione con zoom, compatibilità dei modelli e resa della sovrapposizione testo e foto nel PDF. Resta da misurare la risposta al clic nella finestra con Namibia. La build risiede in `dist/0.5.2/`.
