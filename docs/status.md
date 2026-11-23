@@ -5,11 +5,11 @@
 | Area | Disponibile | Verifica |
 |---|---|---|
 | Impaginazione | Motore interno a righe, cambio formato, spostamento e copia tra pagine, testo sotto o a fianco | [Confronto con Fotobuch](layout-comparison.md) su 36 immagini dimostrative e due formati. |
-| Pellicole | Tre look nativi, grana, confronto con originale, look globale e per foto, import CUBE 3D/HaldCLUT PNG | Verificate LUT identità, tabella 13³, dominio CUBE, rifiuto di file troncato, grana ripetibile e riapertura dopo il trasferimento del pacchetto. |
+| Pellicole | Tre look nativi, grana, confronto con originale, look globale e per foto, import CUBE 3D/HaldCLUT PNG | Verificate LUT identità, tabella 13³, dominio CUBE, rifiuto di file troncato, grana ripetibile, riapertura dopo il trasferimento del pacchetto e conversione JPEG/HEIC Display P3 SDR in sRGB. |
 | Stampa | Margine, abbondanza, PPI, prima pagina sinistra o destra, interni a pagine singole o doppie, copertina separata, sRGB | Verificati i box PDF, la continuità ai bordi interni del panorama e la paginazione con compensazione. |
 | Progetto | Compatibilità con la 0.1, bundle nuovo in `dist/0.2.0/` | Ricaricata una bozza senza i nuovi campi e verificati i valori predefiniti. |
 
-Il collaudo di composizione si è svolto su copie dimostrative. Restano il confronto visivo delle pagine di Namibia, una prova dedicata con HEIC HDR/P3 e la verifica presso la tipografia scelta.
+Il collaudo di composizione si è svolto su copie dimostrative. Restano il confronto visivo delle pagine di Namibia, una prova dedicata con una foto HEIC HDR e la verifica presso la tipografia scelta.
 
 ## 0.1 · 23 novembre 2026
 
