@@ -8,10 +8,10 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/Paper & Grain.app'
+open 'dist/0.2.0/Paper & Grain.app'
 ```
 
-Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
+Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
 
 ## Fare un primo libro
 
@@ -19,6 +19,13 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 2. Usa le miniature per navigare, aggiungere e riordinare le pagine. Scegli fra **Galleria**, **Pagina di testo**, **Foto e testo**, **Tutta pagina** e **Due pagine**. Nelle composizioni al vivo puoi regolare l’inquadratura. La guida della piega è visibile nell’editor.
 3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. La scheda **Foto** permette di sfogliare gli scatti per tema.
 4. **Salva progetto** crea un pacchetto locale `.papergrain`. **Esporta PDF** produce una prova su pagine singole, anche per una foto che attraversa due pagine. Il globo sceglie lingua di sistema, italiano o inglese.
+
+
+## Pellicole e stampa
+
+La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro.
+
+In **Libro e stampa** si possono cambiare formato, bleed, margine, risoluzione desiderata, tipo di PDF e lato della prima pagina. Imposta la copertina con foto di fronte e retro e la larghezza del dorso. **Esporta per la stampa** produce `Interior.pdf` e, se attivata, `Cover.pdf`. L’esportazione segnala foto sotto la risoluzione obiettivo e pagine di compensazione necessarie per i panorami. Usa le misure del prodotto scelto presso la tipografia.
 
 ## Foto e dati del progetto
 
@@ -28,8 +35,11 @@ Il libro nasce come bozza nell’area Application Support dell’utente. Il pacc
 
 ## Stato e sviluppo
 
-L’impaginazione iniziale usa date di scatto e righe che rispettano le proporzioni. Il confronto con Fotobuch, le pellicole LUT, la grana e i profili specifici di stampa fanno parte delle tappe successive. Il PDF corrente è una prova di impaginazione.
+L’impaginazione iniziale resta in ordine di scatto e in righe che rispettano le proporzioni. Il PDF di prova e il pacchetto di stampa condividono colore e composizione. La produzione va collaudata sul formato scelto presso la tipografia.
 
 - [Architettura e formato del documento](docs/architecture.md)
 - [Collaudi e stato delle funzionalità](docs/status.md)
+- [Confronto del motore con Fotobuch](docs/layout-comparison.md)
 - [Istruzioni per chi lavora al codice](AGENTS.md)
+
+`swift test` verifica la riapertura dei documenti, il trasferimento delle LUT e la geometria dei PDF.

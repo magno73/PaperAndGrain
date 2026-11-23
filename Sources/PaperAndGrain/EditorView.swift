@@ -1,5 +1,5 @@
 import AppKit
-import ImageIO
+import UniformTypeIdentifiers
 import SwiftUI
 
 struct EditorView: View {
@@ -19,12 +19,19 @@ struct EditorView: View {
     @State private var gutterGuide = false
     @State private var showDelete = false
     @State private var inspector: Inspector = .page
+    @State private var filmScope: FilmScope = .book
+    @State private var compareOriginal = false
+    @State private var lutImportError: String?
     @State private var concept: String?
     @State private var search = ""
     @State private var undoTarget = EditorPageUndo()
 
     private enum Inspector: String, CaseIterable {
-        case page, photos
+        case page, photos, film
+    }
+
+    private enum FilmScope: Hashable {
+        case book, photo
     }
 
     private let ink = Color(red: 0.14, green: 0.17, blue: 0.14)
@@ -94,6 +101,14 @@ struct EditorView: View {
         } message: {
             Text(tr("Le foto della pagina resteranno disponibili nel libro.",
                     "The page’s photos will remain available in the book."))
+        }
+        .alert(tr("Impossibile importare la LUT", "Couldn’t import the LUT"), isPresented: Binding(
+            get: { lutImportError != nil },
+            set: { if !$0 { lutImportError = nil } }
+        )) {
+            Button(tr("OK", "OK")) { lutImportError = nil }
+        } message: {
+            Text(lutImportError ?? "")
         }
     }
 
@@ -247,6 +262,10 @@ struct EditorView: View {
                     caption(tr("Pagina", "Page") + " " + spreadNumber([page]))
                 }
                 Spacer()
+                if compareOriginal {
+                    Button(tr("Torna al look pellicola", "Return to film look")) { compareOriginal = false }
+                        .controlSize(.small)
+                }
                 Picker(tr("Vista", "View"), selection: $showSpread) {
                     Image(systemName: "rectangle.portrait").tag(false)
                         .accessibilityLabel(tr("Pagina singola", "Single Page"))
@@ -385,13 +404,14 @@ struct EditorView: View {
     private func canvasPage(_ leaf: BookPage, width: CGFloat, height: CGFloat, showFolio: Bool) -> some View {
         let printHeight = max(1, book.format.heightMM * 72 / 25.4)
         let scale = height / printHeight
-        let padding = min(min(width, height) * 0.2, min(30 * scale, height * 0.11))
+        let padding = min(min(width, height) * 0.49, book.contentInsetPoints * scale)
         let innerWidth = max(1, width - padding * 2)
         let innerHeight = max(1, height - padding * 2)
         return ZStack(alignment: .bottomTrailing) {
             paper.onTapGesture {
                 select(leaf)
                 selectedPhoto = nil
+                filmScope = .book
             }
             switch leaf.layout {
             case .fullPage, .fullSpread:
@@ -404,14 +424,17 @@ struct EditorView: View {
                 gallery(leaf, width: innerWidth, height: innerHeight, gap: 6 * scale)
                     .frame(width: width, height: height)
             case .mixed:
-                let spacing = 12 * scale
-                let photoHeight = innerHeight * 0.57
-                VStack(alignment: .leading, spacing: spacing) {
-                    gallery(leaf, width: innerWidth, height: photoHeight, gap: 6 * scale)
+                let parts = BookLayoutGeometry.mixedArea(in: CGRect(x: 0, y: 0, width: innerWidth, height: innerHeight),
+                                                         placement: leaf.textPlacement, spacing: 12 * scale)
+                ZStack(alignment: .topLeading) {
+                    gallery(leaf, width: parts.photo.width, height: parts.photo.height, gap: 6 * scale)
+                        .position(x: parts.photo.midX, y: parts.photo.midY)
                     prose(leaf, scale: scale)
-                        .frame(width: innerWidth, height: max(1, innerHeight - photoHeight - spacing), alignment: .topLeading)
+                        .frame(width: parts.text.width, height: parts.text.height, alignment: .topLeading)
                         .clipped()
+                        .position(x: parts.text.midX, y: parts.text.midY)
                 }
+                .frame(width: innerWidth, height: innerHeight)
                 .frame(width: width, height: height)
             case .text:
                 prose(leaf, scale: scale)
@@ -485,7 +508,11 @@ struct EditorView: View {
         return Button {
             select(leaf)
             selectedPhoto = photo.id
-            inspector = .photos
+            if inspector == .film {
+                filmScope = .photo
+            } else {
+                inspector = .photos
+            }
         } label: {
             preview(photo, framing: framing, fills: fills)
                 .frame(width: width, height: height)
@@ -527,6 +554,7 @@ struct EditorView: View {
             Picker(tr("Ispettore", "Inspector"), selection: $inspector) {
                 Text(tr("Pagina", "Page")).tag(Inspector.page)
                 Text(tr("Foto", "Photos")).tag(Inspector.photos)
+                Text(tr("Pellicola", "Film")).tag(Inspector.film)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -534,10 +562,10 @@ struct EditorView: View {
             Rectangle().fill(edge).frame(height: 1)
             ScrollView {
                 VStack(alignment: .leading, spacing: 21) {
-                    if inspector == .page {
-                        pageInspector
-                    } else {
-                        photoInspector
+                    switch inspector {
+                    case .page: pageInspector
+                    case .photos: photoInspector
+                    case .film: filmInspector
                     }
                 }
                 .padding(15)
@@ -565,6 +593,19 @@ struct EditorView: View {
             if page.layout == .text || page.layout == .mixed {
                 VStack(alignment: .leading, spacing: 8) {
                     caption(tr("Racconto", "Story"))
+                    if page.layout == .mixed {
+                        Picker(tr("Posizione del testo", "Text Position"), selection: Binding(
+                            get: { self.page?.textPlacement ?? .below },
+                            set: { placement in
+                                guard let index else { return }
+                                book.pages[index].textPlacement = placement
+                            }
+                        )) {
+                            Text(tr("Sotto", "Below")).tag(PageTextPlacement.below)
+                            Text(tr("A fianco", "Beside")).tag(PageTextPlacement.beside)
+                        }
+                        .pickerStyle(.segmented)
+                    }
                     TextEditor(text: text)
                         .font(.system(size: 14, design: .serif))
                         .scrollContentBackground(.hidden)
@@ -601,6 +642,7 @@ struct EditorView: View {
                                     .disabled(page.photoIDs.first == photo.id)
                                 Button(tr("Sposta dopo", "Move later")) { reorderPhoto(photo.id, by: 1) }
                                     .disabled(page.photoIDs.last == photo.id)
+                                photoTransferMenu(photo, from: page)
                                 Button(tr("Rimuovi dalla pagina", "Remove from page"), role: .destructive) { remove(photo.id) }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
@@ -623,6 +665,26 @@ struct EditorView: View {
         } else {
             intro(tr("Aggiungi una pagina per impaginare foto e racconti.",
                      "Add a page to arrange photos and stories."))
+        }
+    }
+
+    @ViewBuilder private func photoTransferMenu(_ photo: BookPhoto, from source: BookPage) -> some View {
+        let destinations = book.pages.filter { $0.id != source.id && !$0.photoIDs.contains(photo.id) }
+        if !destinations.isEmpty {
+            Menu(tr("Copia nella pagina", "Copy to page")) {
+                ForEach(destinations) { destination in
+                    Button(spreadNumber([destination])) {
+                        transferPhoto(photo.id, from: source.id, to: destination.id, moving: false)
+                    }
+                }
+            }
+            Menu(tr("Sposta nella pagina", "Move to page")) {
+                ForEach(destinations) { destination in
+                    Button(spreadNumber([destination])) {
+                        transferPhoto(photo.id, from: source.id, to: destination.id, moving: true)
+                    }
+                }
+            }
         }
     }
 
@@ -731,6 +793,10 @@ struct EditorView: View {
                 if assigned { remove(photo.id) } else { assign(photo.id) }
             }
             .disabled(page == nil)
+            Button(tr("Look pellicola", "Film look")) {
+                filmScope = .photo
+                inspector = .film
+            }
         }
         .padding(9)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -782,29 +848,197 @@ struct EditorView: View {
         }
     }
 
-    private func preview(_ photo: BookPhoto, small: Bool = false, framing: Double = 0.5, fills: Bool = true) -> some View {
-        let url = BookStorage.assetURL(filename: photo.filename, in: directory)
-        return GeometryReader { geometry in
-            if let image = EditorImageCache.image(at: url, small: small) {
-                let scaleX = geometry.size.width / image.size.width
-                let scaleY = geometry.size.height / image.size.height
-                let scale = fills ? max(scaleX, scaleY) : min(scaleX, scaleY)
-                let width = image.size.width * scale
-                let height = image.size.height * scale
-                let amount = min(1, max(0, framing))
-                Image(nsImage: image)
-                    .resizable()
-                    .frame(width: width, height: height)
-                    .position(
-                        x: width / 2 + (geometry.size.width - width) * amount,
-                        y: height / 2 + (geometry.size.height - height) * amount
-                    )
-                    .accessibilityHidden(true)
-            } else {
-                placeholder
+    private var filmPhoto: BookPhoto? {
+        selectedPhoto.flatMap(book.photo)
+    }
+
+    private var currentFilm: FilmSettings {
+        if filmScope == .photo, let photo = filmPhoto { return book.effectiveFilm(for: photo) }
+        return book.film ?? FilmSettings()
+    }
+
+    private var filmInspector: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 8) {
+                caption(tr("Look pellicola", "Film look"))
+                Picker(tr("Applica a", "Apply to"), selection: $filmScope) {
+                    Text(tr("Libro", "Book")).tag(FilmScope.book)
+                    Text(tr("Foto selezionata", "Selected photo"))
+                        .tag(FilmScope.photo)
+                        .disabled(filmPhoto == nil)
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selectedPhoto) { _, id in
+                    if id == nil { filmScope = .book }
+                }
+                if filmScope == .photo, let photo = filmPhoto {
+                    Text(photo.name)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(2)
+                    Toggle(tr("Usa il look del libro", "Use book look"), isOn: Binding(
+                        get: { filmPhoto?.film == nil },
+                        set: { inherit in
+                            if inherit {
+                                setPhotoFilm(nil, for: photo.id)
+                            } else {
+                                setPhotoFilm(book.effectiveFilm(for: photo), for: photo.id)
+                            }
+                        }
+                    ))
+                }
+            }
+            VStack(alignment: .leading, spacing: 9) {
+                filmSwatches
+                Button {
+                    importFilmLUT()
+                } label: {
+                    Label(tr("Importa LUT", "Import LUT"), systemImage: "square.and.arrow.down")
+                }
+                if currentFilm.preset == .custom, let filename = currentFilm.lutFilename {
+                    Text(filmLUTName(filename))
+                        .font(.system(size: 10))
+                        .foregroundStyle(muted)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            .disabled(filmScope == .photo && filmPhoto?.film == nil)
+            Divider()
+            VStack(alignment: .leading, spacing: 10) {
+                filmSlider(tr("Intensità", "Intensity"), value: \.strength)
+                    .disabled(currentFilm.preset == .original)
+                filmSlider(tr("Grana", "Grain"), value: \.grain)
+                filmSlider(tr("Dimensione grana", "Grain size"), value: \.grainSize)
+                    .disabled(currentFilm.grain == 0)
+            }
+            .disabled(filmScope == .photo && filmPhoto?.film == nil)
+            Divider()
+            Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
+                .disabled(book.photos.isEmpty)
+        }
+    }
+
+    private var filmSwatches: some View {
+        let reference = filmPhoto ?? page.flatMap { photos(on: $0).first } ?? book.photos.first
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            ForEach(FilmPreset.allCases, id: \.self) { preset in
+                let active = preset == currentFilm.preset
+                let swatch = FilmSettings(preset: preset, lutFilename: preset == .custom ? currentFilm.lutFilename : nil)
+                Button {
+                    setFilm { $0.preset = preset }
+                } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        ZStack {
+                            if let reference, preset != .custom || swatch.lutFilename != nil {
+                                preview(reference, small: true, settings: swatch)
+                            } else {
+                                Rectangle().fill(pine.opacity(0.08))
+                                Image(systemName: preset == .custom ? "square.and.arrow.down" : "photo")
+                                    .foregroundStyle(pine)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        .frame(height: 45)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        Text(filmName(preset))
+                            .font(.system(size: 10, weight: active ? .semibold : .regular))
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(5)
+                    .background(active ? pine.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 7).strokeBorder(active ? pine : edge)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(preset == .custom && swatch.lutFilename == nil)
+                .accessibilityLabel(filmName(preset))
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
-        .clipped()
+    }
+
+    private func filmName(_ preset: FilmPreset) -> String {
+        switch preset {
+        case .original: tr("Originale", "Original")
+        case .documentary: tr("Documentario", "Documentary")
+        case .warmNegative: tr("Negativo caldo", "Warm Negative")
+        case .monochrome: tr("Monocromatico", "Monochrome")
+        case .custom: tr("LUT personalizzata", "Custom LUT")
+        }
+    }
+
+    private func filmSlider(_ label: String, value: WritableKeyPath<FilmSettings, Double>) -> some View {
+        let amount = currentFilm[keyPath: value]
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label).font(.system(size: 11))
+                Spacer()
+                Text(amount.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(muted)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(
+                get: { currentFilm[keyPath: value] },
+                set: { amount in setFilm { $0[keyPath: value] = amount } }
+            ), in: 0...1, step: 0.02)
+                .accessibilityLabel(label)
+        }
+    }
+
+    private func setFilm(_ edit: (inout FilmSettings) -> Void) {
+        var settings = currentFilm
+        edit(&settings)
+        guard settings != currentFilm else { return }
+        if filmScope == .photo, let photo = filmPhoto, photo.film != nil {
+            setPhotoFilm(settings, for: photo.id)
+        } else if filmScope == .book {
+            book.film = settings
+        }
+    }
+
+    private func setPhotoFilm(_ settings: FilmSettings?, for id: UUID) {
+        guard let index = book.photos.firstIndex(where: { $0.id == id }) else { return }
+        book.photos[index].film = settings
+    }
+
+    private func importFilmLUT() {
+        let panel = NSOpenPanel()
+        panel.title = tr("Importa LUT", "Import LUT")
+        panel.message = tr("Scegli un file .cube 3D o un PNG Hald CLUT.",
+                           "Choose a 3D .cube file or a Hald CLUT PNG.")
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "cube"), .png].compactMap { $0 }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let filename = try BookStorage.importLUT(url, in: directory)
+            setFilm {
+                $0.preset = .custom
+                $0.lutFilename = filename
+            }
+        } catch {
+            lutImportError = tr("Verifica che il file sia una LUT .cube 3D o un PNG Hald CLUT valido.",
+                                "Check that the file is a valid 3D .cube LUT or Hald CLUT PNG.")
+        }
+    }
+
+    private func filmLUTName(_ filename: String) -> String {
+        filename.replacingOccurrences(of: "-[0-9a-f]{16}(?=\\.)", with: "", options: .regularExpression)
+    }
+
+    private func preview(_ photo: BookPhoto, small: Bool = false, framing: Double = 0.5,
+                         fills: Bool = true, settings: FilmSettings? = nil) -> some View {
+        let url = BookStorage.assetURL(filename: photo.filename, in: directory)
+        let look = settings ?? (compareOriginal ? FilmSettings() : book.effectiveFilm(for: photo))
+        let lutURL = look.lutFilename.map { BookStorage.lutURL(filename: $0, in: directory) }
+        let request = EditorPreviewRequest(url: url, limit: small ? 180 : 1440, look: look, lutURL: lutURL)
+        return EditorPreview(request: request, framing: framing, fills: fills) {
+            placeholder
+        }
     }
 
     private var dimensions: String {
@@ -893,6 +1127,7 @@ struct EditorView: View {
     private func select(_ leaf: BookPage) {
         if leaf.id != page?.id {
             selectedPhoto = nil
+            filmScope = .book
             writing = false
         }
         selection = leaf.id
@@ -918,6 +1153,7 @@ struct EditorView: View {
         editPages(tr("Elimina pagina", "Delete Page")) { $0.remove(at: index) }
         selection = book.pages.isEmpty ? nil : book.pages[min(index, book.pages.count - 1)].id
         selectedPhoto = nil
+        filmScope = .book
     }
 
     private func move(_ offset: Int) {
@@ -931,17 +1167,36 @@ struct EditorView: View {
         let leaf = book.pages[index]
         guard !leaf.photoIDs.contains(id) else { return }
         editPages(tr("Aggiungi foto", "Add Photo")) { pages in
-            switch leaf.layout {
-            case .fullPage, .fullSpread:
-                pages[index].photoIDs.insert(id, at: 0)
-            case .text:
-                pages[index].layout = .mixed
-                pages[index].photoIDs.append(id)
-            case .gallery, .mixed:
-                pages[index].photoIDs.append(id)
-            }
+            Self.placePhoto(id, on: &pages[index])
         }
         selectedPhoto = id
+    }
+
+    private func transferPhoto(_ id: UUID, from sourceID: UUID, to destinationID: UUID, moving: Bool) {
+        guard sourceID != destinationID,
+              let source = book.pages.firstIndex(where: { $0.id == sourceID }),
+              let destination = book.pages.firstIndex(where: { $0.id == destinationID }),
+              book.pages[source].photoIDs.contains(id),
+              !book.pages[destination].photoIDs.contains(id) else { return }
+        let name = moving ? tr("Sposta foto", "Move Photo") : tr("Copia foto", "Copy Photo")
+        editPages(name) { pages in
+            Self.placePhoto(id, on: &pages[destination])
+            if moving { pages[source].photoIDs.removeAll { $0 == id } }
+        }
+        select(book.pages[destination])
+        selectedPhoto = id
+    }
+
+    private static func placePhoto(_ id: UUID, on page: inout BookPage) {
+        switch page.layout {
+        case .fullPage, .fullSpread:
+            page.photoIDs.insert(id, at: 0)
+        case .text:
+            page.layout = .mixed
+            page.photoIDs.append(id)
+        case .gallery, .mixed:
+            page.photoIDs.append(id)
+        }
     }
 
     private func remove(_ id: UUID) {
@@ -989,24 +1244,95 @@ private final class EditorPageUndo {
     }
 }
 
-private enum EditorImageCache {
-    static let cache: NSCache<NSString, NSImage> = {
-        let cache = NSCache<NSString, NSImage>()
+private struct EditorPreviewRequest: Hashable, Sendable {
+    let url: URL
+    let limit: Int
+    let look: FilmSettings
+    let lutURL: URL?
+}
+
+private enum EditorPreviewCache {
+    private final class Key: NSObject {
+        let request: EditorPreviewRequest
+
+        init(_ request: EditorPreviewRequest) {
+            self.request = request
+        }
+
+        override var hash: Int { request.hashValue }
+
+        override func isEqual(_ object: Any?) -> Bool {
+            (object as? Key)?.request == request
+        }
+    }
+
+    private static let images: NSCache<Key, CGImage> = {
+        let cache = NSCache<Key, CGImage>()
         cache.totalCostLimit = 100 * 1024 * 1024
         return cache
     }()
 
-    static func image(at url: URL, small: Bool) -> NSImage? {
-        let key = "\(url.path):\(small)" as NSString
-        if let cached = cache.object(forKey: key) { return cached }
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
-              let pixels = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: small ? 180 : 1440
-              ] as CFDictionary) else { return nil }
-        let image = NSImage(cgImage: pixels, size: NSSize(width: pixels.width, height: pixels.height))
-        cache.setObject(image, forKey: key, cost: pixels.bytesPerRow * pixels.height)
-        return image
+    static func image(for request: EditorPreviewRequest) -> CGImage? {
+        let key = Key(request)
+        if let cached = images.object(forKey: key) { return cached }
+        guard let rendered = FilmRenderer.image(from: request.url, maxPixelSize: request.limit,
+                                                settings: request.look, lutURL: request.lutURL) else { return nil }
+        images.setObject(rendered, forKey: key, cost: rendered.bytesPerRow * rendered.height)
+        return rendered
+    }
+}
+
+private struct EditorPreview<Placeholder: View>: View {
+    let request: EditorPreviewRequest
+    let framing: Double
+    let fills: Bool
+    @ViewBuilder let placeholder: () -> Placeholder
+
+    @State private var image: NSImage?
+    @State private var displayedURL: URL?
+
+    var body: some View {
+        GeometryReader { geometry in
+            if let image, displayedURL == request.url {
+                let scaleX = geometry.size.width / image.size.width
+                let scaleY = geometry.size.height / image.size.height
+                let scale = fills ? max(scaleX, scaleY) : min(scaleX, scaleY)
+                let width = image.size.width * scale
+                let height = image.size.height * scale
+                let amount = min(1, max(0, framing))
+                Image(nsImage: image)
+                    .resizable()
+                    .frame(width: width, height: height)
+                    .position(
+                        x: width / 2 + (geometry.size.width - width) * amount,
+                        y: height / 2 + (geometry.size.height - height) * amount
+                    )
+                    .accessibilityHidden(true)
+            } else {
+                placeholder()
+            }
+        }
+        .clipped()
+        .task(id: request) {
+            let request = request
+            if displayedURL == request.url {
+                try? await Task.sleep(for: .milliseconds(75))
+            }
+            guard !Task.isCancelled else { return }
+            let render = Task.detached(priority: .userInitiated) {
+                guard !Task.isCancelled else { return nil as CGImage? }
+                return EditorPreviewCache.image(for: request)
+            }
+            let pixels = await withTaskCancellationHandler {
+                await render.value
+            } onCancel: {
+                render.cancel()
+            }
+            guard !Task.isCancelled else { return }
+            image = pixels.map {
+                NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height))
+            }
+            displayedURL = request.url
+        }
     }
 }

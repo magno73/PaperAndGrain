@@ -10,11 +10,16 @@ struct BookPhoto: Identifiable, Codable, Hashable, Sendable {
     var pixelWidth: Int
     var pixelHeight: Int
     var analysis: PhotoAnalysis? = nil
+    var film: FilmSettings? = nil
 }
 
 enum PageLayout: String, Codable, CaseIterable, Identifiable, Sendable {
     case gallery, text, mixed, fullPage, fullSpread
     var id: Self { self }
+}
+
+enum PageTextPlacement: String, Codable, Hashable, Sendable {
+    case below, beside
 }
 
 struct BookPage: Identifiable, Codable, Hashable, Sendable {
@@ -24,6 +29,7 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var text = ""
     /// Normalized alignment along the axis cropped by a full-bleed photo.
     var framing: Double? = nil
+    var textPlacement: PageTextPlacement? = nil
 }
 
 struct BookFormat: Codable, Hashable, Sendable {
@@ -41,8 +47,21 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var photos: [BookPhoto] = []
     var pages: [BookPage] = []
     var schemaVersion = 1
+    var film: FilmSettings? = nil
+    var printSettings: PrintSettings? = nil
+    var cover: BookCover? = nil
 
     func photo(_ id: UUID) -> BookPhoto? { photos.first { $0.id == id } }
+
+    func effectiveFilm(for photo: BookPhoto) -> FilmSettings {
+        photo.film ?? film ?? FilmSettings()
+    }
+
+    var contentInsetPoints: Double {
+        let scale = 72.0 / 25.4
+        let shortestSide = min(format.widthMM, format.heightMM) * scale
+        return printSettings.map { $0.safeMM * scale } ?? min(30, shortestSide * 0.11)
+    }
 
     mutating func autoLayout() {
         let ordered = photos.enumerated().sorted { lhs, rhs in
@@ -69,6 +88,19 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
 }
 
 enum BookLayoutGeometry {
+    static func mixedArea(in rect: CGRect, placement: PageTextPlacement?, spacing: Double) -> (photo: CGRect, text: CGRect) {
+        if placement == .beside {
+            let boundary = rect.minX + rect.width * 0.60
+            let gap = min(spacing, rect.width * 0.12)
+            return (CGRect(x: rect.minX, y: rect.minY, width: boundary - rect.minX, height: rect.height),
+                    CGRect(x: boundary + gap, y: rect.minY, width: rect.maxX - boundary - gap, height: rect.height))
+        }
+        let boundary = rect.minY + rect.height * 0.57
+        let gap = min(spacing, rect.height * 0.12)
+        return (CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: boundary - rect.minY),
+                CGRect(x: rect.minX, y: boundary + gap, width: rect.width, height: rect.maxY - boundary - gap))
+    }
+
     static func rectangles(for ratios: [Double], in rect: CGRect, gap: Double) -> [CGRect] {
         guard !ratios.isEmpty, rect.width > 0, rect.height > 0 else { return [] }
         let aspects = ratios.map { $0.isFinite && $0 > 0 ? min(100, max(0.01, $0)) : 1 }

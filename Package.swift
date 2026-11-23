@@ -5,5 +5,8 @@ let package = Package(
     name: "PaperAndGrain",
     platforms: [.macOS(.v14)],
     products: [.executable(name: "PaperAndGrain", targets: ["PaperAndGrain"])],
-    targets: [.executableTarget(name: "PaperAndGrain")]
+    targets: [
+        .executableTarget(name: "PaperAndGrain"),
+        .testTarget(name: "PaperAndGrainTests", dependencies: ["PaperAndGrain"]),
+    ]
 )

@@ -9,7 +9,8 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
 - `EditorView.swift` gestisce il libro aperto, il navigatore, l’ispettore e le interazioni.
 - `PhotoAnalysis.swift` produce etichette e temi con Vision e ordina i risultati compatibili con un racconto.
-- `BookPDF.swift` esporta la bozza. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
+- `FilmPipeline.swift` condivide sviluppo colore, LUT e grana tra editor e stampa.
+- `BookSettingsView.swift`, `PrintSettings.swift` e `BookPDF.swift` gestiscono formato, copertina, prova e stampa. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
 
 I sorgenti Swift sono in `Sources/PaperAndGrain/`. `scripts/build-app.sh` compila e prepara il bundle da collaudare.
 
@@ -23,7 +24,7 @@ Verifica ogni nuova etichetta visibile in IT e EN. Usa il catalogo `Resources/Lo
 
 ## Verifica e documentazione
 
-- Compila con `./scripts/build-app.sh` e prova il percorso a cui appartiene il cambiamento. Usa il libro dimostrativo per i collaudi senza permessi Foto.
+- Compila con `./scripts/build-app.sh`, esegui `swift test` e prova il percorso a cui appartiene il cambiamento. Usa il libro dimostrativo per i collaudi senza permessi Foto.
 - Per una modifica all’esportazione, apri il PDF risultante e controlla dimensioni, testo lungo, foto a tutta pagina e continuità delle doppie pagine.
 - Per una modifica all’analisi, prova almeno un racconto italiano, uno inglese e un testo senza corrispondenze. Verifica che i match suggeriti siano spiegabili dalle etichette e che rimangano modificabili.
 - Nello stesso commit di una modifica rilevante, aggiorna il README se cambiano avvio o percorso utente. Aggiorna architettura se cambia un contratto. In `docs/status.md` annota cosa hai verificato e che cosa resta da provare.

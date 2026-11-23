@@ -15,6 +15,7 @@ final class Workspace: ObservableObject {
 
     private var analysisTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
+    private var exportTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
     static let bookType = UTType(exportedAs: "local.paperandgrain.book", conformingTo: .package)
 
@@ -52,6 +53,7 @@ final class Workspace: ObservableObject {
     }
 
     func cancelImport() { importTask?.cancel() }
+    func cancelExport() { exportTask?.cancel() }
 
     private func importImages(
         count: Int, title: String, format: BookFormat, language: String,
@@ -231,15 +233,56 @@ final class Workspace: ObservableObject {
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = safeFilename(book.title)
         guard panel.runModal() == .OK, let destination = panel.url else { return }
+        export(to: destination, from: directory, forPrint: false)
+    }
+
+    func exportPrint(language: String) {
+        guard let directory, !book.pages.isEmpty, !exporting else { return }
+        let italian = language == "it"
+        let warnings = BookPDF.printWarnings(book)
+        if !warnings.isEmpty {
+            let check = NSAlert()
+            check.messageText = italian ? "Controllo di stampa" : "Print Check"
+            let lines = warnings.prefix(8).joined(separator: "\n")
+            let suffix = warnings.count > 8 ? "\n… +\(warnings.count - 8)" : ""
+            check.informativeText = lines + suffix
+            check.addButton(withTitle: italian ? "Continua" : "Continue")
+            check.addButton(withTitle: italian ? "Annulla" : "Cancel")
+            guard check.runModal() == .alertFirstButtonReturn else { return }
+        }
+        let panel = NSSavePanel()
+        panel.message = italian ? "Scegli dove creare la cartella dei PDF" : "Choose where to create the PDF folder"
+        panel.nameFieldStringValue = safeFilename(book.title) + (italian ? " – Stampa" : " – Print")
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        export(to: destination, from: directory, forPrint: true)
+    }
+
+    private func export(to destination: URL, from directory: URL, forPrint: Bool) {
         let snapshot = book
         exporting = true
-        Task {
-            defer { exporting = false }
+        exportTask = Task {
+            defer {
+                exporting = false
+                exportTask = nil
+            }
             do {
-                try await Task.detached(priority: .userInitiated) {
-                    try BookPDF.write(snapshot, directory: directory, to: destination)
-                }.value
-            } catch { problem = error.localizedDescription }
+                let worker = Task.detached(priority: .userInitiated) {
+                    if forPrint {
+                        try BookPDF.writePrint(snapshot, directory: directory, to: destination)
+                    } else {
+                        try BookPDF.write(snapshot, directory: directory, to: destination)
+                    }
+                }
+                try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: {
+                    worker.cancel()
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                problem = error.localizedDescription
+            }
         }
     }
 

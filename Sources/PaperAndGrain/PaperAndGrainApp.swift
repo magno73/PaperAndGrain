@@ -6,6 +6,7 @@ struct PaperAndGrainApp: App {
     @StateObject private var workspace = Workspace()
     @AppStorage("interfaceLanguage") private var preferredLanguage = "system"
     @State private var showAlbums = false
+    @State private var showBookSettings = false
     @State private var hasRestored = false
 
     private var language: String {
@@ -40,7 +41,17 @@ struct PaperAndGrainApp: App {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     if workspace.directory != nil {
-                        Button(s("Salva progetto…", "Save Project…"), action: workspace.saveProject)
+                        Menu {
+                            Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
+                            Button(s("Salva progetto…", "Save Project…"), action: workspace.saveProject)
+                            Divider()
+                            Button(s("Esporta per la stampa…", "Export for Print…")) {
+                                workspace.exportPrint(language: language)
+                            }
+                            .disabled(workspace.book.pages.isEmpty || workspace.exporting)
+                        } label: {
+                            Label(s("Libro e stampa", "Book & Print"), systemImage: "book.closed")
+                        }
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -60,12 +71,23 @@ struct PaperAndGrainApp: App {
                     workspace.start(photos, title: title, format: format, language: language)
                 }
             }
+            .sheet(isPresented: $showBookSettings) {
+                BookSettingsView(book: workspace.book, language: language, close: { showBookSettings = false }) {
+                    title, format, printSettings, cover in
+                    workspace.book.title = title
+                    workspace.book.format = format
+                    workspace.book.printSettings = printSettings
+                    workspace.book.cover = cover
+                    workspace.flushSave()
+                    showBookSettings = false
+                }
+            }
             .overlay {
                 if workspace.importing {
                     progressCard(label: s("Importo le immagini", "Importing photos"), value: workspace.importProgress,
                                  cancel: workspace.cancelImport)
                 } else if workspace.exporting {
-                    progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: nil)
+                    progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: workspace.cancelExport)
                 }
             }
             .alert(s("Paper & Grain", "Paper & Grain"), isPresented: Binding(
