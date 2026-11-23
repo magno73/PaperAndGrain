@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.7.0 · 23 novembre 2026
+
+Titolo, racconto, box e testi di copertina si spostano e si ridimensionano direttamente sulla pagina. Il selettore dei font offre famiglie, varianti, anteprima, preferiti e recenti. **Salva progetto** aggiorna il pacchetto già nominato e **Salva con nome** ne crea una copia. **Esporta PDF** aggiunge il profilo Pixartprinting 21 × 21 cm con copertina rigida e dorso da preventivo. I test verificano persistenza, larghezza delle cornici, scrittura del manifest, misure del PDF e paginazione con dorso variabile. Restano il collaudo dei gesti nella finestra e la verifica del file con il preventivo di stampa. La build risiede in `dist/0.7.0/`.
+
 ## 0.6.0 · 23 novembre 2026
 
 Il selettore pagina raggruppa i modelli al vivo e aggiunge due foto affiancate, due in verticale, tre colonne, una griglia di quattro e una foto grande sopra due. In **Tipografia** si scelgono font, corpo e allineamento per titoli, racconti, copertina e box. Il libro può impostare valori predefiniti e gli oggetti possono modificarli singolarmente. I test coprono lettura dei progetti precedenti, ereditarietà, posizione del testo nel PDF, abbondanza e giunzioni delle foto. Resta il collaudo interattivo dei nuovi controlli. La build risiede in `dist/0.6.0/`.

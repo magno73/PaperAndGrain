@@ -17,29 +17,54 @@ final class Workspace: ObservableObject {
     private var importTask: Task<Void, Never>?
     private var exportTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    private var documentSession = UUID()
+    private var directoryIdentity: BookStorage.DirectoryIdentity?
+    private let defaults: UserDefaults
     static let bookType = UTType(exportedAs: "local.paperandgrain.book", conformingTo: .package)
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     private struct DocumentLocation: Equatable {
         let id: UUID
         let directory: URL?
+        let session: UUID
     }
 
     private var documentLocation: DocumentLocation {
-        DocumentLocation(id: book.id, directory: directory?.standardizedFileURL)
+        DocumentLocation(id: book.id, directory: directory?.standardizedFileURL, session: documentSession)
+    }
+
+    var needsSaveLocation: Bool {
+        directory.map { BookStorage.isManagedDraft($0) } ?? false
     }
 
     func scheduleSave() {
         guard directory != nil else { return }
+        let origin = documentLocation
         saveTask?.cancel()
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(220))
-            if !Task.isCancelled { flushSave() }
+            guard !Task.isCancelled, documentLocation == origin else { return }
+            saveTask = nil
+            flushSave()
         }
     }
 
-    func flushSave() {
-        guard let directory else { return }
-        do { try BookStorage.write(book, to: directory) } catch { problem = error.localizedDescription }
+    @discardableResult
+    func flushSave() -> Bool {
+        saveTask?.cancel()
+        saveTask = nil
+        guard let directory else { return true }
+        do {
+            try validateLocation(directory)
+            try BookStorage.writeExisting(book, to: directory)
+            return true
+        } catch {
+            problem = error.localizedDescription
+            return false
+        }
     }
 
     func start(_ imported: [LibraryPhoto], title: String, format: BookFormat, language: String) {
@@ -102,8 +127,8 @@ final class Workspace: ObservableObject {
                 guard !newBook.photos.isEmpty else { throw PhotoImportError.unreadableImage }
                 newBook.autoLayout()
                 try BookStorage.write(newBook, to: folder)
+                guard flushSave() else { return }
                 keepFolder = true
-                flushSave()
                 open(newBook, in: folder)
                 analyze(language: language)
                 if failures > 0 {
@@ -164,14 +189,32 @@ final class Workspace: ObservableObject {
         analysisTask = nil
         analysisRun = nil
         analysisProgress = nil
-        directory = folder
         book = incoming
-        UserDefaults.standard.set(folder.path, forKey: "lastBook")
+        rememberLocation(folder)
+    }
+
+    private func rememberLocation(_ folder: URL?) {
+        saveTask?.cancel()
+        saveTask = nil
+        documentSession = UUID()
+        directoryIdentity = folder.flatMap { BookStorage.identity(of: $0) }
+        directory = folder
+        if let folder {
+            defaults.set(folder.path, forKey: "lastBook")
+        } else {
+            defaults.removeObject(forKey: "lastBook")
+        }
+    }
+
+    private func validateLocation(_ folder: URL) throws {
+        if let directoryIdentity, BookStorage.identity(of: folder) != directoryIdentity {
+            throw CocoaError(.fileNoSuchFile, userInfo: [NSURLErrorKey: folder])
+        }
     }
 
     func reopenLastBook() {
         guard directory == nil,
-              let path = UserDefaults.standard.string(forKey: "lastBook"),
+              let path = defaults.string(forKey: "lastBook"),
               let restored = try? BookStorage.read(from: URL(fileURLWithPath: path)) else { return }
         open(restored, in: URL(fileURLWithPath: path))
     }
@@ -188,24 +231,41 @@ final class Workspace: ObservableObject {
     }
 
     func openProject(at url: URL) {
+        if let directory, BookStorage.sameLocation(directory, url) {
+            flushSave()
+            return
+        }
+        if let directoryIdentity, BookStorage.identity(of: url) == directoryIdentity {
+            // The same package was moved while open. Continue saving in its new location.
+            rememberLocation(url)
+            flushSave()
+            return
+        }
         do {
             let restored = try BookStorage.read(from: url)
-            flushSave()
+            guard flushSave() else { return }
             open(restored, in: url)
         } catch { problem = error.localizedDescription }
     }
 
     func closeBook() {
-        flushSave()
+        guard flushSave() else { return }
         analysisTask?.cancel()
         analysisTask = nil
         analysisRun = nil
         analysisProgress = nil
-        directory = nil
-        UserDefaults.standard.removeObject(forKey: "lastBook")
+        rememberLocation(nil)
     }
 
     func saveProject() {
+        if needsSaveLocation {
+            saveProjectAs()
+        } else {
+            flushSave()
+        }
+    }
+
+    func saveProjectAs() {
         guard let directory else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.bookType]
@@ -213,31 +273,21 @@ final class Workspace: ObservableObject {
         let origin = documentLocation
         EditorFilePanels.present(panel) { [weak self] response in
             guard let self, self.documentLocation == origin, response == .OK, let destination = panel.url else { return }
-            self.saveProject(from: directory, to: destination)
+            self.saveProjectCopy(from: directory, to: destination)
         }
     }
 
-    private func saveProject(from directory: URL, to destination: URL) {
-        guard destination.standardizedFileURL != directory.standardizedFileURL else {
+    private func saveProjectCopy(from directory: URL, to destination: URL) {
+        guard !BookStorage.sameLocation(directory, destination) else {
             flushSave()
             return
         }
         do {
-            let files = FileManager.default
-            let staging = destination.deletingLastPathComponent()
-                .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
-            try files.copyItem(at: directory, to: staging)
-            defer { try? files.removeItem(at: staging) }
-            try BookStorage.write(book, to: staging)
-            if files.fileExists(atPath: destination.path) {
-                _ = try files.replaceItemAt(destination, withItemAt: staging)
-            } else {
-                try files.moveItem(at: staging, to: destination)
-            }
+            try validateLocation(directory)
+            try BookStorage.copy(book, from: directory, to: destination)
             // An in-flight classifier keeps reading the old asset directory.
             // Its results still update this document and are saved to the new location.
-            self.directory = destination
-            UserDefaults.standard.set(destination.path, forKey: "lastBook")
+            rememberLocation(destination)
         } catch { problem = error.localizedDescription }
     }
 
@@ -249,12 +299,22 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func exportPDF() {
+    func exportPDF(_ request: PDFExportRequest, language: String) {
         guard let directory, !book.pages.isEmpty, !exporting else { return }
+        if case .printPackage = request {
+            exportPrint(language: language)
+            return
+        }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
-        panel.nameFieldStringValue = safeFilename(book.title)
-        chooseExportDestination(panel, from: directory, forPrint: false)
+        let suffix: String
+        if case .pixart = request {
+            suffix = " - Pixartprinting"
+        } else {
+            suffix = ""
+        }
+        panel.nameFieldStringValue = safeFilename(book.title) + suffix
+        chooseExportDestination(panel, from: directory, request: request)
     }
 
     func exportPrint(language: String) {
@@ -265,7 +325,7 @@ final class Workspace: ObservableObject {
             let panel = NSSavePanel()
             panel.message = italian ? "Scegli dove creare la cartella dei PDF" : "Choose where to create the PDF folder"
             panel.nameFieldStringValue = safeFilename(book.title) + (italian ? " – Stampa" : " – Print")
-            chooseExportDestination(panel, from: directory, forPrint: true)
+            chooseExportDestination(panel, from: directory, request: .printPackage)
         }
         guard !warnings.isEmpty else {
             chooseDestination()
@@ -286,16 +346,16 @@ final class Workspace: ObservableObject {
         }
     }
 
-    private func chooseExportDestination(_ panel: NSSavePanel, from directory: URL, forPrint: Bool) {
+    private func chooseExportDestination(_ panel: NSSavePanel, from directory: URL, request: PDFExportRequest) {
         let origin = documentLocation
         EditorFilePanels.present(panel) { [weak self] response in
             guard let self, self.documentLocation == origin, !self.exporting, !self.book.pages.isEmpty,
                   response == .OK, let destination = panel.url else { return }
-            self.export(to: destination, from: directory, forPrint: forPrint)
+            self.export(to: destination, from: directory, request: request)
         }
     }
 
-    private func export(to destination: URL, from directory: URL, forPrint: Bool) {
+    private func export(to destination: URL, from directory: URL, request: PDFExportRequest) {
         let snapshot = book
         exporting = true
         exportTask = Task {
@@ -305,10 +365,13 @@ final class Workspace: ObservableObject {
             }
             do {
                 let worker = Task.detached(priority: .userInitiated) {
-                    if forPrint {
-                        try BookPDF.writePrint(snapshot, directory: directory, to: destination)
-                    } else {
+                    switch request {
+                    case .proof:
                         try BookPDF.write(snapshot, directory: directory, to: destination)
+                    case .printPackage:
+                        try BookPDF.writePrint(snapshot, directory: directory, to: destination)
+                    case let .pixart(spineMM):
+                        try BookPDF.writePixart(snapshot, directory: directory, spineMM: spineMM, to: destination)
                     }
                 }
                 try await withTaskCancellationHandler {

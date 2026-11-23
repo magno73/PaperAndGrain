@@ -4,6 +4,19 @@ import CryptoKit
 enum BookStorage {
     private static let files = FileManager.default
 
+    struct DirectoryIdentity: Equatable {
+        let volume: UInt64
+        let inode: UInt64
+    }
+
+    static func identity(of directory: URL) -> DirectoryIdentity? {
+        let resolved = directory.standardizedFileURL.resolvingSymlinksInPath()
+        guard let attributes = try? files.attributesOfItem(atPath: resolved.path),
+              let volume = attributes[.systemNumber] as? NSNumber,
+              let inode = attributes[.systemFileNumber] as? NSNumber else { return nil }
+        return DirectoryIdentity(volume: volume.uint64Value, inode: inode.uint64Value)
+    }
+
     static func read(from directory: URL) throws -> Book {
         let manifest = directory.appendingPathComponent("manifest.json")
         let book = try JSONDecoder().decode(Book.self, from: Data(contentsOf: manifest))
@@ -15,9 +28,60 @@ enum BookStorage {
         try validate(book)
         try files.createDirectory(at: directory.appendingPathComponent("assets", isDirectory: true),
                                   withIntermediateDirectories: true)
+        try writeManifest(book, to: directory.appendingPathComponent("manifest.json"))
+    }
+
+    static func writeExisting(_ book: Book, to directory: URL) throws {
+        try validate(book)
+        let manifest = directory.appendingPathComponent("manifest.json")
+        var isDirectory: ObjCBool = false
+        guard files.fileExists(atPath: manifest.path, isDirectory: &isDirectory), !isDirectory.boolValue else {
+            throw CocoaError(.fileNoSuchFile, userInfo: [NSURLErrorKey: manifest])
+        }
+        try writeManifest(book, to: manifest)
+    }
+
+    private static func writeManifest(_ book: Book, to manifest: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try encoder.encode(book).write(to: directory.appendingPathComponent("manifest.json"), options: .atomic)
+        try encoder.encode(book).write(to: manifest, options: .atomic)
+    }
+
+    static func copy(_ book: Book, from source: URL, to destination: URL) throws {
+        let from = source.standardizedFileURL.resolvingSymlinksInPath()
+        let to = destination.standardizedFileURL.resolvingSymlinksInPath()
+        guard !sameLocation(from, to),
+              !from.pathComponents.starts(with: to.pathComponents),
+              !to.pathComponents.starts(with: from.pathComponents) else {
+            throw CocoaError(.fileWriteInvalidFileName, userInfo: [NSURLErrorKey: destination])
+        }
+
+        let destinationExists = files.fileExists(atPath: destination.path)
+        let destinationIdentity = destinationExists ? identity(of: destination) : nil
+        let staging = destination.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
+        defer { try? files.removeItem(at: staging) }
+        try files.copyItem(at: from, to: staging)
+        guard try read(from: staging).id == book.id else {
+            throw CocoaError(.fileReadCorruptFile, userInfo: [NSURLErrorKey: source])
+        }
+        try writeExisting(book, to: staging)
+        if destinationExists {
+            if let destinationIdentity, identity(of: destination) != destinationIdentity {
+                throw CocoaError(.fileWriteFileExists, userInfo: [NSURLErrorKey: destination])
+            }
+            _ = try files.replaceItemAt(destination, withItemAt: staging)
+        } else {
+            try files.moveItem(at: staging, to: destination)
+        }
+    }
+
+    static func sameLocation(_ first: URL, _ second: URL) -> Bool {
+        if first.standardizedFileURL.resolvingSymlinksInPath().path == second.standardizedFileURL.resolvingSymlinksInPath().path {
+            return true
+        }
+        guard let firstIdentity = identity(of: first) else { return false }
+        return firstIdentity == identity(of: second)
     }
 
     static func assetURL(filename: String, in directory: URL) -> URL {
@@ -62,13 +126,23 @@ enum BookStorage {
     }
 
     static func createWorkspace() throws -> URL {
-        let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                    appropriateFor: nil, create: true)
-        let draft = support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let draft = try draftsDirectory(create: true).appendingPathComponent(UUID().uuidString, isDirectory: true)
         try files.createDirectory(at: draft.appendingPathComponent("assets", isDirectory: true),
                                   withIntermediateDirectories: true)
         return draft
+    }
+
+    static func isManagedDraft(_ directory: URL, in draftsRoot: URL? = nil) -> Bool {
+        guard let draftsRoot = draftsRoot ?? (try? draftsDirectory(create: false)) else { return false }
+        let resolved = directory.standardizedFileURL.resolvingSymlinksInPath()
+        return UUID(uuidString: resolved.lastPathComponent) != nil &&
+            sameLocation(resolved.deletingLastPathComponent(), draftsRoot)
+    }
+
+    private static func draftsDirectory(create: Bool) throws -> URL {
+        let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                    appropriateFor: nil, create: create)
+        return support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)
     }
 
     private static func validFilename(_ name: String) -> Bool {

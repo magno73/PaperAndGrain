@@ -37,6 +37,9 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var arrangement: PageArrangement? = nil
     var typography: EditorialTypography? = nil
 
+    var titleFrame: PageRect? = nil
+    var storyFrame: PageRect? = nil
+
     var effectiveLayout: PageLayout { arrangement?.layout ?? layout }
     var hasStoryText: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

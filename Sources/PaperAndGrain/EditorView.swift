@@ -16,6 +16,7 @@ struct EditorView: View {
     @FocusState private var writing: Bool
     @FocusState private var writingBox: Bool
     @FocusState private var inlineBoxFocus: UUID?
+    @FocusState private var editorialFocus: EditorialObject?
     @FocusState private var searchingPhotos: Bool
     @State private var selection: UUID?
     @State private var selectedPhoto: UUID?
@@ -23,6 +24,8 @@ struct EditorView: View {
     @State private var photoIndices: [UUID: Int] = [:]
     @State private var selectedBox: UUID?
     @State private var inlineEditingBox: UUID?
+    @State private var selectedEditorial: EditorialObject?
+    @State private var editingEditorial: EditorialObject?
     @State private var coverSide: CoverSide?
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
@@ -150,8 +153,13 @@ struct EditorView: View {
         case front, back
     }
 
+    private enum EditorialObject: Hashable {
+        case page(UUID, PageComposition.TextRole)
+        case cover(CoverSide)
+    }
+
     private enum AlignmentElement: Equatable {
-        case photo(UUID), textBox(UUID)
+        case photo(UUID), textBox(UUID), editorial(PageComposition.TextRole)
     }
 
     private enum IncomingPhotoPlacement {
@@ -271,6 +279,9 @@ struct EditorView: View {
         .onChange(of: inlineBoxFocus) { previous, current in
             if previous != nil && current == nil && inlineEditingBox == previous { inlineEditingBox = nil }
         }
+        .onChange(of: editorialFocus) { previous, current in
+            if let previous, current == nil, editingEditorial == previous { editingEditorial = nil }
+        }
         .onChange(of: selectedPhoto) { _, id in
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
@@ -308,12 +319,12 @@ struct EditorView: View {
                         cropSession = nil
                         return
                     }
-                    if writing || writingBox || inlineBoxFocus != nil,
+                    if writing || writingBox || inlineBoxFocus != nil || editorialFocus != nil,
                        NSApp.sendAction(Selector(("undo:")), to: nil, from: nil) { return }
                     undoManager?.undo()
                 }
                 action("arrow.uturn.forward", tr("Ripristina", "Redo")) {
-                    if writing || writingBox || inlineBoxFocus != nil,
+                    if writing || writingBox || inlineBoxFocus != nil || editorialFocus != nil,
                        NSApp.sendAction(Selector(("redo:")), to: nil, from: nil) { return }
                     undoManager?.redo()
                 }
@@ -324,6 +335,8 @@ struct EditorView: View {
                 Button(tr("Box di testo", "Text Box"), systemImage: "character.textbox", action: insertTextBox)
                     .disabled(page == nil)
                 Button(tr("Frontespizio", "Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
+                Button(tr("Titolo di pagina", "Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
+                    .disabled(page == nil)
                 Divider()
                 ForEach(layouts, id: \.self) { layout in
                     Button(layoutName(layout), systemImage: layoutIcon(layout)) { insert(layout) }
@@ -480,6 +493,8 @@ struct EditorView: View {
     private func mini(_ leaf: BookPage) -> some View {
         let composition = pageComposition(leaf)
         let style = book.editorialStyle
+        let blocks = composition.storyDrawingBlocks(page: leaf, book: book)
+        let backings = composition.storyBackgroundFrames(page: leaf, blocks: blocks)
         return GeometryReader { geometry in
             let scale = max(0.001, min(geometry.size.width / composition.bounds.width,
                                        geometry.size.height / composition.bounds.height))
@@ -493,19 +508,15 @@ struct EditorView: View {
                     positioned(preview(item.photo, small: true, crop: item.crop, fills: item.fills),
                                in: scaled(item.frame, by: scale))
                 }
-                if let story = composition.story, leaf.hasStoryText {
-                    if let background = composition.storyBackground {
-                        positioned(Color(cgColor: EditorialStyle.color(style.paper)).opacity(0.90),
-                                   in: scaled(background, by: scale))
-                    }
-                    let text = PageComposition.storyText(page: leaf, book: book)
-                    positioned(editorialText(text, scale: scale), in: scaled(story, by: scale))
+                storyBacking(backings, scale: scale)
+                ForEach(blocks) { block in
+                    positioned(editorialText(block.text, scale: scale), in: scaled(block.frame, by: scale))
                 }
                 ForEach(composition.textBoxes.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { box in
                     let frame = box.frame.rect(in: composition.bounds)
                     positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
                     let text = PageComposition.boxText(box: box, book: book)
-                    let inset = PageTextBox.textInset
+                    let inset = box.textInsetPoints
                     positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
                 }
                 if let folio = composition.folio {
@@ -724,15 +735,19 @@ struct EditorView: View {
         let composition = pageComposition(leaf)
         let bounds = scaled(composition.bounds, by: scale)
         let style = book.editorialStyle
-        let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds)
+        let blocks = composition.storyBlocks(page: leaf, book: book)
+        let backings = composition.storyBackgroundFrames(page: leaf, blocks: blocks)
+        let textFrames = blocks.map(\.frame)
+        let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds, textFrames: textFrames)
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper)).onTapGesture {
                 finishCrop()
-                endInlineBoxEditing()
+                endInlineTextEditing()
                 select(leaf)
                 canvasPhotoSelection = nil
                 selectedPhoto = nil
                 selectedBox = nil
+                selectedEditorial = nil
                 filmScope = .book
             }
             if leaf.arrangement != nil {
@@ -754,21 +769,18 @@ struct EditorView: View {
             }
             ForEach(composition.photos) { item in
                 if cropSession?.pageID != leaf.id || cropSession?.photoID != item.id {
-                    let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id))
+                    let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
                     canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds, scale: scale,
-                                alignmentTargets: targets)
+                                alignmentTargets: targets, textFrames: textFrames)
                 }
             }
-            if let story = composition.story {
-                if let background = composition.storyBackground {
-                    positioned(Color(cgColor: EditorialStyle.color(style.paper)).opacity(0.90),
-                               in: scaled(background, by: scale))
-                        .allowsHitTesting(false)
-                }
-                positioned(prose(leaf, scale: scale), in: scaled(story, by: scale))
+            storyBacking(backings, scale: scale)
+            ForEach(blocks) { block in
+                let targets = alignmentTargets(in: composition, at: scale, excluding: .editorial(block.role), blocks: blocks)
+                canvasEditorialText(block, in: leaf, bounds: bounds, scale: scale, targets: targets)
             }
             ForEach(composition.textBoxes) { box in
-                let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id))
+                let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id), blocks: blocks)
                 canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
             }
             if let folio = composition.folio {
@@ -778,7 +790,7 @@ struct EditorView: View {
             }
             if let session = cropSession, session.pageID == leaf.id,
                let item = composition.photos.first(where: { $0.id == session.photoID }) {
-                let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id))
+                let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
                 canvasCrop(session, item: item, bounds: bounds, scale: scale, alignmentTargets: targets)
             }
         }
@@ -838,14 +850,25 @@ struct EditorView: View {
     }
 
     private func alignmentTargets(in composition: PageComposition, at scale: CGFloat,
-                                  excluding element: AlignmentElement) -> [CGRect] {
+                                  excluding element: AlignmentElement, blocks: [PageComposition.TextBlock] = []) -> [CGRect] {
         let photos = composition.photos.compactMap { item in
             element == .photo(item.id) ? nil : scaled(item.frame, by: scale)
         }
         let textBoxes = composition.textBoxes.compactMap { box in
             element == .textBox(box.id) ? nil : scaled(box.frame.rect(in: composition.bounds), by: scale)
         }
-        return photos + textBoxes
+        let editorial = blocks.compactMap { block in
+            element == .editorial(block.role) || block.text.length == 0 ? nil : scaled(block.frame, by: scale)
+        }
+        return photos + textBoxes + editorial
+    }
+
+    @ViewBuilder private func storyBacking(_ rects: [CGRect], scale: CGFloat) -> some View {
+        if !rects.isEmpty {
+            Path { path in path.addRects(rects.map { scaled($0, by: scale) }) }
+                .fill(Color(cgColor: EditorialStyle.color(book.editorialStyle.paper)).opacity(0.90))
+                .allowsHitTesting(false)
+        }
     }
 
     private var placeholder: some View {
@@ -859,14 +882,14 @@ struct EditorView: View {
     }
 
     private func canvasPhoto(_ item: PageComposition.Photo, leaf: BookPage, composition: PageComposition,
-                             bounds: CGRect, scale: CGFloat, alignmentTargets: [CGRect]) -> some View {
+                             bounds: CGRect, scale: CGFloat, alignmentTargets: [CGRect], textFrames: [CGRect]) -> some View {
         let frame = scaled(item.frame, by: scale)
         let active = leaf.id == page?.id && item.id == selectedPhoto && selectedBox == nil
         let swapTargetAt: (CGPoint) -> CanvasPhotoSwap.Target? = { location in
             guard let pageFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
             let editorPoint = CGPoint(x: pageFrame.minX + location.x, y: pageFrame.minY + location.y)
             guard dropFrames[.canvasViewport]?.contains(editorPoint) == true else { return nil }
-            return photoSwapTarget(item.id, at: location, in: bounds, composition: composition)
+            return photoSwapTarget(item.id, at: location, in: bounds, composition: composition, textFrames: textFrames)
         }
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
@@ -901,36 +924,66 @@ struct EditorView: View {
         })
     }
 
-    private func prose(_ leaf: BookPage, scale: CGFloat) -> some View {
-        let heading = leaf.heading ?? ""
-        let empty = !leaf.hasStoryText
+    private func canvasEditorialText(_ block: PageComposition.TextBlock, in leaf: BookPage, bounds: CGRect,
+                                     scale: CGFloat, targets: [CGRect]) -> some View {
+        let title = block.role == .title
         let style = book.editorialStyle
-        let label = tr("Scrivi qui il tuo racconto…", "Write your story here…")
-        return Button {
-            finishCrop()
-            endInlineBoxEditing()
-            select(leaf)
-            selectedPhoto = nil
-            selectedBox = nil
-            inspector = .page
-            Task { @MainActor in
-                await Task.yield()
-                if NSApp.isActive && page?.id == leaf.id && inspector == .page { writing = true }
+        let type = title
+            ? style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed).applying(book.titleStyle(for: leaf))
+            : style.defaultBodyStyle.applying(book.bodyStyle(for: leaf))
+        let object = EditorialObject.page(leaf.id, block.role)
+        return editableEditorialObject(object, content: block.text, value: pageEditorialText(block.role, on: leaf.id),
+                                       type: type, label: title ? tr("Titolo", "Heading") : tr("Racconto", "Story"),
+                                       frame: scaled(block.frame, by: scale), bounds: bounds, scale: scale, targets: targets,
+                                       onSelect: { selectEditorial(object, on: leaf) },
+                                       onChange: { movePageText(block.role, on: leaf.id, to: PageRect($0, in: bounds)) })
+    }
+
+    @ViewBuilder private func editableEditorialObject(
+        _ object: EditorialObject, content: NSAttributedString, value: Binding<String>, type: EditorialTextStyle,
+        label: String, frame: CGRect, bounds: CGRect, scale: CGFloat, targets: [CGRect],
+        onSelect: @escaping () -> Void, onChange: @escaping (CGRect) -> Void
+    ) -> some View {
+        let style = book.editorialStyle
+        let name = content.length == 0 ? label : content.string
+        if editingEditorial == object {
+            let alignment: TextAlignment = type.alignment == .center ? .center : (type.alignment == .right ? .trailing : .leading)
+            let font = type.fontName.flatMap { NSFont(name: $0, size: 12)?.fontName } ?? style.bodyFont
+            let editor = TextEditor(text: value)
+                .font(.custom(font, size: max(1, (type.pointSize ?? style.bodySize) * scale)))
+                .multilineTextAlignment(alignment)
+                .foregroundStyle(Color(cgColor: EditorialStyle.color(style.ink)))
+                .scrollContentBackground(.hidden)
+                .background(Color(cgColor: EditorialStyle.color(style.paper)))
+                .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
+                .focused($editorialFocus, equals: object)
+                .accessibilityLabel(label)
+                .onExitCommand(perform: endInlineTextEditing)
+                .task(id: object) {
+                    await Task.yield()
+                    if NSApp.isActive && editingEditorial == object { editorialFocus = object }
+                }
+            positioned(editor, in: frame).zIndex(1)
+        } else if !frame.isEmpty {
+            let beginEditing = {
+                onSelect()
+                editingEditorial = object
             }
-        } label: {
-            if empty {
-                Text(label)
-                    .font(.custom(style.bodyFont, size: max(10, style.bodySize * scale)))
-                    .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .contentShape(Rectangle())
-            } else {
-                editorialText(PageComposition.storyText(page: leaf, book: book), scale: scale)
-                    .contentShape(Rectangle())
+            CanvasObjectControl(frame: frame, bounds: bounds, selected: selectedEditorial == object,
+                                minimumSize: CGSize(width: 55 * scale, height: 22 * scale), accessibilityName: name,
+                                alignmentTargets: targets, showsWidthHandles: true, onDoubleClick: beginEditing,
+                                onSelect: onSelect, onChange: onChange) { _ in
+                if content.length == 0 {
+                    Text(label)
+                        .font(.custom(type.fontName ?? style.bodyFont, size: max(9, (type.pointSize ?? style.bodySize) * scale)))
+                        .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    editorialText(content, scale: scale)
+                }
             }
+            .accessibilityAction(named: Text(tr("Modifica il testo", "Edit Text")), beginEditing)
         }
-        .accessibilityLabel(empty ? label : [heading, leaf.text].filter { !$0.isEmpty }.joined(separator: ", "))
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder private func canvasTextBox(_ box: PageTextBox, leaf: BookPage, bounds: CGRect, scale: CGFloat,
@@ -947,7 +1000,7 @@ struct EditorView: View {
             CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 88 * scale, height: 40 * scale),
                                    accessibilityName: empty ? label : box.text,
-                                   alignmentTargets: alignmentTargets,
+                                   alignmentTargets: alignmentTargets, showsWidthHandles: true,
                                    onDoubleClick: { beginInlineBoxEditing(box.id, in: leaf) },
                                    onSelect: { selectTextBox(box.id, in: leaf) },
                                    onChange: { updateTextBoxFrame(box.id, on: leaf.id, to: PageRect($0, in: bounds)) }) { _ in
@@ -961,7 +1014,7 @@ struct EditorView: View {
                         editorialText(PageComposition.boxText(box: box, book: book), scale: scale)
                     }
                 }
-                .padding(PageTextBox.textInset * scale)
+                .padding(box.textInsetPoints * scale)
                 .background(Color(cgColor: EditorialStyle.color(style.paper)).opacity(empty ? 0.82 : 1))
                 .overlay {
                     if empty && !active {
@@ -986,10 +1039,10 @@ struct EditorView: View {
             .foregroundStyle(Color(cgColor: EditorialStyle.color(style.ink)))
             .scrollContentBackground(.hidden)
             .focused($inlineBoxFocus, equals: box.id)
-            .padding(max(0, PageTextBox.textInset * scale - 4))
+            .padding(max(0, box.textInsetPoints * scale - 4))
             .background(Color(cgColor: EditorialStyle.color(style.paper)))
             .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
-            .onExitCommand(perform: endInlineBoxEditing)
+            .onExitCommand(perform: endInlineTextEditing)
             .accessibilityLabel(tr("Testo del box in pagina", "Text Box on Page"))
             .task(id: box.id) {
                 await Task.yield()
@@ -1025,7 +1078,11 @@ struct EditorView: View {
                 positioned(Color(cgColor: EditorialStyle.color(book.editorialStyle.accent)), in: scaled(rule, by: scale))
             }
             if let title = page.titleFrame {
-                positioned(editorialText(page.title, scale: scale), in: scaled(title, by: scale))
+                if thumbnail {
+                    positioned(editorialText(page.title, scale: scale), in: scaled(title, by: scale))
+                } else {
+                    coverEditorialText(side, geometry: page, frame: scaled(title, by: scale), bounds: bounds, scale: scale)
+                }
             }
         }
         .frame(width: bounds.width, height: bounds.height)
@@ -1037,6 +1094,9 @@ struct EditorView: View {
             content
                 .contentShape(Rectangle())
                 .accessibilityLabel(label)
+                .overlayPreferenceValue(CanvasGuidePreference.self) { guides in
+                    CanvasAlignmentGuides(guides: guides).allowsHitTesting(false)
+                }
                 .editorDropFrame(.cover(front: side == .front))
                 .overlay {
                     if isPhotoDropTarget(.cover(front: side == .front)) {
@@ -1044,6 +1104,20 @@ struct EditorView: View {
                     }
                 }
         }
+    }
+
+    private func coverEditorialText(_ side: CoverSide, geometry: BookCoverGeometry, frame: CGRect,
+                                    bounds: CGRect, scale: CGFloat) -> some View {
+        let style = book.editorialStyle
+        let front = side == .front
+        let defaults = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
+        let type = defaults.applying(book.coverTextStyle(front: front))
+        return editableEditorialObject(.cover(side), content: geometry.title, value: coverEditorialValue(side),
+                                       type: type, label: front ? tr("Titolo", "Title") : tr("Testo del retro", "Back Cover Text"),
+                                       frame: frame, bounds: bounds, scale: scale,
+                                       targets: [scaled(geometry.photoFrame.intersection(geometry.bounds), by: scale)],
+                                       onSelect: { selectEditorial(.cover(side)) },
+                                       onChange: { moveCoverText(side, to: PageRect($0, in: bounds)) })
     }
 
     private func editorialText(_ contents: NSAttributedString, scale: CGFloat) -> some View {
@@ -1115,10 +1189,12 @@ struct EditorView: View {
                 }
             }
             textBoxInspector(page)
-            if page.effectiveLayout == .text || page.effectiveLayout == .mixed {
+            let storyLayout = page.effectiveLayout == .text || page.effectiveLayout == .mixed
+            let showsBody = storyLayout || page.storyFrame != nil
+            if storyLayout || page.titleFrame != nil || page.storyFrame != nil {
                 VStack(alignment: .leading, spacing: 8) {
-                    caption(tr("Racconto", "Story"))
-                    pageTypography(page)
+                    caption(tr("Titolo e testo", "Heading and Text"))
+                    pageTypography(page, showsBody: showsBody)
                     if page.effectiveLayout == .mixed && page.arrangement == nil {
                         Picker(tr("Posizione del testo", "Text Position"), selection: Binding(
                             get: { self.page?.textPlacement ?? .below },
@@ -1140,17 +1216,30 @@ struct EditorView: View {
                         }
                     ))
                     .textFieldStyle(.roundedBorder)
-                    TextEditor(text: text)
-                        .font(.system(size: 14, design: .serif))
-                        .scrollContentBackground(.hidden)
-                        .focused($writing)
-                        .padding(5)
-                        .frame(minHeight: 140)
-                        .background(paper, in: RoundedRectangle(cornerRadius: 6))
-                        .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(writing ? pine : edge) }
-                        .accessibilityLabel(tr("Racconto", "Story"))
+                    if showsBody {
+                        TextEditor(text: text)
+                            .font(.system(size: 14, design: .serif))
+                            .scrollContentBackground(.hidden)
+                            .focused($writing)
+                            .padding(5)
+                            .frame(minHeight: 140)
+                            .background(paper, in: RoundedRectangle(cornerRadius: 6))
+                            .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(writing ? pine : edge) }
+                            .accessibilityLabel(tr("Racconto", "Story"))
+                    }
+                    if storyLayout && (page.titleFrame != nil || page.storyFrame != nil) {
+                        Button(tr("Ripristina posizione di titolo e testo", "Reset Heading and Text Placement")) {
+                            guard let index = book.pages.firstIndex(where: { $0.id == page.id }) else { return }
+                            endInlineTextEditing()
+                            selectedEditorial = nil
+                            editPages(tr("Ripristina posizione del testo", "Reset Text Placement")) {
+                                $0[index].titleFrame = nil
+                                $0[index].storyFrame = nil
+                            }
+                        }
+                    }
                 }
-                suggestions
+                if showsBody { suggestions }
             }
             if page.effectiveLayout != .text || !page.photoIDs.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -1240,16 +1329,28 @@ struct EditorView: View {
                 DisclosureGroup(tr("Tipografia del box", "Box Typography")) {
                     EditorialTypographyControls(style: boxTextStyle(active.id, on: leaf.id),
                                                inherited: book.editorialStyle.defaultBodyStyle.applying(book.typography?.body),
-                                               language: language)
+                                               language: language, sampleText: active.text)
                         .padding(.top, 6)
                         .id(active.id)
                     let frame = active.frame.rect(in: pageComposition(leaf).bounds)
-                        .insetBy(dx: PageTextBox.textInset, dy: PageTextBox.textInset)
+                        .insetBy(dx: active.textInsetPoints, dy: active.textInsetPoints)
                     if !EditorialTypesetter.fits(PageComposition.boxText(box: active, book: book), in: frame) {
                         typeOverflow(tr("Ingrandisci il box o riduci la dimensione del testo.",
                                         "Enlarge the box or reduce the text size."))
                     }
                 }
+                Toggle(tr("Usa tutta la larghezza", "Use Full Width"), isOn: Binding(
+                    get: {
+                        book.pages.first { $0.id == leaf.id }?.textBoxes?.first { $0.id == active.id }?.usesFullWidth == true
+                    },
+                    set: { fullWidth in
+                        changeTextBoxes(on: leaf.id, name: tr("Modifica margini del box", "Change Text Box Insets")) { boxes in
+                            guard let index = boxes.firstIndex(where: { $0.id == active.id }) else { return }
+                            boxes[index].usesFullWidth = fullWidth ? true : nil
+                        }
+                    }
+                ))
+                .toggleStyle(.checkbox)
                 TextEditor(text: textInBox(active.id, on: leaf.id))
                     .font(.system(size: 14, design: .serif))
                     .scrollContentBackground(.hidden)
@@ -1295,13 +1396,16 @@ struct EditorView: View {
                 let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
                 EditorialTypographyControls(style: coverTextStyle(front ? \.title : \.body),
                                            inherited: defaultStyle.applying(front ? book.typography?.title : book.typography?.body),
-                                           language: language)
+                                           language: language, sampleText: coverEditorialValue(side).wrappedValue)
                     .padding(.top, 6)
                     .id(side)
                 let face = BookCoverGeometry(book: book, front: front)
                 if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
                     typeOverflow(tr("Il testo supera lo spazio della copertina.", "The text exceeds the cover space."))
                 }
+            }
+            if (side == .front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame) != nil {
+                Button(tr("Ripristina posizione del testo", "Reset Text Placement")) { moveCoverText(side, to: nil) }
             }
             if let photo = coverPhotoID(side).flatMap(indexedPhoto) {
                 HStack(spacing: 8) {
@@ -1328,7 +1432,7 @@ struct EditorView: View {
         }
     }
 
-    private func pageTypography(_ leaf: BookPage) -> some View {
+    private func pageTypography(_ leaf: BookPage, showsBody: Bool) -> some View {
         let style = book.editorialStyle
         let defaultTitle = style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
         return DisclosureGroup(tr("Tipografia", "Typography")) {
@@ -1337,21 +1441,23 @@ struct EditorView: View {
                     Text(tr("Titolo", "Heading")).font(.subheadline.weight(.semibold))
                     EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
                                                inherited: defaultTitle.applying(book.typography?.title),
-                                               language: language)
+                                               language: language, sampleText: leaf.heading ?? "")
                         .id(leaf.id)
                 }
-                Divider()
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(tr("Testo", "Body")).font(.subheadline.weight(.semibold))
-                    EditorialTypographyControls(style: pageTextStyle(\.body, on: leaf.id),
-                                               inherited: style.defaultBodyStyle.applying(book.typography?.body),
-                                               language: language)
-                        .id(leaf.id)
+                if showsBody {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(tr("Testo", "Body")).font(.subheadline.weight(.semibold))
+                        EditorialTypographyControls(style: pageTextStyle(\.body, on: leaf.id),
+                                                   inherited: style.defaultBodyStyle.applying(book.typography?.body),
+                                                   language: language, sampleText: leaf.text)
+                            .id(leaf.id)
+                    }
                 }
-                if let frame = pageComposition(leaf).story,
-                   !EditorialTypesetter.fits(PageComposition.storyText(page: leaf, book: book), in: frame) {
-                    typeOverflow(tr("Titolo e testo superano lo spazio della pagina.",
-                                    "The heading and body text exceed the page’s available space."))
+                let blocks = pageComposition(leaf).storyDrawingBlocks(page: leaf, book: book)
+                if blocks.contains(where: { !EditorialTypesetter.fits($0.text, in: $0.frame) }) {
+                    typeOverflow(tr("Alcune righe non entrano nel riquadro.",
+                                    "Some lines exceed the text frame."))
                 }
             }
             .padding(.vertical, 6)
@@ -1705,9 +1811,11 @@ struct EditorView: View {
     }
 
     private func selectLibraryPhoto(_ id: UUID) {
+        endInlineTextEditing()
         canvasPhotoSelection = nil
         selectedPhoto = id
         selectedBox = nil
+        selectedEditorial = nil
     }
 
     private func browsePhotos() {
@@ -1733,7 +1841,10 @@ struct EditorView: View {
         guard cropSession == nil else { return }
         for (target, frame) in dropFrames where frame.contains(point) {
             guard case let .canvasPage(id) = target, let leaf = book.pages.first(where: { $0.id == id }) else { continue }
-            if let photoID = EditorPhotoHitTest.onPage(at: point, frame: frame, composition: pageComposition(leaf)) {
+            let composition = pageComposition(leaf)
+            let textFrames = composition.storyBlocks(page: leaf, book: book).map(\.frame)
+            if let photoID = EditorPhotoHitTest.onPage(at: point, frame: frame, composition: composition,
+                                                       storyFrames: textFrames) {
                 selectCanvasPhoto(photoID, in: leaf)
                 return
             }
@@ -2205,11 +2316,12 @@ struct EditorView: View {
     private func selectCover(_ side: CoverSide) {
         guard coverSide != side else { return }
         finishCrop()
-        endInlineBoxEditing()
+        endInlineTextEditing()
         coverSide = side
         canvasPhotoSelection = nil
         selectedPhoto = coverPhotoID(side)
         selectedBox = nil
+        selectedEditorial = nil
         writing = false
         writingBox = false
         filmScope = selectedPhoto == nil ? .book : .photo
@@ -2217,8 +2329,10 @@ struct EditorView: View {
     }
 
     private func selectCoverPhoto(_ id: UUID) {
+        endInlineTextEditing()
         selectedPhoto = id
         selectedBox = nil
+        selectedEditorial = nil
         canvasPhotoSelection = nil
         searchingPhotos = false
         filmScope = .photo
@@ -2238,16 +2352,18 @@ struct EditorView: View {
             }
         }
         selectedPhoto = id
+        selectedEditorial = nil
         filmScope = id == nil ? .book : .photo
     }
 
     private func select(_ leaf: BookPage) {
         if cropSession?.pageID != leaf.id { finishCrop() }
         if leaf.id != page?.id {
-            endInlineBoxEditing()
+            endInlineTextEditing()
             canvasPhotoSelection = nil
             selectedPhoto = nil
             selectedBox = nil
+            selectedEditorial = nil
             filmScope = .book
             writing = false
             writingBox = false
@@ -2258,10 +2374,11 @@ struct EditorView: View {
 
     private func selectCanvasPhoto(_ id: UUID, in leaf: BookPage) {
         if cropSession?.photoID != id { finishCrop() }
-        endInlineBoxEditing()
+        endInlineTextEditing()
         select(leaf)
         searchingPhotos = false
         selectedBox = nil
+        selectedEditorial = nil
         selectedPhoto = id
         canvasPhotoSelection = CanvasPhotoSelection(pageID: leaf.id, photoID: id)
         if inspector == .film {
@@ -2271,9 +2388,11 @@ struct EditorView: View {
 
     private func selectTextBox(_ id: UUID, in leaf: BookPage) {
         finishCrop()
-        if inlineEditingBox != id { endInlineBoxEditing() }
+        if inlineEditingBox != id { endInlineTextEditing() }
         select(leaf)
         selectedBox = id
+        selectedEditorial = nil
+        canvasPhotoSelection = nil
         selectedPhoto = nil
         inspector = .page
     }
@@ -2285,10 +2404,83 @@ struct EditorView: View {
         inlineEditingBox = id
     }
 
-    private func endInlineBoxEditing() {
-        guard inlineEditingBox != nil || inlineBoxFocus != nil else { return }
-        inlineEditingBox = nil
-        inlineBoxFocus = nil
+    private func endInlineTextEditing() {
+        if inlineEditingBox != nil || inlineBoxFocus != nil {
+            inlineEditingBox = nil
+            inlineBoxFocus = nil
+        }
+        if editingEditorial != nil || editorialFocus != nil {
+            editingEditorial = nil
+            editorialFocus = nil
+        }
+    }
+
+    private func selectEditorial(_ object: EditorialObject, on leaf: BookPage? = nil) {
+        finishCrop()
+        if editingEditorial != object { endInlineTextEditing() }
+        if let leaf { select(leaf) }
+        selectedEditorial = object
+        selectedBox = nil
+        selectedPhoto = nil
+        canvasPhotoSelection = nil
+        searchingPhotos = false
+        writing = false
+        writingBox = false
+        inspector = .page
+    }
+
+    private func pageEditorialText(_ role: PageComposition.TextRole, on pageID: UUID) -> Binding<String> {
+        Binding(
+            get: {
+                guard let leaf = book.pages.first(where: { $0.id == pageID }) else { return "" }
+                return role == .title ? leaf.heading ?? "" : leaf.text
+            },
+            set: { value in
+                guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+                if role == .title { book.pages[index].heading = value.isEmpty ? nil : value }
+                else { book.pages[index].text = value }
+            }
+        )
+    }
+
+    private func coverEditorialValue(_ side: CoverSide) -> Binding<String> {
+        Binding(
+            get: { side == .front ? book.cover?.title ?? book.title : book.cover?.backText ?? "" },
+            set: { value in
+                changeCover {
+                    if side == .front { $0.title = value }
+                    else { $0.backText = value.isEmpty ? nil : value }
+                }
+            }
+        )
+    }
+
+    private func movePageText(_ role: PageComposition.TextRole, on pageID: UUID, to frame: PageRect) {
+        guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+        let leaf = book.pages[index]
+        let composition = pageComposition(leaf)
+        let current = composition.storyBlocks(page: leaf, book: book)
+        editPages(tr("Sposta o ridimensiona testo", "Move or Resize Text")) { pages in
+            for block in current where !block.frame.isEmpty {
+                let original = PageRect(block.frame, in: composition.bounds).clamped
+                if block.role == .title && pages[index].titleFrame == nil { pages[index].titleFrame = original }
+                if block.role == .body && pages[index].storyFrame == nil { pages[index].storyFrame = original }
+            }
+            if role == .title { pages[index].titleFrame = frame.clamped }
+            else { pages[index].storyFrame = frame.clamped }
+        }
+    }
+
+    private func moveCoverText(_ side: CoverSide, to frame: PageRect?) {
+        let key: WritableKeyPath<BookCover, PageRect?> = side == .front ? \.frontTitleFrame : \.backTextFrame
+        let previous = book.cover?[keyPath: key]
+        let next = frame?.clamped
+        guard previous != next else { return }
+        changeCover { $0[keyPath: key] = next }
+        if let undoManager {
+            undoTarget.registerCoverFrame(undoManager, binding: $book, bookID: book.id, key: key, previous: previous,
+                                          name: tr("Sposta o ridimensiona testo", "Move or Resize Text"))
+        }
     }
 
     private func setLayout(_ layout: PageLayout) {
@@ -2302,7 +2494,7 @@ struct EditorView: View {
 
     private func applyPageArrangement(_ arrangement: PageArrangement?, to pageID: UUID) {
         finishCrop()
-        endInlineBoxEditing()
+        endInlineTextEditing()
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
         editPages(tr("Cambia modello della pagina", "Change Page Template")) { pages in
             pages[index].arrangement = arrangement
@@ -2331,6 +2523,22 @@ struct EditorView: View {
         editPages(tr("Inserisci frontespizio", "Insert Title Page")) { $0.insert(titlePage, at: 0) }
         select(titlePage)
         inspector = .page
+    }
+
+    private func insertPageHeading() {
+        guard let leaf = page, let index else { return }
+        let object = EditorialObject.page(leaf.id, .title)
+        let composition = pageComposition(leaf)
+        if !composition.storyBlocks(page: leaf, book: book).contains(where: { $0.role == .title }) {
+            let safe = composition.story ?? composition.bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
+            let frame = CGRect(x: safe.minX, y: safe.minY, width: safe.width,
+                               height: min(safe.height, max(44, composition.bounds.height * 0.16)))
+            editPages(tr("Inserisci titolo", "Insert Heading")) { pages in
+                pages[index].titleFrame = PageRect(frame, in: composition.bounds).clamped
+            }
+        }
+        selectEditorial(object, on: book.pages[index])
+        editingEditorial = object
     }
 
     private func insertTextBox() {
@@ -2378,11 +2586,12 @@ struct EditorView: View {
 
     private func deletePage() {
         guard let index else { return }
-        endInlineBoxEditing()
+        endInlineTextEditing()
         editPages(tr("Elimina pagina", "Delete Page")) { $0.remove(at: index) }
         selection = book.pages.isEmpty ? nil : book.pages[min(index, book.pages.count - 1)].id
         selectedPhoto = nil
         selectedBox = nil
+        selectedEditorial = nil
         filmScope = .book
     }
 
@@ -2531,20 +2740,20 @@ struct EditorView: View {
     }
 
     private func incomingPhotoPlacement(on leaf: BookPage, composition: PageComposition,
-                                        bounds: CGRect) -> IncomingPhotoPlacement? {
+                                        bounds: CGRect, textFrames: [CGRect]) -> IncomingPhotoPlacement? {
         guard let dragging, case let .photo(id) = dragging.item, let photo = indexedPhoto(id),
               isPhotoDropTarget(.canvasPage(leaf.id)), let screenFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
         let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
-        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition) {
+        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
             return .swap(target)
         }
         return .position(photoPlacement(photo, in: composition, at: location, bounds: bounds))
     }
 
     private func photoSwapTarget(_ id: UUID, at point: CGPoint, in bounds: CGRect,
-                                 composition: PageComposition) -> CanvasPhotoSwap.Target? {
+                                 composition: PageComposition, textFrames: [CGRect]) -> CanvasPhotoSwap.Target? {
         guard !NSEvent.modifierFlags.contains(.option) else { return nil }
-        return CanvasPhotoSwap.target(moving: id, at: point, in: bounds, composition: composition)
+        return CanvasPhotoSwap.target(moving: id, at: point, in: bounds, composition: composition, storyFrames: textFrames)
     }
 
     private func photoPlacement(_ photo: BookPhoto, in composition: PageComposition, at location: CGPoint,
@@ -2569,7 +2778,8 @@ struct EditorView: View {
         guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
         let composition = pageComposition(current)
-        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition) {
+        let textFrames = composition.storyBlocks(page: current, book: book).map(\.frame)
+        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
             swapPhoto(id, with: target.id, on: leaf.id)
             return
         }
@@ -2721,7 +2931,8 @@ struct EditorView: View {
 
     @discardableResult
     private func deleteCanvasPhoto(_ id: UUID, from pageID: UUID) -> Bool {
-        guard cropSession == nil, inlineBoxFocus == nil, remove(id, from: pageID) else { return false }
+        guard cropSession == nil, inlineBoxFocus == nil, editorialFocus == nil,
+              remove(id, from: pageID) else { return false }
         if canvasPhotoSelection?.photoID == id { canvasPhotoSelection = nil }
         if selectedPhoto == id { selectedPhoto = nil }
         return true
@@ -2761,6 +2972,18 @@ struct EditorView: View {
 }
 
 private final class EditorUndo {
+    func registerCoverFrame(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                            key: WritableKeyPath<BookCover, PageRect?>, previous: PageRect?, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID, var cover = binding.wrappedValue.cover else { return }
+            let current = cover[keyPath: key]
+            cover[keyPath: key] = previous
+            binding.wrappedValue.cover = cover
+            target.registerCoverFrame(manager, binding: binding, bookID: bookID, key: key, previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
+
     func register(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID, pages: [BookPage], name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
             guard let manager, binding.wrappedValue.id == bookID else { return }

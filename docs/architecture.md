@@ -19,7 +19,7 @@ Un progetto `.papergrain` ha `manifest.json` e una cartella `assets/` e, se nece
 | Pellicola | Profilo del libro, eccezioni per foto e riferimento alla LUT inclusa nel progetto |
 | Stampa | Abbondanza, margine, PPI, ordine delle facciate e copertina facoltativa |
 
-Il manifest si sostituisce atomicamente. Il salvataggio esplicito copia il pacchetto in un percorso scelto dall’utente. Le risorse si risolvono sotto `assets/`. L’app conserva una bozza locale e riapre l’ultimo progetto idoneo quando parte. Cambi che aggiungono dati facoltativi devono poter decodificare i progetti salvati senza quei campi.
+Il manifest si sostituisce atomicamente. **Salva progetto** aggiorna il pacchetto esistente. Il primo salvataggio di una bozza e **Salva con nome** copiano il pacchetto nella destinazione scelta e la adottano dopo la scrittura. Il workspace verifica l’identità della cartella durante il salvataggio. Le risorse si risolvono sotto `assets/`. L’app conserva una bozza locale e riapre l’ultimo progetto idoneo quando parte. Cambi che aggiungono dati facoltativi devono poter decodificare i progetti salvati senza quei campi.
 
 ## Analisi e associazione dei racconti
 
@@ -57,6 +57,8 @@ Le miniature usano `PageComposition` per disegnare ogni foto nella cornice e con
 
 I rettangoli delle foto supportano fino a quattro volte le dimensioni della pagina. Il modello conserva una parte raggiungibile della foto sul canvas e applica il taglio solo in visualizzazione e in stampa. I box di testo continuano a usare coordinate interne alla pagina. Il box in scrittura condivide il testo salvato con l’ispettore e con Core Text.
 
+I campi facoltativi delle cornici di titolo, racconto e copertina usano coordinate normalizzate. L’editor offre il trascinamento e il ridimensionamento con maniglie negli angoli e sui lati. La prima modifica alle cornici di una pagina conserva la posizione dell’altro blocco. I campi assenti ricostruiscono le posizioni di partenza dal modello e dalla tipografia. Il rendering usa la larghezza intera delle cornici manuali. Il margine interno dei box indipendenti è configurabile.
+
 `BookPhoto.adjustments` è facoltativo nei progetti esistenti. `PhotoAdjustments` misura una copia ridotta della foto per proporre modifiche ripetibili alla luce e al colore. La pipeline condivisa applica le regolazioni allo scatto prima del look pellicola e della grana. Il PDF, l’editor e le miniature usano gli stessi valori. Il file immagine importato resta il riferimento per il confronto.
 
 `EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. Al rilascio, l’editor registra la regolazione nel progetto e carica la versione a piena risoluzione di anteprima.
@@ -64,6 +66,8 @@ I rettangoli delle foto supportano fino a quattro volte le dimensioni della pagi
 L’ispettore osserva la propria navigazione. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
 
 L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB come output intent. I fogli avviati a destra e i panorami possono richiedere pagine bianche di compensazione. La stampa produce interni e copertina in file separati. Abbondanza e dorso vanno impostati con le specifiche del prodotto scelto.
+
+Il profilo Pixartprinting 21 × 21 cm usa un singolo PDF con la copertina rigida stesa in apertura. Sul piano della copertina, adegua le misure al dorso del preventivo e include cerniere e risvolti. Le facciate interne hanno 3 mm di abbondanza per lato, seguono l’ordine del progetto e restano singole anche nei panorami. L’esportatore mantiene la resa sRGB e la tipografia selezionabile.
 
 ## Pellicole
 

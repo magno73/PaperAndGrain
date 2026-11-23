@@ -35,6 +35,21 @@ final class EditorPhotoHitTests: XCTestCase {
         XCTAssertFalse(EditorPhotoHitTest.onCover(at: CGPoint(x: 269, y: 250), frame: frame, geometry: geometry))
     }
 
+    func testPhotoHitUsesTheMovedTextFrame() {
+        let photo = BookPhoto(name: "Page", filename: "page.jpg", pixelWidth: 100, pixelHeight: 100)
+        let page = BookPage(photoIDs: [photo.id], heading: "Title", arrangement: .textOverPhoto,
+                            titleFrame: PageRect(x: 0.21, y: 0.12, width: 0.42, height: 0.18))
+        let book = Book(title: "Test", photos: [photo])
+        let composition = PageComposition(page: page, book: book)
+        let frame = CGRect(x: 130, y: 70, width: 360, height: 360)
+        let text = composition.storyBlocks(page: page, book: book).map(\.frame)
+
+        XCTAssertNil(EditorPhotoHitTest.onPage(at: CGPoint(x: 270, y: 142), frame: frame, composition: composition,
+                                               storyFrames: text))
+        XCTAssertEqual(EditorPhotoHitTest.onPage(at: CGPoint(x: 260, y: 364), frame: frame, composition: composition,
+                                                 storyFrames: text), photo.id)
+    }
+
     func testLibraryTileCannotBeSelectedOutsideTheScrollViewport() {
         let id = UUID()
         let frames = LibraryPhotoFrames(viewport: CGRect(x: 600, y: 180, width: 260, height: 350),

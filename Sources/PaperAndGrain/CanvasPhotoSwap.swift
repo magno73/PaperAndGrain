@@ -8,9 +8,10 @@ enum CanvasPhotoSwap {
     }
 
     static func target(moving id: UUID, at point: CGPoint, in bounds: CGRect,
-                       composition: PageComposition) -> Target? {
+                       composition: PageComposition, storyFrames: [CGRect]? = nil) -> Target? {
         guard composition.photos.contains(where: { $0.id == id }),
-              let targetID = EditorPhotoHitTest.onPage(at: point, frame: bounds, composition: composition, excluding: id),
+              let targetID = EditorPhotoHitTest.onPage(at: point, frame: bounds, composition: composition,
+                                                       excluding: id, storyFrames: storyFrames),
               let photo = composition.photos.first(where: { $0.id == targetID }) else { return nil }
         let visible = photo.frame.intersection(composition.bounds)
         let frame = PageRect(visible, in: composition.bounds).rect(in: bounds)

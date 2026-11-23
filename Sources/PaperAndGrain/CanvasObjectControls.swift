@@ -10,6 +10,7 @@ struct CanvasObjectControl<Content: View>: View {
     var alignmentTargets: [CGRect] = []
     var allowsPhotoOverflow = false
     var preservesAspectRatio = false
+    var showsWidthHandles = false
     var selectsWithTap = true
     var moveSpace: CoordinateSpace = .global
     var swapTargetAt: ((CGPoint) -> CanvasPhotoSwap.Target?)? = nil
@@ -56,7 +57,8 @@ struct CanvasObjectControl<Content: View>: View {
                         .accessibilityHidden(true)
                         .frame(width: reachable.width, height: reachable.height)
                         .overlay {
-                            CanvasResizeHandles(size: reachable.size) { corner in drag(corner) }
+                            CanvasResizeHandles(size: reachable.size, showsWidthHandles: showsWidthHandles,
+                                                widthGesture: { drag($0, widthOnly: true) }, gesture: { drag($0) })
                         }
                         .offset(x: reachable.minX, y: reachable.minY)
                 }
@@ -73,13 +75,13 @@ struct CanvasObjectControl<Content: View>: View {
         }
     }
 
-    private func drag(_ corner: CanvasCorner? = nil) -> some Gesture {
+    private func drag(_ corner: CanvasCorner? = nil, widthOnly: Bool = false) -> some Gesture {
         DragGesture(minimumDistance: 3, coordinateSpace: moveSpace)
             .updating($dragPreview) { value, preview, _ in
-                preview = dragDestination(value, resizing: corner)
+                preview = dragDestination(value, resizing: corner, widthOnly: widthOnly)
             }
             .onEnded { value in
-                let destination = dragDestination(value, resizing: corner)
+                let destination = dragDestination(value, resizing: corner, widthOnly: widthOnly)
                 if let target = destination.swapTarget, let onSwap {
                     onSwap(target.id)
                 } else {
@@ -89,11 +91,13 @@ struct CanvasObjectControl<Content: View>: View {
             }
     }
 
-    private func dragDestination(_ value: DragGesture.Value, resizing corner: CanvasCorner?) -> DragPreview {
+    private func dragDestination(_ value: DragGesture.Value, resizing corner: CanvasCorner?,
+                                 widthOnly: Bool) -> DragPreview {
         let targets = alignmentTargets.map { $0.intersection(bounds) }
         if let corner {
             return DragPreview(placement: corner.resizeDuringDrag(
-                frame, by: value.translation, in: bounds, minimumSize: minimumSize,
+                frame, by: widthOnly ? CGSize(width: value.translation.width, height: 0) : value.translation,
+                in: bounds, minimumSize: minimumSize,
                 preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
                 alignmentTargets: preservesAspectRatio ? targets : []
             ))
@@ -230,6 +234,8 @@ enum CanvasCorner: CaseIterable {
 
 struct CanvasResizeHandles<ResizeGesture: Gesture>: View {
     let size: CGSize
+    var showsWidthHandles = false
+    var widthGesture: ((CanvasCorner) -> ResizeGesture)? = nil
     let gesture: (CanvasCorner) -> ResizeGesture
 
     var body: some View {
@@ -237,7 +243,22 @@ struct CanvasResizeHandles<ResizeGesture: Gesture>: View {
             ForEach(CanvasCorner.allCases, id: \.self) { corner in
                 handle(corner)
             }
+            if showsWidthHandles, size.height >= 20, let widthGesture {
+                widthHandle(.bottomLeft, with: widthGesture)
+                widthHandle(.bottomRight, with: widthGesture)
+            }
         }
+    }
+
+    private func widthHandle(_ side: CanvasCorner, with widthGesture: (CanvasCorner) -> ResizeGesture) -> some View {
+        Capsule().fill(.tint)
+            .strokeBorder(.white, lineWidth: 1)
+            .frame(width: 6, height: 13)
+            .frame(width: 13, height: 18)
+            .contentShape(Rectangle())
+            .gesture(widthGesture(side))
+            .accessibilityHidden(true)
+            .position(x: side.isLeft ? 6.5 : size.width - 6.5, y: size.height / 2)
     }
 
     private func handle(_ corner: CanvasCorner) -> some View {

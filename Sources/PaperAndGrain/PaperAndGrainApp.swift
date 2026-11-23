@@ -8,7 +8,19 @@ struct PaperAndGrainApp: App {
     @State private var showAlbums = false
     @State private var showBookSettings = false
     @State private var showBookTemplates = false
+    @State private var showPDFExport = false
+    @State private var pendingPDFExport: PendingPDFExport?
     @State private var hasRestored = false
+
+    private struct PendingPDFExport {
+        let bookID: UUID
+        let directory: URL?
+        let request: PDFExportRequest
+    }
+
+    private var saveProjectTitle: String {
+        workspace.needsSaveLocation ? s("Salva progetto…", "Save Project…") : s("Salva progetto", "Save Project")
+    }
 
     private var language: String {
         preferredLanguage == "system"
@@ -22,7 +34,7 @@ struct PaperAndGrainApp: App {
                 if let directory = workspace.directory {
                     EditorView(book: $workspace.book, directory: directory, language: language,
                                analysisStatus: analysisStatus, isAnalyzing: workspace.analysisProgress != nil,
-                               onAnalyze: { workspace.analyze(language: language) }, onExport: workspace.exportPDF)
+                               onAnalyze: { workspace.analyze(language: language) }, onExport: { showPDFExport = true })
                         .id(workspace.book.id)
                 } else {
                     WelcomeView(language: language, onAlbums: { showAlbums = true },
@@ -45,7 +57,8 @@ struct PaperAndGrainApp: App {
                         Menu {
                             Button(s("Modelli del libro…", "Book Templates…")) { showBookTemplates = true }
                             Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
-                            Button(s("Salva progetto…", "Save Project…"), action: workspace.saveProject)
+                            Button(saveProjectTitle, action: workspace.saveProject)
+                            Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
                             Divider()
                             Button(s("Esporta per la stampa…", "Export for Print…")) {
                                 workspace.exportPrint(language: language)
@@ -95,6 +108,14 @@ struct PaperAndGrainApp: App {
                     showBookSettings = false
                 }
             }
+            .sheet(isPresented: $showPDFExport, onDismiss: runPDFExport) {
+                let book = workspace.book
+                let directory = workspace.directory
+                PDFExportChooser(book: book, language: language, cancel: { showPDFExport = false }) { request in
+                    pendingPDFExport = PendingPDFExport(bookID: book.id, directory: directory, request: request)
+                    showPDFExport = false
+                }
+            }
             .overlay {
                 if workspace.importing {
                     progressCard(label: s("Importo le immagini", "Importing photos"), value: workspace.importProgress,
@@ -125,11 +146,23 @@ struct PaperAndGrainApp: App {
                     .keyboardShortcut("n")
                 Button(s("Apri progetto…", "Open Project…"), action: workspace.openProject)
                     .keyboardShortcut("o")
-                Button(s("Salva progetto…", "Save Project…"), action: workspace.saveProject)
+                Button(saveProjectTitle, action: workspace.saveProject)
                     .keyboardShortcut("s")
                     .disabled(workspace.directory == nil)
+                Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                    .disabled(workspace.directory == nil)
+                Button(s("Esporta PDF…", "Export PDF…")) { showPDFExport = true }
+                    .disabled(workspace.book.pages.isEmpty || workspace.exporting)
             }
         }
+    }
+
+    private func runPDFExport() {
+        guard let pendingPDFExport else { return }
+        self.pendingPDFExport = nil
+        guard pendingPDFExport.bookID == workspace.book.id, pendingPDFExport.directory == workspace.directory else { return }
+        workspace.exportPDF(pendingPDFExport.request, language: language)
     }
 
     private var analysisStatus: String {

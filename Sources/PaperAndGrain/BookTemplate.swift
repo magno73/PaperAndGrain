@@ -167,6 +167,20 @@ enum EditorialTypesetter {
                                         CGPath(rect: CGRect(origin: .zero, size: rect.size), transform: nil), nil)
     }
 
+    /// Baseline distance from the top edge of the same frame used by draw().
+    static func baseline(_ attributed: NSAttributedString, at index: Int, in rect: CGRect) -> CGFloat? {
+        guard index >= 0, index < attributed.length, let frame = textFrame(attributed, in: rect) else { return nil }
+        let lines = CTFrameGetLines(frame) as! [CTLine]
+        for (number, line) in lines.enumerated() {
+            let range = CTLineGetStringRange(line)
+            guard index >= range.location && index < range.location + range.length else { continue }
+            var origin = CGPoint.zero
+            CTFrameGetLineOrigins(frame, CFRange(location: number, length: 1), &origin)
+            return rect.height - origin.y
+        }
+        return nil
+    }
+
     static func fits(_ attributed: NSAttributedString, in rect: CGRect) -> Bool {
         if attributed.length == 0 { return true }
         guard let frame = textFrame(attributed, in: rect) else { return false }

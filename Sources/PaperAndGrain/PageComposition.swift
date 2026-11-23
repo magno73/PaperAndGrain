@@ -95,9 +95,77 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     var text = ""
     var frame: PageRect
     var typography: EditorialTextStyle? = nil
+    var usesFullWidth: Bool? = nil
+    var textInsetPoints: Double { usesFullWidth == true ? 0 : Self.textInset }
 }
 
 struct PageComposition {
+    enum TextRole: String, Identifiable, Sendable {
+        case title, body, combined
+        var id: Self { self }
+    }
+
+    struct TextBlock: Identifiable {
+        let role: TextRole
+        let frame: CGRect
+        let text: NSAttributedString
+        var id: TextRole { role }
+    }
+
+    /// The untouched story is one Core Text frame so old paragraph flow and clipping remain exact.
+    func storyDrawingBlocks(page: BookPage, book: Book) -> [TextBlock] {
+        if page.titleFrame == nil && page.storyFrame == nil {
+            guard let story else { return [] }
+            return [TextBlock(role: .combined, frame: story, text: Self.storyText(page: page, book: book))]
+        }
+        return storyBlocks(page: page, book: book)
+    }
+
+    func storyBackgroundFrames(page: BookPage, blocks: [TextBlock]) -> [CGRect] {
+        guard let storyBackground else { return [] }
+        if page.titleFrame == nil && page.storyFrame == nil { return [storyBackground] }
+        return blocks.filter { $0.text.length > 0 }.map { $0.frame.insetBy(dx: -9, dy: -9).intersection(bounds) }
+    }
+
+    /// Text measurement is performed only for editing or for a manually composed page.
+    func storyBlocks(page: BookPage, book: Book) -> [TextBlock] {
+        guard story != nil || page.titleFrame != nil || page.storyFrame != nil else { return [] }
+        let area = story ?? bounds
+        let mixed = page.effectiveLayout == .mixed
+        let style = book.editorialStyle
+        let title = style.typography("", heading: page.heading, mixed: mixed, titleStyle: book.titleStyle(for: page))
+        let body = style.typography(page.text, heading: nil, mixed: mixed, bodyStyle: book.bodyStyle(for: page))
+        var blocks: [TextBlock] = []
+        let titleHeight = EditorialTypesetter.requiredHeight(title, width: area.width)
+        if (title.length > 0 && story != nil) || page.titleFrame != nil {
+            let frame = page.titleFrame?.rect(in: bounds) ?? CGRect(x: area.minX, y: area.minY, width: area.width,
+                                                                    height: min(area.height, titleHeight))
+            blocks.append(TextBlock(role: .title, frame: frame, text: title))
+        }
+        if (story != nil && (body.length > 0 || title.length == 0)) || page.storyFrame != nil {
+            let frame: CGRect
+            if let manual = page.storyFrame {
+                frame = manual.rect(in: bounds)
+            } else {
+                var offset: CGFloat = 0
+                if title.length > 0 && body.length > 0 {
+                    let joined = Self.storyText(page: page, book: book)
+                    // The body is a new paragraph in the legacy frame. Compare the original first
+                    // baseline with the same line drawn as its own paragraph, including font leading.
+                    let combinedBaseline = EditorialTypesetter.baseline(joined, at: title.length + 1, in: area)
+                    let bodyBaseline = EditorialTypesetter.baseline(body, at: 0, in: area)
+                    offset = min(area.height, max(0, combinedBaseline.flatMap { original in
+                        bodyBaseline.map { original - $0 }
+                    } ?? area.height))
+                }
+                let height = body.length == 0 ? area.height : EditorialTypesetter.requiredHeight(body, width: area.width)
+                frame = CGRect(x: area.minX, y: area.minY + offset, width: area.width, height: min(area.height - offset, height))
+            }
+            blocks.append(TextBlock(role: .body, frame: frame, text: body))
+        }
+        return blocks
+    }
+
     struct Photo: Identifiable {
         let photo: BookPhoto
         var id: UUID { photo.id }
@@ -223,7 +291,9 @@ struct BookCoverGeometry {
         let style = book.editorialStyle
         let titleText = front ? book.cover?.title ?? book.title : book.cover?.backText ?? ""
         let override = book.coverTextStyle(front: front)
-        let custom = override != EditorialTextStyle()
+        let manual = (front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame)?.rect(in: bounds)
+        let custom = manual == nil && override != EditorialTextStyle()
+        let automaticTitleFrame: CGRect?
         if book.template == nil {
             title = style.typography(titleText, heading: nil, mixed: false, bodyStyle: override)
             background = 0x292929
@@ -233,8 +303,8 @@ struct BookCoverGeometry {
             if custom {
                 bandTop = max(0, min(bandTop, panel.maxY - EditorialTypesetter.requiredHeight(title, width: panel.width) - inset))
             }
-            band = titleText.isEmpty ? nil : CGRect(x: front ? 0 : -bleed, y: bandTop, width: w + bleed, height: h - bandTop + bleed)
-            titleFrame = titleText.isEmpty ? nil : CGRect(x: inset, y: bandTop + inset, width: panel.width,
+            band = titleText.isEmpty ? nil : manual?.insetBy(dx: -4, dy: -4).intersection(bounds) ?? CGRect(x: front ? 0 : -bleed, y: bandTop, width: w + bleed, height: h - bandTop + bleed)
+            automaticTitleFrame = titleText.isEmpty ? nil : CGRect(x: inset, y: bandTop + inset, width: panel.width,
                                                           height: h - bandTop - 2 * inset)
             rule = nil
         } else {
@@ -252,7 +322,7 @@ struct BookCoverGeometry {
                         picture.size.height = max(0, min(picture.height, panel.maxY - needed - 22 - picture.minY))
                     }
                     let titleY = picture.maxY + 22
-                    titleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
+                    automaticTitleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
                                         height: custom ? max(0, panel.maxY - titleY) : defaultHeight)
                 } else {
                     let titleY = panel.minY + (style.rule ? 16 : 0)
@@ -261,7 +331,7 @@ struct BookCoverGeometry {
                         picture.origin.y = min(bottom, max(picture.minY, titleY + needed + 8))
                         picture.size.height = bottom - picture.minY
                     }
-                    titleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
+                    automaticTitleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
                                         height: custom ? max(0, min(panel.maxY, picture.minY) - titleY) : defaultHeight)
                 }
                 photoFrame = picture
@@ -276,9 +346,10 @@ struct BookCoverGeometry {
                 }
                 photoFrame = picture
                 let textTop = picture.maxY + 16
-                titleFrame = titleText.isEmpty ? nil : CGRect(x: picture.minX, y: textTop, width: picture.width,
+                automaticTitleFrame = titleText.isEmpty ? nil : CGRect(x: picture.minX, y: textTop, width: picture.width,
                                                                height: max(0, panel.maxY - textTop))
             }
         }
+        titleFrame = manual ?? automaticTitleFrame
     }
 }

@@ -1,5 +1,4 @@
 import AppKit
-import CoreText
 import SwiftUI
 
 struct EditorialTypographyControls: View {
@@ -7,14 +6,12 @@ struct EditorialTypographyControls: View {
     let inherited: EditorialTextStyle
     let language: String
     var updatesSizeWhileTyping = false
+    var sampleText = ""
 
     @State private var sizeDraft: String?
     @State private var sizeBeforeEditing: Double?
     @State private var showingFonts = false
-    @State private var fontSearch = ""
-    @State private var fonts: [FontChoice]?
     @FocusState private var editingSize: Bool
-    @FocusState private var searchingFonts: Bool
 
     private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
 
@@ -33,11 +30,8 @@ struct EditorialTypographyControls: View {
 
     private var fontControl: some View {
         let label = tr("Carattere", "Font")
-        let name = displayName(for: style?.fontName ?? inherited.fontName)
-        return Button {
-            fontSearch = ""
-            showingFonts.toggle()
-        } label: {
+        let name = EditorialFontBrowser.displayName(style?.fontName ?? inherited.fontName, language: language)
+        return Button { showingFonts.toggle() } label: {
             HStack(spacing: 6) {
                 Text(label)
                     .font(.system(size: 11))
@@ -54,7 +48,13 @@ struct EditorialTypographyControls: View {
         .accessibilityLabel(label)
         .accessibilityValue(name)
         .help(name)
-        .popover(isPresented: $showingFonts, arrowEdge: .bottom) { fontPicker }
+        .popover(isPresented: $showingFonts, arrowEdge: .bottom) {
+            EditorialFontBrowser(selected: style?.fontName, inherited: inherited.fontName,
+                                 sampleText: sampleText, language: language) { font in
+                showingFonts = false
+                set(\.fontName, to: font)
+            }
+        }
     }
 
     private var sizeControl: some View {
@@ -140,89 +140,6 @@ struct EditorialTypographyControls: View {
         .help(label)
     }
 
-    private var fontPicker: some View {
-        let search = fontSearch.trimmingCharacters(in: .whitespacesAndNewlines)
-        let options = fonts.map { list in search.isEmpty ? list : list.filter { $0.matches(search) } }
-        return VStack(alignment: .leading, spacing: 8) {
-            TextField(tr("Cerca carattere", "Search Fonts"), text: $fontSearch)
-                .textFieldStyle(.roundedBorder)
-                .focused($searchingFonts)
-                .onSubmit {
-                    if let options, options.count == 1 { chooseFont(options[0].postScriptName) }
-                }
-            fontRow(tr("Usa carattere ereditato", "Use Inherited Font"),
-                    detail: displayName(for: inherited.fontName), postScriptName: nil)
-            Divider()
-            if let options {
-                if options.isEmpty {
-                    Text(tr("Nessun carattere trovato", "No fonts found"))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 1) {
-                            ForEach(options) { font in
-                                fontRow(font.displayName, postScriptName: font.postScriptName)
-                            }
-                        }
-                    }
-                }
-            } else {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityLabel(tr("Caricamento caratteri", "Loading Fonts"))
-            }
-        }
-        .padding(10)
-        .frame(width: 300, height: 295)
-        .task {
-            searchingFonts = true
-            if fonts == nil {
-                let catalog = await FontChoice.catalog.value
-                if !Task.isCancelled { fonts = catalog }
-            }
-        }
-    }
-
-    private func fontRow(_ name: String, detail: String? = nil, postScriptName: String?) -> some View {
-        let active = style?.fontName == postScriptName
-        return Button { chooseFont(postScriptName) } label: {
-            HStack(spacing: 6) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(name)
-                        .lineLimit(1)
-                    if let detail {
-                        Text(detail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 2)
-                if let postScriptName {
-                    Text("Aa")
-                        .font(.custom(postScriptName, size: 14))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-                Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(pine)
-                    .opacity(active ? 1 : 0)
-                    .accessibilityHidden(true)
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(active ? pine.opacity(0.09) : .clear, in: RoundedRectangle(cornerRadius: 4))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(name)
-        .accessibilityValue(detail ?? "")
-        .accessibilityAddTraits(active ? .isSelected : [])
-    }
-
     private var effectiveSize: Double {
         style?.normalizedSize ?? inherited.normalizedSize ?? 12
     }
@@ -251,21 +168,11 @@ struct EditorialTypographyControls: View {
         }
     }
 
-    private func chooseFont(_ name: String?) {
-        showingFonts = false
-        set(\.fontName, to: name)
-    }
-
     private func set<Value>(_ key: WritableKeyPath<EditorialTextStyle, Value?>, to value: Value?) {
         var updated = style ?? EditorialTextStyle()
         updated[keyPath: key] = value
         let next: EditorialTextStyle? = updated == EditorialTextStyle() ? nil : updated
         if next != style { style = next }
-    }
-
-    private func displayName(for fontName: String?) -> String {
-        guard let fontName else { return tr("Carattere di sistema", "System Font") }
-        return NSFont(name: fontName, size: 12)?.displayName ?? fontName
     }
 
     private func alignmentInfo(_ alignment: EditorialAlignment) -> (icon: String, label: String) {
@@ -279,31 +186,5 @@ struct EditorialTypographyControls: View {
 
     private func tr(_ italian: String, _ english: String) -> String {
         language.hasPrefix("it") ? italian : english
-    }
-}
-
-private struct FontChoice: Identifiable, Sendable {
-    let postScriptName: String
-    let displayName: String
-    var id: String { postScriptName }
-
-    func matches(_ search: String) -> Bool {
-        displayName.localizedStandardContains(search) || postScriptName.localizedStandardContains(search)
-    }
-
-    /// Core Text enumeration runs once, starting only when the font picker opens.
-    static let catalog = Task.detached(priority: .userInitiated) {
-        let collection = CTFontCollectionCreateFromAvailableFonts(nil)
-        let descriptors = CTFontCollectionCreateMatchingFontDescriptors(collection) as? [CTFontDescriptor] ?? []
-        var seen: Set<String> = []
-        return descriptors.compactMap { descriptor -> Self? in
-            guard let name = CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String,
-                  seen.insert(name).inserted else { return nil }
-            let title = CTFontDescriptorCopyAttribute(descriptor, kCTFontDisplayNameAttribute) as? String ?? name
-            return Self(postScriptName: name, displayName: title)
-        }.sorted {
-            let order = $0.displayName.localizedStandardCompare($1.displayName)
-            return order == .orderedSame ? $0.postScriptName < $1.postScriptName : order == .orderedAscending
-        }
     }
 }
