@@ -123,6 +123,7 @@ struct PageComposition {
 
     func storyBackgroundFrames(page: BookPage, blocks: [TextBlock]) -> [CGRect] {
         guard let storyBackground else { return [] }
+        if let stored = page.storyBackdropFrames { return stored.map { $0.rect(in: bounds) } }
         if page.titleFrame == nil && page.storyFrame == nil { return [storyBackground] }
         return blocks.filter { $0.text.length > 0 }.map { $0.frame.insetBy(dx: -9, dy: -9).intersection(bounds) }
     }

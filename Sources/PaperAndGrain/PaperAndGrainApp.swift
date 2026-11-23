@@ -34,7 +34,14 @@ struct PaperAndGrainApp: App {
                 if let directory = workspace.directory {
                     EditorView(book: $workspace.book, directory: directory, language: language,
                                analysisStatus: analysisStatus, isAnalyzing: workspace.analysisProgress != nil,
-                               onAnalyze: { workspace.analyze(language: language) }, onExport: { showPDFExport = true })
+                               onAnalyze: { workspace.analyze(language: language) },
+                               onDropPhotos: { providers, reveal in
+                                   workspace.addDroppedPhotos(providers, language: language, onImported: reveal)
+                               },
+                               onDropPhotoPromises: { promises, reveal in
+                                   workspace.addDroppedPhotoPromises(promises, language: language, onImported: reveal)
+                               },
+                               onExport: { showPDFExport = true })
                         .id(workspace.book.id)
                 } else {
                     WelcomeView(language: language, onAlbums: { showAlbums = true },

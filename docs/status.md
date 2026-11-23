@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.7.1 · 23 novembre 2026
+
+La maniglia del racconto e il suo sfondo spostano insieme titolo, testo e sfondo. Il trascinamento diretto di titolo o testo agisce sul singolo riquadro. Il pannello **Foto** accetta immagini trascinate nella libreria del libro. I test verificano persistenza e spostamento dei riquadri, importazione di immagini e precedenza del file originale sulla miniatura. Resta da provare il rilascio dal Finder e da Foto nella finestra dell’app. La build risiede in `dist/0.7.1/`.
+
 ## 0.7.0 · 23 novembre 2026
 
 Titolo, racconto, box e testi di copertina si spostano e si ridimensionano direttamente sulla pagina. Il selettore dei font offre famiglie, varianti, anteprima, preferiti e recenti. **Salva progetto** aggiorna il pacchetto già nominato e **Salva con nome** ne crea una copia. **Esporta PDF** aggiunge il profilo Pixartprinting 21 × 21 cm con copertina rigida e dorso da preventivo. I test verificano persistenza, larghezza delle cornici, scrittura del manifest, misure del PDF e paginazione con dorso variabile. Restano il collaudo dei gesti nella finestra e la verifica del file con il preventivo di stampa. La build risiede in `dist/0.7.0/`.

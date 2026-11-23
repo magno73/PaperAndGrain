@@ -27,6 +27,8 @@ Il manifest si sostituisce atomicamente. **Salva progetto** aggiorna il pacchett
 
 Le foto arrivate da PhotoKit possono provenire da iCloud. La copia richiede la versione corrente, incluse le modifiche visibili in Foto. La classificazione lavora sulla copia locale e memorizza l’analisi nel documento. Al cambio libro si interrompe la sequenza in corso.
 
+Il pannello Foto riceve anche file trascinati e file promessi da Foto. Li copia in una cartella temporanea e aggiunge alla libreria del progetto le immagini lette correttamente. Il workspace verifica la sessione prima di trasferire gli asset e aggiorna il manifest in una sola scrittura.
+
 L’ispettore calcola i suggerimenti fuori dal thread dell’interfaccia quando cambiano il racconto, gli scatti della pagina o le foto disponibili. Annulla la ricerca precedente se cambia uno di questi dati.
 
 ## Geometria e PDF
@@ -58,6 +60,8 @@ Le miniature usano `PageComposition` per disegnare ogni foto nella cornice e con
 I rettangoli delle foto supportano fino a quattro volte le dimensioni della pagina. Il modello conserva una parte raggiungibile della foto sul canvas e applica il taglio solo in visualizzazione e in stampa. I box di testo continuano a usare coordinate interne alla pagina. Il box in scrittura condivide il testo salvato con l’ispettore e con Core Text.
 
 I campi facoltativi delle cornici di titolo, racconto e copertina usano coordinate normalizzate. L’editor offre il trascinamento e il ridimensionamento con maniglie negli angoli e sui lati. La prima modifica alle cornici di una pagina conserva la posizione dell’altro blocco. I campi assenti ricostruiscono le posizioni di partenza dal modello e dalla tipografia. Il rendering usa la larghezza intera delle cornici manuali. Il margine interno dei box indipendenti è configurabile.
+
+Il trascinamento del racconto come gruppo applica lo stesso spostamento al titolo, al testo e alle eventuali cornici dello sfondo. Il riquadro complessivo limita lo spostamento ai bordi della pagina. Le cornici dello sfondo si salvano come coordinate normalizzate e mantengono la posizione durante i trascinamenti dei singoli testi. Le miniature e il PDF usano le stesse cornici.
 
 `BookPhoto.adjustments` è facoltativo nei progetti esistenti. `PhotoAdjustments` misura una copia ridotta della foto per proporre modifiche ripetibili alla luce e al colore. La pipeline condivisa applica le regolazioni allo scatto prima del look pellicola e della grana. Il PDF, l’editor e le miniature usano gli stessi valori. Il file immagine importato resta il riferimento per il confronto.
 

@@ -10,6 +10,8 @@ struct EditorView: View {
     let analysisStatus: String
     let isAnalyzing: Bool
     let onAnalyze: () -> Void
+    let onDropPhotos: ([NSItemProvider], @escaping (UUID) -> Void) -> Bool
+    let onDropPhotoPromises: ([NSFilePromiseReceiver], @escaping (UUID) -> Void) -> Bool
     let onExport: () -> Void
 
     @Environment(\.undoManager) private var undoManager
@@ -30,6 +32,9 @@ struct EditorView: View {
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
     @State private var libraryHitFrames = LibraryHitFrames()
+    @State private var hoveringPhotoDrop = false
+    @State private var hoveringPhotoPromise = false
+    @State private var importedPhotoToReveal: UUID?
     @GestureState private var dragging: EditorDragPreview?
     @State private var showSpread = true
     @State private var gutterGuide = false
@@ -155,6 +160,7 @@ struct EditorView: View {
 
     private enum EditorialObject: Hashable {
         case page(UUID, PageComposition.TextRole)
+        case storyGroup(UUID)
         case cover(CoverSide)
     }
 
@@ -737,7 +743,7 @@ struct EditorView: View {
         let style = book.editorialStyle
         let blocks = composition.storyBlocks(page: leaf, book: book)
         let backings = composition.storyBackgroundFrames(page: leaf, blocks: blocks)
-        let textFrames = blocks.map(\.frame)
+        let textFrames = blocks.map(\.frame) + backings
         let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds, textFrames: textFrames)
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper)).onTapGesture {
@@ -774,11 +780,7 @@ struct EditorView: View {
                                 alignmentTargets: targets, textFrames: textFrames)
                 }
             }
-            storyBacking(backings, scale: scale)
-            ForEach(blocks) { block in
-                let targets = alignmentTargets(in: composition, at: scale, excluding: .editorial(block.role), blocks: blocks)
-                canvasEditorialText(block, in: leaf, bounds: bounds, scale: scale, targets: targets)
-            }
+            canvasStory(leaf, composition: composition, blocks: blocks, backings: backings, bounds: bounds, scale: scale)
             ForEach(composition.textBoxes) { box in
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id), blocks: blocks)
                 canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
@@ -861,6 +863,42 @@ struct EditorView: View {
             element == .editorial(block.role) || block.text.length == 0 ? nil : scaled(block.frame, by: scale)
         }
         return photos + textBoxes + editorial
+    }
+
+    @ViewBuilder private func canvasStory(_ leaf: BookPage, composition: PageComposition,
+                                          blocks: [PageComposition.TextBlock], backings: [CGRect],
+                                          bounds: CGRect, scale: CGFloat) -> some View {
+        let visible = blocks.filter { !$0.frame.isEmpty }
+        let occupied = visible.filter { $0.text.length > 0 }
+        if occupied.count > 1 || (!occupied.isEmpty && !backings.isEmpty) {
+            let group = (visible.map(\.frame) + backings).reduce(CGRect.null) { $0.union($1) }
+            let object = EditorialObject.storyGroup(leaf.id)
+            CanvasStoryGroup(frame: scaled(group, by: scale), bounds: bounds,
+                             backdrops: backings.map { scaled($0, by: scale) },
+                             alignmentTargets: composition.photos.map { scaled($0.frame.intersection(composition.bounds), by: scale) }
+                                + composition.textBoxes.map { scaled($0.frame.rect(in: composition.bounds), by: scale) },
+                             selected: selectedEditorial == object,
+                             moveLabel: tr("Sposta blocco", "Move Story Group"),
+                             onSelect: { selectEditorial(object, on: leaf) },
+                             onMove: { delta in moveStoryGroup(on: leaf.id, by: CGSize(width: delta.width / scale,
+                                                                                     height: delta.height / scale)) }) {
+                canvasStoryContents(leaf, composition: composition, blocks: blocks, backings: backings,
+                                    bounds: bounds, scale: scale)
+            }
+        } else {
+            canvasStoryContents(leaf, composition: composition, blocks: blocks, backings: backings,
+                                bounds: bounds, scale: scale)
+        }
+    }
+
+    @ViewBuilder private func canvasStoryContents(_ leaf: BookPage, composition: PageComposition,
+                                                  blocks: [PageComposition.TextBlock], backings: [CGRect],
+                                                  bounds: CGRect, scale: CGFloat) -> some View {
+        storyBacking(backings, scale: scale)
+        ForEach(blocks) { block in
+            let targets = alignmentTargets(in: composition, at: scale, excluding: .editorial(block.role), blocks: blocks)
+            canvasEditorialText(block, in: leaf, bounds: bounds, scale: scale, targets: targets)
+        }
     }
 
     @ViewBuilder private func storyBacking(_ rects: [CGRect], scale: CGFloat) -> some View {
@@ -1235,6 +1273,7 @@ struct EditorView: View {
                             editPages(tr("Ripristina posizione del testo", "Reset Text Placement")) {
                                 $0[index].titleFrame = nil
                                 $0[index].storyFrame = nil
+                                $0[index].storyBackdropFrames = nil
                             }
                         }
                     }
@@ -1596,6 +1635,7 @@ struct EditorView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal, 15)
             .padding(.top, 11)
+            photoDropZone.padding(.horizontal, 15).padding(.top, 8)
             if mode == .adjust {
                 ScrollView {
                     photoAdjustmentsInspector
@@ -1607,6 +1647,56 @@ struct EditorView: View {
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
+        .background(pine.opacity(hoveringPhotoDrop || hoveringPhotoPromise ? 0.06 : 0))
+        .contentShape(Rectangle())
+        .onDrop(of: [UTType.fileURL, UTType.image], isTargeted: $hoveringPhotoDrop) { providers in
+            acceptPhotoDrop(onDropPhotos(providers, { importedPhotoToReveal = $0 }))
+        }
+        .overlay {
+            if hoveringPhotoDrop || hoveringPhotoPromise {
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    .padding(5)
+                    .overlay {
+                        Label(tr("Rilascia per aggiungere", "Drop to Add"), systemImage: "photo.badge.plus")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(pine)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(paper, in: RoundedRectangle(cornerRadius: 6))
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .onDisappear { hoveringPhotoPromise = false }
+    }
+
+    private var photoDropZone: some View {
+        Label(tr("Trascina foto qui", "Drop Photos Here"), systemImage: "photo.badge.plus")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(pine)
+            .frame(maxWidth: .infinity, minHeight: 27)
+            .background(pine.opacity(0.045), in: RoundedRectangle(cornerRadius: 5))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(pine.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                PhotoPromiseDropTarget(onTargeted: { hoveringPhotoPromise = $0 }) { promises in
+                    acceptPhotoDrop(onDropPhotoPromises(promises, { importedPhotoToReveal = $0 }))
+                }
+                .accessibilityHidden(true)
+            }
+    }
+
+    private func acceptPhotoDrop(_ accepted: Bool) -> Bool {
+        guard accepted else { return false }
+        search = ""
+        concept = nil
+        photoPanelMode = .library
+        return true
     }
 
     @ViewBuilder private var photoAdjustmentsInspector: some View {
@@ -1676,8 +1766,17 @@ struct EditorView: View {
             .padding(.horizontal, 15)
             .padding(.top, 15)
             if !book.photos.isEmpty {
-                ScrollView {
-                    photoGrid.padding(.horizontal, 15).padding(.bottom, 8)
+                ScrollViewReader { scroll in
+                    ScrollView {
+                        photoGrid.padding(.horizontal, 15).padding(.bottom, 8)
+                    }
+                    .task(id: importedPhotoToReveal) {
+                        guard let id = importedPhotoToReveal else { return }
+                        await Task.yield()
+                        guard !Task.isCancelled else { return }
+                        scroll.scrollTo(id, anchor: .center)
+                        importedPhotoToReveal = nil
+                    }
                 }
                 .frame(maxHeight: .infinity)
                 // Native photo hit testing reads these frames without updating the editor.
@@ -1694,7 +1793,8 @@ struct EditorView: View {
                     .padding(.bottom, 15)
                 }
             } else {
-                intro(tr("Il libro non contiene ancora foto.", "This book doesn’t have any photos yet.")).padding(.horizontal, 15)
+                intro(tr("Il libro non contiene ancora foto.", "This book doesn’t have any photos yet."))
+                    .padding(.horizontal, 15)
                 Spacer(minLength: 0)
             }
         }
@@ -1794,6 +1894,7 @@ struct EditorView: View {
                             .disabled(page == nil && coverSide == nil)
                         }
                         .libraryPhotoFrame(photo.id)
+                        .id(photo.id)
                 }
             }
         }
@@ -1842,7 +1943,8 @@ struct EditorView: View {
         for (target, frame) in dropFrames where frame.contains(point) {
             guard case let .canvasPage(id) = target, let leaf = book.pages.first(where: { $0.id == id }) else { continue }
             let composition = pageComposition(leaf)
-            let textFrames = composition.storyBlocks(page: leaf, book: book).map(\.frame)
+            let blocks = composition.storyBlocks(page: leaf, book: book)
+            let textFrames = blocks.map(\.frame) + composition.storyBackgroundFrames(page: leaf, blocks: blocks)
             if let photoID = EditorPhotoHitTest.onPage(at: point, frame: frame, composition: composition,
                                                        storyFrames: textFrames) {
                 selectCanvasPhoto(photoID, in: leaf)
@@ -2460,7 +2562,9 @@ struct EditorView: View {
         let leaf = book.pages[index]
         let composition = pageComposition(leaf)
         let current = composition.storyBlocks(page: leaf, book: book)
+        let backings = composition.storyBackgroundFrames(page: leaf, blocks: current)
         editPages(tr("Sposta o ridimensiona testo", "Move or Resize Text")) { pages in
+            pages[index].freezeStoryBackdrop(backings, in: composition.bounds)
             for block in current where !block.frame.isEmpty {
                 let original = PageRect(block.frame, in: composition.bounds).clamped
                 if block.role == .title && pages[index].titleFrame == nil { pages[index].titleFrame = original }
@@ -2468,6 +2572,17 @@ struct EditorView: View {
             }
             if role == .title { pages[index].titleFrame = frame.clamped }
             else { pages[index].storyFrame = frame.clamped }
+        }
+    }
+
+    private func moveStoryGroup(on pageID: UUID, by translation: CGSize) {
+        guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+        let leaf = book.pages[index]
+        let composition = pageComposition(leaf)
+        let blocks = composition.storyBlocks(page: leaf, book: book)
+        let backings = composition.storyBackgroundFrames(page: leaf, blocks: blocks)
+        editPages(tr("Sposta blocco di testo", "Move Story Group")) { pages in
+            pages[index].moveStoryGroup(by: translation, blocks: blocks, backdrops: backings, in: composition.bounds)
         }
     }
 
@@ -2778,7 +2893,8 @@ struct EditorView: View {
         guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
         let composition = pageComposition(current)
-        let textFrames = composition.storyBlocks(page: current, book: book).map(\.frame)
+        let blocks = composition.storyBlocks(page: current, book: book)
+        let textFrames = blocks.map(\.frame) + composition.storyBackgroundFrames(page: current, blocks: blocks)
         if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
             swapPhoto(id, with: target.id, on: leaf.id)
             return

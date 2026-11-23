@@ -39,6 +39,39 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
 
     var titleFrame: PageRect? = nil
     var storyFrame: PageRect? = nil
+    var storyBackdropFrames: [PageRect]? = nil
+
+    mutating func freezeStoryBackdrop(_ backdrops: [CGRect], in bounds: CGRect) {
+        guard storyBackdropFrames == nil, !bounds.isEmpty else { return }
+        let visible = backdrops.filter { !$0.isEmpty }
+        if !visible.isEmpty { storyBackdropFrames = visible.map { PageRect($0, in: bounds) } }
+    }
+
+    mutating func moveStoryGroup(by translation: CGSize, blocks: [PageComposition.TextBlock],
+                                 backdrops: [CGRect], in bounds: CGRect) {
+        guard hasStoryText, !bounds.isEmpty, translation.width.isFinite, translation.height.isFinite,
+              translation != .zero else { return }
+        let parts = blocks.filter { $0.role != .combined && !$0.frame.isEmpty }
+        guard !parts.isEmpty else { return }
+        let backgrounds = backdrops.filter { !$0.isEmpty }
+        let extent = (parts.map(\.frame) + backgrounds).reduce(CGRect.null) { $0.union($1) }
+        func limit(_ delta: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
+            guard lower <= upper else { return 0 }
+            return min(upper, max(lower, delta))
+        }
+        let dx = limit(translation.width, lower: bounds.minX - extent.minX, upper: bounds.maxX - extent.maxX)
+        let dy = limit(translation.height, lower: bounds.minY - extent.minY, upper: bounds.maxY - extent.maxY)
+        guard dx != 0 || dy != 0 else { return }
+        func translated(_ frame: CGRect) -> PageRect { PageRect(frame.offsetBy(dx: dx, dy: dy), in: bounds) }
+        for part in parts {
+            switch part.role {
+            case .title: titleFrame = translated(part.frame)
+            case .body: storyFrame = translated(part.frame)
+            case .combined: break
+            }
+        }
+        if !backgrounds.isEmpty { storyBackdropFrames = backgrounds.map(translated) }
+    }
 
     var effectiveLayout: PageLayout { arrangement?.layout ?? layout }
     var hasStoryText: Bool {

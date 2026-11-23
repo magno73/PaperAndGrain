@@ -89,6 +89,99 @@ final class Workspace: ObservableObject {
         }
     }
 
+    func addDroppedPhotos(_ providers: [NSItemProvider], language: String,
+                          onImported: @escaping (UUID) -> Void = { _ in }) -> Bool {
+        enqueueDroppedPhotos(language: language, onImported: onImported) {
+            try DroppedPhotos.start(providers, fallbackName: language == "it" ? "Foto" : "Photo")
+        }
+    }
+
+    func addDroppedPhotoPromises(_ promises: [NSFilePromiseReceiver], language: String,
+                                 onImported: @escaping (UUID) -> Void = { _ in }) -> Bool {
+        enqueueDroppedPhotos(language: language, onImported: onImported) {
+            try DroppedPhotos.start(promises)
+        }
+    }
+
+    private func enqueueDroppedPhotos(language: String, onImported: @escaping (UUID) -> Void,
+                                      start: () throws -> DroppedPhotos?) -> Bool {
+        guard let directory, !importing else { return false }
+        let origin = documentLocation
+        let italian = language == "it"
+        let drop: DroppedPhotos
+        do {
+            guard let started = try start() else { return false }
+            drop = started
+        } catch {
+            problem = error.localizedDescription
+            return false
+        }
+
+        importing = true
+        importProgress = "0 / \(drop.count)"
+        importTask = Task {
+            defer {
+                drop.cleanUp()
+                importing = false
+                importTask = nil
+            }
+            do {
+                var completed = 0
+                var results: [DroppedPhotos.Outcome] = []
+                for await outcome in drop.outcomes {
+                    try Task.checkCancellation()
+                    guard documentLocation == origin else { return }
+                    completed += 1
+                    results.append(outcome)
+                    importProgress = "\(completed) / \(drop.count)"
+                }
+                try Task.checkCancellation()
+                guard documentLocation == origin else { return }
+                let photos = results.sorted { $0.index < $1.index }.compactMap(\.photo)
+                guard let first = photos.first else { throw PhotoImportError.unreadableImage }
+                try appendDroppedPhotos(photos, from: drop.directory, to: directory)
+                onImported(first.id)
+                analyze(language: language, photos: photos)
+                let failures = drop.count - photos.count
+                if failures > 0 {
+                    problem = italian
+                        ? "Importate \(photos.count) foto. \(failures) immagini non erano disponibili."
+                        : "Imported \(photos.count) photos. \(failures) images were unavailable."
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                problem = error.localizedDescription
+            }
+        }
+        return true
+    }
+
+    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, to directory: URL) throws {
+        try validateLocation(directory)
+        let files = FileManager.default
+        let assets = directory.appendingPathComponent("assets", isDirectory: true)
+        if !files.fileExists(atPath: assets.path) {
+            try files.createDirectory(at: assets, withIntermediateDirectories: false)
+        }
+        var installed: [URL] = []
+        do {
+            for photo in photos {
+                let source = BookStorage.assetURL(filename: photo.filename, in: scratch)
+                let destination = BookStorage.assetURL(filename: photo.filename, in: directory)
+                try files.moveItem(at: source, to: destination)
+                installed.append(destination)
+            }
+            var updated = book
+            updated.photos.append(contentsOf: photos)
+            try BookStorage.writeExisting(updated, to: directory)
+            book = updated
+        } catch {
+            for destination in installed { try? files.removeItem(at: destination) }
+            throw error
+        }
+    }
+
     func cancelImport() { importTask?.cancel() }
     func cancelExport() { exportTask?.cancel() }
 
@@ -145,9 +238,11 @@ final class Workspace: ObservableObject {
     }
 
     func analyze(language: String) {
-        guard let directory, analysisTask == nil else { return }
-        let pending = book.photos.filter { $0.analysis == nil }
-        guard !pending.isEmpty else { return }
+        analyze(language: language, photos: book.photos.filter { $0.analysis == nil })
+    }
+
+    private func analyze(language: String, photos pending: [BookPhoto]) {
+        guard let directory, analysisTask == nil, !pending.isEmpty else { return }
         let documentID = book.id
         let runID = UUID()
         analysisRun = runID

@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.7.0/Paper & Grain.app'
+open 'dist/0.7.1/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -17,7 +17,7 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 
 1. Apri **Scegli un album da Foto** e, al primo accesso, autorizza l’app nelle finestre di macOS. Scegli **Namibia**, seleziona le immagini, imposta il formato e premi **Impagina**. **Importa file** accetta immagini dal Finder. Il libro dimostrativo si apre senza accedere alla libreria.
 2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Una panoramica rimane un solo elemento. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
-3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. La scheda **Foto** permette di sfogliare gli scatti per tema.
+3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. Nella scheda **Foto** puoi sfogliare gli scatti per tema. Rilascia immagini dal Finder o da Foto su **Trascina foto qui** per aggiungerle alla libreria del libro.
 4. **Salva progetto** chiede la posizione al primo salvataggio e aggiorna il pacchetto `.papergrain` già aperto nelle volte successive. **Salva con nome…** crea una copia. **Esporta PDF** apre il selettore di profilo. Il globo sceglie lingua di sistema, italiano o inglese.
 
 ## Montare le pagine
@@ -26,6 +26,7 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 - In **Pagina → Modello di pagina** scegli una composizione **Con margini** o **Al vivo**. I modelli al vivo comprendono due foto affiancate o una sopra l’altra, tre colonne, una griglia di quattro e una foto grande sopra due più piccole. Scegliere un modello ridistribuisce le cornici. Testo, box, scatti e ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
 - Per scambiare due foto della stessa pagina, trascina una foto all’interno dell’altra e rilascia quando vedi il bordo con le frecce. I ritagli seguono i rispettivi scatti. Tieni premuto **⌥** per sovrapporre liberamente le foto. **⌘Z** annulla lo scambio.
 - **Inserisci → Box di testo** crea un riquadro indipendente. **Inserisci → Titolo di pagina** aggiunge un titolo anche su una pagina fotografica. Clicca un titolo, un racconto o un box e trascinalo per spostarlo. Usa le maniglie laterali per allargarlo e gli angoli per cambiarne anche l’altezza. Fai doppio clic per scrivere nella pagina. Titolo e racconto si adattano alla larghezza impostata. **Usa tutta la larghezza** elimina i margini interni di un box.
+- Trascina lo sfondo del racconto o la maniglia **Sposta blocco** per muovere insieme titolo, testo e sfondo. Trascina direttamente il titolo o il testo per spostare solo quel riquadro.
 - Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Le guide compaiono anche trascinando una foto dalla scheda **Foto** o usando le maniglie della foto e del riquadro di ritaglio. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente.
 - **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Sulle facce della copertina puoi trascinare una foto o sceglierla dalla scheda **Foto**, spostare e ridimensionare titolo e testo del retro e aprire **Regola foto** o **Pellicola** dallo stesso pannello.
 
