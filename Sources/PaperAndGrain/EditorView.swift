@@ -238,7 +238,7 @@ struct EditorView: View {
 
     private func mini(_ leaf: BookPage) -> some View {
         ZStack {
-            paper
+            Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
             if leaf.layout != .text, let photo = photos(on: leaf).first {
                 preview(photo, small: true)
                     .padding(leaf.layout == .gallery || leaf.layout == .mixed ? 3 : 0)
@@ -407,8 +407,10 @@ struct EditorView: View {
         let padding = min(min(width, height) * 0.49, book.contentInsetPoints * scale)
         let innerWidth = max(1, width - padding * 2)
         let innerHeight = max(1, height - padding * 2)
+        let style = book.editorialStyle
+        let fullBleed = leaf.layout == .fullPage || leaf.layout == .fullSpread
         return ZStack(alignment: .bottomTrailing) {
-            paper.onTapGesture {
+            Color(cgColor: EditorialStyle.color(style.paper)).onTapGesture {
                 select(leaf)
                 selectedPhoto = nil
                 filmScope = .book
@@ -421,13 +423,13 @@ struct EditorView: View {
                     placeholder.frame(width: width, height: height)
                 }
             case .gallery:
-                gallery(leaf, width: innerWidth, height: innerHeight, gap: 6 * scale)
+                gallery(leaf, width: innerWidth, height: innerHeight, gap: style.imageGap * scale)
                     .frame(width: width, height: height)
             case .mixed:
                 let parts = BookLayoutGeometry.mixedArea(in: CGRect(x: 0, y: 0, width: innerWidth, height: innerHeight),
                                                          placement: leaf.textPlacement, spacing: 12 * scale)
                 ZStack(alignment: .topLeading) {
-                    gallery(leaf, width: parts.photo.width, height: parts.photo.height, gap: 6 * scale)
+                    gallery(leaf, width: parts.photo.width, height: parts.photo.height, gap: style.imageGap * scale)
                         .position(x: parts.photo.midX, y: parts.photo.midY)
                     prose(leaf, scale: scale)
                         .frame(width: parts.text.width, height: parts.text.height, alignment: .topLeading)
@@ -442,10 +444,16 @@ struct EditorView: View {
                     .clipped()
                     .frame(width: width, height: height)
             }
-            if showFolio {
+            if style.rule && !fullBleed {
+                Rectangle().fill(Color(cgColor: EditorialStyle.color(style.accent)))
+                    .frame(width: innerWidth, height: max(0.5, 0.55 * scale))
+                    .position(x: width / 2, y: padding - 9 * scale)
+                    .allowsHitTesting(false)
+            }
+            if showFolio && (book.template == nil || (style.folio && !fullBleed)) {
                 Text(String(number(of: leaf)))
                     .font(.system(size: max(7, min(11, min(width, height) * 0.030)), design: .serif))
-                    .foregroundStyle(muted)
+                    .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
                     .background(paper.opacity(leaf.layout == .fullPage ? 0.88 : 0))
@@ -530,7 +538,11 @@ struct EditorView: View {
     }
 
     private func prose(_ leaf: BookPage, scale: CGFloat) -> some View {
+        let heading = leaf.heading ?? ""
         let empty = leaf.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && heading.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let style = book.editorialStyle
+        let label = tr("Scrivi qui il tuo racconto…", "Write your story here…")
         return Button {
             select(leaf)
             inspector = .page
@@ -539,13 +551,26 @@ struct EditorView: View {
                 writing = true
             }
         } label: {
-            Text(empty ? tr("Scrivi qui il tuo racconto…", "Write your story here…") : leaf.text)
-                .font(.custom("Baskerville", size: empty ? max(10, 14 * scale) : max(1, 14 * scale)))
-                .foregroundStyle(empty ? muted : ink)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if empty {
+                Text(label)
+                    .font(.custom(style.bodyFont, size: max(10, style.bodySize * scale)))
+                    .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .contentShape(Rectangle())
+            } else {
+                let mixed = leaf.layout == .mixed
+                let contents = style.typography(leaf.text, heading: heading, mixed: mixed)
+                Canvas { graphics, size in
+                    graphics.withCGContext { context in
+                        context.scaleBy(x: scale, y: scale)
+                        let bounds = CGRect(x: 0, y: 0, width: size.width / scale, height: size.height / scale)
+                        EditorialTypesetter.draw(contents, in: style.textArea(in: bounds, mixed: mixed), context: context)
+                    }
+                }
                 .contentShape(Rectangle())
+            }
         }
+        .accessibilityLabel(empty ? label : [heading, leaf.text].filter { !$0.isEmpty }.joined(separator: ", "))
         .buttonStyle(.plain)
     }
 
@@ -606,6 +631,14 @@ struct EditorView: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                    TextField(tr("Titolo della pagina", "Page Heading"), text: Binding(
+                        get: { self.page?.heading ?? "" },
+                        set: { value in
+                            guard let index else { return }
+                            book.pages[index].heading = value.isEmpty ? nil : value
+                        }
+                    ))
+                    .textFieldStyle(.roundedBorder)
                     TextEditor(text: text)
                         .font(.system(size: 14, design: .serif))
                         .scrollContentBackground(.hidden)
@@ -1236,6 +1269,7 @@ private final class EditorPageUndo {
                 var restored = page
                 restored.text = latest.text
                 restored.framing = latest.framing
+                restored.heading = latest.heading
                 return restored
             }
             target.register(manager, binding: binding, bookID: bookID, pages: current, name: name)

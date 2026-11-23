@@ -110,6 +110,39 @@ final class CoreRegressionTests: XCTestCase {
         XCTAssertEqual(try pdf(folder, "mixed.pdf").numberOfPages, 1)
     }
 
+    func testEditorialTemplateSurvivesAnExistingProjectAndExports() throws {
+        let folder = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var (book, photo) = try fixture(in: folder)
+        book.pages = [BookPage(layout: .mixed, photoIDs: [photo.id], text: "Al tramonto le dune sembravano un mare.",
+                               textPlacement: .beside, heading: "Il mare di dune")]
+        book.cover = BookCover(title: "Namibia", frontPhotoID: photo.id, spineMM: 10)
+        let originalPages = book.pages
+        let styles = BookTemplate.allCases.map { $0.style.paper }
+        XCTAssertEqual(Set(styles).count, BookTemplate.allCases.count)
+        for template in BookTemplate.allCases {
+            book.template = template
+            try BookStorage.write(book, to: folder)
+            let reopened = try BookStorage.read(from: folder)
+            XCTAssertEqual(reopened.template, template)
+            XCTAssertEqual(reopened.pages, originalPages)
+            let destination = folder.appendingPathComponent(template.rawValue)
+            try BookPDF.writePrint(reopened, directory: folder, to: destination)
+            XCTAssertEqual(try pdf(destination, "Interior.pdf").numberOfPages, 1)
+            XCTAssertEqual(try pdf(destination, "Cover.pdf").numberOfPages, 1)
+        }
+        let missingPhoto = UUID()
+        book.cover?.frontPhotoID = missingPhoto
+        let destination = folder.appendingPathComponent("missing-cover")
+        XCTAssertThrowsError(try BookPDF.writePrint(book, directory: folder, to: destination)) { error in
+            guard case BookPDF.ExportError.missingImage(let id) = error else {
+                return XCTFail("Expected an unavailable cover photo, got \(error)")
+            }
+            XCTAssertEqual(id, missingPhoto.uuidString)
+        }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
+    }
+
     private func fixture(in folder: URL) throws -> (Book, BookPhoto) {
         var book = Book(title: "Fixture")
         try BookStorage.write(book, to: folder)

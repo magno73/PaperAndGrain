@@ -9,6 +9,7 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
 - `EditorView.swift` gestisce il libro aperto, il navigatore, l’ispettore e le interazioni.
 - `PhotoAnalysis.swift` produce etichette e temi con Vision e ordina i risultati compatibili con un racconto.
+- `BookTemplate.swift` definisce carta, geometria editoriale e tipi condivisi tra anteprima ed esportazione. [Modelli](docs/templates.md) documenta le scelte visive.
 - `FilmPipeline.swift` condivide sviluppo colore, LUT e grana tra editor e stampa.
 - `BookSettingsView.swift`, `PrintSettings.swift` e `BookPDF.swift` gestiscono formato, copertina, prova e stampa. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
 

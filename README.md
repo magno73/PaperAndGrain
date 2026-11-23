@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.2.0/Paper & Grain.app'
+open 'dist/0.3.0/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -20,6 +20,10 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. La scheda **Foto** permette di sfogliare gli scatti per tema.
 4. **Salva progetto** crea un pacchetto locale `.papergrain`. **Esporta PDF** produce una prova su pagine singole, anche per una foto che attraversa due pagine. Il globo sceglie lingua di sistema, italiano o inglese.
 
+
+## Modelli del libro
+
+Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
 
 ## Pellicole e stampa
 

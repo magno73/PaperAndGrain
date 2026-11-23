@@ -30,6 +30,7 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     /// Normalized alignment along the axis cropped by a full-bleed photo.
     var framing: Double? = nil
     var textPlacement: PageTextPlacement? = nil
+    var heading: String? = nil
 }
 
 struct BookFormat: Codable, Hashable, Sendable {
@@ -50,6 +51,9 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var film: FilmSettings? = nil
     var printSettings: PrintSettings? = nil
     var cover: BookCover? = nil
+    var template: BookTemplate? = nil
+
+    var editorialStyle: EditorialStyle { template?.style ?? .classic }
 
     func photo(_ id: UUID) -> BookPhoto? { photos.first { $0.id == id } }
 
@@ -60,7 +64,8 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var contentInsetPoints: Double {
         let scale = 72.0 / 25.4
         let shortestSide = min(format.widthMM, format.heightMM) * scale
-        return printSettings.map { $0.safeMM * scale } ?? min(30, shortestSide * 0.11)
+        let printInset = printSettings.map { $0.safeMM * scale } ?? min(30, shortestSide * 0.11)
+        return max(printInset, shortestSide * editorialStyle.insetFraction)
     }
 
     mutating func autoLayout() {

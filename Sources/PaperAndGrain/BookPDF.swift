@@ -49,7 +49,7 @@ enum BookPDF {
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = settings.bleedMM * pointsPerMM
-        let safe = settings.safeMM * pointsPerMM
+        let safe = book.contentInsetPoints
         guard w.isFinite, h.isFinite, min(w,h) > 50, safe >= 0, 2*safe < min(w,h),
               bleed.isFinite, bleed >= 0, settings.targetPPI.isFinite, settings.targetPPI > 0 else {
             return ["Dimensioni non valide · Invalid print dimensions"]
@@ -84,16 +84,24 @@ enum BookPDF {
                     ? BookLayoutGeometry.mixedArea(in: available, placement: page.textPlacement, spacing: 12).photo
                     : available
                 let slots = BookLayoutGeometry.rectangles(for: photos.map { Double($0.pixelWidth)/Double(max(1,$0.pixelHeight)) },
-                                                          in: rect, gap: 6)
+                                                          in: rect, gap: book.editorialStyle.imageGap)
                 for (photo,slot) in zip(photos,slots) { check(photo, in: slot, fills: false, location: loc) }
             case .text: break
             }
         }
         if let cover = book.cover {
-            for id in [cover.frontPhotoID, cover.backPhotoID].compactMap({ $0 }) {
+            for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
+                guard let id else { continue }
                 if let photo = book.photo(id) {
-                    check(photo, in: CGRect(x: 0, y: 0, width: w+bleed, height: h+2*bleed),
-                          fills: true, location: "Copertina / Cover")
+                    let rect: CGRect
+                    switch (book.template, front) {
+                    case (nil, _): rect = CGRect(x: 0, y: 0, width: w + bleed, height: h + 2 * bleed)
+                    case (_, true):
+                        let panel = CGRect(x: safe, y: safe, width: w - 2 * safe, height: h - 2 * safe)
+                        rect = book.editorialStyle.coverPicture(in: panel, bleed: bleed)
+                    case (_, false): rect = backCoverPicture(width: w, height: h, inset: safe)
+                    }
+                    check(photo, in: rect, fills: book.template == nil || front, location: "Copertina / Cover")
                 } else { warnings.append("Copertina / Cover · Foto mancante / Missing photo") }
             }
         }
@@ -137,7 +145,7 @@ enum BookPDF {
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
-        let safe = settings.map { $0.safeMM * pointsPerMM } ?? book.contentInsetPoints
+        let safe = book.contentInsetPoints
         let ppi = settings?.targetPPI ?? 320
         let spine = (cover?.spineMM ?? 0) * pointsPerMM
         guard w.isFinite, h.isFinite, w > 50, h > 50, !book.pages.isEmpty,
@@ -170,20 +178,25 @@ enum BookPDF {
         if let cover {
             begin(width: 2 * w + spine)
             let spread = CGRect(x: 0, y: 0, width: 2*w+spine, height: h)
-            ctx.setFillColor(color(0.16, 0.16, 0.16))
-            ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
-            for (id,x) in [(cover.backPhotoID, 0.0), (cover.frontPhotoID, w+spine)] {
-                if let id {
-                    guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
-                    let rect = CGRect(x: x == 0 ? -bleed : x, y: -bleed, width: w+bleed, height: h+2*bleed)
-                    try paint(photo, rect: rect, fills: true, framing: nil, ppi: ppi, book: book, directory: directory, context: ctx)
+            if book.template != nil {
+                try templateCover(cover, spread: spread, leafWidth: w, inset: safe, bleed: bleed, ppi: ppi,
+                                  book: book, directory: directory, context: ctx)
+            } else {
+                ctx.setFillColor(color(0.16, 0.16, 0.16))
+                ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
+                for (id,x) in [(cover.backPhotoID, 0.0), (cover.frontPhotoID, w+spine)] {
+                    if let id {
+                        guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
+                        let rect = CGRect(x: x == 0 ? -bleed : x, y: -bleed, width: w+bleed, height: h+2*bleed)
+                        try paint(photo, rect: rect, fills: true, framing: nil, ppi: ppi, book: book, directory: directory, context: ctx)
+                    }
                 }
-            }
-            if !cover.title.isEmpty {
-                let band = CGRect(x: w+spine, y: h*0.63, width: w+bleed, height: h*0.37+bleed)
-                ctx.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
-                ctx.fill(band)
-                try drawText(cover.title, in: CGRect(x: w+spine+safe, y: band.minY+safe, width: w-2*safe, height: h-band.minY-2*safe), pageNumber: 0, context: ctx)
+                if !cover.title.isEmpty {
+                    let band = CGRect(x: w+spine, y: h*0.63, width: w+bleed, height: h*0.37+bleed)
+                    ctx.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
+                    ctx.fill(band)
+                    try drawText(EditorialStyle.classic.typography(cover.title, heading: nil, mixed: false), in: CGRect(x: w+spine+safe, y: band.minY+safe, width: w-2*safe, height: h-band.minY-2*safe), pageNumber: 0, context: ctx)
+                }
             }
             ctx.endPDFPage()
         } else {
@@ -217,9 +230,15 @@ enum BookPDF {
     private static func draw(_ page: BookPage, in bounds: CGRect, pageNumber: Int,
                              book: Book, directory: URL, context: CGContext, bleed: Double, inset: Double, ppi: Double) throws {
         let outer = bounds.insetBy(dx: -bleed, dy: -bleed)
-        context.setFillColor(color(0.976, 0.965, 0.935))
+        let style = book.editorialStyle
+        context.setFillColor(EditorialStyle.color(style.paper))
         context.fill(outer)
         let safe = bounds.insetBy(dx: inset, dy: inset)
+        let fullBleed = page.layout == .fullPage || page.layout == .fullSpread
+        if style.rule && !fullBleed {
+            context.setFillColor(EditorialStyle.color(style.accent))
+            context.fill(CGRect(x: safe.minX, y: safe.minY - 9, width: safe.width, height: 0.55))
+        }
         let photos = page.photoIDs.compactMap(book.photo)
         if let missing = page.photoIDs.first(where: { book.photo($0) == nil }) { throw ExportError.missingImage(missing.uuidString) }
         let textRect: CGRect
@@ -241,15 +260,21 @@ enum BookPDF {
             let fillsImage = page.layout == .fullPage || page.layout == .fullSpread
             let arranged = fillsImage ? Array(photos.prefix(1)) : photos
             let slots = fillsImage ? [photoRect] : BookLayoutGeometry.rectangles(
-                for: arranged.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) }, in: photoRect, gap: 6
+                for: arranged.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) }, in: photoRect, gap: style.imageGap
             )
             for (photo, slot) in zip(arranged, slots) {
                 try paint(photo, rect: slot, fills: fillsImage, framing: page.framing, ppi: ppi,
                           book: book, directory: directory, context: context)
             }
         }
-        if !page.text.isEmpty && (page.layout == .mixed || page.layout == .text) {
-            try drawText(page.text, in: textRect, pageNumber: pageNumber, context: context)
+        if page.layout == .mixed || page.layout == .text {
+            let mixed = page.layout == .mixed
+            try drawText(style.typography(page.text, heading: page.heading, mixed: mixed),
+                         in: style.textArea(in: textRect, mixed: mixed), pageNumber: pageNumber, context: context)
+        }
+        if style.folio && !fullBleed {
+            _ = EditorialTypesetter.draw(style.typography(String(pageNumber), heading: nil, mixed: false),
+                                         in: CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20), context: context)
         }
     }
 
@@ -286,25 +311,41 @@ enum BookPDF {
         context.restoreGState()
     }
 
-    private static func drawText(_ text: String, in rect: CGRect, pageNumber: Int, context: CGContext) throws {
-        guard rect.width > 0, rect.height > 0 else { throw ExportError.textOverflow(pageNumber) }
-        let font = CTFontCreateWithName("Baskerville" as CFString, 14, nil)
-        let attributed = NSAttributedString(string: text, attributes: [
-            NSAttributedString.Key(kCTFontAttributeName as String): font,
-            NSAttributedString.Key(kCTForegroundColorAttributeName as String): color(0.18, 0.18, 0.18),
-        ])
-        let framesetter = CTFramesetterCreateWithAttributedString(attributed)
-        let boundary = CGPath(rect: CGRect(origin: .zero, size: rect.size), transform: nil)
-        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: attributed.length),
-                                            boundary, nil)
-        guard CTFrameGetVisibleStringRange(frame).length == attributed.length else {
-            throw ExportError.textOverflow(pageNumber)
+    private static func templateCover(_ cover: BookCover, spread: CGRect, leafWidth: Double, inset: Double,
+                                      bleed: Double, ppi: Double, book: Book,
+                                      directory: URL, context: CGContext) throws {
+        let style = book.editorialStyle
+        context.setFillColor(EditorialStyle.color(style.paper))
+        context.fill(spread.insetBy(dx: -bleed, dy: -bleed))
+        let frontX = spread.width - leafWidth
+        let panel = CGRect(x: frontX + inset, y: inset, width: leafWidth - 2 * inset, height: spread.height - 2 * inset)
+        let photoFrame = style.coverPicture(in: panel, bleed: bleed)
+        if let id = cover.frontPhotoID {
+            guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
+            try paint(photo, rect: photoFrame,
+                      fills: true, framing: nil, ppi: ppi, book: book, directory: directory, context: context)
         }
-        context.saveGState()
-        context.translateBy(x: rect.minX, y: rect.maxY)
-        context.scaleBy(x: 1, y: -1)
-        context.textMatrix = .identity
-        CTFrameDraw(frame, context)
-        context.restoreGState()
+        if let id = cover.backPhotoID {
+            guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
+            let back = backCoverPicture(width: leafWidth, height: spread.height, inset: inset)
+            if !back.isEmpty {
+                try paint(photo, rect: back, fills: false, framing: nil, ppi: ppi, book: book, directory: directory, context: context)
+            }
+        }
+        if style.rule {
+            context.setFillColor(EditorialStyle.color(style.accent))
+            context.fill(CGRect(x: panel.minX, y: panel.minY, width: panel.width, height: 0.8))
+        }
+        let t = CGRect(x: panel.minX, y: style.coverTitleBelow ? photoFrame.maxY + 22 : panel.minY + (style.rule ? 16 : 0),
+                       width: panel.width, height: panel.height * (style.coverTitleBelow ? 0.28 : 0.25))
+        try drawText(style.typography("", heading: cover.title, mixed: false), in: t, pageNumber: 0, context: context)
+    }
+
+    private static func backCoverPicture(width: Double, height: Double, inset: Double) -> CGRect {
+        CGRect(x: inset * 1.35, y: height * 0.38, width: max(0, width - 2.7 * inset), height: height * 0.28)
+    }
+
+    private static func drawText(_ text: NSAttributedString, in rect: CGRect, pageNumber: Int, context: CGContext) throws {
+        if !EditorialTypesetter.draw(text, in: rect, context: context) { throw ExportError.textOverflow(pageNumber) }
     }
 }

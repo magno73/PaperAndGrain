@@ -7,6 +7,7 @@ struct PaperAndGrainApp: App {
     @AppStorage("interfaceLanguage") private var preferredLanguage = "system"
     @State private var showAlbums = false
     @State private var showBookSettings = false
+    @State private var showBookTemplates = false
     @State private var hasRestored = false
 
     private var language: String {
@@ -42,6 +43,7 @@ struct PaperAndGrainApp: App {
                 ToolbarItem(placement: .primaryAction) {
                     if workspace.directory != nil {
                         Menu {
+                            Button(s("Modelli del libro…", "Book Templates…")) { showBookTemplates = true }
                             Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
                             Button(s("Salva progetto…", "Save Project…"), action: workspace.saveProject)
                             Divider()
@@ -69,6 +71,16 @@ struct PaperAndGrainApp: App {
                 AlbumPicker(language: language, close: { showAlbums = false }) { photos, title, format in
                     showAlbums = false
                     workspace.start(photos, title: title, format: format, language: language)
+                }
+            }
+            .sheet(isPresented: $showBookTemplates) {
+                if let directory = workspace.directory {
+                    BookTemplateChooser(book: workspace.book, directory: directory, language: language,
+                                        onCancel: { showBookTemplates = false }) { template in
+                        workspace.book.template = template
+                        workspace.flushSave()
+                        showBookTemplates = false
+                    }
                 }
             }
             .sheet(isPresented: $showBookSettings) {

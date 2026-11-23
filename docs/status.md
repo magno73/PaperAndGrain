@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.3 · 23 novembre 2026
+
+Disponibili quattro [modelli editoriali](templates.md) con anteprime di selezione e titoli di pagina. Verificate la persistenza dei modelli, quattro doppie pagine e quattro copertine su immagini dimostrative. La build risiede in `dist/0.3.0/`. Per decidere il modello di Namibia, resta il collaudo sugli scatti scelti dall’album.
+
 ## 0.2 · 23 novembre 2026
 
 | Area | Disponibile | Verifica |

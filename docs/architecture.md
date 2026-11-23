@@ -14,7 +14,7 @@ Un progetto `.papergrain` ha `manifest.json` e una cartella `assets/` e, se nece
 |---|---|
 | Libro | ID, titolo, formato in mm, ordine delle pagine e versione dello schema |
 | Foto | ID, nome, data di scatto, dimensioni orientate, filename locale e analisi facoltativa |
-| Pagina | ID, tipo di composizione, foto nell’ordine di disposizione, racconto, posizione del testo e inquadratura facoltativa |
+| Pagina | ID, tipo di composizione, foto nell’ordine di disposizione, titolo e racconto, posizione del testo e inquadratura facoltativa |
 | Analisi | Lista di etichette Vision, chiavi stabili dei temi e revisione |
 | Pellicola | Profilo del libro, eccezioni per foto e riferimento alla LUT inclusa nel progetto |
 | Stampa | Abbondanza, margine, PPI, ordine delle facciate e copertina facoltativa |
@@ -38,3 +38,5 @@ L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB com
 ## Pellicole
 
 `FilmRenderer` legge l’immagine orientata con ImageIO, la normalizza in sRGB con ColorSync e applica il look o il CUBE 3D/HaldCLUT PNG. L’intensità miscela la resa del look con la scena, la grana aggiunge una variazione ripetibile alla luminanza. Il riquadro originale dell’editor è una modalità temporanea di visione. Il documento salva il look del libro e le eccezioni per foto. La cache di anteprima è limitata e usa immagine, dettaglio del look e risoluzione come chiave. Il PDF rilegge la copia alla risoluzione utile per il formato.
+
+La 0.3 aggiunge il modello facoltativo del libro. Colore della pagina, tipografia, colonna del testo e interspazi escono dai parametri di `BookTemplate.swift`. La zona sicura di stampa imposta il margine minimo. [Modelli editoriali](templates.md) descrive l’applicazione e le anteprime.
