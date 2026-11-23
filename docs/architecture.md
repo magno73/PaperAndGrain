@@ -27,6 +27,8 @@ Il manifest si sostituisce atomicamente. Il salvataggio esplicito copia il pacch
 
 Le foto arrivate da PhotoKit possono provenire da iCloud. La copia richiede la versione corrente, incluse le modifiche visibili in Foto. La classificazione lavora sulla copia locale e memorizza l’analisi nel documento. Al cambio libro si interrompe la sequenza in corso.
 
+L’ispettore calcola i suggerimenti fuori dal thread dell’interfaccia quando cambiano il racconto, gli scatti della pagina o le foto disponibili. Annulla la ricerca precedente se cambia uno di questi dati.
+
 ## Geometria e PDF
 
 Le dimensioni del libro sono in millimetri. La geometria della galleria passa per `BookLayoutGeometry` e conserva proporzioni, ordine e interspazi. La prima bozza raggruppa per giorno di scatto. Il [confronto con Fotobuch](layout-comparison.md) documenta la decisione di tenere il layout interno nella 0.2.
@@ -35,13 +37,15 @@ Per una foto al vivo, `framing` va da 0 a 1 sull’asse che viene tagliato quand
 
 `PageComposition` risolve righe automatiche, cornici manuali, testo e filetti in punti tipografici, dall’alto a sinistra. Le cornici manuali delle foto e dei box di testo usano coordinate normalizzate sul formato al taglio. Una foto posizionata manualmente non occupa uno spazio nella griglia automatica. Il primo spostamento di uno scatto dalla griglia fissa le altre cornici visibili. Lo zoom del canvas moltiplica solo le dimensioni a schermo, mentre il ritaglio della foto controlla l’ingrandimento nel riquadro e l’allineamento su entrambi gli assi, anche per il calcolo della risoluzione di stampa. L’ordine del navigatore corrisponde a `Book.pages`, con ogni panorama rappresentato da una sola voce.
 
-Le estensioni `BookPage.photoPlacements`, `BookPage.textBoxes` e `BookCover.backText` sono facoltative. `BookCoverGeometry` risolve le due facce sia per l’editor sia per `Cover.pdf`. Il retro può contenere testo e foto. Il frontespizio è una pagina di testo interna che si inserisce in testa a `Book.pages`.
+Con un modello di pagina, `PageArrangement` assegna le cornici nell’ordine degli ID della pagina. `PageComposition` condivide i rettangoli con canvas, miniature e PDF. Le foto oltre la capienza rimangono nei dati della pagina. Applicare un modello ripristina le cornici e conserva i ritagli, il racconto e i box. Lo spostamento di una cornice lascia le altre nei rispettivi spazi.
+
+I campi `BookPage.arrangement`, `BookPage.photoPlacements`, `BookPage.textBoxes` e `BookCover.backText` sono facoltativi. `BookCoverGeometry` risolve le due facce sia per l’editor sia per `Cover.pdf`. Il retro può contenere testo e foto. Il frontespizio è una pagina di testo interna che si inserisce in testa a `Book.pages`.
 
 Il ritaglio apre una modifica temporanea direttamente sulla pagina. I gesti regolano la foto e la cornice. La conferma applica posizione e ritaglio assieme in una singola operazione annullabile. Le modifiche a schermo non attivano l’app e la messa a fuoco della tastiera resta quella naturale della finestra. I pannelli file si presentano come schede asincrone. Il workspace controlla l’identità del libro e la sua cartella prima di usare il risultato ricevuto da una scheda.
 
 L’aggancio usa la posizione libera a ogni aggiornamento del trascinamento. Cerca bordi e centri delle altre foto e dei box sulla stessa pagina entro sei punti a schermo, indipendentemente dallo zoom, con una guida per asse. Le guide mostrano i riferimenti scelti e scompaiono quando termina l’aggancio. Il progetto conserva solo la posizione finale della cornice.
 
-Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. La scorciatoia di eliminazione è legata alla finestra del libro e alla selezione nel canvas. I controlli di testo ricevono i loro eventi di cancellazione.
+Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. La scorciatoia di eliminazione è legata alla finestra del libro e alla selezione nel canvas. I controlli di testo ricevono i loro eventi di cancellazione. La selezione foto parte dal rilascio del pulsante nella finestra e risolve la posizione visibile nella libreria, sulla pagina o sulla copertina. L’ispettore resta nella modalità aperta.
 
 Le LUT Fujifilm incluse sono risorse sRGB. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini sviluppate con Provia. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
 

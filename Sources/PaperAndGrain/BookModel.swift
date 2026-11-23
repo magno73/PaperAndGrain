@@ -34,6 +34,13 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var heading: String? = nil
     var photoPlacements: [UUID: PhotoPlacement]? = nil
     var textBoxes: [PageTextBox]? = nil
+    var arrangement: PageArrangement? = nil
+
+    var effectiveLayout: PageLayout { arrangement?.layout ?? layout }
+    var hasStoryText: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !(heading ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }
 
 struct BookFormat: Codable, Hashable, Sendable {

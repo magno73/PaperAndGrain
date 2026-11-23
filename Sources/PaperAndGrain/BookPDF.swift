@@ -101,11 +101,11 @@ enum BookPDF {
         var leaves = [Leaf?]()
         if settings?.firstPageOnRight == true { leaves.append(nil) }
         for page in pages {
-            if page.layout == .fullSpread && settings != nil && !leaves.count.isMultiple(of: 2) {
+            if page.effectiveLayout == .fullSpread && settings != nil && !leaves.count.isMultiple(of: 2) {
                 leaves.append(nil)
             }
             leaves.append(Leaf(page: page, half: 0, number: leaves.count + 1))
-            if page.layout == .fullSpread {
+            if page.effectiveLayout == .fullSpread {
                 leaves.append(Leaf(page: page, half: 1, number: leaves.count + 1))
             }
         }
@@ -214,7 +214,14 @@ enum BookPDF {
                       book: book, directory: directory, context: context)
         }
         if let story = composition.story {
-            try drawText(style.typography(page.text, heading: page.heading, mixed: page.layout == .mixed),
+            if let background = composition.storyBackground {
+                context.saveGState()
+                context.setAlpha(0.90)
+                context.setFillColor(EditorialStyle.color(style.paper))
+                context.fill(background)
+                context.restoreGState()
+            }
+            try drawText(style.typography(page.text, heading: page.heading, mixed: page.effectiveLayout == .mixed),
                          in: story, pageNumber: pageNumber, context: context)
         }
         for box in composition.textBoxes where !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

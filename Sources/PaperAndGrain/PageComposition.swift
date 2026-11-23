@@ -46,7 +46,10 @@ struct PageRect: Codable, Hashable, Sendable {
 
     /// Extend a frame that reaches an outside trim edge into the printer's bleed.
     func photoRect(in bounds: CGRect, bleed: Double = 0) -> CGRect {
-        let frame = photoClamped.denormalized(in: bounds)
+        Self.extendingToBleed(photoClamped.denormalized(in: bounds), in: bounds, bleed: bleed)
+    }
+
+    fileprivate static func extendingToBleed(_ frame: CGRect, in bounds: CGRect, bleed: Double) -> CGRect {
         guard bleed > 0 else { return frame }
         let epsilon = 0.000001
         let left = frame.minX <= bounds.minX + epsilon ? max(0, bleed - abs(frame.minX - bounds.minX)) : 0
@@ -104,27 +107,57 @@ struct PageComposition {
 
     let bounds: CGRect
     let photos: [Photo]
+    let arrangementPhotoSlots: [CGRect]
     let story: CGRect?
+    let storyBackground: CGRect?
     let textBoxes: [PageTextBox]
     let rule: CGRect?
     let folio: CGRect?
 
     init(page: BookPage, book: Book, bleed: Double = 0, photoForID: ((UUID) -> BookPhoto?)? = nil) {
         let size = book.format.pageSize
-        let bounds = CGRect(x: 0, y: 0, width: page.layout == .fullSpread ? size.width * 2 : size.width,
+        let layout = page.effectiveLayout
+        let bounds = CGRect(x: 0, y: 0, width: layout == .fullSpread ? size.width * 2 : size.width,
                             height: size.height)
         self.bounds = bounds
-        let full = page.layout == .fullPage || page.layout == .fullSpread
+        let full = layout == .fullPage || layout == .fullSpread || page.arrangement == .textOverPhoto
         let style = book.editorialStyle
         let safe = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
         rule = style.rule && !full ? CGRect(x: safe.minX, y: safe.minY - 9, width: safe.width, height: 0.55) : nil
         folio = style.folio && !full ? CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20) : nil
-        let mixed = page.layout == .mixed
-        let parts = BookLayoutGeometry.mixedArea(in: safe, placement: page.textPlacement, spacing: 12)
-        story = mixed || page.layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed) : nil
+        let mixed = layout == .mixed
+        let lookup = photoForID ?? book.photo
         textBoxes = page.textBoxes ?? []
 
-        let images = page.photoIDs.compactMap(photoForID ?? book.photo)
+        if let arrangement = page.arrangement {
+            let geometry = arrangement.geometry(in: bounds, inside: safe, gap: style.imageGap)
+            arrangementPhotoSlots = geometry.photos
+            story = geometry.story.map { style.textArea(in: $0, mixed: mixed) }
+            storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
+            photos = page.photoIDs.enumerated().compactMap { index, id in
+                guard let photo = lookup(id) else { return nil }
+                let placement = page.photoPlacements?[id]
+                let frame: CGRect
+                if let manual = placement?.frame {
+                    frame = manual.photoRect(in: bounds, bleed: bleed)
+                } else if geometry.photos.indices.contains(index) {
+                    let slot = geometry.photos[index]
+                    frame = PageRect.extendingToBleed(slot, in: bounds, bleed: bleed)
+                } else {
+                    return nil
+                }
+                let alignment = full ? page.framing ?? 0.5 : 0.5
+                return Photo(photo: photo, frame: frame, fills: true,
+                             crop: placement?.crop ?? PhotoCrop(x: alignment, y: alignment))
+            }
+            return
+        }
+
+        let parts = BookLayoutGeometry.mixedArea(in: safe, placement: page.textPlacement, spacing: 12)
+        arrangementPhotoSlots = []
+        story = mixed || layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed) : nil
+        storyBackground = nil
+        let images = page.photoIDs.compactMap(lookup)
         let autoImages = images.filter { page.photoPlacements?[$0.id]?.frame == nil }
         let automaticFrames: [CGRect]
         switch page.layout {

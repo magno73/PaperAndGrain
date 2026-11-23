@@ -10,6 +10,7 @@ struct CanvasObjectControl<Content: View>: View {
     var alignmentTargets: [CGRect] = []
     var allowsPhotoOverflow = false
     var preservesAspectRatio = false
+    var selectsWithTap = true
     var onDoubleClick: (() -> Void)? = nil
     let onSelect: () -> Void
     let onChange: (CGRect) -> Void
@@ -25,7 +26,8 @@ struct CanvasObjectControl<Content: View>: View {
             .frame(width: visibleFrame.width, height: visibleFrame.height)
             .clipped()
             .contentShape(ReachableFrame(rect: reachable))
-            .gesture(drag().exclusively(before: tap))
+            .gesture(drag())
+            .simultaneousGesture(tap)
             .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleClick?() })
             .focusable()
             .focused($focused)
@@ -58,7 +60,7 @@ struct CanvasObjectControl<Content: View>: View {
     private var tap: some Gesture {
         TapGesture().onEnded {
             focused = true
-            onSelect()
+            if selectsWithTap { onSelect() }
         }
     }
 

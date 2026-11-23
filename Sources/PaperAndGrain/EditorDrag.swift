@@ -11,7 +11,8 @@ struct EditorDragPreview: Equatable {
 
 enum EditorDropTarget: Hashable {
     static let coordinateSpace = "PaperAndGrainEditor"
-    case navigatorViewport, canvasViewport, navigatorPage(UUID), canvasPage(UUID), cover(front: Bool)
+    case navigatorViewport, canvasViewport, libraryViewport
+    case navigatorPage(UUID), canvasPage(UUID), libraryPhoto(UUID), cover(front: Bool)
 }
 
 struct EditorDropFrames: PreferenceKey {

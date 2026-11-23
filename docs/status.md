@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.5.2 · 23 novembre 2026
+
+La selezione foto parte al rilascio del clic e mantiene il pannello aperto. L’ispettore **Pagina** offre undici modelli per la singola pagina. **Regola foto** e **Pellicola** si aprono dal fronte e dal retro della copertina. Le prove automatiche coprono classificazione del clic, selezione per posizione con zoom, compatibilità dei modelli e resa della sovrapposizione testo e foto nel PDF. Resta da misurare la risposta al clic nella finestra con Namibia. La build risiede in `dist/0.5.2/`.
+
 ## 0.5.1 · 23 novembre 2026
 
 Backspace e Canc agiscono sulla foto selezionata nel canvas. Il clic singolo seleziona subito e il doppio clic continua ad aprire il ritaglio o il box. Le maniglie agganciano le foto e i riquadri di ritaglio agli altri elementi. Le miniature e il canvas hanno code e cache separate. Lo spostamento dei cursori usa un’anteprima leggera. Le prove automatiche verificano scorciatoie, geometria dell’aggancio, cancellazione e condivisione delle richieste di anteprima. Resta da provare la reattività della finestra con un libro grande. La build risiede in `dist/0.5.1/`.
@@ -49,3 +53,5 @@ Aprire l’app, scegliere l’album Namibia con il permesso di macOS e importare
 ## Prima copia stampata
 
 Scegliere formato, carta e rilegatura con la tipografia. Inserire le misure effettive in Libro e stampa, aprire i PDF a risoluzione reale e validare dorso, grana e dettaglio sui volti con un provino.
+
+Il template Pixartprinting per il fotolibro da 21 × 21 cm usa interni singoli con abbondanza di 3 mm e una copertina stesa come prima pagina del PDF. Pixartprinting consiglia un PDF unico e accetta anche la consegna di copertina e interni separati. Per un export dedicato occorre usare la geometria della copertina del preventivo, con abbondanza e pieghe distinte da quelle degli interni, e lasciare variabile la foliazione. Il foglio di istruzioni del preventivo specifica i requisiti di colore e risoluzione. [Pixartprinting · Fotolibri](https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/fotolibri/), [Assistenza · Come creare la copertina](https://support.pixartprinting.com/hc/it/articles/27577189469586-Come-creare-correttamente-la-copertina-di-un-libro)
