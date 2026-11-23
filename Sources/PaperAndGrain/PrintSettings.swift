@@ -14,4 +14,5 @@ struct BookCover: Codable, Hashable, Sendable {
     var backPhotoID: UUID?
     var spineMM: Double = 0
     var backText: String? = nil
+    var typography: EditorialTypography? = nil
 }

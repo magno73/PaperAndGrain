@@ -2,15 +2,27 @@ import CoreGraphics
 
 /// Fixed slots are ordered in reading order: left to right, then top to bottom.
 enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
-    case fullBleed, twoAcross, twoStacked, fourGrid, heroAboveTwo, twoAboveHero
+    case fullBleed, bleedTwoAcross, bleedTwoStacked, bleedThreeAcross, bleedFourGrid, bleedHeroAboveTwo
+    case twoAcross, twoStacked, fourGrid, heroAboveTwo, twoAboveHero
     case textAbovePhoto, photoAboveText, textBesidePhoto, textOverPhoto, textOnly
 
     var id: Self { self }
 
+    var isFullBleed: Bool {
+        switch self {
+        case .fullBleed, .textOverPhoto, .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross,
+             .bleedFourGrid, .bleedHeroAboveTwo:
+            true
+        default:
+            false
+        }
+    }
+
     var layout: PageLayout {
         switch self {
         case .fullBleed: .fullPage
-        case .twoAcross, .twoStacked, .fourGrid, .heroAboveTwo, .twoAboveHero: .gallery
+        case .twoAcross, .twoStacked, .fourGrid, .heroAboveTwo, .twoAboveHero,
+             .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross, .bleedFourGrid, .bleedHeroAboveTwo: .gallery
         case .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: .mixed
         case .textOnly: .text
         }
@@ -20,9 +32,9 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .textOnly: 0
         case .fullBleed, .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: 1
-        case .twoAcross, .twoStacked: 2
-        case .heroAboveTwo, .twoAboveHero: 3
-        case .fourGrid: 4
+        case .twoAcross, .twoStacked, .bleedTwoAcross, .bleedTwoStacked: 2
+        case .heroAboveTwo, .twoAboveHero, .bleedThreeAcross, .bleedHeroAboveTwo: 3
+        case .fourGrid, .bleedFourGrid: 4
         }
     }
 
@@ -36,10 +48,9 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
     /// trimmed page; the safe area supplies the editorial margins for photos and text.
     func geometry(in bounds: CGRect, inside safe: CGRect, gap: CGFloat) -> Geometry {
         guard !bounds.isEmpty else { return Geometry(photos: []) }
-        guard !safe.isEmpty else {
-            return Geometry(photos: self == .fullBleed || self == .textOverPhoto ? [bounds] : [])
-        }
-        let gutter = min(max(0, gap), min(safe.width, safe.height) * 0.14)
+        let photoArea = isFullBleed ? bounds : safe
+        guard !photoArea.isEmpty else { return Geometry(photos: []) }
+        let gutter = isFullBleed ? 0 : min(max(0, gap), min(safe.width, safe.height) * 0.14)
         func split(_ rect: CGRect, along edge: CGRectEdge, fraction: CGFloat = 0.5) -> (CGRect, CGRect) {
             let extent = edge == .minXEdge ? rect.width : rect.height
             let (first, rest) = rect.divided(atDistance: (extent - gutter) * fraction, from: edge)
@@ -53,16 +64,19 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .fullBleed:
             return Geometry(photos: [bounds])
-        case .twoAcross:
-            return Geometry(photos: pairAcross(safe))
-        case .twoStacked:
-            let (top, bottom) = split(safe, along: .minYEdge)
+        case .twoAcross, .bleedTwoAcross:
+            return Geometry(photos: pairAcross(photoArea))
+        case .bleedThreeAcross:
+            let (first, otherTwo) = split(photoArea, along: .minXEdge, fraction: 1.0 / 3)
+            return Geometry(photos: [first] + pairAcross(otherTwo))
+        case .twoStacked, .bleedTwoStacked:
+            let (top, bottom) = split(photoArea, along: .minYEdge)
             return Geometry(photos: [top, bottom])
-        case .fourGrid:
-            let (top, bottom) = split(safe, along: .minYEdge)
+        case .fourGrid, .bleedFourGrid:
+            let (top, bottom) = split(photoArea, along: .minYEdge)
             return Geometry(photos: pairAcross(top) + pairAcross(bottom))
-        case .heroAboveTwo:
-            let (hero, lower) = split(safe, along: .minYEdge, fraction: 0.62)
+        case .heroAboveTwo, .bleedHeroAboveTwo:
+            let (hero, lower) = split(photoArea, along: .minYEdge, fraction: 0.62)
             return Geometry(photos: [hero] + pairAcross(lower))
         case .twoAboveHero:
             let (upper, hero) = split(safe, along: .minYEdge, fraction: 0.38)
@@ -77,6 +91,7 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
             let (photo, story) = split(safe, along: .minXEdge, fraction: 0.58)
             return Geometry(photos: [photo], story: story)
         case .textOverPhoto:
+            guard !safe.isEmpty else { return Geometry(photos: [bounds]) }
             let panel = CGRect(x: safe.minX, y: safe.maxY - safe.height * 0.34,
                                width: safe.width * 0.78, height: safe.height * 0.34)
             let padding = min(safe.width, safe.height) * 0.028

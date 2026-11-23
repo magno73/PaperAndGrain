@@ -8,23 +8,26 @@ import XCTest
 
 final class PageArrangementTests: XCTestCase {
     func testEveryArrangementRespectsItsCapacityAndMarginsInEachFormat() throws {
-        XCTAssertEqual(PageArrangement.allCases.count, 11)
+        XCTAssertEqual(PageArrangement.allCases.count, 16)
         for format in [BookFormat.square, .portrait, .landscape] {
             let bounds = CGRect(origin: CGPoint(x: 12, y: 22), size: format.pageSize)
             let safe = bounds.insetBy(dx: 30, dy: 30)
             for arrangement in PageArrangement.allCases {
                 let geometry = arrangement.geometry(in: bounds, inside: safe, gap: 10)
                 XCTAssertEqual(geometry.photos.count, arrangement.photoCapacity)
-                let isEdgeToEdge = arrangement == .fullBleed || arrangement == .textOverPhoto
-                let margins = isEdgeToEdge ? bounds : safe
+                let margins = arrangement.isFullBleed ? bounds : safe
                 for (index, photo) in geometry.photos.enumerated() {
                     XCTAssertTrue(margins.insetBy(dx: -0.001, dy: -0.001).contains(photo))
                     XCTAssertGreaterThan(min(photo.width, photo.height), 0)
                     for other in geometry.photos.dropFirst(index + 1) {
-                        XCTAssertFalse(photo.intersects(other))
+                        let overlap = photo.intersection(other)
+                        XCTAssertLessThan(min(overlap.width, overlap.height), 0.0001)
                     }
                 }
-                if isEdgeToEdge { XCTAssertEqual(geometry.photos, [bounds]) }
+                if arrangement.isFullBleed {
+                    let area = geometry.photos.reduce(0) { $0 + $1.width * $1.height }
+                    XCTAssertEqual(area, bounds.width * bounds.height, accuracy: 0.0001)
+                }
                 XCTAssertEqual(geometry.story != nil, arrangement.layout == .text || arrangement.layout == .mixed)
                 if let story = geometry.story {
                     XCTAssertTrue(safe.insetBy(dx: -0.001, dy: -0.001).contains(story))
@@ -55,6 +58,96 @@ final class PageArrangementTests: XCTestCase {
             XCTAssertLessThan(try XCTUnwrap(opening.story).maxY, opening.photos[0].minY)
             let closing = geometry(.photoAboveText)
             XCTAssertLessThan(closing.photos[0].maxY, try XCTUnwrap(closing.story).minY)
+        }
+    }
+
+    func testSeamlessPhotoLayoutsExtendOnlyOutsideEdgesForPrint() throws {
+        let counts: [PageArrangement: Int] = [
+            .bleedTwoAcross: 2, .bleedTwoStacked: 2, .bleedThreeAcross: 3, .bleedFourGrid: 4, .bleedHeroAboveTwo: 3
+        ]
+        XCTAssertEqual(Set(PageArrangement.allCases.filter(\.isFullBleed)), Set(counts.keys).union([.fullBleed, .textOverPhoto]))
+        let photos = (0..<4).map { BookPhoto(name: "Slot \($0)", filename: "slot\($0).png", pixelWidth: 40, pixelHeight: 60) }
+        let book = Book(title: "Seams", format: BookFormat(widthMM: 182, heightMM: 211), photos: photos, template: .atlas)
+        let bounds = CGRect(origin: .zero, size: book.format.pageSize)
+        let inset = bounds.insetBy(dx: 40, dy: 40)
+        for (arrangement, count) in counts {
+            XCTAssertEqual(arrangement.layout, .gallery)
+            XCTAssertEqual(arrangement.photoCapacity, count)
+            let page = BookPage(photoIDs: photos.map(\.id), arrangement: arrangement)
+            let geometry = arrangement.geometry(in: bounds, inside: inset, gap: 15)
+            XCTAssertEqual(geometry.photos, arrangement.geometry(in: bounds, inside: .zero, gap: 200).photos)
+            let screen = PageComposition(page: page, book: book)
+            XCTAssertEqual(screen.photos.map(\.frame), geometry.photos)
+            XCTAssertTrue(screen.photos.allSatisfy(\.fills))
+            XCTAssertNil(screen.rule)
+            XCTAssertNil(screen.folio)
+            let print = PageComposition(page: page, book: book, bleed: 8)
+            XCTAssertEqual(print.photos.map(\.id), Array(photos.prefix(count)).map(\.id))
+            for (trim, slot) in zip(screen.photos.map(\.frame), print.photos.map(\.frame)) {
+                XCTAssertEqual(slot.minX, trim.minX < 0.001 ? -8 : trim.minX, accuracy: 0.0001)
+                XCTAssertEqual(slot.minY, trim.minY < 0.001 ? -8 : trim.minY, accuracy: 0.0001)
+                XCTAssertEqual(slot.maxX, trim.maxX > bounds.maxX - 0.001 ? bounds.maxX + 8 : trim.maxX, accuracy: 0.0001)
+                XCTAssertEqual(slot.maxY, trim.maxY > bounds.maxY - 0.001 ? bounds.maxY + 8 : trim.maxY, accuracy: 0.0001)
+            }
+            let restored = try JSONDecoder().decode(BookPage.self, from: JSONEncoder().encode(page))
+            XCTAssertEqual(restored.arrangement, arrangement)
+            let slots = geometry.photos
+            switch arrangement {
+            case .bleedTwoAcross, .bleedThreeAcross:
+                for (index, slot) in slots.enumerated() {
+                    let width = bounds.width / CGFloat(count)
+                    XCTAssertEqual(slot.minX, width * CGFloat(index), accuracy: 0.0001)
+                    XCTAssertEqual(slot.width, width, accuracy: 0.0001)
+                    XCTAssertEqual(slot.height, bounds.height, accuracy: 0.0001)
+                }
+            case .bleedTwoStacked:
+                XCTAssertEqual(slots[0].maxY, slots[1].minY, accuracy: 0.0001)
+                XCTAssertEqual(slots[0].height, bounds.height / 2, accuracy: 0.0001)
+            case .bleedFourGrid:
+                XCTAssertEqual(slots[0].maxX, slots[1].minX, accuracy: 0.0001)
+                XCTAssertEqual(slots[0].maxY, slots[2].minY, accuracy: 0.0001)
+                XCTAssertEqual(slots[3].origin, CGPoint(x: bounds.midX, y: bounds.midY))
+            case .bleedHeroAboveTwo:
+                XCTAssertEqual(slots[0].width, bounds.width, accuracy: 0.0001)
+                XCTAssertGreaterThan(slots[0].height, slots[1].height)
+                XCTAssertEqual(slots[0].maxY, slots[1].minY, accuracy: 0.0001)
+                XCTAssertEqual(slots[1].maxX, slots[2].minX, accuracy: 0.0001)
+            default: XCTFail("Unexpected photo layout")
+            }
+        }
+    }
+
+    func testSeamlessExportShowsNoPaperBetweenImagesOrAtThePageEdges() throws {
+        let project = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: project) }
+        let photos = (0..<4).map { BookPhoto(name: "Field \($0)", filename: "field.png", pixelWidth: 24, pixelHeight: 24) }
+        let pages = PageArrangement.allCases.filter { $0.isFullBleed && $0.layout == .gallery }
+            .map { BookPage(photoIDs: photos.map(\.id), arrangement: $0) }
+        let book = Book(title: "Continuous photo area", photos: photos, pages: pages, template: .atlas)
+        try BookStorage.write(book, to: project)
+        let image = try context(width: 24, height: 24)
+        image.setFillColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 1)
+        image.fill(CGRect(x: 0, y: 0, width: 24, height: 24))
+        let asset = BookStorage.assetURL(filename: "field.png", in: project)
+        let encoder = try XCTUnwrap(CGImageDestinationCreateWithURL(asset as CFURL, UTType.png.identifier as CFString, 1, nil))
+        CGImageDestinationAddImage(encoder, try XCTUnwrap(image.makeImage()), nil)
+        XCTAssertTrue(CGImageDestinationFinalize(encoder))
+        let result = project.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: project, to: result)
+        let pdfURL = result.appendingPathComponent("Interior.pdf")
+        let pdf = try XCTUnwrap(CGPDFDocument(pdfURL as CFURL))
+        XCTAssertEqual(pdf.numberOfPages, pages.count)
+        for number in 1...pdf.numberOfPages {
+            let page = try XCTUnwrap(pdf.page(at: number))
+            let raster = try context(width: 101, height: 101)
+            raster.setFillColor(gray: 1, alpha: 1)
+            raster.fill(CGRect(x: 0, y: 0, width: 101, height: 101))
+            let media = page.getBoxRect(.mediaBox)
+            raster.scaleBy(x: 101 / media.width, y: 101 / media.height)
+            raster.drawPDFPage(page)
+            let rgba = try XCTUnwrap(raster.data).assumingMemoryBound(to: UInt8.self)
+            let peak = stride(from: 0, to: 101 * 101 * 4, by: 4).map { rgba[$0] }.max() ?? 255
+            XCTAssertLessThan(peak, 42, "Unexpected uncovered paper in \(pages[number - 1].arrangement!.rawValue)")
         }
     }
 

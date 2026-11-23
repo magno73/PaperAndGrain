@@ -35,6 +35,7 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var photoPlacements: [UUID: PhotoPlacement]? = nil
     var textBoxes: [PageTextBox]? = nil
     var arrangement: PageArrangement? = nil
+    var typography: EditorialTypography? = nil
 
     var effectiveLayout: PageLayout { arrangement?.layout ?? layout }
     var hasStoryText: Bool {
@@ -62,6 +63,7 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var printSettings: PrintSettings? = nil
     var cover: BookCover? = nil
     var template: BookTemplate? = nil
+    var typography: EditorialTypography? = nil
 
     var editorialStyle: EditorialStyle { template?.style ?? .classic }
 

@@ -85,11 +85,12 @@ struct PaperAndGrainApp: App {
             }
             .sheet(isPresented: $showBookSettings) {
                 BookSettingsView(book: workspace.book, language: language, close: { showBookSettings = false }) {
-                    title, format, printSettings, cover in
+                    title, format, printSettings, cover, typography in
                     workspace.book.title = title
                     workspace.book.format = format
                     workspace.book.printSettings = printSettings
                     workspace.book.cover = cover
+                    workspace.book.typography = typography
                     workspace.flushSave()
                     showBookSettings = false
                 }

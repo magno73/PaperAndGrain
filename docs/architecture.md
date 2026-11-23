@@ -39,6 +39,8 @@ Per una foto al vivo, `framing` va da 0 a 1 sull’asse che viene tagliato quand
 
 Con un modello di pagina, `PageArrangement` assegna le cornici nell’ordine degli ID della pagina. `PageComposition` condivide i rettangoli con canvas, miniature e PDF. Le foto oltre la capienza rimangono nei dati della pagina. Applicare un modello ripristina le cornici e conserva i ritagli, il racconto e i box. Lo spostamento di una cornice lascia le altre nei rispettivi spazi.
 
+I modelli al vivo distribuiscono le cornici sui bordi del formato e omettono filetti e folio. Il PDF estende in abbondanza le sole cornici che raggiungono il bordo esterno. I confini tra le foto restano condivisi.
+
 I campi `BookPage.arrangement`, `BookPage.photoPlacements`, `BookPage.textBoxes` e `BookCover.backText` sono facoltativi. `BookCoverGeometry` risolve le due facce sia per l’editor sia per `Cover.pdf`. Il retro può contenere testo e foto. Il frontespizio è una pagina di testo interna che si inserisce in testa a `Book.pages`.
 
 Il ritaglio apre una modifica temporanea direttamente sulla pagina. I gesti regolano la foto e la cornice. La conferma applica posizione e ritaglio assieme in una singola operazione annullabile. Le modifiche a schermo non attivano l’app e la messa a fuoco della tastiera resta quella naturale della finestra. I pannelli file si presentano come schede asincrone. Il workspace controlla l’identità del libro e la sua cartella prima di usare il risultato ricevuto da una scheda.
@@ -68,3 +70,5 @@ L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB com
 `FilmRenderer` legge l’immagine orientata con ImageIO, la normalizza in sRGB con ColorSync e applica il look o il CUBE 3D/HaldCLUT PNG. L’intensità miscela la resa del look con la scena, la grana aggiunge una variazione ripetibile alla luminanza. Il riquadro originale dell’editor è una modalità temporanea di visione. Il documento salva il look del libro e le eccezioni per foto. La cache di anteprima è limitata e usa immagine, dettaglio del look e risoluzione come chiave. Il PDF rilegge la copia alla risoluzione utile per il formato.
 
 La 0.3 aggiunge il modello facoltativo del libro. Colore della pagina, tipografia, colonna del testo e interspazi escono dai parametri di `BookTemplate.swift`. La zona sicura di stampa imposta il margine minimo. [Modelli editoriali](templates.md) descrive l’applicazione e le anteprime.
+
+Font PostScript, dimensione in punti e allineamento sono campi facoltativi e si ereditano singolarmente. Il modello editoriale dà i valori iniziali. Il libro può ridefinire quelli di titoli e testi. Una pagina può aggiungere modifiche al proprio titolo o racconto. Anche il fronte, il retro e i box possono ridefinire il tipo di testo corrispondente. Core Text applica lo stile risolto nel canvas, nelle miniature e nel PDF. La resa usa il carattere del modello quando il font scelto è assente sul Mac.

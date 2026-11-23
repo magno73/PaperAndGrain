@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.6.0 · 23 novembre 2026
+
+Il selettore pagina raggruppa i modelli al vivo e aggiunge due foto affiancate, due in verticale, tre colonne, una griglia di quattro e una foto grande sopra due. In **Tipografia** si scelgono font, corpo e allineamento per titoli, racconti, copertina e box. Il libro può impostare valori predefiniti e gli oggetti possono modificarli singolarmente. I test coprono lettura dei progetti precedenti, ereditarietà, posizione del testo nel PDF, abbondanza e giunzioni delle foto. Resta il collaudo interattivo dei nuovi controlli. La build risiede in `dist/0.6.0/`.
+
 ## 0.5.3 · 23 novembre 2026
 
 Due foto della stessa pagina si scambiano trascinando una foto all’interno dell’altra. Il bersaglio è evidenziato durante il trascinamento e **⌥** consente la sovrapposizione libera. Il cambio scheda dell’ispettore e le coordinate delle miniature in libreria aggiornano il pannello. I campioni Pellicola possono apparire mentre la coda delle miniature è impegnata. Verificati scambio di cornici, ritagli, persistenza, coordinate e indipendenza delle code. Restano da verificare il gesto nella finestra e i tempi di apertura dei pannelli sul progetto Namibia. La build risiede in `dist/0.5.3/`.

@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.5.3/Paper & Grain.app'
+open 'dist/0.6.0/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -23,7 +23,7 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 ## Montare le pagine
 
 - In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi selezionarlo e premere **⌫** o **Canc** per rimuoverlo dalla composizione. Lo scatto resta nella libreria del libro. Le maniglie agli angoli permettono di ingrandirlo anche oltre il bordo. La parte oltre il taglio rimane fuori dalla pagina. Fai doppio clic sulla foto in pagina per modificarne il ritaglio e premi **Fine** per applicare.
-- In **Pagina → Modello di pagina** scegli una delle undici composizioni. Ci sono una foto al vivo, griglie di due o quattro foto, una foto grande sopra o sotto due più piccole, solo testo e combinazioni di testo e foto. Scegliere un modello ridistribuisce le cornici. Il testo, i box, gli scatti e i loro ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
+- In **Pagina → Modello di pagina** scegli una composizione **Con margini** o **Al vivo**. I modelli al vivo comprendono due foto affiancate o una sopra l’altra, tre colonne, una griglia di quattro e una foto grande sopra due più piccole. Scegliere un modello ridistribuisce le cornici. Testo, box, scatti e ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
 - Per scambiare due foto della stessa pagina, trascina una foto all’interno dell’altra e rilascia quando vedi il bordo con le frecce. I ritagli seguono i rispettivi scatti. Tieni premuto **⌥** per sovrapporre liberamente le foto. **⌘Z** annulla lo scambio.
 - **Inserisci → Box di testo** crea un riquadro indipendente. Fai doppio clic dentro un box per scriverci sulla pagina e clicca fuori quando hai finito. Puoi anche scrivere nell’ispettore, spostare o ridimensionare i box e sovrapporli alle foto.
 - Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Le guide compaiono anche trascinando una foto dalla scheda **Foto** o usando le maniglie della foto e del riquadro di ritaglio. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente.
@@ -32,6 +32,10 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 ## Modelli del libro
 
 Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
+
+## Formattare titoli e testi
+
+In **Libro e stampa → Tipografia del libro** imposti font, dimensione in punti e allineamento predefiniti per tutti i titoli e tutti i testi. In **Pagina → Tipografia** puoi cambiare questi valori per la singola pagina. Anche copertina, retro e box selezionati hanno controlli propri. Il menu del font cerca fra i caratteri installati sul Mac. Il ripristino riporta il testo ai valori ereditati. Anteprima, miniature e PDF condividono lo stile del progetto.
 
 ## Pellicole e stampa
 

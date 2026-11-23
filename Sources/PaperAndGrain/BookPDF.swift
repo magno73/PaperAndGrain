@@ -209,9 +209,12 @@ enum BookPDF {
         if let missing = page.photoIDs.first(where: { book.photo($0) == nil }) {
             throw ExportError.missingImage(missing.uuidString)
         }
-        for slot in composition.photos {
+        let stitchedSlots = page.arrangement.map { $0.isFullBleed && $0.photoCapacity == composition.photos.count } == true
+            && page.photoPlacements?.values.contains(where: { $0.frame != nil }) != true
+        for (index, slot) in composition.photos.enumerated() {
+            let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
             try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, ppi: ppi,
-                      book: book, directory: directory, context: context)
+                      book: book, directory: directory, context: context, underlap: underlap)
         }
         if let story = composition.story {
             if let background = composition.storyBackground {
@@ -221,7 +224,7 @@ enum BookPDF {
                 context.fill(background)
                 context.restoreGState()
             }
-            try drawText(style.typography(page.text, heading: page.heading, mixed: page.effectiveLayout == .mixed),
+            try drawText(PageComposition.storyText(page: page, book: book),
                          in: story, pageNumber: pageNumber, context: context)
         }
         for box in composition.textBoxes where !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -229,7 +232,7 @@ enum BookPDF {
             context.setFillColor(EditorialStyle.color(style.paper))
             context.fill(frame)
             let textFrame = frame.insetBy(dx: PageTextBox.textInset, dy: PageTextBox.textInset)
-            try drawText(style.typography(box.text, heading: nil, mixed: true),
+            try drawText(PageComposition.boxText(box: box, book: book),
                          in: textFrame, pageNumber: pageNumber, context: context)
         }
         if let folio = composition.folio {
@@ -238,8 +241,22 @@ enum BookPDF {
         }
     }
 
+    private static func tileUnderlap(at index: Int, in slots: [CGRect]) -> CGSize {
+        let frame = slots[index]
+        let following = slots.dropFirst(index + 1)
+        let tolerance: CGFloat = 0.000001
+        let right = following.contains {
+            abs($0.minX - frame.maxX) < tolerance && $0.maxY > frame.minY + tolerance && $0.minY < frame.maxY - tolerance
+        }
+        let below = following.contains {
+            abs($0.minY - frame.maxY) < tolerance && $0.maxX > frame.minX + tolerance && $0.minX < frame.maxX - tolerance
+        }
+        // Cover the reader's independently antialiased photo edges, including at thumbnail scale.
+        return CGSize(width: right ? 7 : 0, height: below ? 7 : 0)
+    }
+
     private static func paint(_ photo: BookPhoto, rect: CGRect, fills: Bool, crop: PhotoCrop, ppi: Double,
-                              book: Book, directory: URL, context: CGContext) throws {
+                              book: Book, directory: URL, context: CGContext, underlap: CGSize = .zero) throws {
         guard !rect.isEmpty else { return }
         let source = BookStorage.assetURL(filename: photo.filename, in: directory)
         let settings = book.effectiveFilm(for: photo)
@@ -251,12 +268,35 @@ enum BookPDF {
         guard let image = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
                                              adjustments: photo.adjustments)
         else { throw ExportError.missingImage(photo.name) }
+        if underlap != .zero {
+            let seams = CGMutablePath()
+            if underlap.width > 0 {
+                seams.addRect(CGRect(x: rect.maxX - underlap.width, y: rect.minY, width: 2 * underlap.width,
+                                     height: rect.height + underlap.height))
+            }
+            if underlap.height > 0 {
+                seams.addRect(CGRect(x: rect.minX, y: rect.maxY - underlap.height, width: rect.width,
+                                     height: 2 * underlap.height))
+            }
+            let extended = CGRect(x: placement.minX, y: placement.minY,
+                                  width: max(placement.width, rect.maxX + underlap.width - placement.minX),
+                                  height: max(placement.height, rect.maxY + underlap.height - placement.minY))
+            context.saveGState()
+            context.addPath(seams)
+            context.clip()
+            drawImage(image, at: extended, in: context)
+            context.restoreGState()
+        }
         context.saveGState()
         context.clip(to: rect)
+        drawImage(image, at: placement, in: context)
+        context.restoreGState()
+    }
+
+    private static func drawImage(_ image: CGImage, at placement: CGRect, in context: CGContext) {
         context.translateBy(x: placement.minX, y: placement.maxY)
         context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(origin: .zero, size: placement.size))
-        context.restoreGState()
     }
 
     private static func drawFace(_ face: BookCoverGeometry, photoID: UUID?, ppi: Double, book: Book,

@@ -94,6 +94,7 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var text = ""
     var frame: PageRect
+    var typography: EditorialTextStyle? = nil
 }
 
 struct PageComposition {
@@ -103,6 +104,15 @@ struct PageComposition {
         let frame: CGRect
         let fills: Bool
         let crop: PhotoCrop
+    }
+
+    static func storyText(page: BookPage, book: Book) -> NSAttributedString {
+        book.editorialStyle.typography(page.text, heading: page.heading, mixed: page.effectiveLayout == .mixed,
+                                       titleStyle: book.titleStyle(for: page), bodyStyle: book.bodyStyle(for: page))
+    }
+
+    static func boxText(box: PageTextBox, book: Book) -> NSAttributedString {
+        book.editorialStyle.typography(box.text, heading: nil, mixed: true, bodyStyle: book.bodyStyle(for: box))
     }
 
     let bounds: CGRect
@@ -120,19 +130,22 @@ struct PageComposition {
         let bounds = CGRect(x: 0, y: 0, width: layout == .fullSpread ? size.width * 2 : size.width,
                             height: size.height)
         self.bounds = bounds
-        let full = layout == .fullPage || layout == .fullSpread || page.arrangement == .textOverPhoto
+        let full = layout == .fullPage || layout == .fullSpread || page.arrangement?.isFullBleed == true
         let style = book.editorialStyle
         let safe = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
         rule = style.rule && !full ? CGRect(x: safe.minX, y: safe.minY - 9, width: safe.width, height: 0.55) : nil
         folio = style.folio && !full ? CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20) : nil
         let mixed = layout == .mixed
+        let alignedRoles = [page.heading?.isEmpty == false ? book.titleStyle(for: page).alignment : nil,
+                            page.text.isEmpty ? nil : book.bodyStyle(for: page).alignment]
+        let fullColumn = alignedRoles.contains(.center) || alignedRoles.contains(.right)
         let lookup = photoForID ?? book.photo
         textBoxes = page.textBoxes ?? []
 
         if let arrangement = page.arrangement {
             let geometry = arrangement.geometry(in: bounds, inside: safe, gap: style.imageGap)
             arrangementPhotoSlots = geometry.photos
-            story = geometry.story.map { style.textArea(in: $0, mixed: mixed) }
+            story = geometry.story.map { style.textArea(in: $0, mixed: mixed, fullColumn: fullColumn) }
             storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
             photos = page.photoIDs.enumerated().compactMap { index, id in
                 guard let photo = lookup(id) else { return nil }
@@ -146,7 +159,7 @@ struct PageComposition {
                 } else {
                     return nil
                 }
-                let alignment = full ? page.framing ?? 0.5 : 0.5
+                let alignment = full && geometry.photos.count == 1 ? page.framing ?? 0.5 : 0.5
                 return Photo(photo: photo, frame: frame, fills: true,
                              crop: placement?.crop ?? PhotoCrop(x: alignment, y: alignment))
             }
@@ -155,7 +168,7 @@ struct PageComposition {
 
         let parts = BookLayoutGeometry.mixedArea(in: safe, placement: page.textPlacement, spacing: 12)
         arrangementPhotoSlots = []
-        story = mixed || layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed) : nil
+        story = mixed || layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed, fullColumn: fullColumn) : nil
         storyBackground = nil
         let images = page.photoIDs.compactMap(lookup)
         let autoImages = images.filter { page.photoPlacements?[$0.id]?.frame == nil }
@@ -209,33 +222,62 @@ struct BookCoverGeometry {
         let panel = bounds.insetBy(dx: inset, dy: inset)
         let style = book.editorialStyle
         let titleText = front ? book.cover?.title ?? book.title : book.cover?.backText ?? ""
+        let override = book.coverTextStyle(front: front)
+        let custom = override != EditorialTextStyle()
         if book.template == nil {
+            title = style.typography(titleText, heading: nil, mixed: false, bodyStyle: override)
             background = 0x292929
             fills = true
             photoFrame = CGRect(x: front ? 0 : -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
-            let bandTop = h * 0.63
+            var bandTop = h * 0.63
+            if custom {
+                bandTop = max(0, min(bandTop, panel.maxY - EditorialTypesetter.requiredHeight(title, width: panel.width) - inset))
+            }
             band = titleText.isEmpty ? nil : CGRect(x: front ? 0 : -bleed, y: bandTop, width: w + bleed, height: h - bandTop + bleed)
             titleFrame = titleText.isEmpty ? nil : CGRect(x: inset, y: bandTop + inset, width: panel.width,
                                                           height: h - bandTop - 2 * inset)
             rule = nil
-            title = style.typography(titleText, heading: nil, mixed: false)
         } else {
             background = style.paper
             fills = front
             band = nil
-            photoFrame = front ? style.coverPicture(in: panel, bleed: bleed)
-                : CGRect(x: inset * 1.35, y: h * 0.38, width: max(0, w - 2.7 * inset), height: h * 0.28)
             rule = front && style.rule ? CGRect(x: panel.minX, y: panel.minY, width: panel.width, height: 0.8) : nil
             if front {
-                let titleY = style.coverTitleBelow ? photoFrame.maxY + 22 : panel.minY + (style.rule ? 16 : 0)
-                titleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
-                                    height: panel.height * (style.coverTitleBelow ? 0.28 : 0.25))
-                title = style.typography("", heading: titleText, mixed: false)
+                title = style.typography("", heading: titleText, mixed: false, titleStyle: override)
+                var picture = style.coverPicture(in: panel, bleed: bleed)
+                let defaultHeight = panel.height * (style.coverTitleBelow ? 0.28 : 0.25)
+                let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0
+                if style.coverTitleBelow {
+                    if needed > defaultHeight {
+                        picture.size.height = max(0, min(picture.height, panel.maxY - needed - 22 - picture.minY))
+                    }
+                    let titleY = picture.maxY + 22
+                    titleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
+                                        height: custom ? max(0, panel.maxY - titleY) : defaultHeight)
+                } else {
+                    let titleY = panel.minY + (style.rule ? 16 : 0)
+                    if needed > defaultHeight {
+                        let bottom = picture.maxY
+                        picture.origin.y = min(bottom, max(picture.minY, titleY + needed + 8))
+                        picture.size.height = bottom - picture.minY
+                    }
+                    titleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
+                                        height: custom ? max(0, min(panel.maxY, picture.minY) - titleY) : defaultHeight)
+                }
+                photoFrame = picture
             } else {
-                let textTop = photoFrame.maxY + 16
-                titleFrame = titleText.isEmpty ? nil : CGRect(x: photoFrame.minX, y: textTop, width: photoFrame.width,
+                title = style.typography(titleText, heading: nil, mixed: true, bodyStyle: override)
+                var picture = CGRect(x: inset * 1.35, y: h * 0.38, width: max(0, w - 2.7 * inset), height: h * 0.28)
+                if custom {
+                    let needed = EditorialTypesetter.requiredHeight(title, width: picture.width)
+                    let photoBottom = min(picture.maxY, max(panel.minY, panel.maxY - needed - 16))
+                    picture.origin.y = max(panel.minY, photoBottom - picture.height)
+                    picture.size.height = photoBottom - picture.minY
+                }
+                photoFrame = picture
+                let textTop = picture.maxY + 16
+                titleFrame = titleText.isEmpty ? nil : CGRect(x: picture.minX, y: textTop, width: picture.width,
                                                                height: max(0, panel.maxY - textTop))
-                title = style.typography(titleText, heading: nil, mixed: true)
             }
         }
     }

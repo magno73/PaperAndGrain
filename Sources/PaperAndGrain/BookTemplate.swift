@@ -79,10 +79,18 @@ struct EditorialStyle {
                                         titleFont: "Baskerville", bodyFont: "Baskerville", titleSize: 30, bodySize: 14,
                                         insetFraction: 0, columnFraction: 1, imageGap: 6, rule: false, folio: false)
 
-    func textArea(in safe: CGRect, mixed: Bool) -> CGRect {
+    func defaultTitleStyle(mixed: Bool) -> EditorialTextStyle {
+        EditorialTextStyle(fontName: titleFont, pointSize: titleSize * (mixed ? 0.61 : 1), alignment: .left)
+    }
+
+    var defaultBodyStyle: EditorialTextStyle {
+        EditorialTextStyle(fontName: bodyFont, pointSize: bodySize, alignment: .left)
+    }
+
+    func textArea(in safe: CGRect, mixed: Bool, fullColumn: Bool = false) -> CGRect {
         guard !mixed else { return safe }
         let top = (rule ? 11.0 : 0) + safe.height * textTopFraction
-        return CGRect(x: safe.minX, y: safe.minY + top, width: safe.width * columnFraction, height: max(0, safe.height - top))
+        return CGRect(x: safe.minX, y: safe.minY + top, width: safe.width * (fullColumn ? 1 : columnFraction), height: max(0, safe.height - top))
     }
 
     static func color(_ rgb: UInt32) -> CGColor {
@@ -92,25 +100,28 @@ struct EditorialStyle {
         return CGColor(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 
-    func typography(_ text: String, heading: String?, mixed: Bool) -> NSAttributedString {
+    func typography(_ text: String, heading: String?, mixed: Bool,
+                    titleStyle: EditorialTextStyle? = nil, bodyStyle: EditorialTextStyle? = nil) -> NSAttributedString {
         let result = NSMutableAttributedString()
         let title = heading?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !title.isEmpty {
             let titleParagraph = NSMutableParagraphStyle()
             titleParagraph.paragraphSpacing = mixed ? 7 : 17
             titleParagraph.lineSpacing = 1
+            if let alignment = titleStyle?.alignment { titleParagraph.alignment = alignment.paragraphAlignment }
             result.append(NSAttributedString(string: text.isEmpty ? title : title + "\n", attributes: attributes(
-                font: titleFont, size: titleSize * (mixed ? 0.61 : 1), color: ink, paragraph: titleParagraph,
+                font: titleFont, override: titleStyle, size: titleSize * (mixed ? 0.61 : 1), color: ink, paragraph: titleParagraph,
                 tracking: titleTracking * (mixed ? 0.61 : 1)
             )))
         }
         let paragraph = NSMutableParagraphStyle()
+        if let alignment = bodyStyle?.alignment { paragraph.alignment = alignment.paragraphAlignment }
         if insetFraction > 0 {
             paragraph.lineSpacing = bodyFont == "HelveticaNeue" ? 3.2 : 3.8
             paragraph.paragraphSpacing = 6
         }
         result.append(NSAttributedString(string: text, attributes: attributes(
-            font: bodyFont, size: bodySize, color: ink, paragraph: paragraph
+            font: bodyFont, override: bodyStyle, size: bodySize, color: ink, paragraph: paragraph
         )))
         return result
     }
@@ -126,10 +137,13 @@ struct EditorialStyle {
         return CGRect(x: panel.minX, y: top, width: panel.width, height: bottom - top)
     }
 
-    private func attributes(font: String, size: Double, color: UInt32, paragraph: NSParagraphStyle,
+    private func attributes(font: String, override: EditorialTextStyle?, size: Double, color: UInt32, paragraph: NSParagraphStyle,
                             tracking: Double = 0) -> [NSAttributedString.Key: Any] {
-        [
-            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName(font as CFString, size, nil),
+        let pointSize = override?.normalizedSize ?? size
+        let available = override?.fontName.flatMap { NSFont(name: $0, size: pointSize) }
+        let name = available?.fontName ?? font
+        return [
+            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName(name as CFString, pointSize, nil),
             NSAttributedString.Key(kCTForegroundColorAttributeName as String): Self.color(color),
             NSAttributedString.Key(kCTKernAttributeName as String): tracking,
             .paragraphStyle: paragraph,
@@ -138,14 +152,32 @@ struct EditorialStyle {
 }
 
 enum EditorialTypesetter {
+    static func requiredHeight(_ attributed: NSAttributedString, width: CGFloat) -> CGFloat {
+        guard attributed.length > 0, width > 0 else { return 0 }
+        let setter = CTFramesetterCreateWithAttributedString(attributed)
+        let size = CTFramesetterSuggestFrameSizeWithConstraints(setter, CFRange(location: 0, length: 0), nil,
+                                                               CGSize(width: width, height: .greatestFiniteMagnitude), nil)
+        return ceil(size.height) + 2
+    }
+
+    private static func textFrame(_ attributed: NSAttributedString, in rect: CGRect) -> CTFrame? {
+        guard rect.width > 0, rect.height > 0 else { return nil }
+        return CTFramesetterCreateFrame(CTFramesetterCreateWithAttributedString(attributed),
+                                        CFRange(location: 0, length: attributed.length),
+                                        CGPath(rect: CGRect(origin: .zero, size: rect.size), transform: nil), nil)
+    }
+
+    static func fits(_ attributed: NSAttributedString, in rect: CGRect) -> Bool {
+        if attributed.length == 0 { return true }
+        guard let frame = textFrame(attributed, in: rect) else { return false }
+        return CTFrameGetVisibleStringRange(frame).length == attributed.length
+    }
+
     /// Draws into a top-left coordinate system. The return value reports text overflow.
     @discardableResult
     static func draw(_ attributed: NSAttributedString, in rect: CGRect, context: CGContext) -> Bool {
         if attributed.length == 0 { return true }
-        guard rect.width > 0, rect.height > 0 else { return false }
-        let frame = CTFramesetterCreateFrame(CTFramesetterCreateWithAttributedString(attributed),
-                                            CFRange(location: 0, length: attributed.length),
-                                            CGPath(rect: CGRect(origin: .zero, size: rect.size), transform: nil), nil)
+        guard let frame = textFrame(attributed, in: rect) else { return false }
         context.saveGState()
         context.translateBy(x: rect.minX, y: rect.maxY)
         context.scaleBy(x: 1, y: -1)

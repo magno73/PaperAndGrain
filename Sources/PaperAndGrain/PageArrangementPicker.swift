@@ -7,13 +7,17 @@ struct PageArrangementPicker: View {
     let onSelect: (PageArrangement?) -> Void
 
     @State private var isPresented = false
+    @State private var fullBleedGroup = false
 
     private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
 
     var body: some View {
         let current = Self.name(selection, language: language)
-        return Button { isPresented = true } label: {
+        return Button {
+            fullBleedGroup = selection?.isFullBleed == true
+            isPresented = true
+        } label: {
             HStack(spacing: 9) {
                 PageArrangementDiagram(arrangement: selection, pageSize: pageSize)
                     .frame(width: 35, height: 28)
@@ -51,9 +55,15 @@ struct PageArrangementPicker: View {
             Text(tr("Modelli di pagina", "Page Templates"))
                 .font(.system(size: 13, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
+            Picker(tr("Tipo di modello", "Template group"), selection: $fullBleedGroup) {
+                Text(tr("Con margini", "With margins")).tag(false)
+                Text(tr("Al vivo", "Full bleed")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
             LazyVGrid(columns: columns, spacing: 7) {
-                tile(nil)
-                ForEach(PageArrangement.allCases) { tile($0) }
+                if !fullBleedGroup { tile(nil) }
+                ForEach(PageArrangement.allCases.filter { $0.isFullBleed == fullBleedGroup }) { tile($0) }
             }
         }
         .padding(12)
@@ -105,6 +115,11 @@ struct PageArrangementPicker: View {
         case .textBesidePhoto: ("Testo accanto alla foto", "Text beside photo")
         case .textOverPhoto: ("Testo sulla foto", "Text over photo")
         case .textOnly: ("Solo testo", "Text only")
+        case .bleedTwoAcross: ("Due affiancate al vivo", "Two across, full bleed")
+        case .bleedTwoStacked: ("Due in verticale al vivo", "Two stacked, full bleed")
+        case .bleedThreeAcross: ("Tre affiancate al vivo", "Three across, full bleed")
+        case .bleedFourGrid: ("Griglia di quattro al vivo", "Four-photo grid, full bleed")
+        case .bleedHeroAboveTwo: ("Grande sopra, due sotto al vivo", "Large above two, full bleed")
         }
         return language.hasPrefix("it") ? title.italian : title.english
     }
@@ -139,7 +154,11 @@ private struct PageArrangementDiagram: View {
                 let geometry = arrangement.geometry(in: page, inside: page.insetBy(dx: inset, dy: inset),
                                                     gap: shortSide * 0.07)
 
-                for slot in geometry.photos { context.fill(Path(slot), with: .color(photo)) }
+                let tones = [0.56, 0.72, 0.64, 0.50]
+                for (index, slot) in geometry.photos.enumerated() {
+                    let fill = arrangement.isFullBleed ? Color(white: tones[index % tones.count]) : photo
+                    context.fill(Path(slot), with: .color(fill))
+                }
                 if let background = geometry.storyBackground {
                     context.fill(Path(background), with: .color(paper.opacity(0.9)))
                 }

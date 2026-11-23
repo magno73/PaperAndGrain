@@ -498,13 +498,13 @@ struct EditorView: View {
                         positioned(Color(cgColor: EditorialStyle.color(style.paper)).opacity(0.90),
                                    in: scaled(background, by: scale))
                     }
-                    let text = style.typography(leaf.text, heading: leaf.heading, mixed: leaf.effectiveLayout == .mixed)
+                    let text = PageComposition.storyText(page: leaf, book: book)
                     positioned(editorialText(text, scale: scale), in: scaled(story, by: scale))
                 }
                 ForEach(composition.textBoxes.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { box in
                     let frame = box.frame.rect(in: composition.bounds)
                     positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
-                    let text = style.typography(box.text, heading: nil, mixed: true)
+                    let text = PageComposition.boxText(box: box, book: book)
                     let inset = PageTextBox.textInset
                     positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
                 }
@@ -925,7 +925,7 @@ struct EditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .contentShape(Rectangle())
             } else {
-                editorialText(style.typography(leaf.text, heading: heading, mixed: leaf.effectiveLayout == .mixed), scale: scale)
+                editorialText(PageComposition.storyText(page: leaf, book: book), scale: scale)
                     .contentShape(Rectangle())
             }
         }
@@ -958,7 +958,7 @@ struct EditorView: View {
                             .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     } else {
-                        editorialText(style.typography(box.text, heading: nil, mixed: true), scale: scale)
+                        editorialText(PageComposition.boxText(box: box, book: book), scale: scale)
                     }
                 }
                 .padding(PageTextBox.textInset * scale)
@@ -977,8 +977,12 @@ struct EditorView: View {
 
     private func inlineBoxEditor(_ box: PageTextBox, leaf: BookPage, scale: CGFloat) -> some View {
         let style = book.editorialStyle
+        let type = style.defaultBodyStyle.applying(book.bodyStyle(for: box))
+        let font = type.fontName.flatMap { NSFont(name: $0, size: 12)?.fontName } ?? style.bodyFont
+        let alignment: TextAlignment = type.alignment == .center ? .center : (type.alignment == .right ? .trailing : .leading)
         return TextEditor(text: textInBox(box.id, on: leaf.id))
-            .font(.custom(style.bodyFont, size: max(1, style.bodySize * scale)))
+            .font(.custom(font, size: max(1, (type.pointSize ?? style.bodySize) * scale)))
+            .multilineTextAlignment(alignment)
             .foregroundStyle(Color(cgColor: EditorialStyle.color(style.ink)))
             .scrollContentBackground(.hidden)
             .focused($inlineBoxFocus, equals: box.id)
@@ -1114,6 +1118,7 @@ struct EditorView: View {
             if page.effectiveLayout == .text || page.effectiveLayout == .mixed {
                 VStack(alignment: .leading, spacing: 8) {
                     caption(tr("Racconto", "Story"))
+                    pageTypography(page)
                     if page.effectiveLayout == .mixed && page.arrangement == nil {
                         Picker(tr("Posizione del testo", "Text Position"), selection: Binding(
                             get: { self.page?.textPlacement ?? .below },
@@ -1232,6 +1237,19 @@ struct EditorView: View {
                 .labelsHidden()
             }
             if let active {
+                DisclosureGroup(tr("Tipografia del box", "Box Typography")) {
+                    EditorialTypographyControls(style: boxTextStyle(active.id, on: leaf.id),
+                                               inherited: book.editorialStyle.defaultBodyStyle.applying(book.typography?.body),
+                                               language: language)
+                        .padding(.top, 6)
+                        .id(active.id)
+                    let frame = active.frame.rect(in: pageComposition(leaf).bounds)
+                        .insetBy(dx: PageTextBox.textInset, dy: PageTextBox.textInset)
+                    if !EditorialTypesetter.fits(PageComposition.boxText(box: active, book: book), in: frame) {
+                        typeOverflow(tr("Ingrandisci il box o riduci la dimensione del testo.",
+                                        "Enlarge the box or reduce the text size."))
+                    }
+                }
                 TextEditor(text: textInBox(active.id, on: leaf.id))
                     .font(.system(size: 14, design: .serif))
                     .scrollContentBackground(.hidden)
@@ -1271,6 +1289,20 @@ struct EditorView: View {
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))
                 .accessibilityLabel(tr("Testo del retro", "Back Cover Text"))
             }
+            DisclosureGroup(tr("Tipografia", "Typography")) {
+                let style = book.editorialStyle
+                let front = side == .front
+                let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
+                EditorialTypographyControls(style: coverTextStyle(front ? \.title : \.body),
+                                           inherited: defaultStyle.applying(front ? book.typography?.title : book.typography?.body),
+                                           language: language)
+                    .padding(.top, 6)
+                    .id(side)
+                let face = BookCoverGeometry(book: book, front: front)
+                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
+                    typeOverflow(tr("Il testo supera lo spazio della copertina.", "The text exceeds the cover space."))
+                }
+            }
             if let photo = coverPhotoID(side).flatMap(indexedPhoto) {
                 HStack(spacing: 8) {
                     preview(photo, small: true).frame(width: 38, height: 30).clipped()
@@ -1294,6 +1326,84 @@ struct EditorView: View {
                 Button(tr("Aggiungi copertina al libro", "Add Cover to Book")) { changeCover { _ in } }
             }
         }
+    }
+
+    private func pageTypography(_ leaf: BookPage) -> some View {
+        let style = book.editorialStyle
+        let defaultTitle = style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
+        return DisclosureGroup(tr("Tipografia", "Typography")) {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(tr("Titolo", "Heading")).font(.subheadline.weight(.semibold))
+                    EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
+                                               inherited: defaultTitle.applying(book.typography?.title),
+                                               language: language)
+                        .id(leaf.id)
+                }
+                Divider()
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(tr("Testo", "Body")).font(.subheadline.weight(.semibold))
+                    EditorialTypographyControls(style: pageTextStyle(\.body, on: leaf.id),
+                                               inherited: style.defaultBodyStyle.applying(book.typography?.body),
+                                               language: language)
+                        .id(leaf.id)
+                }
+                if let frame = pageComposition(leaf).story,
+                   !EditorialTypesetter.fits(PageComposition.storyText(page: leaf, book: book), in: frame) {
+                    typeOverflow(tr("Titolo e testo superano lo spazio della pagina.",
+                                    "The heading and body text exceed the page’s available space."))
+                }
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func typeOverflow(_ message: String) -> some View {
+        Label(message, systemImage: "exclamationmark.triangle")
+            .font(.caption)
+            .foregroundStyle(Color(red: 0.61, green: 0.27, blue: 0.16))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func pageTextStyle(_ key: WritableKeyPath<EditorialTypography, EditorialTextStyle?>,
+                               on pageID: UUID) -> Binding<EditorialTextStyle?> {
+        Binding(
+            get: { book.pages.first { $0.id == pageID }?.typography?[keyPath: key] },
+            set: { value in
+                guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+                var type = book.pages[index].typography ?? EditorialTypography()
+                guard type[keyPath: key] != value else { return }
+                type[keyPath: key] = value
+                editPages(tr("Modifica tipografia", "Change Typography")) { pages in
+                    pages[index].typography = type.title == nil && type.body == nil ? nil : type
+                }
+            }
+        )
+    }
+
+    private func coverTextStyle(_ key: WritableKeyPath<EditorialTypography, EditorialTextStyle?>)
+        -> Binding<EditorialTextStyle?> {
+        Binding(
+            get: { book.cover?.typography?[keyPath: key] },
+            set: { value in
+                var type = book.cover?.typography ?? EditorialTypography()
+                guard type[keyPath: key] != value else { return }
+                type[keyPath: key] = value
+                changeCover { $0.typography = type.title == nil && type.body == nil ? nil : type }
+            }
+        )
+    }
+
+    private func boxTextStyle(_ id: UUID, on pageID: UUID) -> Binding<EditorialTextStyle?> {
+        Binding(
+            get: { book.pages.first { $0.id == pageID }?.textBoxes?.first { $0.id == id }?.typography },
+            set: { value in
+                changeTextBoxes(on: pageID, name: tr("Modifica tipografia", "Change Typography")) { boxes in
+                    guard let index = boxes.firstIndex(where: { $0.id == id }) else { return }
+                    boxes[index].typography = value
+                }
+            }
+        )
     }
 
     @ViewBuilder private func photoTransferMenu(_ photo: BookPhoto, from source: BookPage) -> some View {

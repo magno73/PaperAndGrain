@@ -4,16 +4,17 @@ struct BookSettingsView: View {
     let book: Book
     let language: String
     let close: () -> Void
-    let apply: (String, BookFormat, PrintSettings, BookCover?) -> Void
+    let apply: (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void
 
     @State private var title: String
     @State private var format: BookFormat
     @State private var printProfile: PrintSettings
     @State private var cover: BookCover
     @State private var hasCover: Bool
+    @State private var typography: EditorialTypography
 
     init(book: Book, language: String, close: @escaping () -> Void,
-         apply: @escaping (String, BookFormat, PrintSettings, BookCover?) -> Void) {
+         apply: @escaping (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void) {
         self.book = book
         self.language = language
         self.close = close
@@ -23,6 +24,7 @@ struct BookSettingsView: View {
         _printProfile = State(initialValue: book.printSettings ?? PrintSettings())
         _cover = State(initialValue: book.cover ?? BookCover(title: book.title))
         _hasCover = State(initialValue: book.cover != nil)
+        _typography = State(initialValue: book.typography ?? EditorialTypography())
     }
 
     private var number: FloatingPointFormatStyle<Double> {
@@ -62,6 +64,22 @@ struct BookSettingsView: View {
                     TextField(s("Larghezza (mm)", "Width (mm)"), value: $format.widthMM, format: number)
                     TextField(s("Altezza (mm)", "Height (mm)"), value: $format.heightMM, format: number)
                 }
+                Section(s("Tipografia del libro", "Book Typography")) {
+                    DisclosureGroup(s("Titoli", "Headings")) {
+                        EditorialTypographyControls(style: $typography.title,
+                                                   inherited: book.editorialStyle.defaultTitleStyle(mixed: false),
+                                                   language: language, updatesSizeWhileTyping: true)
+                            .frame(maxWidth: 320, alignment: .leading)
+                            .padding(.top, 6)
+                    }
+                    DisclosureGroup(s("Testi", "Body Text")) {
+                        EditorialTypographyControls(style: $typography.body,
+                                                   inherited: book.editorialStyle.defaultBodyStyle,
+                                                   language: language, updatesSizeWhileTyping: true)
+                            .frame(maxWidth: 320, alignment: .leading)
+                            .padding(.top, 6)
+                    }
+                }
                 Section(s("Interni", "Interior")) {
                     TextField(s("Abbondanza (mm)", "Bleed (mm)"), value: $printProfile.bleedMM, format: number)
                     TextField(s("Margine sicuro (mm)", "Safe margin (mm)"), value: $printProfile.safeMM, format: number)
@@ -90,7 +108,8 @@ struct BookSettingsView: View {
                 Spacer()
                 Button(s("Annulla", "Cancel"), action: close).keyboardShortcut(.cancelAction)
                 Button(s("Applica", "Apply")) {
-                    apply(title.trimmingCharacters(in: .whitespacesAndNewlines), format, printProfile, hasCover ? cover : nil)
+                    let type = typography.title == nil && typography.body == nil ? nil : typography
+                    apply(title.trimmingCharacters(in: .whitespacesAndNewlines), format, printProfile, hasCover ? cover : nil, type)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.19, green: 0.34, blue: 0.27))
