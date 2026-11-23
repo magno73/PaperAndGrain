@@ -7,16 +7,17 @@ struct CanvasObjectControl<Content: View>: View {
     let selected: Bool
     let minimumSize: CGSize
     let accessibilityName: String
+    var alignmentTargets: [CGRect] = []
     var preservesAspectRatio = false
     var onDoubleClick: (() -> Void)? = nil
     let onSelect: () -> Void
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
 
-    @GestureState private var dragFrame: CGRect?
+    @GestureState private var dragPreview: CanvasAlignment.Result?
 
     var body: some View {
-        let visibleFrame = dragFrame ?? frame
+        let visibleFrame = dragPreview?.frame ?? frame
         content(visibleFrame.size)
             .frame(width: visibleFrame.width, height: visibleFrame.height)
             .clipped()
@@ -48,6 +49,7 @@ struct CanvasObjectControl<Content: View>: View {
                 }
             }
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
+            .preference(key: CanvasGuidePreference.self, value: dragPreview?.guides ?? [])
     }
 
     private var tap: AnyGesture<Void> {
@@ -61,14 +63,22 @@ struct CanvasObjectControl<Content: View>: View {
 
     private func drag(_ corner: CanvasCorner? = nil) -> some Gesture {
         DragGesture(minimumDistance: 3, coordinateSpace: .global)
-            .updating($dragFrame) { value, preview, _ in
-                preview = adjustedFrame(by: value.translation, resizing: corner)
+            .updating($dragPreview) { value, preview, _ in
+                preview = dragDestination(by: value.translation, resizing: corner)
             }
             .onEnded { value in
                 if !selected { onSelect() }
-                let destination = adjustedFrame(by: value.translation, resizing: corner)
+                let destination = dragDestination(by: value.translation, resizing: corner).frame
                 if destination != frame { onChange(destination) }
             }
+    }
+
+    private func dragDestination(by translation: CGSize, resizing corner: CanvasCorner?) -> CanvasAlignment.Result {
+        let proposed = adjustedFrame(by: translation, resizing: corner)
+        if corner != nil {
+            return CanvasAlignment.Result(frame: proposed, guides: [])
+        }
+        return CanvasAlignment.duringDrag(proposed, to: alignmentTargets, within: bounds)
     }
 
     private func nudge(_ direction: MoveCommandDirection) {

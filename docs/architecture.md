@@ -39,6 +39,10 @@ Le estensioni `BookPage.photoPlacements`, `BookPage.textBoxes` e `BookCover.back
 
 Il ritaglio apre una modifica temporanea direttamente sulla pagina. I gesti regolano la foto e la cornice. La conferma applica posizione e ritaglio assieme in una singola operazione annullabile. Le modifiche a schermo non attivano l’app e la messa a fuoco della tastiera resta quella naturale della finestra. I pannelli file si presentano come schede asincrone. Il workspace controlla l’identità del libro e la sua cartella prima di usare il risultato ricevuto da una scheda.
 
+L’aggancio usa la posizione libera a ogni aggiornamento del trascinamento. Cerca bordi e centri delle altre foto e dei box sulla stessa pagina entro sei punti a schermo, indipendentemente dallo zoom, con una guida per asse. Le guide mostrano i riferimenti scelti e scompaiono quando termina l’aggancio. Il progetto conserva solo la posizione finale della cornice.
+
+Le LUT Fujifilm incluse sono risorse sRGB. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini sviluppate con Provia. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
+
 L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB come output intent. I fogli avviati a destra e i panorami possono richiedere pagine bianche di compensazione. La stampa produce interni e copertina in file separati. Abbondanza e dorso vanno impostati con le specifiche del prodotto scelto.
 
 ## Pellicole

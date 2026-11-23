@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.4.0/Paper & Grain.app'
+open 'dist/0.4.1/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -24,6 +24,7 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 
 - In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi spostarlo e ridimensionarlo dalle maniglie agli angoli. Fai doppio clic sulla foto **già in pagina** per modificarne il ritaglio. Trascina l’immagine dentro la cornice, regola i bordi del ritaglio e usa il gesto di zoom o i pulsanti sotto la pagina. Premi **Fine** per applicare.
 - **Inserisci → Box di testo** aggiunge un riquadro indipendente alla pagina. Scrivi nell’ispettore e usa il riquadro sulla pagina per spostarlo o ridimensionarlo. Puoi aggiungerne più di uno e sovrapporli alle foto.
+- Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente. Le guide funzionano anche quando trascini una foto dalla scheda **Foto**.
 - **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Nelle due facce della copertina puoi trascinare una foto o sceglierla dalla scheda **Foto**, poi modificare titolo e testo del retro nell’ispettore. **Esporta per la stampa** include la copertina in un PDF separato.
 
 ## Modelli del libro
@@ -33,6 +34,8 @@ Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Ga
 ## Pellicole e stampa
 
 La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro.
+
+Il menu **LUT Fujifilm** contiene già le 14 LUT sRGB di abpy. Le undici LUT in **Base a contrasto lineare** richiedono uno sviluppo con contrasto lineare. Le tre in **Da Provia** sono pensate per immagini già sviluppate con Provia. Il file che scegli viene copiato nel progetto. [Crediti e licenza delle LUT](Resources/FujifilmFilmLooks/CREDITS.md).
 
 In **Libro e stampa** si possono cambiare formato, bleed, margine, risoluzione desiderata, tipo di PDF e lato della prima pagina. Imposta la copertina con foto di fronte e retro e la larghezza del dorso. **Esporta per la stampa** produce `Interior.pdf` e, se attivata, `Cover.pdf`. L’esportazione segnala foto sotto la risoluzione obiettivo e pagine di compensazione necessarie per i panorami. Usa le misure del prodotto scelto presso la tipografia.
 

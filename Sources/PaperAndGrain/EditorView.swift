@@ -45,6 +45,10 @@ struct EditorView: View {
         case front, back
     }
 
+    private enum AlignmentElement: Equatable {
+        case photo(UUID), textBox(UUID)
+    }
+
     private struct CropSession {
         let pageID: UUID
         let photoID: UUID
@@ -526,6 +530,7 @@ struct EditorView: View {
         let composition = PageComposition(page: leaf, book: book)
         let bounds = scaled(composition.bounds, by: scale)
         let style = book.editorialStyle
+        let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds)
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper)).onTapGesture {
                 finishCrop()
@@ -548,14 +553,16 @@ struct EditorView: View {
             }
             ForEach(composition.photos) { item in
                 if cropSession?.pageID != leaf.id || cropSession?.photoID != item.id {
-                    canvasPhoto(item, leaf: leaf, bounds: bounds, scale: scale)
+                    let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id))
+                    canvasPhoto(item, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
                 }
             }
             if let story = composition.story {
                 positioned(prose(leaf, scale: scale), in: scaled(story, by: scale))
             }
             ForEach(composition.textBoxes) { box in
-                canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale)
+                let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id))
+                canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
             }
             if let folio = composition.folio {
                 let label = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
@@ -574,11 +581,34 @@ struct EditorView: View {
             if leaf.id == page?.id {
                 Rectangle().strokeBorder(pine.opacity(0.56), lineWidth: 1.4).allowsHitTesting(false)
             }
-            if isPhotoDropTarget(.canvasPage(leaf.id)) {
-                Rectangle().strokeBorder(pine, lineWidth: 2).allowsHitTesting(false)
+        }
+        .overlayPreferenceValue(CanvasGuidePreference.self) { guides in
+            ZStack(alignment: .topLeading) {
+                if let incomingPhoto {
+                    let border = Rectangle().strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                    positioned(border, in: incomingPhoto.frame)
+                }
+                let visibleGuides = guides + (incomingPhoto?.guides ?? [])
+                if !visibleGuides.isEmpty {
+                    CanvasAlignmentGuides(guides: visibleGuides)
+                }
             }
+            .clipped()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .editorDropFrame(.canvasPage(leaf.id))
+    }
+
+    private func alignmentTargets(in composition: PageComposition, at scale: CGFloat,
+                                  excluding element: AlignmentElement) -> [CGRect] {
+        let photos = composition.photos.compactMap { item in
+            element == .photo(item.id) ? nil : scaled(item.frame, by: scale)
+        }
+        let textBoxes = composition.textBoxes.compactMap { box in
+            element == .textBox(box.id) ? nil : scaled(box.frame.rect(in: composition.bounds), by: scale)
+        }
+        return photos + textBoxes
     }
 
     private var placeholder: some View {
@@ -591,12 +621,14 @@ struct EditorView: View {
             }
     }
 
-    private func canvasPhoto(_ item: PageComposition.Photo, leaf: BookPage, bounds: CGRect, scale: CGFloat) -> some View {
+    private func canvasPhoto(_ item: PageComposition.Photo, leaf: BookPage, bounds: CGRect, scale: CGFloat,
+                             alignmentTargets: [CGRect]) -> some View {
         let frame = scaled(item.frame, by: scale)
         let active = leaf.id == page?.id && item.id == selectedPhoto && selectedBox == nil
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
-                                   accessibilityName: item.photo.name, preservesAspectRatio: true,
+                                   accessibilityName: item.photo.name, alignmentTargets: alignmentTargets,
+                                   preservesAspectRatio: true,
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
                                    onSelect: { selectCanvasPhoto(item.id, in: leaf) },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
@@ -651,7 +683,8 @@ struct EditorView: View {
         .buttonStyle(.plain)
     }
 
-    private func canvasTextBox(_ box: PageTextBox, leaf: BookPage, bounds: CGRect, scale: CGFloat) -> some View {
+    private func canvasTextBox(_ box: PageTextBox, leaf: BookPage, bounds: CGRect, scale: CGFloat,
+                               alignmentTargets: [CGRect]) -> some View {
         let active = selectedBox == box.id && leaf.id == page?.id
         let style = book.editorialStyle
         let empty = box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -659,6 +692,7 @@ struct EditorView: View {
         return CanvasObjectControl(frame: box.frame.rect(in: bounds), bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 88 * scale, height: 40 * scale),
                                    accessibilityName: empty ? label : box.text,
+                                   alignmentTargets: alignmentTargets,
                                    onSelect: { selectTextBox(box.id, in: leaf) },
                                    onChange: { updateTextBoxFrame(box.id, on: leaf.id, to: PageRect($0, in: bounds)) }) { _ in
             Group {
@@ -1212,6 +1246,10 @@ struct EditorView: View {
             }
             VStack(alignment: .leading, spacing: 9) {
                 filmSwatches
+                if let resources = Bundle.main.resourceURL, let sample = FujifilmFilmLook.all.first,
+                   (try? sample.url(in: resources).checkResourceIsReachable()) == true {
+                    fujifilmLookMenu(resources: resources)
+                }
                 Button {
                     importFilmLUT()
                 } label: {
@@ -1223,11 +1261,15 @@ struct EditorView: View {
                         .buttonStyle(.link)
                 }
                 if currentFilm.preset == .custom, let filename = currentFilm.lutFilename {
-                    Text(filmLUTName(filename))
+                    let builtIn = FujifilmFilmLook.importedLook(filename: filename)
+                    Text(builtIn?.name ?? filmLUTName(filename))
                         .font(.system(size: 10))
                         .foregroundStyle(muted)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                    if let builtIn {
+                        intro(fujifilmInputDescription(builtIn.input))
+                    }
                 }
             }
             .disabled(filmScope == .photo && filmPhoto?.film == nil)
@@ -1243,6 +1285,59 @@ struct EditorView: View {
             Divider()
             Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
                 .disabled(book.photos.isEmpty)
+        }
+    }
+
+    private func fujifilmLookMenu(resources: URL) -> some View {
+        let selected = currentFilm.preset == .custom
+            ? currentFilm.lutFilename.flatMap(FujifilmFilmLook.importedLook) : nil
+        return Menu {
+            Section(tr("Da Provia", "From Provia")) {
+                fujifilmLooks(.provia, selected: selected, resources: resources)
+            }
+            Section(tr("Base a contrasto lineare", "Linear-Contrast Input")) {
+                fujifilmLooks(.linear, selected: selected, resources: resources)
+            }
+            Divider()
+            Link(tr("Fonte e licenza", "Source and License"),
+                 destination: URL(string: "https://github.com/abpy/FujifilmCameraProfiles#licensing")!)
+        } label: {
+            Label(tr("LUT Fujifilm", "Fujifilm LUTs"), systemImage: "camera.filters")
+        }
+    }
+
+    private func fujifilmLooks(_ input: FujifilmFilmLook.Input, selected: FujifilmFilmLook?,
+                               resources: URL) -> some View {
+        ForEach(FujifilmFilmLook.all.filter { $0.input == input }) { look in
+            Button {
+                applyBuiltInLUT(look, resources: resources)
+            } label: {
+                if look == selected { Label(look.name, systemImage: "checkmark") }
+                else { Text(look.name) }
+            }
+        }
+    }
+
+    private func fujifilmInputDescription(_ input: FujifilmFilmLook.Input) -> String {
+        switch input {
+        case .linear:
+            tr("Per immagini sviluppate con contrasto lineare.", "For images developed with linear contrast.")
+        case .provia:
+            tr("Per immagini già sviluppate con Provia.", "For images already developed with Provia.")
+        }
+    }
+
+    private func applyBuiltInLUT(_ look: FujifilmFilmLook, resources: URL) {
+        do {
+            let filename = try BookStorage.importBuiltInLUT(look, resources: resources, in: directory)
+            setFilm {
+                $0.preset = .custom
+                $0.lutFilename = filename
+            }
+            lutImportError = nil
+        } catch {
+            lutImportError = tr("Impossibile aggiungere questa LUT al progetto.",
+                                "Couldn’t add this LUT to the project.")
         }
     }
 
@@ -1744,11 +1839,17 @@ struct EditorView: View {
         selectedBox = nil
     }
 
-    private func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {
-        guard let photo = book.photo(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
-        let current = book.pages[index]
-        let composition = PageComposition(page: current, book: book)
-        let existing = composition.photos.first { $0.id == id }
+    private func incomingPhotoPlacement(on leaf: BookPage, composition: PageComposition,
+                                        bounds: CGRect) -> CanvasAlignment.Result? {
+        guard let dragging, case let .photo(id) = dragging.item, let photo = book.photo(id),
+              isPhotoDropTarget(.canvasPage(leaf.id)), let screenFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
+        let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
+        return photoPlacement(photo, in: composition, at: location, bounds: bounds)
+    }
+
+    private func photoPlacement(_ photo: BookPhoto, in composition: PageComposition, at location: CGPoint,
+                                bounds: CGRect) -> CanvasAlignment.Result {
+        let existing = composition.photos.first { $0.id == photo.id }
         let scale = bounds.width / composition.bounds.width
         let ratio = Double(photo.pixelWidth) / Double(max(1, photo.pixelHeight))
         let frameWidth = existing.map { $0.frame.width * scale }
@@ -1757,7 +1858,17 @@ struct EditorView: View {
             ?? min(bounds.height * 0.48, frameWidth / max(0.01, ratio))
         let frame = CGRect(x: location.x - frameWidth / 2, y: location.y - frameHeight / 2,
                            width: frameWidth, height: frameHeight)
-        let normalized = PageRect(frame, in: bounds).clamped
+        let proposed = PageRect(frame, in: bounds).rect(in: bounds)
+        let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(photo.id))
+        return CanvasAlignment.duringDrag(proposed, to: targets, within: bounds)
+    }
+
+    private func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {
+        guard let photo = book.photo(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
+        let current = book.pages[index]
+        let composition = PageComposition(page: current, book: book)
+        let result = photoPlacement(photo, in: composition, at: location, bounds: bounds)
+        let normalized = PageRect(result.frame, in: bounds).clamped
         if current.photoIDs.contains(id) {
             updatePhotoFrame(id, in: leaf, to: normalized)
         } else {

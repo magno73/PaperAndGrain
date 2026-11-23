@@ -36,11 +36,23 @@ enum BookStorage {
         let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard (1...50_000_000).contains(size) else { throw CocoaError(.fileReadTooLarge) }
         try FilmRenderer.validateLUT(at: source)
-        let data = try Data(contentsOf: source)
+        return try installLUT(Data(contentsOf: source), named: source.lastPathComponent, in: directory)
+    }
+
+    static func importBuiltInLUT(_ look: FujifilmFilmLook, resources: URL, in directory: URL) throws -> String {
+        let data = try Data(contentsOf: look.url(in: resources))
+        return try installLUT(data, named: look.filename, in: directory, matching: look)
+    }
+
+    private static func installLUT(_ data: Data, named name: String, in directory: URL,
+                                   matching builtIn: FujifilmFilmLook? = nil) throws -> String {
         let hash = SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()
-        let title = source.deletingPathExtension().lastPathComponent
-            .replacingOccurrences(of: ":", with: "_")
+        let suffix = (name as NSString).pathExtension.lowercased()
+        let title = (name as NSString).deletingPathExtension.replacingOccurrences(of: ":", with: "_")
         let filename = "\(title.prefix(72))-\(hash).\(suffix)"
+        if let builtIn, FujifilmFilmLook.importedLook(filename: filename) != builtIn {
+            throw CocoaError(.fileReadCorruptFile)
+        }
         let destination = lutURL(filename: filename, in: directory)
         try files.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         if !files.fileExists(atPath: destination.path) {

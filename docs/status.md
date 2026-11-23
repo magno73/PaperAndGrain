@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.4.1 · 23 novembre 2026
+
+L’editor aggancia foto e box ai bordi e ai centri degli altri elementi sulla stessa pagina. Le guide seguono il trascinamento e l’aggancio si rilascia continuando il movimento o tenendo premuto **⌥**. Il menu **LUT Fujifilm** include 14 CUBE sRGB verificati. Le prove automatiche coprono la soglia di rilascio, i vincoli della pagina, il caricamento delle LUT e la portabilità del progetto. Resta il collaudo visivo dei gesti nel libro aperto. La build risiede in `dist/0.4.1/`.
+
 ## 0.4 · 23 novembre 2026
 
 Disponibili riordino delle pagine tramite trascinamento, zoom del canvas, doppio clic sulle foto della libreria, ridimensionamento e ritaglio sulla pagina, box di testo mobili, frontespizio e modifica di copertina e retro. I pannelli file sono schede asincrone e gli errori operativi appaiono nella finestra. Il collaudo dimostrativo ha verificato doppio clic, rilascio di una foto, riordino e spostamento del box. Le prove automatiche coprono compatibilità, geometria, posizione di testo e foto nel PDF, abbondanza e retro. Resta da provare l’interazione completa del nuovo ritaglio e il passaggio tra altre app con il Dock. La build risiede in `dist/0.4.0/`.
