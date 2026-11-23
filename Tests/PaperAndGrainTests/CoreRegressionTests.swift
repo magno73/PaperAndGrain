@@ -1,11 +1,29 @@
 import CoreGraphics
 import Foundation
 import ImageIO
+import PDFKit
 import UniformTypeIdentifiers
 import XCTest
 @testable import PaperAndGrain
 
 final class CoreRegressionTests: XCTestCase {
+    func testPhotoResizeKeepsItsAspectRatioWhileCropCornersCanChangeTheMask() {
+        let bounds = CGRect(x: 0, y: 0, width: 600, height: 400)
+        let frame = CGRect(x: 80, y: 90, width: 200, height: 100)
+        let drag = CGSize(width: 100, height: 100)
+        let minimum = CGSize(width: 40, height: 40)
+
+        let photo = CanvasCorner.bottomRight.resized(frame, by: drag, in: bounds, minimumSize: minimum,
+                                                       preservesAspectRatio: true)
+        XCTAssertEqual(photo.origin, frame.origin)
+        XCTAssertEqual(photo.width / photo.height, frame.width / frame.height, accuracy: 0.0001)
+        XCTAssertGreaterThan(photo.width, frame.width)
+
+        let mask = CanvasCorner.bottomRight.resized(frame, by: drag, in: bounds, minimumSize: minimum)
+        XCTAssertEqual(mask, CGRect(x: 80, y: 90, width: 300, height: 200))
+        XCTAssertTrue(bounds.contains(mask))
+    }
+
     func testVersionOneOpensWithNewDefaults() throws {
         let folder = try scratchFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -18,6 +36,10 @@ final class CoreRegressionTests: XCTestCase {
         XCTAssertNil(json["film"])
         XCTAssertNil(json["cover"])
         XCTAssertNil(json["printSettings"])
+        let oldPage = try XCTUnwrap((json["pages"] as? [[String: Any]])?.first)
+        XCTAssertNil(oldPage["photoPlacements"])
+        XCTAssertNil(oldPage["storyFrame"])
+        XCTAssertNil(oldPage["textBoxes"])
         let reopened = try BookStorage.read(from: folder)
         XCTAssertEqual(reopened, book)
         XCTAssertEqual(reopened.effectiveFilm(for: reopened.photos[0]), FilmSettings())
@@ -141,6 +163,120 @@ final class CoreRegressionTests: XCTestCase {
             XCTAssertEqual(id, missingPhoto.uuidString)
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
+    }
+
+    func testManualPlacementsPreserveAutomaticRowsAndUseBothCropAxes() throws {
+        let folder = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var (book, photo) = try fixture(in: folder)
+        let initial = try XCTUnwrap(PageComposition(page: book.pages[0], book: book).photos.first)
+        var second = photo
+        second.id = UUID()
+        book.photos.append(second)
+        let frame = PageRect(x: 0.7, y: 0, width: 0.3, height: 0.25)
+        let crop = PhotoCrop(x: 1, y: 0, zoom: 2)
+        book.pages[0].photoIDs.append(second.id)
+        book.pages[0].photoPlacements = [second.id: PhotoPlacement(frame: frame, crop: crop)]
+        let composition = PageComposition(page: book.pages[0], book: book)
+        XCTAssertEqual(composition.photos.map(\.id), [photo.id, second.id])
+        XCTAssertEqual(composition.photos[0].frame, initial.frame)
+        XCTAssertEqual(composition.photos[1].frame, frame.rect(in: composition.bounds))
+        let bleed = PageComposition(page: book.pages[0], book: book, bleed: 8)
+        XCTAssertEqual(bleed.photos[1].frame.minX, composition.photos[1].frame.minX, accuracy: 0.0001)
+        XCTAssertEqual(bleed.photos[1].frame.minY, -8)
+        XCTAssertEqual(bleed.photos[1].frame.maxX, composition.bounds.maxX + 8, accuracy: 0.0001)
+        let sample = CGRect(x: 10, y: 20, width: 60, height: 60)
+        XCTAssertEqual(crop.imageRect(for: CGSize(width: 120, height: 60), in: sample, fills: true),
+                       CGRect(x: -170, y: 20, width: 240, height: 120))
+        book.pages[0].photoPlacements = [photo.id: PhotoPlacement(crop: crop)]
+        XCTAssertTrue(PageComposition(page: book.pages[0], book: book).photos[0].fills)
+
+        book.pages[0] = BookPage(layout: .fullSpread, photoIDs: [photo.id], framing: 0.8)
+        let panorama = PageComposition(page: book.pages[0], book: book, bleed: 5)
+        XCTAssertEqual(panorama.photos[0].crop, PhotoCrop(x: 0.8, y: 0.8))
+        XCTAssertEqual(panorama.photos[0].frame, panorama.bounds.insetBy(dx: -5, dy: -5))
+        XCTAssertEqual(panorama.bounds.width, 2 * book.format.pageSize.width)
+    }
+
+    func testPPIWarningUsesEnlargedContentAndEmptyTextBoxesDoNotPrint() throws {
+        let folder = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var (book, photo) = try fixture(in: folder)
+        book.printSettings = PrintSettings(bleedMM: 0, targetPPI: 1.5)
+        let centered = PageRect(x: 0.25, y: 0.25, width: 0.5, height: 0.5)
+        let edge = PageRect(x: 0, y: 0, width: 1, height: 1)
+        book.pages = [BookPage(layout: .gallery, photoIDs: [photo.id],
+                               photoPlacements: [photo.id: PhotoPlacement(frame: centered)],
+                               textBoxes: [PageTextBox(text: "   ", frame: edge)])]
+        XCTAssertTrue(BookPDF.printWarnings(book).isEmpty)
+        book.pages[0].photoPlacements?[photo.id]?.crop = PhotoCrop(zoom: 3)
+        XCTAssertEqual(BookPDF.printWarnings(book).count, 1)
+
+        let first = folder.appendingPathComponent("empty-box.pdf")
+        try BookPDF.write(book, directory: folder, to: first)
+        book.pages[0].textBoxes = nil
+        let second = folder.appendingPathComponent("no-box.pdf")
+        try BookPDF.write(book, directory: folder, to: second)
+        func pixels(_ url: URL) throws -> Data {
+            let page = try XCTUnwrap(CGPDFDocument(url as CFURL)?.page(at: 1))
+            let bitmap = try XCTUnwrap(CGContext(data: nil, width: 100, height: 100, bitsPerComponent: 8,
+                                                 bytesPerRow: 400, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let size = book.format.pageSize
+            bitmap.scaleBy(x: 100 / size.width, y: 100 / size.height)
+            bitmap.drawPDFPage(page)
+            return Data(bytes: try XCTUnwrap(bitmap.data), count: 40_000)
+        }
+        XCTAssertEqual(try pixels(first), try pixels(second))
+    }
+
+    func testManualPhotoAndMovableTypeRoundTripAndRenderInPlace() throws {
+        let folder = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var (book, photo) = try fixture(in: folder)
+        let box = PageTextBox(text: "Separate caption", frame: PageRect(x: 0.55, y: 0.15, width: 0.40, height: 0.2))
+        let photoFrame = PageRect(x: 0.15, y: 0.35, width: 0.30, height: 0.30)
+        let bounds = CGRect(origin: .zero, size: book.format.pageSize)
+        let story = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
+        book.pages = [BookPage(layout: .text, photoIDs: [photo.id], text: "Main story",
+                               photoPlacements: [photo.id: PhotoPlacement(frame: photoFrame, crop: PhotoCrop(x: 1, zoom: 2))],
+                               textBoxes: [box])]
+        book.cover = BookCover(title: "Front", backPhotoID: photo.id, backText: "Back cover blurb")
+        try BookStorage.write(book, to: folder)
+        XCTAssertEqual(try BookStorage.read(from: folder), book)
+        let output = folder.appendingPathComponent("proof.pdf")
+        try BookPDF.write(book, directory: folder, to: output)
+        let proof = try XCTUnwrap(PDFDocument(url: output))
+        let page = try XCTUnwrap(proof.page(at: 0))
+        for (phrase, expected) in [("Main story", story), ("Separate caption", box.frame.rect(in: bounds))] {
+            let match = try XCTUnwrap(proof.findString(phrase).first)
+            let quartz = match.bounds(for: page)
+            let topLeft = CGPoint(x: quartz.midX, y: book.format.pageSize.height - quartz.midY)
+            XCTAssertTrue(expected.contains(topLeft), phrase)
+        }
+        let rendered = try XCTUnwrap(try pdf(folder, "proof.pdf").page(at: 1))
+        let bitmap = try XCTUnwrap(CGContext(data: nil, width: 100, height: 100,
+                                             bitsPerComponent: 8, bytesPerRow: 400,
+                                             space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let size = book.format.pageSize
+        bitmap.scaleBy(x: 100 / size.width, y: 100 / size.height)
+        bitmap.drawPDFPage(rendered)
+        let bytes = try XCTUnwrap(bitmap.data).assumingMemoryBound(to: UInt8.self)
+        let inside = (50 * 100 + 30) * 4
+        XCTAssertGreaterThan(Int(bytes[inside]) - Int(bytes[inside + 2]), 80)
+        XCTAssertGreaterThan(bytes[(50 * 100 + 8) * 4], 220)
+        let package = folder.appendingPathComponent("manual-print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let cover = try XCTUnwrap(PDFDocument(url: package.appendingPathComponent("Cover.pdf")))
+        XCTAssertEqual(cover.findString("Back cover blurb").count, 1)
+
+        let previous = try Data(contentsOf: output)
+        book.pages[0].textBoxes?[0].text = String(repeating: "Too long ", count: 1000)
+        XCTAssertThrowsError(try BookPDF.write(book, directory: folder, to: output)) { error in
+            guard case BookPDF.ExportError.textOverflow(1) = error else { return XCTFail("Expected text overflow") }
+        }
+        XCTAssertEqual(try Data(contentsOf: output), previous)
     }
 
     private func fixture(in folder: URL) throws -> (Book, BookPhoto) {

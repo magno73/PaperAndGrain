@@ -31,6 +31,8 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var framing: Double? = nil
     var textPlacement: PageTextPlacement? = nil
     var heading: String? = nil
+    var photoPlacements: [UUID: PhotoPlacement]? = nil
+    var textBoxes: [PageTextBox]? = nil
 }
 
 struct BookFormat: Codable, Hashable, Sendable {

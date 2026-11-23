@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.4 · 23 novembre 2026
+
+Disponibili riordino delle pagine tramite trascinamento, zoom del canvas, doppio clic sulle foto della libreria, ridimensionamento e ritaglio sulla pagina, box di testo mobili, frontespizio e modifica di copertina e retro. I pannelli file sono schede asincrone e gli errori operativi appaiono nella finestra. Il collaudo dimostrativo ha verificato doppio clic, rilascio di una foto, riordino e spostamento del box. Le prove automatiche coprono compatibilità, geometria, posizione di testo e foto nel PDF, abbondanza e retro. Resta da provare l’interazione completa del nuovo ritaglio e il passaggio tra altre app con il Dock. La build risiede in `dist/0.4.0/`.
+
 ## 0.3 · 23 novembre 2026
 
 Disponibili quattro [modelli editoriali](templates.md) con anteprime di selezione e titoli di pagina. Verificate la persistenza dei modelli, quattro doppie pagine e quattro copertine su immagini dimostrative. La build risiede in `dist/0.3.0/`. Per decidere il modello di Namibia, resta il collaudo sugli scatti scelti dall’album.

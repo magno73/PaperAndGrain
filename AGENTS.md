@@ -8,6 +8,8 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `AlbumPicker.swift` e `PhotoLibrary.swift` collegano selezione, PhotoKit e copia delle immagini.
 - `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
 - `EditorView.swift` gestisce il libro aperto, il navigatore, l’ispettore e le interazioni.
+- `PageComposition.swift` risolve cornici, ritagli, testo e copertina in punti tipografici. `CanvasObjectControls.swift` gestisce lo spostamento e il ridimensionamento e `CanvasCropControl.swift` la modifica dell’immagine e della cornice durante il ritaglio. I trascinamenti distinguono foto e pagine.
+- `EditorFilePanels.swift` presenta i selettori file e il controllo di stampa come schede asincrone della finestra. Gli errori operativi rimangono visibili nella finestra senza richiederne l’attivazione.
 - `PhotoAnalysis.swift` produce etichette e temi con Vision e ordina i risultati compatibili con un racconto.
 - `BookTemplate.swift` definisce carta, geometria editoriale e tipi condivisi tra anteprima ed esportazione. [Modelli](docs/templates.md) documenta le scelte visive.
 - `FilmPipeline.swift` condivide sviluppo colore, LUT e grana tra editor e stampa.
@@ -27,6 +29,7 @@ Verifica ogni nuova etichetta visibile in IT e EN. Usa il catalogo `Resources/Lo
 
 - Compila con `./scripts/build-app.sh`, esegui `swift test` e prova il percorso a cui appartiene il cambiamento. Usa il libro dimostrativo per i collaudi senza permessi Foto.
 - Per una modifica all’esportazione, apri il PDF risultante e controlla dimensioni, testo lungo, foto a tutta pagina e continuità delle doppie pagine.
+- Per una modifica ai gesti, prova una doppia pagina con un box di testo e due foto. Verifica trascinamento, selezione, ridimensionamento, riordino dal navigatore e riapertura del progetto.
 - Per una modifica all’analisi, prova almeno un racconto italiano, uno inglese e un testo senza corrispondenze. Verifica che i match suggeriti siano spiegabili dalle etichette e che rimangano modificabili.
 - Nello stesso commit di una modifica rilevante, aggiorna il README se cambiano avvio o percorso utente. Aggiorna architettura se cambia un contratto. In `docs/status.md` annota cosa hai verificato e che cosa resta da provare.
 - Per il passaggio di consegne registra il risultato osservato e la prossima azione concreta. Inserisci nella documentazione i dettagli tecnici durevoli.

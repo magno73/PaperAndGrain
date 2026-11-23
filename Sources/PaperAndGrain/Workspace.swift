@@ -19,6 +19,15 @@ final class Workspace: ObservableObject {
     private var saveTask: Task<Void, Never>?
     static let bookType = UTType(exportedAs: "local.paperandgrain.book", conformingTo: .package)
 
+    private struct DocumentLocation: Equatable {
+        let id: UUID
+        let directory: URL?
+    }
+
+    private var documentLocation: DocumentLocation {
+        DocumentLocation(id: book.id, directory: directory?.standardizedFileURL)
+    }
+
     func scheduleSave() {
         guard directory != nil else { return }
         saveTask?.cancel()
@@ -44,11 +53,14 @@ final class Workspace: ObservableObject {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.image]
         panel.allowsMultipleSelection = true
-        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
-        let urls = panel.urls
-        importImages(count: urls.count, title: language == "it" ? "Nuovo libro" : "New Book",
-                     format: .square, language: language) { index, directory in
-            try await LocalImages.importFile(urls[index], into: directory)
+        let origin = documentLocation
+        EditorFilePanels.present(panel) { [weak self] response in
+            guard let self, self.documentLocation == origin, response == .OK, !panel.urls.isEmpty else { return }
+            let urls = panel.urls
+            self.importImages(count: urls.count, title: language == "it" ? "Nuovo libro" : "New Book",
+                              format: .square, language: language) { index, directory in
+                try await LocalImages.importFile(urls[index], into: directory)
+            }
         }
     }
 
@@ -168,8 +180,11 @@ final class Workspace: ObservableObject {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [Self.bookType]
         panel.canChooseDirectories = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        openProject(at: url)
+        let origin = documentLocation
+        EditorFilePanels.present(panel) { [weak self] response in
+            guard let self, self.documentLocation == origin, response == .OK, let url = panel.url else { return }
+            self.openProject(at: url)
+        }
     }
 
     func openProject(at url: URL) {
@@ -195,7 +210,14 @@ final class Workspace: ObservableObject {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.bookType]
         panel.nameFieldStringValue = safeFilename(book.title)
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        let origin = documentLocation
+        EditorFilePanels.present(panel) { [weak self] response in
+            guard let self, self.documentLocation == origin, response == .OK, let destination = panel.url else { return }
+            self.saveProject(from: directory, to: destination)
+        }
+    }
+
+    private func saveProject(from directory: URL, to destination: URL) {
         guard destination.standardizedFileURL != directory.standardizedFileURL else {
             flushSave()
             return
@@ -232,29 +254,45 @@ final class Workspace: ObservableObject {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = safeFilename(book.title)
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
-        export(to: destination, from: directory, forPrint: false)
+        chooseExportDestination(panel, from: directory, forPrint: false)
     }
 
     func exportPrint(language: String) {
         guard let directory, !book.pages.isEmpty, !exporting else { return }
         let italian = language == "it"
         let warnings = BookPDF.printWarnings(book)
-        if !warnings.isEmpty {
-            let check = NSAlert()
-            check.messageText = italian ? "Controllo di stampa" : "Print Check"
-            let lines = warnings.prefix(8).joined(separator: "\n")
-            let suffix = warnings.count > 8 ? "\n… +\(warnings.count - 8)" : ""
-            check.informativeText = lines + suffix
-            check.addButton(withTitle: italian ? "Continua" : "Continue")
-            check.addButton(withTitle: italian ? "Annulla" : "Cancel")
-            guard check.runModal() == .alertFirstButtonReturn else { return }
+        func chooseDestination() {
+            let panel = NSSavePanel()
+            panel.message = italian ? "Scegli dove creare la cartella dei PDF" : "Choose where to create the PDF folder"
+            panel.nameFieldStringValue = safeFilename(book.title) + (italian ? " – Stampa" : " – Print")
+            chooseExportDestination(panel, from: directory, forPrint: true)
         }
-        let panel = NSSavePanel()
-        panel.message = italian ? "Scegli dove creare la cartella dei PDF" : "Choose where to create the PDF folder"
-        panel.nameFieldStringValue = safeFilename(book.title) + (italian ? " – Stampa" : " – Print")
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
-        export(to: destination, from: directory, forPrint: true)
+        guard !warnings.isEmpty else {
+            chooseDestination()
+            return
+        }
+        let check = NSAlert()
+        check.messageText = italian ? "Controllo di stampa" : "Print Check"
+        let lines = warnings.prefix(8).joined(separator: "\n")
+        let suffix = warnings.count > 8 ? "\n… +\(warnings.count - 8)" : ""
+        check.informativeText = lines + suffix
+        check.addButton(withTitle: italian ? "Continua" : "Continue")
+        check.addButton(withTitle: italian ? "Annulla" : "Cancel")
+        let origin = documentLocation
+        EditorFilePanels.present(check) { [weak self] response in
+            guard let self, self.documentLocation == origin, !self.exporting, response == .alertFirstButtonReturn
+            else { return }
+            chooseDestination()
+        }
+    }
+
+    private func chooseExportDestination(_ panel: NSSavePanel, from directory: URL, forPrint: Bool) {
+        let origin = documentLocation
+        EditorFilePanels.present(panel) { [weak self] response in
+            guard let self, self.documentLocation == origin, !self.exporting, !self.book.pages.isEmpty,
+                  response == .OK, let destination = panel.url else { return }
+            self.export(to: destination, from: directory, forPrint: forPrint)
+        }
     }
 
     private func export(to destination: URL, from directory: URL, forPrint: Bool) {

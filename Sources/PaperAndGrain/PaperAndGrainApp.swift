@@ -102,12 +102,9 @@ struct PaperAndGrainApp: App {
                     progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: workspace.cancelExport)
                 }
             }
-            .alert(s("Paper & Grain", "Paper & Grain"), isPresented: Binding(
-                get: { workspace.problem != nil },
-                set: { if !$0 { workspace.problem = nil } }
-            )) {
-                Button("OK") { workspace.problem = nil }
-            } message: { Text(workspace.problem ?? "") }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if let problem = workspace.problem { errorBanner(problem) }
+            }
             .onChange(of: workspace.book) { _, _ in workspace.scheduleSave() }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                 workspace.flushSave()
@@ -143,6 +140,27 @@ struct PaperAndGrainApp: App {
     }
 
     private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(message)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                workspace.problem = nil
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(s("Chiudi avviso", "Dismiss Message"))
+        }
+        .font(.callout)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(.regularMaterial)
+    }
 
     private func progressCard(label: String, value: String, cancel: (() -> Void)?) -> some View {
         ZStack {
