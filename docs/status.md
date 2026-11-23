@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.5.1 · 23 novembre 2026
+
+Backspace e Canc agiscono sulla foto selezionata nel canvas. Il clic singolo seleziona subito e il doppio clic continua ad aprire il ritaglio o il box. Le maniglie agganciano le foto e i riquadri di ritaglio agli altri elementi. Le miniature e il canvas hanno code e cache separate. Lo spostamento dei cursori usa un’anteprima leggera. Le prove automatiche verificano scorciatoie, geometria dell’aggancio, cancellazione e condivisione delle richieste di anteprima. Resta da provare la reattività della finestra con un libro grande. La build risiede in `dist/0.5.1/`.
+
 ## 0.5 · 23 novembre 2026
 
 Le miniature riproducono la composizione effettiva, affiancano le pagine e permettono il riordino di una pagina per volta. Canc rimuove dalla pagina la foto selezionata. Le cornici foto possono uscire dal taglio. Il doppio clic nei box apre la scrittura sulla pagina. **Foto → Regola** contiene la bacchetta automatica e le regolazioni condivise tra editor e stampa. Verificati geometria, persistenza dei progetti e resa delle regolazioni nei PDF con immagini sintetiche. Resta il collaudo delle interazioni native nella finestra aperta. La build risiede in `dist/0.5.0/`.

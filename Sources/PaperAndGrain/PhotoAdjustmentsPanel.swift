@@ -117,17 +117,19 @@ struct PhotoAdjustmentsPanel: View {
                 else { expanded.remove(group) }
             }
         )) {
-            VStack(alignment: .leading, spacing: 4) {
-                if group == .curves { curveGuide }
-                if group == .selectiveColor { colorChoices }
-                ForEach(controls(in: group)) { control in
-                    slider(control)
-                        .disabled(group == .monochrome && control.keyPath != \PhotoAdjustments.monochrome
-                                  && adjustments.monochrome == 0)
+            if expanded.contains(group) {
+                VStack(alignment: .leading, spacing: 4) {
+                    if group == .curves { curveGuide }
+                    if group == .selectiveColor { colorChoices }
+                    ForEach(controls(in: group)) { control in
+                        slider(control)
+                            .disabled(group == .monochrome && control.keyPath != \PhotoAdjustments.monochrome
+                                      && adjustments.monochrome == 0)
+                    }
                 }
+                .padding(.top, 4)
+                .padding(.bottom, 3)
             }
-            .padding(.top, 4)
-            .padding(.bottom, 3)
         } label: {
             Text(tr(group.title.italian, group.title.english))
                 .font(.system(size: 11, weight: .semibold))

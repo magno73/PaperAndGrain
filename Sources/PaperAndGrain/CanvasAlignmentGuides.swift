@@ -10,6 +10,16 @@ extension CanvasAlignment {
     }
 }
 
+extension CanvasCorner {
+    func resizeDuringDrag(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
+                          preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false,
+                          alignmentTargets: [CGRect]) -> CanvasAlignment.Result {
+        resizeResult(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                     preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
+                     alignmentTargets: NSEvent.modifierFlags.contains(.option) ? [] : alignmentTargets)
+    }
+}
+
 struct CanvasGuidePreference: PreferenceKey {
     static let defaultValue: [CanvasAlignment.Guide] = []
 

@@ -11,7 +11,6 @@ struct CanvasObjectControl<Content: View>: View {
     var allowsPhotoOverflow = false
     var preservesAspectRatio = false
     var onDoubleClick: (() -> Void)? = nil
-    var onDelete: (() -> Void)? = nil
     let onSelect: () -> Void
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
@@ -27,15 +26,11 @@ struct CanvasObjectControl<Content: View>: View {
             .clipped()
             .contentShape(ReachableFrame(rect: reachable))
             .gesture(drag().exclusively(before: tap))
+            .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleClick?() })
             .focusable()
             .focused($focused)
             .onKeyPress(.space) {
                 onSelect()
-                return .handled
-            }
-            .onKeyPress(keys: [.delete, .deleteForward], phases: .down) { _ in
-                guard selected, let onDelete else { return .ignored }
-                onDelete()
                 return .handled
             }
             .onMoveCommand(perform: nudge)
@@ -60,16 +55,11 @@ struct CanvasObjectControl<Content: View>: View {
             .preference(key: CanvasGuidePreference.self, value: dragPreview?.guides ?? [])
     }
 
-    private var tap: AnyGesture<Void> {
-        let select = TapGesture().onEnded {
+    private var tap: some Gesture {
+        TapGesture().onEnded {
             focused = true
             onSelect()
         }
-        if let onDoubleClick {
-            return AnyGesture(TapGesture(count: 2).onEnded(onDoubleClick)
-                .exclusively(before: select).map { _ in () })
-        }
-        return AnyGesture(select)
     }
 
     private func drag(_ corner: CanvasCorner? = nil) -> some Gesture {
@@ -85,12 +75,13 @@ struct CanvasObjectControl<Content: View>: View {
     }
 
     private func dragDestination(by translation: CGSize, resizing corner: CanvasCorner?) -> CanvasAlignment.Result {
-        let proposed = adjustedFrame(by: translation, resizing: corner)
-        if corner != nil {
-            return CanvasAlignment.Result(frame: proposed, guides: [])
-        }
         let targets = alignmentTargets.map { $0.intersection(bounds) }
-        return CanvasAlignment.duringDrag(proposed, to: targets, within: movementBounds)
+        if let corner {
+            return corner.resizeDuringDrag(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                                           preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
+                                           alignmentTargets: preservesAspectRatio ? targets : [])
+        }
+        return CanvasAlignment.duringDrag(adjustedFrame(by: translation), to: targets, within: movementBounds)
     }
 
     private func nudge(_ direction: MoveCommandDirection) {
@@ -107,11 +98,7 @@ struct CanvasObjectControl<Content: View>: View {
         if destination != frame { onChange(destination) }
     }
 
-    private func adjustedFrame(by translation: CGSize, resizing corner: CanvasCorner? = nil) -> CGRect {
-        if let corner {
-            return corner.resized(frame, by: translation, in: bounds, minimumSize: minimumSize,
-                                  preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow)
-        }
+    private func adjustedFrame(by translation: CGSize) -> CGRect {
         let limits = movementBounds
         let x = min(limits.maxX - frame.width, max(limits.minX, frame.minX + translation.width))
         let y = min(limits.maxY - frame.height, max(limits.minY, frame.minY + translation.height))
@@ -160,6 +147,14 @@ enum CanvasCorner: CaseIterable {
 
     func resized(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
                  preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false) -> CGRect {
+        resizeResult(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                     preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
+                     alignmentTargets: []).frame
+    }
+
+    func resizeResult(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
+                      preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false,
+                      alignmentTargets: [CGRect], tolerance: CGFloat = 6) -> CanvasAlignment.Result {
         let anchor = CGPoint(x: isLeft ? frame.maxX : frame.minX, y: isTop ? frame.maxY : frame.minY)
         let horizontalSign: CGFloat = isLeft ? -1 : 1
         let verticalSign: CGFloat = isTop ? -1 : 1
@@ -174,21 +169,33 @@ enum CanvasCorner: CaseIterable {
                                                trim: bounds.minY...bounds.maxY, towardStart: isTop)
             : (min(frame.height, minimumSize.height), isTop ? anchor.y - bounds.minY : bounds.maxY - anchor.y)
 
-        let size: CGSize
-        if preservesAspectRatio, frame.width > 0, frame.height > 0 {
+        let proportional = preservesAspectRatio && frame.width > 0 && frame.height > 0
+        let proposed: CGSize
+        if proportional {
             // Project the pointer onto the original diagonal while keeping its opposite corner fixed.
             let scale = (width * frame.width + height * frame.height) /
                 (frame.width * frame.width + frame.height * frame.height)
-            let minScale = max(widthLimits.0 / frame.width, heightLimits.0 / frame.height)
-            let maxScale = min(widthLimits.1 / frame.width, heightLimits.1 / frame.height)
-            let boundedScale = min(maxScale, max(minScale, scale))
-            size = CGSize(width: frame.width * boundedScale, height: frame.height * boundedScale)
+            proposed = CGSize(width: frame.width * scale, height: frame.height * scale)
         } else {
-            size = CGSize(width: min(widthLimits.1, max(widthLimits.0, width)),
-                          height: min(heightLimits.1, max(heightLimits.0, height)))
+            proposed = CGSize(width: width, height: height)
         }
-        return CGRect(x: isLeft ? anchor.x - size.width : anchor.x, y: isTop ? anchor.y - size.height : anchor.y,
-                      width: size.width, height: size.height)
+
+        return CanvasAlignment.snapResize(proposed, anchoredAt: anchor, moving: self,
+                                          aspectRatio: proportional ? frame.width / frame.height : nil,
+                                          to: alignmentTargets, tolerance: tolerance) { request in
+            let size: CGSize
+            if proportional {
+                let minScale = max(widthLimits.0 / frame.width, heightLimits.0 / frame.height)
+                let maxScale = min(widthLimits.1 / frame.width, heightLimits.1 / frame.height)
+                let scale = min(maxScale, max(minScale, request.width / frame.width))
+                size = CGSize(width: frame.width * scale, height: frame.height * scale)
+            } else {
+                size = CGSize(width: min(widthLimits.1, max(widthLimits.0, request.width)),
+                              height: min(heightLimits.1, max(heightLimits.0, request.height)))
+            }
+            return CGRect(x: isLeft ? anchor.x - size.width : anchor.x, y: isTop ? anchor.y - size.height : anchor.y,
+                          width: size.width, height: size.height)
+        }
     }
 }
 

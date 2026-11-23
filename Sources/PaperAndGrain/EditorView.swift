@@ -17,6 +17,8 @@ struct EditorView: View {
     @FocusState private var inlineBoxFocus: UUID?
     @State private var selection: UUID?
     @State private var selectedPhoto: UUID?
+    @State private var canvasPhotoSelection: CanvasPhotoSelection?
+    @State private var photoIndices: [UUID: Int] = [:]
     @State private var selectedBox: UUID?
     @State private var inlineEditingBox: UUID?
     @State private var coverSide: CoverSide?
@@ -34,6 +36,7 @@ struct EditorView: View {
     @State private var enhancingPhotos: [UUID: UUID] = [:]
     @State private var adjustmentErrors: [UUID: String] = [:]
     @State private var adjustmentEdit: AdjustmentEdit?
+    @State private var adjustmentPreviewTask: Task<Void, Never>?
     @State private var lutImportError: String?
     @State private var concept: String?
     @State private var search = ""
@@ -48,9 +51,15 @@ struct EditorView: View {
         case library, adjust
     }
 
+    private struct CanvasPhotoSelection {
+        let pageID: UUID
+        let photoID: UUID
+    }
+
     private struct AdjustmentEdit {
         let photoID: UUID
-        let before: PhotoAdjustments?
+        var draft: PhotoAdjustments
+        var preview: PhotoAdjustments
     }
 
     private struct NavigatorSpread: Identifiable {
@@ -169,17 +178,34 @@ struct EditorView: View {
             }
         }
         .background(panel)
+        .background(alignment: .topLeading) {
+            CanvasDeleteShortcut(onDelete: deleteSelectedCanvasPhoto)
+                .frame(width: 1, height: 1)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .foregroundStyle(ink)
         .tint(pine)
         .coordinateSpace(name: EditorDropTarget.coordinateSpace)
         .onPreferenceChange(EditorDropFrames.self) { dropFrames = $0 }
+        .onChange(of: book.photos.map(\.id), initial: true) { _, ids in
+            photoIndices = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
+        }
         .onChange(of: inlineBoxFocus) { previous, current in
             if previous != nil && current == nil && inlineEditingBox == previous { inlineEditingBox = nil }
         }
         .onChange(of: selectedPhoto) { _, id in
+            if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
             if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
         }
+        .onChange(of: inspector) { _, mode in
+            if mode != .photos { finishPhotoAdjustmentEdit() }
+        }
+        .onChange(of: photoPanelMode) { _, mode in
+            if mode != .adjust { finishPhotoAdjustmentEdit() }
+        }
+        .onDisappear { adjustPreviewCleanup() }
         .overlay(alignment: .topLeading) {
             dragPreview.allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -381,7 +407,7 @@ struct EditorView: View {
     }
 
     private func mini(_ leaf: BookPage) -> some View {
-        let composition = PageComposition(page: leaf, book: book)
+        let composition = pageComposition(leaf)
         let style = book.editorialStyle
         return GeometryReader { geometry in
             let scale = max(0.001, min(geometry.size.width / composition.bounds.width,
@@ -585,7 +611,7 @@ struct EditorView: View {
                 .lineLimit(1)
                 .padding(.trailing, 8)
             if let selectedPhoto,
-               PageComposition(page: page, book: book).photos.contains(where: { $0.id == selectedPhoto }) {
+               pageComposition(page).photos.contains(where: { $0.id == selectedPhoto }) {
                 Divider().frame(height: 17).padding(.horizontal, 2)
                 action("crop", tr("Ritaglia foto", "Crop Photo")) { beginCrop(selectedPhoto, in: page) }
             }
@@ -619,7 +645,7 @@ struct EditorView: View {
     }
 
     private func canvasPage(_ leaf: BookPage, scale: CGFloat) -> some View {
-        let composition = PageComposition(page: leaf, book: book)
+        let composition = pageComposition(leaf)
         let bounds = scaled(composition.bounds, by: scale)
         let style = book.editorialStyle
         let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds)
@@ -628,6 +654,7 @@ struct EditorView: View {
                 finishCrop()
                 endInlineBoxEditing()
                 select(leaf)
+                canvasPhotoSelection = nil
                 selectedPhoto = nil
                 selectedBox = nil
                 filmScope = .book
@@ -664,7 +691,8 @@ struct EditorView: View {
             }
             if let session = cropSession, session.pageID == leaf.id,
                let item = composition.photos.first(where: { $0.id == session.photoID }) {
-                canvasCrop(session, item: item, bounds: bounds, scale: scale)
+                let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id))
+                canvasCrop(session, item: item, bounds: bounds, scale: scale, alignmentTargets: targets)
             }
         }
         .frame(width: bounds.width, height: bounds.height)
@@ -723,7 +751,6 @@ struct EditorView: View {
                                    accessibilityName: item.photo.name, alignmentTargets: alignmentTargets,
                                    allowsPhotoOverflow: true, preservesAspectRatio: true,
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
-                                   onDelete: { deleteCanvasPhoto(item.id, from: leaf.id) },
                                    onSelect: { selectCanvasPhoto(item.id, in: leaf) },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
             preview(item.photo, crop: item.crop, fills: item.fills)
@@ -734,11 +761,13 @@ struct EditorView: View {
         }
     }
 
-    private func canvasCrop(_ session: CropSession, item: PageComposition.Photo, bounds: CGRect, scale: CGFloat) -> some View {
+    private func canvasCrop(_ session: CropSession, item: PageComposition.Photo, bounds: CGRect, scale: CGFloat,
+                            alignmentTargets: [CGRect]) -> some View {
         let frame = session.frame.photoRect(in: bounds)
         let size = CGSize(width: item.photo.pixelWidth, height: item.photo.pixelHeight)
         return CanvasCropControl(frame: frame, bounds: bounds, sourceSize: size, crop: session.crop,
                                  minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
+                                 alignmentTargets: alignmentTargets,
                                  onChange: { nextFrame, nextCrop in
             guard cropSession?.photoID == session.photoID, cropSession?.pageID == session.pageID else { return }
             if nextFrame != frame { cropSession?.frame = PageRect(nextFrame, in: bounds).photoClamped }
@@ -844,7 +873,7 @@ struct EditorView: View {
     @ViewBuilder private func coverCanvas(_ side: CoverSide, scale: CGFloat, thumbnail: Bool = false) -> some View {
         let page = BookCoverGeometry(book: book, front: side == .front)
         let bounds = scaled(page.bounds, by: scale)
-        let photo = coverPhotoID(side).flatMap(book.photo)
+        let photo = coverPhotoID(side).flatMap(indexedPhoto)
         let content = ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(page.background))
             if let photo {
@@ -1107,7 +1136,7 @@ struct EditorView: View {
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))
                 .accessibilityLabel(tr("Testo del retro", "Back Cover Text"))
             }
-            if let photo = coverPhotoID(side).flatMap(book.photo) {
+            if let photo = coverPhotoID(side).flatMap(indexedPhoto) {
                 HStack(spacing: 8) {
                     preview(photo, small: true).frame(width: 38, height: 30).clipped()
                     Text(photo.name).font(.callout).lineLimit(1)
@@ -1209,7 +1238,7 @@ struct EditorView: View {
     }
 
     @ViewBuilder private var photoAdjustmentsInspector: some View {
-        if let selectedPhoto, let photo = book.photo(selectedPhoto) {
+        if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
             VStack(alignment: .leading, spacing: 10) {
                 caption(tr("Regolazioni foto", "Photo Adjustments"))
                 Text(photo.name).font(.system(size: 13, weight: .semibold)).lineLimit(2)
@@ -1219,8 +1248,8 @@ struct EditorView: View {
                     Text(message).font(.callout).foregroundStyle(.secondary)
                 }
                 PhotoAdjustmentsPanel(adjustments: Binding(
-                    get: { book.photo(photo.id)?.adjustments ?? PhotoAdjustments() },
-                    set: { value in setPhotoAdjustments(value, for: photo.id) }
+                    get: { currentPhotoAdjustmentDraft(for: photo.id) },
+                    set: { value in updatePhotoAdjustmentDraft(value, for: photo.id) }
                 ), language: language, isEnhancing: enhancingPhotos[photo.id] != nil,
                 comparingOriginal: Binding(
                     get: { comparePhotoOriginal == photo.id },
@@ -1228,11 +1257,13 @@ struct EditorView: View {
                 ), onAutomatic: {
                     autoEnhance(photo)
                 }, onReset: {
+                    discardPhotoAdjustmentDraft()
                     setPhotoAdjustments(PhotoAdjustments(), for: photo.id)
                 }, onEditingChanged: { started in
                     if started {
                         finishPhotoAdjustmentEdit()
-                        adjustmentEdit = AdjustmentEdit(photoID: photo.id, before: book.photo(photo.id)?.adjustments)
+                        let values = currentPhotoAdjustmentDraft(for: photo.id)
+                        adjustmentEdit = AdjustmentEdit(photoID: photo.id, draft: values, preview: values)
                     } else {
                         finishPhotoAdjustmentEdit()
                     }
@@ -1276,7 +1307,7 @@ struct EditorView: View {
                     photoGrid.padding(.horizontal, 15).padding(.bottom, 8)
                 }
                 .frame(maxHeight: .infinity)
-                if let selectedPhoto, let photo = book.photos.first(where: { $0.id == selectedPhoto }) {
+                if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
                     ViewThatFits(in: .vertical) {
                         selectedPhotoDetails(photo)
                         ScrollView { selectedPhotoDetails(photo) }
@@ -1342,18 +1373,14 @@ struct EditorView: View {
     }
 
     private var photoGrid: some View {
-        let filtered = book.photos.filter { photo in
-            let concepts = photo.analysis?.concepts ?? []
-            let matches = concept.map { concepts.contains($0) } ?? true
-            let keywords = [photo.name] + concepts.map(conceptName) + (photo.analysis?.labels ?? [])
-            return matches && (search.isEmpty || keywords.contains { $0.localizedStandardContains(search) })
-        }
+        let filtered = filteredLibraryPhotos
+        let assigned = Set(coverSide.map { [coverPhotoID($0)].compactMap { $0 } } ?? page?.photoIDs ?? [])
         return VStack(alignment: .leading, spacing: 7) {
             if filtered.isEmpty { intro(tr("Nessuna foto corrispondente.", "No matching photos.")) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 67), spacing: 7)], spacing: 7) {
                 ForEach(filtered) { photo in
                     let active = photo.id == selectedPhoto
-                    let used = isOnCurrentPage(photo.id)
+                    let used = assigned.contains(photo.id)
                     preview(photo, small: true)
                         .frame(height: 56)
                         .clipShape(RoundedRectangle(cornerRadius: 4))
@@ -1369,22 +1396,19 @@ struct EditorView: View {
                             RoundedRectangle(cornerRadius: 4).strokeBorder(active ? pine : .clear, lineWidth: 2)
                         }
                         .contentShape(Rectangle())
-                        .gesture(editorDrag(.photo(photo.id)).exclusively(before: TapGesture(count: 2).exclusively(before: TapGesture()).onEnded { result in
-                            switch result {
-                            case .first:
-                                selectedPhoto = photo.id
-                                togglePhoto(photo.id)
-                            case .second:
-                                selectedPhoto = photo.id
-                                selectedBox = nil
-                            }
+                        .gesture(editorDrag(.photo(photo.id)).exclusively(before: TapGesture().onEnded {
+                            selectLibraryPhoto(photo.id)
                         }))
+                        .simultaneousGesture(TapGesture(count: 2).onEnded {
+                            selectLibraryPhoto(photo.id)
+                            togglePhoto(photo.id)
+                        })
                         .help(photo.name)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(photo.name)
                         .accessibilityAddTraits(.isButton)
                         .accessibilityAddTraits(used ? .isSelected : [])
-                        .accessibilityAction { selectedPhoto = photo.id }
+                        .accessibilityAction { selectLibraryPhoto(photo.id) }
                         .accessibilityAction(named: Text(used ? tr("Rimuovi dalla pagina", "Remove from page")
                                                              : tr("Aggiungi alla pagina", "Add to page"))) {
                             togglePhoto(photo.id)
@@ -1399,8 +1423,25 @@ struct EditorView: View {
         }
     }
 
+    private var filteredLibraryPhotos: [BookPhoto] {
+        guard concept != nil || !search.isEmpty else { return book.photos }
+        return book.photos.filter { photo in
+            let concepts = photo.analysis?.concepts ?? []
+            if let concept, !concepts.contains(concept) { return false }
+            return search.isEmpty || photo.name.localizedStandardContains(search)
+                || concepts.contains { conceptName($0).localizedStandardContains(search) }
+                || photo.analysis?.labels.contains { $0.localizedStandardContains(search) } == true
+        }
+    }
+
+    private func selectLibraryPhoto(_ id: UUID) {
+        canvasPhotoSelection = nil
+        selectedPhoto = id
+        selectedBox = nil
+    }
+
     private var filmPhoto: BookPhoto? {
-        selectedPhoto.flatMap(book.photo)
+        selectedPhoto.flatMap(indexedPhoto)
     }
 
     private var currentFilm: FilmSettings {
@@ -1618,13 +1659,13 @@ struct EditorView: View {
     }
 
     private func setPhotoFilm(_ settings: FilmSettings?, for id: UUID) {
-        guard let index = book.photos.firstIndex(where: { $0.id == id }) else { return }
+        guard let index = photoIndex(id) else { return }
         book.photos[index].film = settings
     }
 
     private func setPhotoAdjustments(_ value: PhotoAdjustments, for id: UUID,
                                      actionName: String? = nil) {
-        guard let index = book.photos.firstIndex(where: { $0.id == id }) else { return }
+        guard let index = photoIndex(id) else { return }
         enhancingPhotos.removeValue(forKey: id)
         adjustmentErrors.removeValue(forKey: id)
         if comparePhotoOriginal == id { comparePhotoOriginal = nil }
@@ -1632,23 +1673,55 @@ struct EditorView: View {
         let previous = book.photos[index].adjustments
         guard previous != normalized else { return }
         book.photos[index].adjustments = normalized
-        if adjustmentEdit?.photoID != id, let undoManager {
+        if let undoManager {
             let name = actionName ?? tr("Regola foto", "Adjust Photo")
             undoTarget.registerPhotoAdjustments(undoManager, binding: $book, bookID: book.id,
                                                 photoID: id, previous: previous, name: name)
         }
     }
 
+    private func currentPhotoAdjustmentDraft(for id: UUID) -> PhotoAdjustments {
+        if let adjustmentEdit, adjustmentEdit.photoID == id { return adjustmentEdit.draft }
+        return indexedPhoto(id)?.adjustments ?? PhotoAdjustments()
+    }
+
+    private func updatePhotoAdjustmentDraft(_ value: PhotoAdjustments, for id: UUID) {
+        guard let adjustmentEdit, adjustmentEdit.photoID == id else {
+            setPhotoAdjustments(value, for: id)
+            return
+        }
+        guard adjustmentEdit.draft != value else { return }
+        enhancingPhotos.removeValue(forKey: id)
+        adjustmentErrors.removeValue(forKey: id)
+        if comparePhotoOriginal == id { comparePhotoOriginal = nil }
+        self.adjustmentEdit?.draft = value
+        guard adjustmentPreviewTask == nil else { return }
+        adjustmentPreviewTask = Task { @MainActor in
+            do { try await Task.sleep(for: .milliseconds(55)) } catch { return }
+            adjustmentPreviewTask = nil
+            guard let edit = self.adjustmentEdit, edit.photoID == id, edit.preview != edit.draft else { return }
+            self.adjustmentEdit?.preview = edit.draft
+        }
+    }
+
     private func finishPhotoAdjustmentEdit() {
         guard let edit = adjustmentEdit else { return }
+        discardPhotoAdjustmentDraft()
+        setPhotoAdjustments(edit.draft, for: edit.photoID)
+    }
+
+    private func discardPhotoAdjustmentDraft() {
+        adjustPreviewCleanup()
         adjustmentEdit = nil
-        guard book.photo(edit.photoID)?.adjustments != edit.before, let undoManager else { return }
-        undoTarget.registerPhotoAdjustments(undoManager, binding: $book, bookID: book.id,
-                                            photoID: edit.photoID, previous: edit.before,
-                                            name: tr("Regola foto", "Adjust Photo"))
+    }
+
+    private func adjustPreviewCleanup() {
+        adjustmentPreviewTask?.cancel()
+        adjustmentPreviewTask = nil
     }
 
     private func autoEnhance(_ photo: BookPhoto) {
+        finishPhotoAdjustmentEdit()
         guard enhancingPhotos[photo.id] == nil else { return }
         let operation = UUID()
         let bookID = book.id
@@ -1661,7 +1734,7 @@ struct EditorView: View {
                 PhotoAdjustments.automatic(from: url)
             }.value
             guard book.id == bookID, enhancingPhotos[photoID] == operation,
-                  let current = book.photo(photoID) else { return }
+                  let current = indexedPhoto(photoID) else { return }
             enhancingPhotos.removeValue(forKey: photoID)
             guard let suggested else {
                 adjustmentErrors[photoID] = tr("Impossibile analizzare questa foto.", "Couldn’t analyze this photo.")
@@ -1710,8 +1783,13 @@ struct EditorView: View {
         let original = settings == nil && (compareOriginal || comparePhotoOriginal == photo.id)
         let look = settings ?? (original ? FilmSettings() : book.effectiveFilm(for: photo))
         let lutURL = look.lutFilename.map { BookStorage.lutURL(filename: $0, in: directory) }
-        let request = EditorPreviewRequest(url: url, limit: small ? 180 : 1440, look: look, lutURL: lutURL,
-                                           adjustments: original ? nil : photo.adjustments)
+        let draft = adjustmentEdit?.photoID == photo.id && !small && settings == nil && !original
+            ? adjustmentEdit?.preview : nil
+        let isLive = draft.map { $0 != (photo.adjustments ?? PhotoAdjustments()) } ?? false
+        let limit = small ? 180 : (isLive ? 640 : 1440)
+        let corrections = isLive ? draft : photo.adjustments
+        let request = EditorPreviewRequest(url: url, limit: limit, look: look, lutURL: lutURL,
+                                           adjustments: original ? nil : corrections)
         return EditorPreview(request: request, crop: crop, fills: fills) {
             placeholder
         }
@@ -1797,7 +1875,22 @@ struct EditorView: View {
     }
 
     private func photos(on page: BookPage) -> [BookPhoto] {
-        page.photoIDs.compactMap(book.photo)
+        page.photoIDs.compactMap(indexedPhoto)
+    }
+
+    private func photoIndex(_ id: UUID) -> Int? {
+        if let index = photoIndices[id], book.photos.indices.contains(index), book.photos[index].id == id {
+            return index
+        }
+        return book.photos.firstIndex { $0.id == id }
+    }
+
+    private func indexedPhoto(_ id: UUID) -> BookPhoto? {
+        photoIndex(id).map { book.photos[$0] }
+    }
+
+    private func pageComposition(_ page: BookPage) -> PageComposition {
+        PageComposition(page: page, book: book, photoForID: indexedPhoto)
     }
 
     private func coverName(_ side: CoverSide) -> String {
@@ -1813,6 +1906,7 @@ struct EditorView: View {
         finishCrop()
         endInlineBoxEditing()
         coverSide = side
+        canvasPhotoSelection = nil
         selectedPhoto = nil
         selectedBox = nil
         writing = false
@@ -1841,6 +1935,7 @@ struct EditorView: View {
         if cropSession?.pageID != leaf.id { finishCrop() }
         if leaf.id != page?.id {
             endInlineBoxEditing()
+            canvasPhotoSelection = nil
             selectedPhoto = nil
             selectedBox = nil
             filmScope = .book
@@ -1857,6 +1952,7 @@ struct EditorView: View {
         select(leaf)
         selectedBox = nil
         selectedPhoto = id
+        canvasPhotoSelection = CanvasPhotoSelection(pageID: leaf.id, photoID: id)
         if inspector == .film {
             filmScope = .photo
         } else if inspector == .page {
@@ -1913,7 +2009,7 @@ struct EditorView: View {
     private func insertTextBox() {
         guard let page else { return }
         let inset = book.contentInsetPoints
-        let bounds = PageComposition(page: page, book: book).bounds
+        let bounds = pageComposition(page).bounds
         let safe = bounds.insetBy(dx: inset, dy: inset)
         let width = min(safe.width, book.format.pageSize.width * 0.62)
         let height = min(safe.height, bounds.height * 0.19)
@@ -1990,7 +2086,7 @@ struct EditorView: View {
             Group {
                 switch dragging.item {
                 case let .photo(id):
-                    if let photo = book.photo(id) { preview(photo, small: true) }
+                    if let photo = indexedPhoto(id) { preview(photo, small: true) }
                 case let .page(id):
                     if let leaf = book.pages.first(where: { $0.id == id }) { mini(leaf) }
                 }
@@ -2086,6 +2182,7 @@ struct EditorView: View {
     }
 
     private func togglePhoto(_ id: UUID) {
+        canvasPhotoSelection = nil
         if let coverSide {
             setCoverPhoto(isOnCurrentPage(id) ? nil : id, side: coverSide)
         } else if isOnCurrentPage(id) {
@@ -2108,7 +2205,7 @@ struct EditorView: View {
 
     private func incomingPhotoPlacement(on leaf: BookPage, composition: PageComposition,
                                         bounds: CGRect) -> CanvasAlignment.Result? {
-        guard let dragging, case let .photo(id) = dragging.item, let photo = book.photo(id),
+        guard let dragging, case let .photo(id) = dragging.item, let photo = indexedPhoto(id),
               isPhotoDropTarget(.canvasPage(leaf.id)), let screenFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
         let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
         return photoPlacement(photo, in: composition, at: location, bounds: bounds)
@@ -2133,9 +2230,9 @@ struct EditorView: View {
     }
 
     private func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {
-        guard let photo = book.photo(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
+        guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
-        let composition = PageComposition(page: current, book: book)
+        let composition = pageComposition(current)
         let result = photoPlacement(photo, in: composition, at: location, bounds: bounds)
         let normalized = PageRect(result.frame, in: bounds).photoClamped
         if current.photoIDs.contains(id) {
@@ -2178,7 +2275,7 @@ struct EditorView: View {
     private func beginCrop(_ photoID: UUID, in leaf: BookPage) {
         finishCrop()
         guard let current = book.pages.first(where: { $0.id == leaf.id }) else { return }
-        let composition = PageComposition(page: current, book: book)
+        let composition = pageComposition(current)
         guard let item = composition.photos.first(where: { $0.id == photoID }) else { return }
         selectCanvasPhoto(photoID, in: current)
         let frame = PageRect(item.frame, in: composition.bounds)
@@ -2214,7 +2311,7 @@ struct EditorView: View {
     private func freezeAutomaticFrames(of page: BookPage, moving id: UUID,
                                        placements: inout [UUID: PhotoPlacement]) {
         guard (page.layout == .gallery || page.layout == .mixed), placements[id]?.frame == nil else { return }
-        let composition = PageComposition(page: page, book: book)
+        let composition = pageComposition(page)
         for image in composition.photos where placements[image.id]?.frame == nil {
             placements[image.id, default: PhotoPlacement()].frame = PageRect(image.frame, in: composition.bounds)
         }
@@ -2253,19 +2350,29 @@ struct EditorView: View {
         }
     }
 
-    private func remove(_ id: UUID, from pageID: UUID? = nil) {
+    @discardableResult
+    private func remove(_ id: UUID, from pageID: UUID? = nil) -> Bool {
         guard let target = pageID ?? page?.id,
               let index = book.pages.firstIndex(where: { $0.id == target }),
-              book.pages[index].photoIDs.contains(id) else { return }
+              book.pages[index].photoIDs.contains(id) else { return false }
         editPages(tr("Rimuovi foto", "Remove Photo")) { pages in
             Self.removePhoto(id, from: &pages[index])
         }
+        return true
     }
 
-    private func deleteCanvasPhoto(_ id: UUID, from pageID: UUID) {
-        guard cropSession == nil, inlineBoxFocus == nil else { return }
-        remove(id, from: pageID)
+    @discardableResult
+    private func deleteCanvasPhoto(_ id: UUID, from pageID: UUID) -> Bool {
+        guard cropSession == nil, inlineBoxFocus == nil, remove(id, from: pageID) else { return false }
+        if canvasPhotoSelection?.photoID == id { canvasPhotoSelection = nil }
         if selectedPhoto == id { selectedPhoto = nil }
+        return true
+    }
+
+    private func deleteSelectedCanvasPhoto() -> Bool {
+        guard let selection = canvasPhotoSelection, page?.id == selection.pageID,
+              selectedPhoto == selection.photoID, selectedBox == nil else { return false }
+        return deleteCanvasPhoto(selection.photoID, from: selection.pageID)
     }
 
     private static func removePhoto(_ id: UUID, from page: inout BookPage) {
@@ -2332,46 +2439,6 @@ private final class EditorUndo {
     }
 }
 
-private struct EditorPreviewRequest: Hashable, Sendable {
-    let url: URL
-    let limit: Int
-    let look: FilmSettings
-    let lutURL: URL?
-    let adjustments: PhotoAdjustments?
-}
-
-private enum EditorPreviewCache {
-    private final class Key: NSObject {
-        let request: EditorPreviewRequest
-
-        init(_ request: EditorPreviewRequest) {
-            self.request = request
-        }
-
-        override var hash: Int { request.hashValue }
-
-        override func isEqual(_ object: Any?) -> Bool {
-            (object as? Key)?.request == request
-        }
-    }
-
-    private static let images: NSCache<Key, CGImage> = {
-        let cache = NSCache<Key, CGImage>()
-        cache.totalCostLimit = 100 * 1024 * 1024
-        return cache
-    }()
-
-    static func image(for request: EditorPreviewRequest) -> CGImage? {
-        let key = Key(request)
-        if let cached = images.object(forKey: key) { return cached }
-        guard let rendered = FilmRenderer.image(from: request.url, maxPixelSize: request.limit,
-                                                settings: request.look, lutURL: request.lutURL,
-                                                adjustments: request.adjustments) else { return nil }
-        images.setObject(rendered, forKey: key, cost: rendered.bytesPerRow * rendered.height)
-        return rendered
-    }
-}
-
 private struct EditorPreview<Placeholder: View>: View {
     let request: EditorPreviewRequest
     let crop: PhotoCrop
@@ -2397,19 +2464,7 @@ private struct EditorPreview<Placeholder: View>: View {
         .clipped()
         .task(id: request) {
             let request = request
-            if displayedURL == request.url {
-                try? await Task.sleep(for: .milliseconds(75))
-            }
-            guard !Task.isCancelled else { return }
-            let render = Task.detached(priority: .userInitiated) {
-                guard !Task.isCancelled else { return nil as CGImage? }
-                return EditorPreviewCache.image(for: request)
-            }
-            let pixels = await withTaskCancellationHandler {
-                await render.value
-            } onCancel: {
-                render.cancel()
-            }
+            let pixels = await EditorPreviewLoader.image(for: request)
             guard !Task.isCancelled else { return }
             image = pixels.map {
                 NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height))

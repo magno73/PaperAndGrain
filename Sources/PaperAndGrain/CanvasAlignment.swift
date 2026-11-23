@@ -32,6 +32,93 @@ enum CanvasAlignment {
         return Result(frame: aligned, guides: guides)
     }
 
+    /// `size` is the free resize proposal in displayed points, before snapping or clamping.
+    static func snapResize(_ size: CGSize, anchoredAt anchor: CGPoint, moving corner: CanvasCorner,
+                           aspectRatio: CGFloat?, to targets: [CGRect], tolerance: CGFloat,
+                           constrainedFrame: (CGSize) -> CGRect) -> Result {
+        let free = constrainedFrame(size)
+        guard !targets.isEmpty, tolerance >= 0 else { return Result(frame: free, guides: []) }
+
+        let horizontal = resizeMatches(length: size.width, anchoredAt: anchor.x, towardStart: corner.isLeft,
+                                       to: targets, tolerance: tolerance, axis: (\.minX, \.midX, \.maxX))
+        let vertical = resizeMatches(length: size.height, anchoredAt: anchor.y, towardStart: corner.isTop,
+                                     to: targets, tolerance: tolerance, axis: (\.minY, \.midY, \.maxY))
+
+        let aligned: CGRect
+        if let aspectRatio {
+            var closest = CGFloat.infinity
+            var best = free
+            for match in horizontal {
+                let candidate = constrainedFrame(CGSize(width: match.length, height: match.length / aspectRatio))
+                let distance = abs(candidate.width - size.width)
+                if match.aligns(in: candidate, along: \.width), distance < closest {
+                    closest = distance
+                    best = candidate
+                }
+            }
+            for match in vertical {
+                let candidate = constrainedFrame(CGSize(width: match.length * aspectRatio, height: match.length))
+                let distance = abs(candidate.width - size.width)
+                if match.aligns(in: candidate, along: \.height), distance < closest {
+                    closest = distance
+                    best = candidate
+                }
+            }
+            aligned = best
+        } else {
+            let x = horizontal.first { match in
+                match.aligns(in: constrainedFrame(CGSize(width: match.length, height: size.height)), along: \.width)
+            }
+            let y = vertical.first { match in
+                match.aligns(in: constrainedFrame(CGSize(width: size.width, height: match.length)), along: \.height)
+            }
+            aligned = constrainedFrame(CGSize(width: x?.length ?? size.width, height: y?.length ?? size.height))
+        }
+
+        var guides: [Guide] = []
+        if let x = horizontal.first(where: { $0.aligns(in: aligned, along: \.width) }) {
+            let span = min(aligned.minY, x.target.minY)...max(aligned.maxY, x.target.maxY)
+            guides.append(.vertical(x: x.anchor, span: span))
+        }
+        if let y = vertical.first(where: { $0.aligns(in: aligned, along: \.height) }) {
+            let span = min(aligned.minX, y.target.minX)...max(aligned.maxX, y.target.maxX)
+            guides.append(.horizontal(y: y.anchor, span: span))
+        }
+        return Result(frame: aligned, guides: guides)
+    }
+
+    private struct ResizeMatch {
+        let length: CGFloat
+        let anchor: CGFloat
+        let target: CGRect
+        let distance: CGFloat
+
+        func aligns(in frame: CGRect, along dimension: KeyPath<CGRect, CGFloat>) -> Bool {
+            abs(frame[keyPath: dimension] - length) < 0.000001
+        }
+    }
+
+    private static func resizeMatches(length: CGFloat, anchoredAt anchor: CGFloat, towardStart: Bool,
+                                      to targets: [CGRect], tolerance: CGFloat, axis: Axis) -> [ResizeMatch] {
+        guard length > 0 else { return [] }
+        let direction: CGFloat = towardStart ? -1 : 1
+        let matchingEdge = towardStart ? axis.start : axis.end
+        let oppositeEdge = towardStart ? axis.end : axis.start
+        let references: [(CGFloat, KeyPath<CGRect, CGFloat>)] = [(0.5, axis.center), (1, matchingEdge), (1, oppositeEdge)]
+        var matches: [ResizeMatch] = []
+        for target in targets where !target.isEmpty {
+            for (fraction, reference) in references {
+                let position = target[keyPath: reference]
+                let distance = abs(position - (anchor + direction * length * fraction))
+                let alignedLength = (position - anchor) / (direction * fraction)
+                if distance <= tolerance, alignedLength > 0 {
+                    matches.append(ResizeMatch(length: alignedLength, anchor: position, target: target, distance: distance))
+                }
+            }
+        }
+        return matches.sorted { $0.distance < $1.distance }
+    }
+
     private struct Match {
         let offset: CGFloat
         let anchor: CGFloat

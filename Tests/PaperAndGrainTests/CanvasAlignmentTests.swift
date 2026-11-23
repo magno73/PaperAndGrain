@@ -63,4 +63,69 @@ final class CanvasAlignmentTests: XCTestCase {
         XCTAssertEqual(empty.frame, frame)
         XCTAssertTrue(empty.guides.isEmpty)
     }
+
+    func testPhotoCornerSnapPreservesAspectAndShowsOnlyTheAlignedGuide() {
+        let frame = CGRect(x: 30, y: 40, width: 80, height: 40)
+        let vertical = CGRect(x: 140, y: 150, width: 60, height: 40)
+        let competing = CGRect(x: 200, y: 96, width: 50, height: 30)
+        let result = CanvasCorner.bottomRight.resizeResult(frame, by: CGSize(width: 26, height: 13),
+            in: bounds, minimumSize: CGSize(width: 10, height: 10), preservesAspectRatio: true,
+            allowsPhotoOverflow: true, alignmentTargets: [vertical, competing])
+
+        XCTAssertEqual(result.frame.origin, frame.origin)
+        XCTAssertEqual(result.frame.maxX, 140, accuracy: 0.000001)
+        XCTAssertEqual(result.frame.height, 55, accuracy: 0.000001)
+        XCTAssertEqual(result.guides, [.vertical(x: 140, span: 40...190)])
+    }
+
+    func testCropCornerSnapResizesBothAxesAndKeepsTheOppositeCornerFixed() {
+        let frame = CGRect(x: 40, y: 42, width: 50, height: 48)
+        let vertical = CGRect(x: 24, y: 120, width: 20, height: 30)
+        let horizontal = CGRect(x: 150, y: 18, width: 40, height: 30)
+        let result = CanvasCorner.topLeft.resizeResult(frame, by: CGSize(width: -13, height: -20),
+            in: bounds, minimumSize: CGSize(width: 10, height: 10), allowsPhotoOverflow: true,
+            alignmentTargets: [vertical, horizontal])
+
+        XCTAssertEqual(result.frame, CGRect(x: 24, y: 18, width: 66, height: 72))
+        XCTAssertEqual(result.frame.maxX, frame.maxX)
+        XCTAssertEqual(result.frame.maxY, frame.maxY)
+        XCTAssertEqual(result.guides, [.vertical(x: 24, span: 18...150), .horizontal(y: 18, span: 24...190)])
+    }
+
+    func testCropSnapReleasesAsTheFreeProposalMovesOutsideTheTolerance() {
+        let frame = CGRect(x: 40, y: 42, width: 50, height: 48)
+        let target = CGRect(x: 24, y: 120, width: 20, height: 30)
+        func resize(_ dx: CGFloat) -> CanvasAlignment.Result {
+            CanvasCorner.topLeft.resizeResult(frame, by: CGSize(width: dx, height: 0), in: bounds,
+                minimumSize: CGSize(width: 10, height: 10), allowsPhotoOverflow: true, alignmentTargets: [target])
+        }
+
+        let snapped = resize(-10)
+        XCTAssertEqual(snapped.frame.minX, 24)
+        XCTAssertEqual(snapped.guides, [.vertical(x: 24, span: 42...150)])
+
+        let released = resize(-9)
+        XCTAssertEqual(released.frame.minX, 31)
+        XCTAssertEqual(released.frame.maxX, frame.maxX)
+        XCTAssertTrue(released.guides.isEmpty)
+    }
+
+    func testResizeCenterSnapDoesNotMoveItsAnchorOrShowAnUnreachableGuide() {
+        let frame = CGRect(x: 200, y: 40, width: 40, height: 30)
+        let center = CGRect(x: 218, y: 150, width: 16, height: 20)
+        let unreachable = CGRect(x: 302, y: 150, width: 40, height: 20)
+        func resize(_ dx: CGFloat, to target: CGRect) -> CanvasAlignment.Result {
+            CanvasCorner.bottomRight.resizeResult(frame, by: CGSize(width: dx, height: 0), in: bounds,
+                minimumSize: CGSize(width: 10, height: 10), alignmentTargets: [target])
+        }
+
+        let centered = resize(8, to: center)
+        XCTAssertEqual(centered.frame.minX, frame.minX)
+        XCTAssertEqual(centered.frame.midX, center.midX)
+        XCTAssertEqual(centered.guides, [.vertical(x: 226, span: 40...170)])
+
+        let bounded = resize(64, to: unreachable)
+        XCTAssertEqual(bounded.frame.maxX, bounds.maxX)
+        XCTAssertTrue(bounded.guides.isEmpty)
+    }
 }

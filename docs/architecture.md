@@ -41,6 +41,8 @@ Il ritaglio apre una modifica temporanea direttamente sulla pagina. I gesti rego
 
 L’aggancio usa la posizione libera a ogni aggiornamento del trascinamento. Cerca bordi e centri delle altre foto e dei box sulla stessa pagina entro sei punti a schermo, indipendentemente dallo zoom, con una guida per asse. Le guide mostrano i riferimenti scelti e scompaiono quando termina l’aggancio. Il progetto conserva solo la posizione finale della cornice.
 
+Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. La scorciatoia di eliminazione è legata alla finestra del libro e alla selezione nel canvas. I controlli di testo ricevono i loro eventi di cancellazione.
+
 Le LUT Fujifilm incluse sono risorse sRGB. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini sviluppate con Provia. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
 
 Le miniature usano `PageComposition` per disegnare ogni foto nella cornice e con il ritaglio effettivi. Il navigatore mantiene le pagine affiancate anche in vista singola. Il trascinamento è associato al singolo `BookPage`, compresi i panorami che occupano due pagine fisiche.
@@ -48,6 +50,8 @@ Le miniature usano `PageComposition` per disegnare ogni foto nella cornice e con
 I rettangoli delle foto supportano fino a quattro volte le dimensioni della pagina. Il modello conserva una parte raggiungibile della foto sul canvas e applica il taglio solo in visualizzazione e in stampa. I box di testo continuano a usare coordinate interne alla pagina. Il box in scrittura condivide il testo salvato con l’ispettore e con Core Text.
 
 `BookPhoto.adjustments` è facoltativo nei progetti esistenti. `PhotoAdjustments` misura una copia ridotta della foto per proporre modifiche ripetibili alla luce e al colore. La pipeline condivisa applica le regolazioni allo scatto prima del look pellicola e della grana. Il PDF, l’editor e le miniature usano gli stessi valori. Il file immagine importato resta il riferimento per il confronto.
+
+`EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. Al rilascio, l’editor registra la regolazione nel progetto e carica la versione a piena risoluzione di anteprima.
 
 L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB come output intent. I fogli avviati a destra e i panorami possono richiedere pagine bianche di compensazione. La stampa produce interni e copertina in file separati. Abbondanza e dorso vanno impostati con le specifiche del prodotto scelto.
 

@@ -8,6 +8,7 @@ struct CanvasCropControl<Content: View>: View {
     let crop: PhotoCrop
     var minimumSize = CGSize(width: 16, height: 16)
     var allowsFrameResize = true
+    var alignmentTargets: [CGRect] = []
     let onChange: (CGRect, PhotoCrop) -> Void
     @ViewBuilder let image: () -> Content
 
@@ -58,6 +59,7 @@ struct CanvasCropControl<Content: View>: View {
         .frame(width: bounds.width, height: bounds.height)
         .clipped()
         .position(x: bounds.midX, y: bounds.midY)
+        .preference(key: CanvasGuidePreference.self, value: draft.guides)
     }
 
     private var current: Draft { Draft(frame: frame, crop: crop) }
@@ -85,9 +87,10 @@ struct CanvasCropControl<Content: View>: View {
     private func dragged(by translation: CGSize, corner: CanvasCorner?) -> Draft {
         let extent = crop.imageRect(for: sourceSize, in: frame, fills: true)
         if let corner {
-            let aperture = corner.resized(frame, by: translation, in: bounds, minimumSize: minimumSize,
-                                          allowsPhotoOverflow: true)
-            return draft(for: extent, in: aperture)
+            let result = corner.resizeDuringDrag(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                                                 allowsPhotoOverflow: true,
+                                                 alignmentTargets: alignmentTargets.map { $0.intersection(bounds) })
+            return draft(for: extent, in: result.frame, guides: result.guides)
         }
         return draft(for: extent.offsetBy(dx: translation.width, dy: translation.height), in: frame)
     }
@@ -103,7 +106,7 @@ struct CanvasCropControl<Content: View>: View {
         return draft(for: resized, in: frame)
     }
 
-    private func draft(for extent: CGRect, in aperture: CGRect) -> Draft {
+    private func draft(for extent: CGRect, in aperture: CGRect, guides: [CanvasAlignment.Guide] = []) -> Draft {
         let base = PhotoCrop().imageRect(for: sourceSize, in: aperture, fills: true)
         guard base.width > 0, base.height > 0 else { return current }
         let zoom = min(12, max(1, extent.width / base.width))
@@ -111,7 +114,7 @@ struct CanvasCropControl<Content: View>: View {
         let extraHeight = base.height * zoom - aperture.height
         let x = extraWidth > 0.000001 ? min(1, max(0, (aperture.minX - extent.minX) / extraWidth)) : crop.x
         let y = extraHeight > 0.000001 ? min(1, max(0, (aperture.minY - extent.minY) / extraHeight)) : crop.y
-        return Draft(frame: aperture, crop: PhotoCrop(x: x, y: y, zoom: zoom))
+        return Draft(frame: aperture, crop: PhotoCrop(x: x, y: y, zoom: zoom), guides: guides)
     }
 
     private func commit(_ draft: Draft) {
@@ -125,6 +128,7 @@ struct CanvasCropControl<Content: View>: View {
     private struct Draft {
         let frame: CGRect
         let crop: PhotoCrop
+        var guides: [CanvasAlignment.Guide] = []
     }
 
     private struct CropHitArea: Shape {

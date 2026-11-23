@@ -109,7 +109,7 @@ struct PageComposition {
     let rule: CGRect?
     let folio: CGRect?
 
-    init(page: BookPage, book: Book, bleed: Double = 0) {
+    init(page: BookPage, book: Book, bleed: Double = 0, photoForID: ((UUID) -> BookPhoto?)? = nil) {
         let size = book.format.pageSize
         let bounds = CGRect(x: 0, y: 0, width: page.layout == .fullSpread ? size.width * 2 : size.width,
                             height: size.height)
@@ -124,7 +124,7 @@ struct PageComposition {
         story = mixed || page.layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed) : nil
         textBoxes = page.textBoxes ?? []
 
-        let images = page.photoIDs.compactMap(book.photo)
+        let images = page.photoIDs.compactMap(photoForID ?? book.photo)
         let autoImages = images.filter { page.photoPlacements?[$0.id]?.frame == nil }
         let automaticFrames: [CGRect]
         switch page.layout {
