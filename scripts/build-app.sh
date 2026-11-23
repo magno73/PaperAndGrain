@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+configuration="${1:-debug}"
+app="dist/Paper & Grain.app"
+swift build --disable-sandbox --configuration "$configuration"
+build_dir="$(swift build --disable-sandbox --configuration "$configuration" --show-bin-path)"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/it.lproj"
+cp "$build_dir/PaperAndGrain" "$app/Contents/MacOS/"
+cp Resources/Info.plist "$app/Contents/"
+cp Resources/Demo.png "$app/Contents/Resources/"
+cp Resources/it.lproj/InfoPlist.strings "$app/Contents/Resources/it.lproj/"
+xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$app/Contents/Resources"
+codesign --force --sign - --entitlements Resources/PhotoLibrary.entitlements "$app"
+printf '%s\n' "$PWD/$app"
