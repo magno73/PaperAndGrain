@@ -241,7 +241,8 @@ enum BookPDF {
         let placement = crop.imageRect(for: pixels, in: rect, fills: fills)
         let desired = ceil(max(placement.width, placement.height) * ppi / 72)
         let maxPixels = Int(min(max(pixels.width, pixels.height), max(1, desired)))
-        guard let image = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut)
+        guard let image = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
+                                             adjustments: photo.adjustments)
         else { throw ExportError.missingImage(photo.name) }
         context.saveGState()
         context.clip(to: rect)

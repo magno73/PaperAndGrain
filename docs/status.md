@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.5 · 23 novembre 2026
+
+Le miniature riproducono la composizione effettiva, affiancano le pagine e permettono il riordino di una pagina per volta. Canc rimuove dalla pagina la foto selezionata. Le cornici foto possono uscire dal taglio. Il doppio clic nei box apre la scrittura sulla pagina. **Foto → Regola** contiene la bacchetta automatica e le regolazioni condivise tra editor e stampa. Verificati geometria, persistenza dei progetti e resa delle regolazioni nei PDF con immagini sintetiche. Resta il collaudo delle interazioni native nella finestra aperta. La build risiede in `dist/0.5.0/`.
+
 ## 0.4.1 · 23 novembre 2026
 
 L’editor aggancia foto e box ai bordi e ai centri degli altri elementi sulla stessa pagina. Le guide seguono il trascinamento e l’aggancio si rilascia continuando il movimento o tenendo premuto **⌥**. Il menu **LUT Fujifilm** include 14 CUBE sRGB verificati. Le prove automatiche coprono la soglia di rilascio, i vincoli della pagina, il caricamento delle LUT e la portabilità del progetto. Resta il collaudo visivo dei gesti nel libro aperto. La build risiede in `dist/0.4.1/`.

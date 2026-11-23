@@ -16,24 +16,44 @@ struct FilmSettings: Codable, Hashable, Sendable {
     var lutFilename: String? = nil
 }
 
-private typealias RGB = SIMD3<Float>
+typealias FilmRGB = SIMD3<Float>
+private typealias RGB = FilmRGB
 
 private struct LUTError: LocalizedError {
     let message: String
     var errorDescription: String? { message }
 }
 
-private final class FilmCube {
+final class FilmCube {
     let size: Int
     let samples: [SIMD4<Float>]
-    let low: RGB
-    let high: RGB
+    private let low: FilmRGB
+    private let scale: FilmRGB
 
-    init(size: Int, samples: [SIMD4<Float>], low: RGB = .zero, high: RGB = .one) {
+    init(size: Int, samples: [SIMD4<Float>], low: FilmRGB = .zero, high: FilmRGB = .one) {
         self.size = size
         self.samples = samples
         self.low = low
-        self.high = high
+        self.scale = FilmRGB(repeating: Float(size - 1)) / (high - low)
+    }
+
+    func sample(_ color: FilmRGB) -> FilmRGB {
+        let position = simd_clamp((color-low)*scale, .zero, RGB(repeating:Float(size-1)))
+        let ix = min(Int(position.x),size-2)
+        let iy = min(Int(position.y),size-2)
+        let iz = min(Int(position.z),size-2)
+        let fraction = position - RGB(Float(ix),Float(iy),Float(iz))
+        let n = size
+        let base = ix + n*(iy+n*iz)
+        func row(_ offset: Int) -> SIMD4<Float> {
+            let a = samples[base+offset]
+            return a + (samples[base+offset+1]-a)*fraction.x
+        }
+        let lower = row(0), upper = row(n*n)
+        let a = lower + (row(n)-lower)*fraction.y
+        let b = upper + (row(n*n+n)-upper)*fraction.y
+        let mix = a + (b-a)*fraction.z
+        return FilmRGB(mix.x, mix.y, mix.z)
     }
 }
 
@@ -166,15 +186,19 @@ enum FilmRenderer {
         return result
     }()
 
-    static func image(from url: URL, maxPixelSize: Int, settings: FilmSettings, lutURL: URL?) -> CGImage? {
+    static func image(from url: URL, maxPixelSize: Int, settings: FilmSettings, lutURL: URL?,
+                      adjustments: PhotoAdjustments? = nil) -> CGImage? {
         guard maxPixelSize > 0, let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                 kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
                 kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
               ] as CFDictionary) else { return nil }
+        let corrections = adjustments?.normalized
+        let adjusted = corrections?.changesImage ?? false
+        let monochromeGrain = (corrections?.monochrome ?? 0) * (corrections?.monochromeGrain ?? 0)
         let strength = max(0,min(1,settings.strength))
         let grain = max(0,min(1,settings.grain))
-        if (settings.preset == .original || strength == 0), grain == 0,
+        if (settings.preset == .original || strength == 0), grain == 0, !adjusted,
            image.colorSpace?.name == CGColorSpace.sRGB, image.bitsPerComponent == 8 { return image }
         let table: FilmCube?
         if settings.preset == .custom, strength > 0 {
@@ -187,47 +211,40 @@ enum FilmRenderer {
         guard let bitmap = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w*4,
                                      space: space, bitmapInfo: format), let data = bitmap.data else { return nil }
         bitmap.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        guard table != nil || grain > 0 else { return bitmap.makeImage() }
+        if adjusted, let corrections, !PhotoDevelopment.applySpatial(corrections, to: bitmap) { return nil }
+        let adjustmentTable = adjusted ? corrections.flatMap { PhotoDevelopment.cube(for: $0) } : nil
+        let vignette = Float(corrections?.vignette ?? 0)
+        guard adjustmentTable != nil || vignette > 0 || table != nil || grain > 0 || monochromeGrain > 0
+        else { return bitmap.makeImage() }
         let buffer = data.bindMemory(to: UInt8.self, capacity: w*h*4)
         let factor = Float(strength)
-        let scale = table.map { RGB(repeating: Float($0.size-1)) / ($0.high-$0.low) } ?? .zero
         // Grain coordinates cover the entire oriented image before any page cropping.
         let pitch = Float(max(w,h))/2400 * Float(0.8 + 3.2*max(0,min(1,settings.grainSize)))
         let noiseAmplitude = Float(grain*0.18)
+        let monoPitch = Float(max(w,h)) / 1800
+        let monoAmplitude = Float(monochromeGrain * 0.19)
         for y in 0..<h {
             for x in 0..<w {
                 let i = (w*y+x)*4
                 let alpha = Float(buffer[i+3])
                 guard alpha > 0 else { continue }
                 var color = RGB(Float(buffer[i]),Float(buffer[i+1]),Float(buffer[i+2])) / alpha
+                if let adjustmentTable { color = adjustmentTable.sample(color) }
+                if vignette > 0 {
+                    let horizontal = (2 * Float(x) + 1) / Float(w) - 1
+                    let vertical = (2 * Float(y) + 1) / Float(h) - 1
+                    let radius = max(0, min(1, (horizontal * horizontal + vertical * vertical - 0.15) / 1.65))
+                    color *= 1 - 0.67 * vignette * radius * radius * (3 - 2 * radius)
+                }
+                if monochromeGrain > 0 {
+                    color += RGB(repeating: noise(atX: x, y: y, pitch: monoPitch) * monoAmplitude)
+                    color = simd_clamp(color, .zero, .one)
+                }
                 if let table {
-                    let position = simd_clamp((color-table.low)*scale, .zero, RGB(repeating:Float(table.size-1)))
-                    let ix = min(Int(position.x),table.size-2)
-                    let iy = min(Int(position.y),table.size-2)
-                    let iz = min(Int(position.z),table.size-2)
-                    let fraction = position - RGB(Float(ix),Float(iy),Float(iz))
-                    let n = table.size
-                    let base = ix + n*(iy+n*iz)
-                    func row(_ offset: Int) -> SIMD4<Float> {
-                        let a = table.samples[base+offset]
-                        return a + (table.samples[base+offset+1]-a)*fraction.x
-                    }
-                    let lower = row(0), upper = row(n*n)
-                    let a = lower + (row(n)-lower)*fraction.y
-                    let b = upper + (row(n*n+n)-upper)*fraction.y
-                    let mix = a + (b-a)*fraction.z
-                    color += (RGB(mix.x,mix.y,mix.z)-color)*factor
+                    color += (table.sample(color) - color) * factor
                 }
                 if grain > 0 {
-                    let gx = (Float(x)+0.5)/pitch, gy = (Float(y)+0.5)/pitch
-                    let ix = Int(gx), iy = Int(gy)
-                    let fx = gx-Float(ix), fy = gy-Float(iy)
-                    func noise(_ dx: Int, _ dy: Int) -> Float {
-                        noiseTile[((ix+dx)&255) + (((iy+dy)&255)<<8)]
-                    }
-                    let a = noise(0,0)*(1-fx) + noise(1,0)*fx
-                    let b = noise(0,1)*(1-fx) + noise(1,1)*fx
-                    color += RGB(repeating: (a*(1-fy)+b*fy)*noiseAmplitude)
+                    color += RGB(repeating: noise(atX: x, y: y, pitch: pitch) * noiseAmplitude)
                 }
                 let output = simd_clamp(color,.zero,.one)*alpha
                 buffer[i] = UInt8(output.x.rounded())
@@ -236,6 +253,18 @@ enum FilmRenderer {
             }
         }
         return bitmap.makeImage()
+    }
+
+    private static func noise(atX x: Int, y: Int, pitch: Float) -> Float {
+        let gx = (Float(x)+0.5)/pitch, gy = (Float(y)+0.5)/pitch
+        let ix = Int(gx), iy = Int(gy)
+        let fx = gx-Float(ix), fy = gy-Float(iy)
+        func noise(_ dx: Int, _ dy: Int) -> Float {
+            noiseTile[((ix+dx)&255) + (((iy+dy)&255)<<8)]
+        }
+        let a = noise(0,0)*(1-fx) + noise(1,0)*fx
+        let b = noise(0,1)*(1-fx) + noise(1,1)*fx
+        return a*(1-fy)+b*fy
     }
 
     private static func looksForPreset(_ preset: FilmPreset) -> FilmCube? {

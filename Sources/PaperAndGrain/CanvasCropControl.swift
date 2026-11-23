@@ -18,6 +18,7 @@ struct CanvasCropControl<Content: View>: View {
         let draft = magnifyDraft ?? dragDraft ?? current
         let aperture = draft.frame
         let extent = draft.crop.imageRect(for: sourceSize, in: aperture, fills: true)
+        let reachable = aperture.intersection(bounds).offsetBy(dx: -aperture.minX, dy: -aperture.minY)
         ZStack(alignment: .topLeading) {
             image()
                 .frame(width: extent.width, height: extent.height)
@@ -38,15 +39,17 @@ struct CanvasCropControl<Content: View>: View {
             Rectangle()
                 .fill(.clear)
                 .frame(width: aperture.width, height: aperture.height)
-                .contentShape(Rectangle())
+                .contentShape(CropHitArea(rect: reachable))
                 .gesture(drag().exclusively(before: magnify))
                 .overlay {
                     Rectangle().strokeBorder(.white, lineWidth: 1).allowsHitTesting(false)
                     Rectangle().inset(by: 1).strokeBorder(.tint, lineWidth: 1).allowsHitTesting(false)
                 }
-                .overlay {
-                    if allowsFrameResize {
-                        CanvasResizeHandles(size: aperture.size) { corner in drag(corner) }
+                .overlay(alignment: .topLeading) {
+                    if allowsFrameResize && !reachable.isEmpty {
+                        CanvasResizeHandles(size: reachable.size) { corner in drag(corner) }
+                            .frame(width: reachable.width, height: reachable.height)
+                            .offset(x: reachable.minX, y: reachable.minY)
                     }
                 }
                 .position(x: aperture.midX - bounds.minX, y: aperture.midY - bounds.minY)
@@ -82,7 +85,8 @@ struct CanvasCropControl<Content: View>: View {
     private func dragged(by translation: CGSize, corner: CanvasCorner?) -> Draft {
         let extent = crop.imageRect(for: sourceSize, in: frame, fills: true)
         if let corner {
-            let aperture = corner.resized(frame, by: translation, in: bounds, minimumSize: minimumSize)
+            let aperture = corner.resized(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                                          allowsPhotoOverflow: true)
             return draft(for: extent, in: aperture)
         }
         return draft(for: extent.offsetBy(dx: translation.width, dy: translation.height), in: frame)
@@ -121,5 +125,14 @@ struct CanvasCropControl<Content: View>: View {
     private struct Draft {
         let frame: CGRect
         let crop: PhotoCrop
+    }
+
+    private struct CropHitArea: Shape {
+        let rect: CGRect
+
+        func path(in bounds: CGRect) -> Path {
+            let intersection = rect.intersection(bounds)
+            return intersection.isEmpty ? Path() : Path(intersection)
+        }
     }
 }

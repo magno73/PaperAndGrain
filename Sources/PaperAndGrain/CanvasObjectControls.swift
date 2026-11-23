@@ -8,24 +8,34 @@ struct CanvasObjectControl<Content: View>: View {
     let minimumSize: CGSize
     let accessibilityName: String
     var alignmentTargets: [CGRect] = []
+    var allowsPhotoOverflow = false
     var preservesAspectRatio = false
     var onDoubleClick: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
     let onSelect: () -> Void
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
 
+    @FocusState private var focused: Bool
     @GestureState private var dragPreview: CanvasAlignment.Result?
 
     var body: some View {
         let visibleFrame = dragPreview?.frame ?? frame
+        let reachable = visibleFrame.intersection(bounds).offsetBy(dx: -visibleFrame.minX, dy: -visibleFrame.minY)
         content(visibleFrame.size)
             .frame(width: visibleFrame.width, height: visibleFrame.height)
             .clipped()
-            .contentShape(Rectangle())
+            .contentShape(ReachableFrame(rect: reachable))
             .gesture(drag().exclusively(before: tap))
             .focusable()
+            .focused($focused)
             .onKeyPress(.space) {
                 onSelect()
+                return .handled
+            }
+            .onKeyPress(keys: [.delete, .deleteForward], phases: .down) { _ in
+                guard selected, let onDelete else { return .ignored }
+                onDelete()
                 return .handled
             }
             .onMoveCommand(perform: nudge)
@@ -33,19 +43,17 @@ struct CanvasObjectControl<Content: View>: View {
             .accessibilityLabel(accessibilityName)
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
-            .overlay {
-                if selected {
+            .overlay(alignment: .topLeading) {
+                if selected, !reachable.isEmpty {
                     Rectangle()
                         .strokeBorder(.tint, lineWidth: 2)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
-                }
-            }
-            .overlay {
-                if selected {
-                    CanvasResizeHandles(size: visibleFrame.size) { corner in
-                        drag(corner)
-                    }
+                        .frame(width: reachable.width, height: reachable.height)
+                        .overlay {
+                            CanvasResizeHandles(size: reachable.size) { corner in drag(corner) }
+                        }
+                        .offset(x: reachable.minX, y: reachable.minY)
                 }
             }
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
@@ -53,7 +61,10 @@ struct CanvasObjectControl<Content: View>: View {
     }
 
     private var tap: AnyGesture<Void> {
-        let select = TapGesture().onEnded(onSelect)
+        let select = TapGesture().onEnded {
+            focused = true
+            onSelect()
+        }
         if let onDoubleClick {
             return AnyGesture(TapGesture(count: 2).onEnded(onDoubleClick)
                 .exclusively(before: select).map { _ in () })
@@ -78,7 +89,8 @@ struct CanvasObjectControl<Content: View>: View {
         if corner != nil {
             return CanvasAlignment.Result(frame: proposed, guides: [])
         }
-        return CanvasAlignment.duringDrag(proposed, to: alignmentTargets, within: bounds)
+        let targets = alignmentTargets.map { $0.intersection(bounds) }
+        return CanvasAlignment.duringDrag(proposed, to: targets, within: movementBounds)
     }
 
     private func nudge(_ direction: MoveCommandDirection) {
@@ -98,11 +110,45 @@ struct CanvasObjectControl<Content: View>: View {
     private func adjustedFrame(by translation: CGSize, resizing corner: CanvasCorner? = nil) -> CGRect {
         if let corner {
             return corner.resized(frame, by: translation, in: bounds, minimumSize: minimumSize,
-                                  preservesAspectRatio: preservesAspectRatio)
+                                  preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow)
         }
-        let x = min(bounds.maxX - frame.width, max(bounds.minX, frame.minX + translation.width))
-        let y = min(bounds.maxY - frame.height, max(bounds.minY, frame.minY + translation.height))
+        let limits = movementBounds
+        let x = min(limits.maxX - frame.width, max(limits.minX, frame.minX + translation.width))
+        let y = min(limits.maxY - frame.height, max(limits.minY, frame.minY + translation.height))
         return CGRect(x: x, y: y, width: frame.width, height: frame.height)
+    }
+
+    private var movementBounds: CGRect {
+        allowsPhotoOverflow ? CanvasPhotoGeometry.movementBounds(for: frame.size, in: bounds) : bounds
+    }
+
+    private struct ReachableFrame: Shape {
+        let rect: CGRect
+
+        func path(in bounds: CGRect) -> Path {
+            let intersection = rect.intersection(bounds)
+            return intersection.isEmpty ? Path() : Path(intersection)
+        }
+    }
+}
+
+enum CanvasPhotoGeometry {
+    static func movementBounds(for size: CGSize, in bounds: CGRect) -> CGRect {
+        let horizontalOverflow = max(0, size.width - bounds.width * PageRect.photoOverlapFraction)
+        let verticalOverflow = max(0, size.height - bounds.height * PageRect.photoOverlapFraction)
+        return bounds.insetBy(dx: -horizontalOverflow, dy: -verticalOverflow)
+    }
+
+    static func resizeLimits(current: CGFloat, minimum: CGFloat, anchor: CGFloat, trim: ClosedRange<CGFloat>,
+                             towardStart: Bool) -> (minimum: CGFloat, maximum: CGFloat) {
+        let length = trim.upperBound - trim.lowerBound
+        let overlap = length * PageRect.photoOverlapFraction
+        let distanceTowardHandle = towardStart ? anchor - trim.lowerBound : trim.upperBound - anchor
+        let distanceBeyondAnchor = max(0, distanceTowardHandle - length)
+        let lowerLimit = distanceBeyondAnchor > 0 ? distanceBeyondAnchor + overlap : minimum
+        // A small frame close to an edge can grow until it still has a reachable part at that edge.
+        let upperLimit = distanceTowardHandle < overlap ? distanceTowardHandle : length * PageRect.maximumPhotoScale
+        return (min(current, max(minimum, lowerLimit)), max(current, upperLimit))
     }
 }
 
@@ -113,28 +159,33 @@ enum CanvasCorner: CaseIterable {
     var isTop: Bool { self == .topLeft || self == .topRight }
 
     func resized(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
-                 preservesAspectRatio: Bool = false) -> CGRect {
+                 preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false) -> CGRect {
         let anchor = CGPoint(x: isLeft ? frame.maxX : frame.minX, y: isTop ? frame.maxY : frame.minY)
         let horizontalSign: CGFloat = isLeft ? -1 : 1
         let verticalSign: CGFloat = isTop ? -1 : 1
         let width = frame.width + horizontalSign * translation.width
         let height = frame.height + verticalSign * translation.height
-        let minWidth = min(minimumSize.width, frame.width)
-        let minHeight = min(minimumSize.height, frame.height)
-        let maxWidth = isLeft ? anchor.x - bounds.minX : bounds.maxX - anchor.x
-        let maxHeight = isTop ? anchor.y - bounds.minY : bounds.maxY - anchor.y
+        let widthLimits = allowsPhotoOverflow
+            ? CanvasPhotoGeometry.resizeLimits(current: frame.width, minimum: minimumSize.width, anchor: anchor.x,
+                                               trim: bounds.minX...bounds.maxX, towardStart: isLeft)
+            : (min(frame.width, minimumSize.width), isLeft ? anchor.x - bounds.minX : bounds.maxX - anchor.x)
+        let heightLimits = allowsPhotoOverflow
+            ? CanvasPhotoGeometry.resizeLimits(current: frame.height, minimum: minimumSize.height, anchor: anchor.y,
+                                               trim: bounds.minY...bounds.maxY, towardStart: isTop)
+            : (min(frame.height, minimumSize.height), isTop ? anchor.y - bounds.minY : bounds.maxY - anchor.y)
 
         let size: CGSize
         if preservesAspectRatio, frame.width > 0, frame.height > 0 {
             // Project the pointer onto the original diagonal while keeping its opposite corner fixed.
             let scale = (width * frame.width + height * frame.height) /
                 (frame.width * frame.width + frame.height * frame.height)
-            let minScale = max(minWidth / frame.width, minHeight / frame.height)
-            let maxScale = min(maxWidth / frame.width, maxHeight / frame.height)
+            let minScale = max(widthLimits.0 / frame.width, heightLimits.0 / frame.height)
+            let maxScale = min(widthLimits.1 / frame.width, heightLimits.1 / frame.height)
             let boundedScale = min(maxScale, max(minScale, scale))
             size = CGSize(width: frame.width * boundedScale, height: frame.height * boundedScale)
         } else {
-            size = CGSize(width: min(maxWidth, max(minWidth, width)), height: min(maxHeight, max(minHeight, height)))
+            size = CGSize(width: min(widthLimits.1, max(widthLimits.0, width)),
+                          height: min(heightLimits.1, max(heightLimits.0, height)))
         }
         return CGRect(x: isLeft ? anchor.x - size.width : anchor.x, y: isTop ? anchor.y - size.height : anchor.y,
                       width: size.width, height: size.height)

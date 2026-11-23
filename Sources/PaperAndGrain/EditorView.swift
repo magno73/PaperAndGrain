@@ -14,9 +14,11 @@ struct EditorView: View {
     @Environment(\.undoManager) private var undoManager
     @FocusState private var writing: Bool
     @FocusState private var writingBox: Bool
+    @FocusState private var inlineBoxFocus: UUID?
     @State private var selection: UUID?
     @State private var selectedPhoto: UUID?
     @State private var selectedBox: UUID?
+    @State private var inlineEditingBox: UUID?
     @State private var coverSide: CoverSide?
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
@@ -25,16 +27,38 @@ struct EditorView: View {
     @State private var gutterGuide = false
     @State private var showDelete = false
     @State private var inspector: Inspector = .page
+    @State private var photoPanelMode: PhotoPanelMode = .library
     @State private var filmScope: FilmScope = .book
     @State private var compareOriginal = false
+    @State private var comparePhotoOriginal: UUID?
+    @State private var enhancingPhotos: [UUID: UUID] = [:]
+    @State private var adjustmentErrors: [UUID: String] = [:]
+    @State private var adjustmentEdit: AdjustmentEdit?
     @State private var lutImportError: String?
     @State private var concept: String?
     @State private var search = ""
-    @State private var undoTarget = EditorPageUndo()
+    @State private var undoTarget = EditorUndo()
     @State private var cropSession: CropSession?
 
     private enum Inspector: String, CaseIterable {
         case page, photos, film
+    }
+
+    private enum PhotoPanelMode: Hashable {
+        case library, adjust
+    }
+
+    private struct AdjustmentEdit {
+        let photoID: UUID
+        let before: PhotoAdjustments?
+    }
+
+    private struct NavigatorSpread: Identifiable {
+        let id: UUID
+        let pages: [BookPage]
+        let blankLeft: Bool
+
+        var paired: Bool { blankLeft || pages.count == 2 }
     }
 
     private enum FilmScope: Hashable {
@@ -123,12 +147,21 @@ struct EditorView: View {
         return spreads
     }
 
+    private var navigatorSpreads: [NavigatorSpread] {
+        groups.compactMap { row in
+            guard let first = row.first else { return nil }
+            let blankLeft = row.count == 1 && first.layout != .fullSpread
+                && first.id == book.pages.first?.id && book.printSettings?.firstPageOnRight == true
+            return NavigatorSpread(id: first.id, pages: row, blankLeft: blankLeft)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             masthead
             Rectangle().fill(edge).frame(height: 1)
             HStack(spacing: 0) {
-                navigator.frame(width: 128)
+                navigator.frame(width: 158)
                 Rectangle().fill(edge).frame(width: 1)
                 canvas.frame(maxWidth: .infinity, maxHeight: .infinity)
                 Rectangle().fill(edge).frame(width: 1)
@@ -140,6 +173,13 @@ struct EditorView: View {
         .tint(pine)
         .coordinateSpace(name: EditorDropTarget.coordinateSpace)
         .onPreferenceChange(EditorDropFrames.self) { dropFrames = $0 }
+        .onChange(of: inlineBoxFocus) { previous, current in
+            if previous != nil && current == nil && inlineEditingBox == previous { inlineEditingBox = nil }
+        }
+        .onChange(of: selectedPhoto) { _, id in
+            if comparePhotoOriginal != id { comparePhotoOriginal = nil }
+            if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
+        }
         .overlay(alignment: .topLeading) {
             dragPreview.allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -171,11 +211,13 @@ struct EditorView: View {
                         cropSession = nil
                         return
                     }
-                    if writing || writingBox, NSApp.sendAction(Selector(("undo:")), to: nil, from: nil) { return }
+                    if writing || writingBox || inlineBoxFocus != nil,
+                       NSApp.sendAction(Selector(("undo:")), to: nil, from: nil) { return }
                     undoManager?.undo()
                 }
                 action("arrow.uturn.forward", tr("Ripristina", "Redo")) {
-                    if writing || writingBox, NSApp.sendAction(Selector(("redo:")), to: nil, from: nil) { return }
+                    if writing || writingBox || inlineBoxFocus != nil,
+                       NSApp.sendAction(Selector(("redo:")), to: nil, from: nil) { return }
                     undoManager?.redo()
                 }
                 .disabled(cropSession != nil)
@@ -223,8 +265,17 @@ struct EditorView: View {
                 ScrollView {
                     LazyVStack(spacing: 7) {
                         coverItem(.front).id(CoverSide.front)
-                        ForEach(book.pages) { leaf in
-                            navigatorItem(leaf, insertionAfter: insertion?.id == leaf.id ? insertion?.after : nil).id(leaf.id)
+                        ForEach(navigatorSpreads) { spread in
+                            HStack(spacing: 3) {
+                                if spread.blankLeft {
+                                    navigatorBlankPage
+                                }
+                                ForEach(spread.pages) { leaf in
+                                    navigatorItem(leaf, paired: spread.paired,
+                                                  insertionAfter: insertion?.id == leaf.id ? insertion?.after : nil)
+                                        .id(leaf.id)
+                                }
+                            }
                         }
                         coverItem(.back).id(CoverSide.back)
                     }
@@ -254,28 +305,44 @@ struct EditorView: View {
         .background(Color(red: 0.93, green: 0.93, blue: 0.89))
     }
 
-    private func navigatorItem(_ leaf: BookPage, insertionAfter: Bool?) -> some View {
+    private func navigatorItem(_ leaf: BookPage, paired: Bool, insertionAfter: Bool?) -> some View {
         let active = leaf.id == page?.id
         let first = leaf.id == book.pages.first?.id
         let ratio = aspect * (leaf.layout == .fullSpread ? 2 : 1)
-        let width = min(91, 47 * ratio)
+        let width = min(paired ? 63 : 115, 47 * ratio)
         let number = spreadNumber([leaf])
-        let label = first ? tr("Prima pagina", "First Page") : number
+        let label = first && !paired ? tr("Prima pagina", "First Page") : number
         return navigatorCard(label, active: active) {
             select(leaf)
         } preview: {
             mini(leaf).frame(width: width, height: width / ratio)
         }
-        .accessibilityLabel(first ? label : tr("Pagina", "Page") + " " + number)
+        .accessibilityLabel(first ? tr("Prima pagina", "First Page") : tr("Pagina", "Page") + " " + number)
         .help(tr("Trascina per riordinare la pagina", "Drag to reorder the page"))
         .editorDropFrame(.navigatorPage(leaf.id))
         .simultaneousGesture(editorDrag(.page(leaf.id)))
-        .overlay(alignment: insertionAfter == true ? .bottom : .top) {
+        .overlay(alignment: navigatorInsertionAlignment(paired: paired, after: insertionAfter == true)) {
             if insertionAfter != nil {
-                Capsule().fill(pine).frame(height: 3).padding(.horizontal, 4)
+                Capsule().fill(pine).frame(width: paired ? 3 : nil, height: paired ? nil : 3)
+                    .padding(paired ? .vertical : .horizontal, 4)
                     .allowsHitTesting(false)
             }
         }
+    }
+
+    private func navigatorInsertionAlignment(paired: Bool, after: Bool) -> Alignment {
+        if paired { return after ? .trailing : .leading }
+        return after ? .bottom : .top
+    }
+
+    private var navigatorBlankPage: some View {
+        let width = min(63, 47 * aspect)
+        return Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
+            .frame(width: width, height: width / aspect)
+            .overlay { Rectangle().strokeBorder(.black.opacity(0.09)) }
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 16)
+            .accessibilityHidden(true)
     }
 
     private func coverItem(_ side: CoverSide) -> some View {
@@ -314,22 +381,44 @@ struct EditorView: View {
     }
 
     private func mini(_ leaf: BookPage) -> some View {
-        ZStack {
-            Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
-            if leaf.layout != .text, let photo = photos(on: leaf).first {
-                preview(photo, small: true)
-                    .padding(leaf.layout == .gallery || leaf.layout == .mixed ? 3 : 0)
-            } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    RoundedRectangle(cornerRadius: 1).fill(pine.opacity(0.55)).frame(width: 13, height: 2)
-                    RoundedRectangle(cornerRadius: 1).fill(muted.opacity(0.30)).frame(width: 18, height: 1)
-                    RoundedRectangle(cornerRadius: 1).fill(muted.opacity(0.30)).frame(width: 15, height: 1)
+        let composition = PageComposition(page: leaf, book: book)
+        let style = book.editorialStyle
+        return GeometryReader { geometry in
+            let scale = max(0.001, min(geometry.size.width / composition.bounds.width,
+                                       geometry.size.height / composition.bounds.height))
+            let bounds = scaled(composition.bounds, by: scale)
+            ZStack(alignment: .topLeading) {
+                Color(cgColor: EditorialStyle.color(style.paper))
+                if let rule = composition.rule {
+                    positioned(Color(cgColor: EditorialStyle.color(style.accent)), in: scaled(rule, by: scale))
+                }
+                ForEach(composition.photos) { item in
+                    positioned(preview(item.photo, small: true, crop: item.crop, fills: item.fills),
+                               in: scaled(item.frame, by: scale))
+                }
+                if let story = composition.story, !leaf.text.isEmpty || leaf.heading?.isEmpty == false {
+                    let text = style.typography(leaf.text, heading: leaf.heading, mixed: leaf.layout == .mixed)
+                    positioned(editorialText(text, scale: scale), in: scaled(story, by: scale))
+                }
+                ForEach(composition.textBoxes.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { box in
+                    let frame = box.frame.rect(in: composition.bounds)
+                    positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
+                    let text = style.typography(box.text, heading: nil, mixed: true)
+                    let inset = PageTextBox.textInset
+                    positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
+                }
+                if let folio = composition.folio {
+                    let number = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
+                    positioned(editorialText(number, scale: scale), in: scaled(folio, by: scale))
                 }
             }
+            .frame(width: bounds.width, height: bounds.height)
+            .clipped()
+            .overlay { Rectangle().strokeBorder(.black.opacity(0.14)) }
+            .shadow(color: .black.opacity(0.11), radius: 2, y: 1)
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
         }
-        .clipped()
-        .overlay { Rectangle().strokeBorder(.black.opacity(0.09)) }
-        .shadow(color: .black.opacity(0.11), radius: 2, y: 1)
+        .accessibilityHidden(true)
     }
 
     private var canvas: some View {
@@ -344,7 +433,10 @@ struct EditorView: View {
                 }
                 Spacer()
                 if compareOriginal {
-                    Button(tr("Torna al look pellicola", "Return to film look")) { compareOriginal = false }
+                    Button(tr("Torna alle regolazioni", "Return to Edits")) { compareOriginal = false }
+                        .controlSize(.small)
+                } else if comparePhotoOriginal != nil {
+                    Button(tr("Torna alle regolazioni", "Return to Edits")) { comparePhotoOriginal = nil }
                         .controlSize(.small)
                 }
                 Picker(tr("Zoom della pagina", "Page Zoom"), selection: $zoom) {
@@ -534,6 +626,7 @@ struct EditorView: View {
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper)).onTapGesture {
                 finishCrop()
+                endInlineBoxEditing()
                 select(leaf)
                 selectedPhoto = nil
                 selectedBox = nil
@@ -628,23 +721,27 @@ struct EditorView: View {
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
                                    accessibilityName: item.photo.name, alignmentTargets: alignmentTargets,
-                                   preservesAspectRatio: true,
+                                   allowsPhotoOverflow: true, preservesAspectRatio: true,
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
+                                   onDelete: { deleteCanvasPhoto(item.id, from: leaf.id) },
                                    onSelect: { selectCanvasPhoto(item.id, in: leaf) },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
             preview(item.photo, crop: item.crop, fills: item.fills)
         }
         .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCrop(item.id, in: leaf) }
+        .accessibilityAction(named: Text(tr("Rimuovi dalla pagina", "Remove from Page"))) {
+            deleteCanvasPhoto(item.id, from: leaf.id)
+        }
     }
 
     private func canvasCrop(_ session: CropSession, item: PageComposition.Photo, bounds: CGRect, scale: CGFloat) -> some View {
-        let frame = session.frame.rect(in: bounds)
+        let frame = session.frame.photoRect(in: bounds)
         let size = CGSize(width: item.photo.pixelWidth, height: item.photo.pixelHeight)
         return CanvasCropControl(frame: frame, bounds: bounds, sourceSize: size, crop: session.crop,
                                  minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
                                  onChange: { nextFrame, nextCrop in
             guard cropSession?.photoID == session.photoID, cropSession?.pageID == session.pageID else { return }
-            if nextFrame != frame { cropSession?.frame = PageRect(nextFrame, in: bounds).clamped }
+            if nextFrame != frame { cropSession?.frame = PageRect(nextFrame, in: bounds).photoClamped }
             cropSession?.crop = nextCrop
         }, image: {
             preview(item.photo, fills: false)
@@ -659,6 +756,7 @@ struct EditorView: View {
         let label = tr("Scrivi qui il tuo racconto…", "Write your story here…")
         return Button {
             finishCrop()
+            endInlineBoxEditing()
             select(leaf)
             selectedPhoto = nil
             selectedBox = nil
@@ -683,36 +781,64 @@ struct EditorView: View {
         .buttonStyle(.plain)
     }
 
-    private func canvasTextBox(_ box: PageTextBox, leaf: BookPage, bounds: CGRect, scale: CGFloat,
-                               alignmentTargets: [CGRect]) -> some View {
+    @ViewBuilder private func canvasTextBox(_ box: PageTextBox, leaf: BookPage, bounds: CGRect, scale: CGFloat,
+                                            alignmentTargets: [CGRect]) -> some View {
         let active = selectedBox == box.id && leaf.id == page?.id
         let style = book.editorialStyle
         let empty = box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let label = tr("Box di testo", "Text Box")
-        return CanvasObjectControl(frame: box.frame.rect(in: bounds), bounds: bounds, selected: active,
+        let frame = box.frame.rect(in: bounds)
+        if inlineEditingBox == box.id && leaf.id == page?.id {
+            positioned(inlineBoxEditor(box, leaf: leaf, scale: scale), in: frame)
+                .zIndex(1)
+        } else {
+            CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 88 * scale, height: 40 * scale),
                                    accessibilityName: empty ? label : box.text,
                                    alignmentTargets: alignmentTargets,
+                                   onDoubleClick: { beginInlineBoxEditing(box.id, in: leaf) },
                                    onSelect: { selectTextBox(box.id, in: leaf) },
                                    onChange: { updateTextBoxFrame(box.id, on: leaf.id, to: PageRect($0, in: bounds)) }) { _ in
-            Group {
-                if empty {
-                    Text(label)
-                        .font(.custom(style.bodyFont, size: max(9, style.bodySize * scale)))
-                        .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else {
-                    editorialText(style.typography(box.text, heading: nil, mixed: true), scale: scale)
+                Group {
+                    if empty {
+                        Text(label)
+                            .font(.custom(style.bodyFont, size: max(9, style.bodySize * scale)))
+                            .foregroundStyle(Color(cgColor: EditorialStyle.color(style.accent)))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        editorialText(style.typography(box.text, heading: nil, mixed: true), scale: scale)
+                    }
+                }
+                .padding(PageTextBox.textInset * scale)
+                .background(Color(cgColor: EditorialStyle.color(style.paper)).opacity(empty ? 0.82 : 1))
+                .overlay {
+                    if empty && !active {
+                        Rectangle().strokeBorder(pine.opacity(0.48), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    }
                 }
             }
-            .padding(PageTextBox.textInset * scale)
-            .background(Color(cgColor: EditorialStyle.color(style.paper)).opacity(empty ? 0.82 : 1))
-            .overlay {
-                if empty && !active {
-                    Rectangle().strokeBorder(pine.opacity(0.48), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                }
+            .accessibilityAction(named: Text(tr("Modifica il testo", "Edit Text"))) {
+                beginInlineBoxEditing(box.id, in: leaf)
             }
         }
+    }
+
+    private func inlineBoxEditor(_ box: PageTextBox, leaf: BookPage, scale: CGFloat) -> some View {
+        let style = book.editorialStyle
+        return TextEditor(text: textInBox(box.id, on: leaf.id))
+            .font(.custom(style.bodyFont, size: max(1, style.bodySize * scale)))
+            .foregroundStyle(Color(cgColor: EditorialStyle.color(style.ink)))
+            .scrollContentBackground(.hidden)
+            .focused($inlineBoxFocus, equals: box.id)
+            .padding(max(0, PageTextBox.textInset * scale - 4))
+            .background(Color(cgColor: EditorialStyle.color(style.paper)))
+            .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
+            .onExitCommand(perform: endInlineBoxEditing)
+            .accessibilityLabel(tr("Testo del box in pagina", "Text Box on Page"))
+            .task(id: box.id) {
+                await Task.yield()
+                if NSApp.isActive && inlineEditingBox == box.id { inlineBoxFocus = box.id }
+            }
     }
 
     @ViewBuilder private func coverCanvas(_ side: CoverSide, scale: CGFloat, thumbnail: Bool = false) -> some View {
@@ -1060,6 +1186,66 @@ struct EditorView: View {
     }
 
     private var photoInspector: some View {
+        VStack(spacing: 0) {
+            Picker(tr("Pannello foto", "Photo Panel"), selection: $photoPanelMode) {
+                Text(tr("Libreria", "Library")).tag(PhotoPanelMode.library)
+                Text(tr("Regola", "Adjust")).tag(PhotoPanelMode.adjust)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 15)
+            .padding(.top, 11)
+            if photoPanelMode == .adjust {
+                ScrollView {
+                    photoAdjustmentsInspector
+                        .padding(15)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                photoLibrary
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    @ViewBuilder private var photoAdjustmentsInspector: some View {
+        if let selectedPhoto, let photo = book.photo(selectedPhoto) {
+            VStack(alignment: .leading, spacing: 10) {
+                caption(tr("Regolazioni foto", "Photo Adjustments"))
+                Text(photo.name).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+                intro(tr("Le regolazioni seguono la foto in tutto il libro.",
+                         "Adjustments follow this photo throughout the book."))
+                if let message = adjustmentErrors[photo.id] {
+                    Text(message).font(.callout).foregroundStyle(.secondary)
+                }
+                PhotoAdjustmentsPanel(adjustments: Binding(
+                    get: { book.photo(photo.id)?.adjustments ?? PhotoAdjustments() },
+                    set: { value in setPhotoAdjustments(value, for: photo.id) }
+                ), language: language, isEnhancing: enhancingPhotos[photo.id] != nil,
+                comparingOriginal: Binding(
+                    get: { comparePhotoOriginal == photo.id },
+                    set: { comparePhotoOriginal = $0 ? photo.id : nil }
+                ), onAutomatic: {
+                    autoEnhance(photo)
+                }, onReset: {
+                    setPhotoAdjustments(PhotoAdjustments(), for: photo.id)
+                }, onEditingChanged: { started in
+                    if started {
+                        finishPhotoAdjustmentEdit()
+                        adjustmentEdit = AdjustmentEdit(photoID: photo.id, before: book.photo(photo.id)?.adjustments)
+                    } else {
+                        finishPhotoAdjustmentEdit()
+                    }
+                })
+                .id(photo.id)
+            }
+        } else {
+            intro(tr("Seleziona una foto nella pagina o nella libreria.",
+                     "Select a photo on the page or in the library."))
+        }
+    }
+
+    private var photoLibrary: some View {
         VStack(alignment: .leading, spacing: 13) {
             VStack(alignment: .leading, spacing: 11) {
                 HStack {
@@ -1137,6 +1323,14 @@ struct EditorView: View {
                 togglePhoto(photo.id)
             }
             .disabled(page == nil && coverSide == nil)
+            HStack(spacing: 7) {
+                Button(tr("Regola foto", "Adjust Photo")) { photoPanelMode = .adjust }
+                if enhancingPhotos[photo.id] != nil {
+                    ProgressView().controlSize(.small)
+                } else {
+                    action("wand.and.stars", tr("Migliora in automatico", "Auto Enhance")) { autoEnhance(photo) }
+                }
+            }
             Button(tr("Look pellicola", "Film look")) {
                 filmScope = .photo
                 inspector = .film
@@ -1428,6 +1622,57 @@ struct EditorView: View {
         book.photos[index].film = settings
     }
 
+    private func setPhotoAdjustments(_ value: PhotoAdjustments, for id: UUID,
+                                     actionName: String? = nil) {
+        guard let index = book.photos.firstIndex(where: { $0.id == id }) else { return }
+        enhancingPhotos.removeValue(forKey: id)
+        adjustmentErrors.removeValue(forKey: id)
+        if comparePhotoOriginal == id { comparePhotoOriginal = nil }
+        let normalized = value == PhotoAdjustments() ? nil : value
+        let previous = book.photos[index].adjustments
+        guard previous != normalized else { return }
+        book.photos[index].adjustments = normalized
+        if adjustmentEdit?.photoID != id, let undoManager {
+            let name = actionName ?? tr("Regola foto", "Adjust Photo")
+            undoTarget.registerPhotoAdjustments(undoManager, binding: $book, bookID: book.id,
+                                                photoID: id, previous: previous, name: name)
+        }
+    }
+
+    private func finishPhotoAdjustmentEdit() {
+        guard let edit = adjustmentEdit else { return }
+        adjustmentEdit = nil
+        guard book.photo(edit.photoID)?.adjustments != edit.before, let undoManager else { return }
+        undoTarget.registerPhotoAdjustments(undoManager, binding: $book, bookID: book.id,
+                                            photoID: edit.photoID, previous: edit.before,
+                                            name: tr("Regola foto", "Adjust Photo"))
+    }
+
+    private func autoEnhance(_ photo: BookPhoto) {
+        guard enhancingPhotos[photo.id] == nil else { return }
+        let operation = UUID()
+        let bookID = book.id
+        let photoID = photo.id
+        let url = BookStorage.assetURL(filename: photo.filename, in: directory)
+        enhancingPhotos[photoID] = operation
+        adjustmentErrors.removeValue(forKey: photoID)
+        Task { @MainActor in
+            let suggested = await Task.detached(priority: .userInitiated) {
+                PhotoAdjustments.automatic(from: url)
+            }.value
+            guard book.id == bookID, enhancingPhotos[photoID] == operation,
+                  let current = book.photo(photoID) else { return }
+            enhancingPhotos.removeValue(forKey: photoID)
+            guard let suggested else {
+                adjustmentErrors[photoID] = tr("Impossibile analizzare questa foto.", "Couldn’t analyze this photo.")
+                return
+            }
+            let adjustments = (current.adjustments ?? PhotoAdjustments()).applyingAutomatic(suggested)
+            setPhotoAdjustments(adjustments, for: photoID,
+                                actionName: tr("Migliora in automatico", "Auto Enhance"))
+        }
+    }
+
     private func importFilmLUT() {
         let panel = NSOpenPanel()
         panel.title = tr("Importa LUT", "Import LUT")
@@ -1462,9 +1707,11 @@ struct EditorView: View {
     private func preview(_ photo: BookPhoto, small: Bool = false, crop: PhotoCrop = PhotoCrop(),
                          fills: Bool = true, settings: FilmSettings? = nil) -> some View {
         let url = BookStorage.assetURL(filename: photo.filename, in: directory)
-        let look = settings ?? (compareOriginal ? FilmSettings() : book.effectiveFilm(for: photo))
+        let original = settings == nil && (compareOriginal || comparePhotoOriginal == photo.id)
+        let look = settings ?? (original ? FilmSettings() : book.effectiveFilm(for: photo))
         let lutURL = look.lutFilename.map { BookStorage.lutURL(filename: $0, in: directory) }
-        let request = EditorPreviewRequest(url: url, limit: small ? 180 : 1440, look: look, lutURL: lutURL)
+        let request = EditorPreviewRequest(url: url, limit: small ? 180 : 1440, look: look, lutURL: lutURL,
+                                           adjustments: original ? nil : photo.adjustments)
         return EditorPreview(request: request, crop: crop, fills: fills) {
             placeholder
         }
@@ -1564,6 +1811,7 @@ struct EditorView: View {
     private func selectCover(_ side: CoverSide) {
         guard coverSide != side else { return }
         finishCrop()
+        endInlineBoxEditing()
         coverSide = side
         selectedPhoto = nil
         selectedBox = nil
@@ -1592,6 +1840,7 @@ struct EditorView: View {
     private func select(_ leaf: BookPage) {
         if cropSession?.pageID != leaf.id { finishCrop() }
         if leaf.id != page?.id {
+            endInlineBoxEditing()
             selectedPhoto = nil
             selectedBox = nil
             filmScope = .book
@@ -1604,20 +1853,38 @@ struct EditorView: View {
 
     private func selectCanvasPhoto(_ id: UUID, in leaf: BookPage) {
         if cropSession?.photoID != id { finishCrop() }
+        endInlineBoxEditing()
         select(leaf)
         selectedBox = nil
         selectedPhoto = id
         if inspector == .film {
             filmScope = .photo
+        } else if inspector == .page {
+            inspector = .photos
+            photoPanelMode = .adjust
         }
     }
 
     private func selectTextBox(_ id: UUID, in leaf: BookPage) {
         finishCrop()
+        if inlineEditingBox != id { endInlineBoxEditing() }
         select(leaf)
         selectedBox = id
         selectedPhoto = nil
         inspector = .page
+    }
+
+    private func beginInlineBoxEditing(_ id: UUID, in leaf: BookPage) {
+        selectTextBox(id, in: leaf)
+        writing = false
+        writingBox = false
+        inlineEditingBox = id
+    }
+
+    private func endInlineBoxEditing() {
+        guard inlineEditingBox != nil || inlineBoxFocus != nil else { return }
+        inlineEditingBox = nil
+        inlineBoxFocus = nil
     }
 
     private func setLayout(_ layout: PageLayout) {
@@ -1656,11 +1923,7 @@ struct EditorView: View {
         let y = max(safe.minY, safe.maxY - height - offset)
         let box = PageTextBox(frame: PageRect(CGRect(x: x, y: y, width: width, height: height), in: bounds))
         changeTextBoxes(on: page.id, name: tr("Inserisci box di testo", "Insert Text Box")) { $0.append(box) }
-        selectTextBox(box.id, in: page)
-        Task { @MainActor in
-            await Task.yield()
-            if NSApp.isActive && selectedBox == box.id && inspector == .page { writingBox = true }
-        }
+        beginInlineBoxEditing(box.id, in: page)
     }
 
     private func changeTextBoxes(on pageID: UUID, name: String, change: (inout [PageTextBox]) -> Void) {
@@ -1692,6 +1955,7 @@ struct EditorView: View {
 
     private func deletePage() {
         guard let index else { return }
+        endInlineBoxEditing()
         editPages(tr("Elimina pagina", "Delete Page")) { $0.remove(at: index) }
         selection = book.pages.isEmpty ? nil : book.pages[min(index, book.pages.count - 1)].id
         selectedPhoto = nil
@@ -1741,12 +2005,15 @@ struct EditorView: View {
 
     private func pageInsertion(at location: CGPoint) -> (id: UUID, after: Bool)? {
         guard dropFrames[.navigatorViewport]?.contains(location) == true else { return nil }
-        let hit = book.pages.lazy.compactMap { leaf -> (UUID, CGRect)? in
-            guard let rect = dropFrames[.navigatorPage(leaf.id)], rect.insetBy(dx: 0, dy: -4).contains(location)
-            else { return nil }
-            return (leaf.id, rect)
-        }.min { abs($0.1.midY - location.y) < abs($1.1.midY - location.y) }
-        return hit.map { ($0.0, location.y >= $0.1.midY) }
+        for spread in navigatorSpreads {
+            for leaf in spread.pages {
+                guard let rect = dropFrames[.navigatorPage(leaf.id)],
+                      rect.insetBy(dx: spread.paired ? -1.5 : 0, dy: -3.5).contains(location) else { continue }
+                let after = spread.paired ? location.x >= rect.midX : location.y >= rect.midY
+                return (leaf.id, after)
+            }
+        }
+        return nil
     }
 
     private var previewPageInsertion: (id: UUID, after: Bool)? {
@@ -1858,9 +2125,11 @@ struct EditorView: View {
             ?? min(bounds.height * 0.48, frameWidth / max(0.01, ratio))
         let frame = CGRect(x: location.x - frameWidth / 2, y: location.y - frameHeight / 2,
                            width: frameWidth, height: frameHeight)
-        let proposed = PageRect(frame, in: bounds).rect(in: bounds)
+        let normalized = PageRect(frame, in: bounds)
+        let proposed = existing == nil ? normalized.rect(in: bounds) : normalized.photoRect(in: bounds)
+        let limit = existing == nil ? bounds : CanvasPhotoGeometry.movementBounds(for: proposed.size, in: bounds)
         let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(photo.id))
-        return CanvasAlignment.duringDrag(proposed, to: targets, within: bounds)
+        return CanvasAlignment.duringDrag(proposed, to: targets, within: limit)
     }
 
     private func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {
@@ -1868,7 +2137,7 @@ struct EditorView: View {
         let current = book.pages[index]
         let composition = PageComposition(page: current, book: book)
         let result = photoPlacement(photo, in: composition, at: location, bounds: bounds)
-        let normalized = PageRect(result.frame, in: bounds).clamped
+        let normalized = PageRect(result.frame, in: bounds).photoClamped
         if current.photoIDs.contains(id) {
             updatePhotoFrame(id, in: leaf, to: normalized)
         } else {
@@ -1889,7 +2158,7 @@ struct EditorView: View {
         editPages(tr("Sposta o ridimensiona foto", "Move or Resize Photo")) { pages in
             var placements = current.photoPlacements ?? [:]
             freezeAutomaticFrames(of: current, moving: id, placements: &placements)
-            placements[id, default: PhotoPlacement()].frame = frame.clamped
+            placements[id, default: PhotoPlacement()].frame = frame.photoClamped
             pages[index].photoPlacements = placements
         }
     }
@@ -1984,11 +2253,19 @@ struct EditorView: View {
         }
     }
 
-    private func remove(_ id: UUID) {
-        guard let index else { return }
+    private func remove(_ id: UUID, from pageID: UUID? = nil) {
+        guard let target = pageID ?? page?.id,
+              let index = book.pages.firstIndex(where: { $0.id == target }),
+              book.pages[index].photoIDs.contains(id) else { return }
         editPages(tr("Rimuovi foto", "Remove Photo")) { pages in
             Self.removePhoto(id, from: &pages[index])
         }
+    }
+
+    private func deleteCanvasPhoto(_ id: UUID, from pageID: UUID) {
+        guard cropSession == nil, inlineBoxFocus == nil else { return }
+        remove(id, from: pageID)
+        if selectedPhoto == id { selectedPhoto = nil }
     }
 
     private static func removePhoto(_ id: UUID, from page: inout BookPage) {
@@ -2018,7 +2295,7 @@ struct EditorView: View {
 
 }
 
-private final class EditorPageUndo {
+private final class EditorUndo {
     func register(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID, pages: [BookPage], name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
             guard let manager, binding.wrappedValue.id == bookID else { return }
@@ -2040,6 +2317,19 @@ private final class EditorPageUndo {
         }
         manager.setActionName(name)
     }
+
+    func registerPhotoAdjustments(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                                  photoID: UUID, previous: PhotoAdjustments?, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID,
+                  let index = binding.wrappedValue.photos.firstIndex(where: { $0.id == photoID }) else { return }
+            let current = binding.wrappedValue.photos[index].adjustments
+            binding.wrappedValue.photos[index].adjustments = previous
+            target.registerPhotoAdjustments(manager, binding: binding, bookID: bookID, photoID: photoID,
+                                            previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
 }
 
 private struct EditorPreviewRequest: Hashable, Sendable {
@@ -2047,6 +2337,7 @@ private struct EditorPreviewRequest: Hashable, Sendable {
     let limit: Int
     let look: FilmSettings
     let lutURL: URL?
+    let adjustments: PhotoAdjustments?
 }
 
 private enum EditorPreviewCache {
@@ -2074,7 +2365,8 @@ private enum EditorPreviewCache {
         let key = Key(request)
         if let cached = images.object(forKey: key) { return cached }
         guard let rendered = FilmRenderer.image(from: request.url, maxPixelSize: request.limit,
-                                                settings: request.look, lutURL: request.lutURL) else { return nil }
+                                                settings: request.look, lutURL: request.lutURL,
+                                                adjustments: request.adjustments) else { return nil }
         images.setObject(rendered, forKey: key, cost: rendered.bytesPerRow * rendered.height)
         return rendered
     }

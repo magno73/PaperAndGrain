@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.4.1/Paper & Grain.app'
+open 'dist/0.5.0/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -16,14 +16,14 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 ## Fare un primo libro
 
 1. Apri **Scegli un album da Foto** e, al primo accesso, autorizza l’app nelle finestre di macOS. Scegli **Namibia**, seleziona le immagini, imposta il formato e premi **Impagina**. **Importa file** accetta immagini dal Finder. Il libro dimostrativo si apre senza accedere alla libreria.
-2. Trascina una miniatura sopra o sotto un’altra nel navigatore a sinistra per riordinare le pagine. Una panoramica rimane un solo elemento del navigatore. Scegli fra **Galleria**, **Pagina di testo**, **Foto e testo**, **Tutta pagina** e **Due pagine**. Sopra la pagina puoi scegliere **Riempi pagina**, **Adatta alla larghezza** o uno zoom da 25% a 200%.
+2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Una panoramica rimane un solo elemento. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
 3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. La scheda **Foto** permette di sfogliare gli scatti per tema.
 4. **Salva progetto** crea un pacchetto locale `.papergrain`. **Esporta PDF** produce una prova su pagine singole, anche per una foto che attraversa due pagine. Il globo sceglie lingua di sistema, italiano o inglese.
 
 ## Montare le pagine
 
-- In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi spostarlo e ridimensionarlo dalle maniglie agli angoli. Fai doppio clic sulla foto **già in pagina** per modificarne il ritaglio. Trascina l’immagine dentro la cornice, regola i bordi del ritaglio e usa il gesto di zoom o i pulsanti sotto la pagina. Premi **Fine** per applicare.
-- **Inserisci → Box di testo** aggiunge un riquadro indipendente alla pagina. Scrivi nell’ispettore e usa il riquadro sulla pagina per spostarlo o ridimensionarlo. Puoi aggiungerne più di uno e sovrapporli alle foto.
+- In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi selezionarlo e premere **Canc** per rimuoverlo dalla composizione. Lo scatto resta nella libreria del libro. Le maniglie agli angoli permettono di ingrandirlo anche oltre il bordo. La parte oltre il taglio rimane fuori dalla pagina. Fai doppio clic sulla foto in pagina per modificarne il ritaglio e premi **Fine** per applicare.
+- **Inserisci → Box di testo** crea un riquadro indipendente. Fai doppio clic dentro un box per scriverci sulla pagina e clicca fuori quando hai finito. Puoi anche scrivere nell’ispettore, spostare o ridimensionare i box e sovrapporli alle foto.
 - Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente. Le guide funzionano anche quando trascini una foto dalla scheda **Foto**.
 - **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Nelle due facce della copertina puoi trascinare una foto o sceglierla dalla scheda **Foto**, poi modificare titolo e testo del retro nell’ispettore. **Esporta per la stampa** include la copertina in un PDF separato.
 
@@ -32,6 +32,8 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
 
 ## Pellicole e stampa
+
+Seleziona una foto e apri **Foto → Regola**. La bacchetta **Migliora in automatico** analizza la foto sul Mac e propone valori modificabili di luce e colore. I controlli comprendono luce, colore e bilanciamento del bianco, bianco e nero, dettagli e nitidezza, riduzione del rumore, vignettatura, curve, livelli e colore selettivo. Il confronto mostra il file di partenza. Le modifiche seguono lo scatto in ogni pagina e nel PDF.
 
 La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro.
 

@@ -3,6 +3,9 @@ import Foundation
 
 /// A rectangle relative to a trimmed page (or both leaves of a panorama), measured from the top left.
 struct PageRect: Codable, Hashable, Sendable {
+    static let maximumPhotoScale = 4.0
+    static let photoOverlapFraction = 0.05
+
     var x: Double
     var y: Double
     var width: Double
@@ -27,22 +30,36 @@ struct PageRect: Codable, Hashable, Sendable {
         return Self(x: min(1 - w, max(0, x)), y: min(1 - h, max(0, y)), width: w, height: h)
     }
 
+    var photoClamped: Self {
+        let w = width.isFinite ? min(Self.maximumPhotoScale, max(0.001, width)) : 1
+        let h = height.isFinite ? min(Self.maximumPhotoScale, max(0.001, height)) : 1
+        let visibleWidth = min(w, Self.photoOverlapFraction)
+        let visibleHeight = min(h, Self.photoOverlapFraction)
+        let left = min(1 - visibleWidth, max(visibleWidth - w, x.isFinite ? x : 0))
+        let top = min(1 - visibleHeight, max(visibleHeight - h, y.isFinite ? y : 0))
+        return Self(x: left, y: top, width: w, height: h)
+    }
+
     func rect(in bounds: CGRect) -> CGRect {
-        let value = clamped
-        return CGRect(x: bounds.minX + value.x * bounds.width, y: bounds.minY + value.y * bounds.height,
-                      width: value.width * bounds.width, height: value.height * bounds.height)
+        clamped.denormalized(in: bounds)
     }
 
     /// Extend a frame that reaches an outside trim edge into the printer's bleed.
-    fileprivate func photoRect(in bounds: CGRect, bleed: Double) -> CGRect {
-        let frame = rect(in: bounds)
+    func photoRect(in bounds: CGRect, bleed: Double = 0) -> CGRect {
+        let frame = photoClamped.denormalized(in: bounds)
+        guard bleed > 0 else { return frame }
         let epsilon = 0.000001
-        let left = frame.minX <= bounds.minX + epsilon ? bleed : 0
-        let right = frame.maxX >= bounds.maxX - epsilon ? bleed : 0
-        let top = frame.minY <= bounds.minY + epsilon ? bleed : 0
-        let bottom = frame.maxY >= bounds.maxY - epsilon ? bleed : 0
+        let left = frame.minX <= bounds.minX + epsilon ? max(0, bleed - abs(frame.minX - bounds.minX)) : 0
+        let right = frame.maxX >= bounds.maxX - epsilon ? max(0, bleed - abs(frame.maxX - bounds.maxX)) : 0
+        let top = frame.minY <= bounds.minY + epsilon ? max(0, bleed - abs(frame.minY - bounds.minY)) : 0
+        let bottom = frame.maxY >= bounds.maxY - epsilon ? max(0, bleed - abs(frame.maxY - bounds.maxY)) : 0
         return CGRect(x: frame.minX - left, y: frame.minY - top, width: frame.width + left + right,
                       height: frame.height + top + bottom)
+    }
+
+    private func denormalized(in bounds: CGRect) -> CGRect {
+        CGRect(x: bounds.minX + x * bounds.width, y: bounds.minY + y * bounds.height,
+               width: width * bounds.width, height: height * bounds.height)
     }
 }
 

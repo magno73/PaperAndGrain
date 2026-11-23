@@ -11,6 +11,7 @@ struct BookPhoto: Identifiable, Codable, Hashable, Sendable {
     var pixelHeight: Int
     var analysis: PhotoAnalysis? = nil
     var film: FilmSettings? = nil
+    var adjustments: PhotoAdjustments? = nil
 }
 
 enum PageLayout: String, Codable, CaseIterable, Identifiable, Sendable {
