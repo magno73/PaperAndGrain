@@ -153,7 +153,8 @@ enum PhotoAnalyzer {
         "face": ["viso", "volto", "volti", "facce", "faces"], "tree": ["albero", "alberi", "trees"],
         "boat": ["barca", "barche", "boats"], "bridge": ["ponte", "ponti", "bridges"],
         "building": ["edificio", "edifici", "buildings"], "sign": ["cartello", "cartelli", "signs"],
-        "cheetah": ["ghepardo", "ghepardi", "cheetahs"], "antelope": ["antilope", "antilopi", "antelopes"]
+        "cheetah": ["ghepardo", "ghepardi", "cheetahs"], "antelope": ["antilope", "antilopi", "antelopes"],
+        "sand dune": ["duna", "dune", "sand dunes"], "desert": ["deserto", "deserti"]
     ]
 
     private static func subjectWeights(_ analysis: PhotoAnalysis) -> [String: Double] {

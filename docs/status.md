@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.9.1 · 24 novembre 2026
+
+La ricerca italiana riconosce le etichette Vision `sand dune` e `desert`. Il collaudo di Namibia ha analizzato 184 foto in circa 15 secondi e ha rilevato testo in 12 immagini. Le anteprime degli originali JPEG sono state verificate sul binario firmato fuori dal sandbox di collaudo. Resta da completare il collaudo dei permessi Apple Foto per l’invocazione da terminale. La build risiede in `dist/0.9.1/`.
+
 ## 0.9.0 · 24 novembre 2026
 
 La CLI importa file o foto selezionate da album, aggiorna l’analisi, cerca e confronta le immagini, ritocca colore e pellicola, applica patch ai progetti ed esporta i profili PDF dell’app. Le modifiche CLI producono varianti riapribili. L’analisi di revisione 2 aggiunge classificazioni con confidenza, rilevamenti, testo riconosciuto e misure visive. L’editor spiega l’abbinamento di una foto al racconto e può aggiornare le analisi precedenti. [Guida della CLI](cli.md)

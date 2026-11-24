@@ -18,6 +18,10 @@ final class PhotoAnalysisTests: XCTestCase {
         let other = PhotoAnalysis(labels: ["lion"], concepts: ["wildlife"])
         XCTAssertEqual(PhotoAnalyzer.relatedness(legacy, other), 0)
         XCTAssertEqual(PhotoAnalyzer.relatedness(legacy, legacy), 1)
+        let dune = PhotoAnalysis(labels: ["sand dune"], concepts: ["desert"])
+        XCTAssertTrue(PhotoAnalyzer.matches(dune, for: "Dune del deserto").contains {
+            $0.source == "subject" && $0.value == "sand dune"
+        })
     }
 
     func testSyntheticSignOnDevice() async throws {
