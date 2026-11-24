@@ -6,19 +6,21 @@ struct BookTemplateChooser: View {
     let directory: URL
     let language: String
     let onCancel: () -> Void
-    let onApply: (BookTemplate?) -> Void
+    let onApply: (BookTemplate?, Bool?) -> Void
 
-    @State private var selected: BookTemplate
+    @State private var selected: BookTemplate?
+    @State private var showPageNumbers: Bool?
     @State private var hero: NSImage?
 
     init(book: Book, directory: URL, language: String, onCancel: @escaping () -> Void,
-         onApply: @escaping (BookTemplate?) -> Void) {
+         onApply: @escaping (BookTemplate?, Bool?) -> Void) {
         self.book = book
         self.directory = directory
         self.language = language
         self.onCancel = onCancel
         self.onApply = onApply
-        _selected = State(initialValue: book.template ?? .diary)
+        _selected = State(initialValue: book.template)
+        _showPageNumbers = State(initialValue: book.showPageNumbers)
     }
 
     var body: some View {
@@ -38,14 +40,19 @@ struct BookTemplateChooser: View {
                 .padding(4)
             }
             .frame(height: min(455, (NSScreen.main?.visibleFrame.height ?? 800) * 0.54))
-            HStack {
+            HStack(spacing: 16) {
+                Toggle(pageNumbersLabel, isOn: Binding(
+                    get: { showPageNumbers ?? selected?.style.folio ?? false },
+                    set: { showPageNumbers = $0 }
+                ))
+                .toggleStyle(.checkbox)
+                Spacer()
                 if book.template != nil {
-                    Button(tr("Ripristina stile di base", "Restore Basic Style")) { onApply(nil) }
+                    Button(tr("Ripristina stile di base", "Restore Basic Style")) { onApply(nil, showPageNumbers) }
                         .buttonStyle(.link)
                 }
-                Spacer()
                 Button(tr("Annulla", "Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
-                Button(tr("Applica modello", "Apply Template")) { onApply(selected) }
+                Button(tr("Applica", "Apply")) { onApply(selected, showPageNumbers) }
                     .buttonStyle(.borderedProminent)
                     .tint(Color(red: 0.19, green: 0.34, blue: 0.27))
                     .keyboardShortcut(.defaultAction)
@@ -96,6 +103,7 @@ struct BookTemplateChooser: View {
     private func templatePreview(_ option: BookTemplate) -> some View {
         var sample = book
         sample.template = option
+        sample.showPageNumbers = showPageNumbers
         let style = option.style
         let face = BookCoverGeometry(book: sample, front: true)
         let overPhoto = style.identity != nil
@@ -136,6 +144,9 @@ struct BookTemplateChooser: View {
             if let rule = interior.rule { context.fill(Path(rule), with: .color(Color(cgColor: EditorialStyle.color(style.accent)))) }
             context.withCGContext { cg in
                 for block in blocks { EditorialTypesetter.draw(block.text, in: block.frame, context: cg) }
+                if let folio = interior.folio {
+                    EditorialTypesetter.draw(style.typography("1", heading: nil, mixed: false), in: folio, context: cg)
+                }
             }
         }
     }
@@ -147,6 +158,12 @@ struct BookTemplateChooser: View {
         var clipped = context
         clipped.clip(to: Path(frame))
         clipped.draw(Image(nsImage: photo), in: placement)
+    }
+
+    private var pageNumbersLabel: String {
+        let bundle = Bundle.main.url(forResource: language, withExtension: "lproj").flatMap(Bundle.init(url:))
+        return (bundle ?? .main).localizedString(forKey: "book.template.show_page_numbers",
+                                                value: tr("Mostra numeri di pagina", "Show Page Numbers"), table: nil)
     }
 
     private func tr(_ italian: String, _ english: String) -> String { language == "it" ? italian : english }

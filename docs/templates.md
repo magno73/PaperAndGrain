@@ -1,6 +1,6 @@
 # Modelli editoriali
 
-Apri un libro e scegli **Libro e stampa → Modelli del libro**. La finestra mostra i sette modelli con una foto del progetto. **Applica modello** salva la scelta del libro. Il modello cambia carta, titoli, corpo tipografico, margini e spazi fra foto. L’ordine di pagine e immagini, le inquadrature e i testi si conservano. Il titolo di pagina è facoltativo e si inserisce dall’ispettore nelle pagine di testo o miste.
+Apri un libro e scegli **Libro e stampa → Modelli del libro**. La finestra mostra i sette modelli con una foto del progetto. **Applica** salva la scelta del libro. **Mostra numeri di pagina** attiva o disattiva i numeri sulle pagine interne con margini, nell’editor e nel PDF. La scelta fatta nella finestra prevale sull’impostazione predefinita del modello. Il modello cambia carta, titoli, corpo tipografico, margini e spazi fra foto. L’ordine di pagine e immagini, le inquadrature e i testi si conservano. Il titolo di pagina è facoltativo e si inserisce dall’ispettore nelle pagine di testo o miste.
 
 | Modello | Composizione | Quando sceglierlo |
 |---|---|---|

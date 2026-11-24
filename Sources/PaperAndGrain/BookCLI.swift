@@ -26,6 +26,7 @@ enum BookCLI {
         let title: String
         let format: BookFormat?
         let template: BookTemplate?
+        let showPageNumbers: Bool?
         let assets: [Asset]
         let pages: [Page]
         let cover: Cover?
@@ -153,7 +154,8 @@ enum BookCLI {
         try files.createDirectory(at: staging, withIntermediateDirectories: false)
         defer { try? files.removeItem(at: staging) }
         try files.createDirectory(at: staging.appendingPathComponent("assets"), withIntermediateDirectories: false)
-        var book = Book(title: spec.title, format: spec.format ?? .square, template: spec.template)
+        var book = Book(title: spec.title, format: spec.format ?? .square, template: spec.template,
+                        showPageNumbers: spec.showPageNumbers)
         var ids: [String: UUID] = [:]
         for asset in spec.assets {
             guard !asset.id.isEmpty, ids[asset.id] == nil, !asset.path.isEmpty else {

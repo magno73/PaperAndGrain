@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.9.4 · 24 novembre 2026
+
+**Modelli del libro** consente di mostrare o nascondere i numeri sulle pagine con margini. Anteprima, editor e PDF leggono la stessa impostazione. I progetti precedenti ereditano il valore del modello finché viene scelta un’impostazione esplicita. Il test verifica salvataggio, annullamento e testo effettivo nel PDF. La build risiede in `dist/0.9.4/`.
+
 ## 0.9.3 · 24 novembre 2026
 
 La libreria mostra la pagina o la faccia della copertina in cui compare lo scatto. Una doppia pagina usa entrambi i numeri. Il bollino conta gli altri utilizzi e il tooltip li elenca. Il menu LUT mostra il nome del file importato o del profilo Fujifilm attivo anche quando è chiuso.

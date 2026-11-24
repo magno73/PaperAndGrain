@@ -100,6 +100,7 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var cover: BookCover? = nil
     var template: BookTemplate? = nil
     var typography: EditorialTypography? = nil
+    var showPageNumbers: Bool? = nil
 
     var editorialStyle: EditorialStyle { template?.style ?? .classic }
 

@@ -100,9 +100,13 @@ final class Workspace: ObservableObject {
         applySettings(changes, restoring: false, undoManager: undoManager, actionName: actionName)
     }
 
-    func applyBookTemplate(_ template: BookTemplate?, undoManager: UndoManager?, actionName: String) {
-        guard let change = SettingsChange(\.template, from: book.template, to: template) else { return }
-        applySettings([change], restoring: false, undoManager: undoManager, actionName: actionName)
+    func applyBookTemplate(_ template: BookTemplate?, showPageNumbers: Bool?,
+                           undoManager: UndoManager?, actionName: String) {
+        let changes = [
+            SettingsChange(\.template, from: book.template, to: template),
+            SettingsChange(\.showPageNumbers, from: book.showPageNumbers, to: showPageNumbers)
+        ].compactMap { $0 }
+        applySettings(changes, restoring: false, undoManager: undoManager, actionName: actionName)
     }
 
     private struct SettingsChange {

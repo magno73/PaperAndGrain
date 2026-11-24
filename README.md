@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.9.3/Paper & Grain.app'
+open 'dist/0.9.4/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -39,7 +39,7 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 
 ## Modelli del libro
 
-Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
+Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Nella stessa finestra, **Mostra numeri di pagina** controlla la numerazione stampata sulle pagine con margini. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
 
 ## Formattare titoli e testi
 

@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "book.template.show_page_numbers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "value": "Show Page Numbers",
+            "state": "translated"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "value": "Mostra numeri di pagina",
+            "state": "translated"
+          }
+        }
+      }
+    },
     "book.auto_layout": {
       "extractionState": "manual",
       "localizations": {

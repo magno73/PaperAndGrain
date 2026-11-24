@@ -212,7 +212,7 @@ struct PageComposition {
         let style = book.editorialStyle
         let safe = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
         rule = full ? nil : style.pageRule(in: safe)
-        folio = style.folio && !full ? CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20) : nil
+        folio = (book.showPageNumbers ?? style.folio) && !full ? CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20) : nil
         let mixed = layout == .mixed
         let alignedRoles = [page.heading?.isEmpty == false ? book.titleStyle(for: page).alignment : nil,
                             page.text.isEmpty ? nil : book.bodyStyle(for: page).alignment]

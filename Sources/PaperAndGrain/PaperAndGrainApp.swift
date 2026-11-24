@@ -222,8 +222,8 @@ private struct BookSettingsSheets: ViewModifier {
             .sheet(isPresented: $showTemplates) {
                 if let directory = workspace.directory {
                     BookTemplateChooser(book: workspace.book, directory: directory, language: language,
-                                        onCancel: { showTemplates = false }) { template in
-                        workspace.applyBookTemplate(template, undoManager: undoManager,
+                                        onCancel: { showTemplates = false }) { template, showPageNumbers in
+                        workspace.applyBookTemplate(template, showPageNumbers: showPageNumbers, undoManager: undoManager,
                                                     actionName: language == "it" ? "Modello del libro" : "Book Template")
                         showTemplates = false
                     }

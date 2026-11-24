@@ -59,12 +59,13 @@ final class ProjectSaveTests: XCTestCase {
             undoManager.endUndoGrouping()
 
             undoManager.beginUndoGrouping()
-            workspace.applyBookTemplate(.atlas, undoManager: undoManager, actionName: "Book Template")
+            workspace.applyBookTemplate(.atlas, showPageNumbers: false, undoManager: undoManager, actionName: "Book Template")
             undoManager.endUndoGrouping()
 
             workspace.book.pages[0].text = "Later edit"
             undoManager.undo()
             XCTAssertNil(workspace.book.template)
+            XCTAssertNil(workspace.book.showPageNumbers)
             XCTAssertEqual(workspace.book.title, "After")
 
             undoManager.undo()
@@ -82,6 +83,7 @@ final class ProjectSaveTests: XCTestCase {
             XCTAssertEqual(workspace.book.format, .portrait)
             XCTAssertEqual(workspace.book.cover?.title, "Cover")
             XCTAssertEqual(workspace.book.template, .atlas)
+            XCTAssertEqual(workspace.book.showPageNumbers, false)
             XCTAssertEqual(workspace.book.pages[0].text, "Later edit")
             XCTAssertEqual(try BookStorage.read(from: project), workspace.book)
 
