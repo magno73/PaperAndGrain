@@ -6,7 +6,8 @@ enum PaperAndGrainEntry {
     @MainActor static func main() {
         let arguments = CommandLine.arguments.dropFirst()
         if arguments.first == "cli" {
-            exit(BookCLI.run(Array(arguments.dropFirst())))
+            Task { exit(await BookCLI.run(Array(arguments.dropFirst()))) }
+            dispatchMain()
         }
         PaperAndGrainApp.main()
     }
@@ -186,7 +187,7 @@ struct PaperAndGrainApp: App {
         if let (done, total) = workspace.analysisProgress {
             return s("Analisi foto", "Photo analysis") + " · \(done) / \(total)"
         }
-        let reviewed = workspace.book.photos.filter { $0.analysis != nil }.count
+        let reviewed = workspace.book.photos.filter { ($0.analysis?.revision ?? 0) >= PhotoAnalysis.currentRevision }.count
         return s("Foto analizzate", "Photos analysed") + " · \(reviewed) / \(workspace.book.photos.count)"
     }
 

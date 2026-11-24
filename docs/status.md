@@ -1,5 +1,11 @@
 # Stato dello sviluppo
 
+## 0.9.0 · 24 novembre 2026
+
+La CLI importa file o foto selezionate da album, aggiorna l’analisi, cerca e confronta le immagini, ritocca colore e pellicola, applica patch ai progetti ed esporta i profili PDF dell’app. Le modifiche CLI producono varianti riapribili. L’analisi di revisione 2 aggiunge classificazioni con confidenza, rilevamenti, testo riconosciuto e misure visive. L’editor spiega l’abbinamento di una foto al racconto e può aggiornare le analisi precedenti. [Guida della CLI](cli.md)
+
+Verificati con immagini sintetiche analisi multilingue, OCR, modifiche, regolazioni, esportazione e rilettura dei pacchetti. Restano il collaudo dei permessi Apple Foto via terminale e una valutazione della qualità dei suggerimenti su Namibia. La build risiede in `dist/0.9.0/`.
+
 ## 0.8.1 · 24 novembre 2026
 
 I tre modelli editoriali usano gallerie e riquadri **Testo sulla foto** distinti. I titoli hanno corpi più contenuti e si adattano alla larghezza quando possono stare su una riga con un corpo leggibile. Foto, titolo e riquadro condividono la posizione tra selettore dei modelli, editor, miniature ed esportazione. Verificate copertine, testo sulla foto e gallerie su esempi sintetici. La build risiede in `dist/0.8.1/`.

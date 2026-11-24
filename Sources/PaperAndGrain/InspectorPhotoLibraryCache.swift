@@ -52,6 +52,8 @@ final class InspectorPhotoLibraryCache {
                 return search.isEmpty || photo.name.localizedStandardContains(search)
                     || items.contains { (conceptNames[$0] ?? $0).localizedStandardContains(search) }
                     || photo.analysis?.labels.contains { $0.localizedStandardContains(search) } == true
+                    || photo.analysis?.detections?.contains { $0.label.localizedStandardContains(search) } == true
+                    || photo.analysis?.recognizedText?.contains { $0.text.localizedStandardContains(search) } == true
             }
         }
         return (concepts, matches)

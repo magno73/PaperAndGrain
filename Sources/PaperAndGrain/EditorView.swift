@@ -53,7 +53,7 @@ struct EditorView: View {
     @State private var concept: String?
     @State private var search = ""
     @State private var photoLibraryCache = InspectorPhotoLibraryCache()
-    @State private var suggestedPhotoIDs: [UUID] = []
+    @State private var suggestedPhotos: [PhotoSuggestion] = []
     @State private var undoTarget = EditorUndo()
     @State private var cropSession: CropSession?
 
@@ -132,21 +132,29 @@ struct EditorView: View {
         var preview: PhotoAdjustments
     }
 
+    private struct PhotoSuggestion: Identifiable, Sendable {
+        let id: UUID
+        let score: Double
+        let evidence: PhotoMatchEvidence
+    }
+
     private struct PhotoSuggestionQuery: Equatable, Sendable {
         let story: String
         let assigned: Set<UUID>
         let photos: [BookPhoto]
 
-        func findMatches() -> [UUID] {
+        func findMatches() -> [PhotoSuggestion] {
             guard !story.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
-            var matches: [(id: UUID, score: Double)] = []
+            var matches: [PhotoSuggestion] = []
             for photo in photos {
                 guard !Task.isCancelled else { return [] }
                 guard let analysis = photo.analysis, !assigned.contains(photo.id) else { continue }
-                let score = PhotoAnalyzer.score(analysis, for: story)
-                if score > 0 { matches.append((photo.id, score)) }
+                let evidence = PhotoAnalyzer.matches(analysis, for: story)
+                guard let mostSpecific = evidence.first(where: { $0.source != "concept" }) ?? evidence.first else { continue }
+                matches.append(PhotoSuggestion(id: photo.id, score: evidence.reduce(0) { $0 + $1.score },
+                                               evidence: mostSpecific))
             }
-            return matches.sorted { $0.score > $1.score }.prefix(4).map(\.id)
+            return Array(matches.sorted { $0.score > $1.score }.prefix(4))
         }
     }
 
@@ -1630,8 +1638,9 @@ struct EditorView: View {
 
     private var suggestions: some View {
         let page = page
-        let query = PhotoSuggestionQuery(story: page?.text ?? "", assigned: Set(page?.photoIDs ?? []), photos: book.photos)
-        let matches = suggestedPhotoIDs.filter { !query.assigned.contains($0) }.compactMap(indexedPhoto)
+        let query = PhotoSuggestionQuery(story: [page?.heading ?? "", page?.text ?? ""].joined(separator: "\n"),
+                                         assigned: Set(page?.photoIDs ?? []), photos: book.photos)
+        let matches = suggestedPhotos.filter { !query.assigned.contains($0.id) }
         return VStack(alignment: .leading, spacing: 8) {
             caption(tr("Foto suggerite", "Suggested photos"))
             if matches.isEmpty {
@@ -1643,40 +1652,48 @@ struct EditorView: View {
                         .disabled(isAnalyzing || book.photos.isEmpty)
                 }
             } else {
-                ForEach(matches) { photo in
-                    HStack(spacing: 8) {
-                        preview(photo, small: true).frame(width: 42, height: 34).clipped()
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(photo.name).font(.system(size: 11, weight: .semibold)).lineLimit(1)
-                            if let labels = photo.analysis?.concepts.prefix(2), !labels.isEmpty {
-                                Text(labels.map(conceptName).joined(separator: " · "))
+                ForEach(matches) { match in
+                    if let photo = indexedPhoto(match.id) {
+                        HStack(spacing: 8) {
+                            preview(photo, small: true).frame(width: 42, height: 34).clipped()
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(photo.name).font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                                Text(analysisEvidence(match.evidence))
                                     .font(.system(size: 10)).foregroundStyle(muted).lineLimit(1)
                             }
+                            Spacer(minLength: 3)
+                            Button {
+                                assign(photo.id)
+                            } label: {
+                                Image(systemName: "plus.circle").foregroundStyle(pine)
+                            }
+                            .buttonStyle(.plain)
+                            .help(tr("Abbina alla pagina", "Add to the page"))
+                            .accessibilityLabel(tr("Abbina alla pagina", "Add to the page"))
                         }
-                        Spacer(minLength: 3)
-                        Button {
-                            assign(photo.id)
-                        } label: {
-                            Image(systemName: "plus.circle").foregroundStyle(pine)
-                        }
-                        .buttonStyle(.plain)
-                        .help(tr("Abbina alla pagina", "Add to the page"))
-                        .accessibilityLabel(tr("Abbina alla pagina", "Add to the page"))
+                        .padding(4)
+                        .background(.white.opacity(0.34), in: RoundedRectangle(cornerRadius: 5))
                     }
-                    .padding(4)
-                    .background(.white.opacity(0.34), in: RoundedRectangle(cornerRadius: 5))
                 }
             }
         }
         .task(id: query) {
-            if !suggestedPhotoIDs.isEmpty { suggestedPhotoIDs = [] }
+            if !suggestedPhotos.isEmpty { suggestedPhotos = [] }
             let work = Task.detached(priority: .userInitiated) { query.findMatches() }
-            let ids = await withTaskCancellationHandler {
+            let matches = await withTaskCancellationHandler {
                 await work.value
             } onCancel: {
                 work.cancel()
             }
-            if !Task.isCancelled { suggestedPhotoIDs = ids }
+            if !Task.isCancelled { suggestedPhotos = matches }
+        }
+    }
+
+    private func analysisEvidence(_ evidence: PhotoMatchEvidence) -> String {
+        switch evidence.source {
+        case "concept": conceptName(evidence.value)
+        case "text": tr("Testo nella foto", "Text in photo") + " · " + evidence.value
+        default: conceptName(evidence.value)
         }
     }
 
@@ -1797,6 +1814,8 @@ struct EditorView: View {
 
     private var photoLibrary: some View {
         let results = photoLibraryCache.results(photos: book.photos, language: language, search: search, concept: concept)
+        let needsAnalysis = book.photos.contains { ($0.analysis?.revision ?? 0) < PhotoAnalysis.currentRevision }
+        let hasOlderAnalysis = book.photos.contains { $0.analysis.map { $0.revision < PhotoAnalysis.currentRevision } == true }
         return VStack(alignment: .leading, spacing: 13) {
             VStack(alignment: .leading, spacing: 11) {
                 HStack {
@@ -1810,9 +1829,10 @@ struct EditorView: View {
                 HStack(spacing: 6) {
                     if isAnalyzing { ProgressView().controlSize(.small) }
                     Button(action: onAnalyze) {
-                        Label(tr("Analizza foto", "Analyze photos"), systemImage: "viewfinder")
+                        Label(hasOlderAnalysis ? tr("Aggiorna analisi", "Update analysis") : tr("Analizza foto", "Analyze photos"),
+                              systemImage: "viewfinder")
                     }
-                    .disabled(isAnalyzing || book.photos.isEmpty)
+                    .disabled(isAnalyzing || !needsAnalysis)
                 }
                 if !book.photos.isEmpty {
                     TextField(tr("Cerca foto", "Search photos"), text: $search)
@@ -1874,8 +1894,12 @@ struct EditorView: View {
         let assigned = isOnCurrentPage(photo.id)
         return VStack(alignment: .leading, spacing: 6) {
             Text(photo.name).font(.system(size: 12, weight: .semibold)).lineLimit(2)
-            if let concepts = photo.analysis?.concepts, !concepts.isEmpty {
-                intro(concepts.map(conceptName).joined(separator: " · "))
+            if let analysis = photo.analysis {
+                let labels = (!analysis.labels.isEmpty ? analysis.labels : analysis.concepts).prefix(4)
+                if !labels.isEmpty { intro(labels.map(conceptName).joined(separator: " · ")) }
+                if analysis.revision >= PhotoAnalysis.currentRevision {
+                    photoAnalysisDetails(analysis)
+                }
             }
             if !assigned {
                 Button(tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
@@ -1897,6 +1921,42 @@ struct EditorView: View {
         .padding(9)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(pine.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    private func photoAnalysisDetails(_ analysis: PhotoAnalysis) -> some View {
+        DisclosureGroup(tr("Dettagli analisi", "Analysis details")) {
+            VStack(alignment: .leading, spacing: 5) {
+                let detections = analysis.detections ?? []
+                ForEach(["person", "face", "animal"], id: \.self) { kind in
+                    let count = detections.filter { $0.kind == kind }.count
+                    if count > 0 {
+                        let title = kind == "person" ? tr("Persone", "People")
+                            : kind == "face" ? tr("Volti", "Faces") : tr("Animali", "Animals")
+                        intro("\(title) · \(count)")
+                    }
+                }
+                if let lines = analysis.recognizedText?.prefix(3), !lines.isEmpty {
+                    Label(lines.map(\.text).joined(separator: "\n"), systemImage: "text.viewfinder")
+                        .font(.caption).foregroundStyle(muted).lineLimit(4)
+                        .accessibilityLabel(tr("Testo nella foto", "Text in photo") + ": " + lines.map(\.text).joined(separator: " "))
+                }
+                if let colors = analysis.visual?.dominantColors, !colors.isEmpty {
+                    HStack(spacing: 3) {
+                        ForEach(colors, id: \.self) { color in
+                            if let value = UInt32(color.replacingOccurrences(of: "#", with: ""), radix: 16) {
+                                RoundedRectangle(cornerRadius: 3).fill(Color(cgColor: EditorialStyle.color(value)))
+                                    .frame(width: 18, height: 12)
+                                    .help(color).accessibilityLabel(color)
+                            }
+                        }
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel(tr("Colori dominanti", "Dominant colors"))
+                }
+            }
+            .padding(.top, 4)
+        }
+        .controlSize(.small)
     }
 
     private func photoGrid(_ filtered: [BookPhoto]) -> some View {

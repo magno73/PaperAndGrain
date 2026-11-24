@@ -37,9 +37,9 @@ enum BookCLI {
         var errorDescription: String? { message }
     }
 
-    static func run(_ args: [String]) -> Int32 {
+    static func run(_ args: [String]) async -> Int32 {
         do {
-            let output = try execute(args)
+            let output = try await executeExtended(args)
             FileHandle.standardOutput.write(output + Data([10]))
             return 0
         } catch {
@@ -50,6 +50,51 @@ enum BookCLI {
         }
     }
 
+    static func executeExtended(_ args: [String], currentDirectory: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath,
+                                                                              isDirectory: true)) async throws -> Data {
+        guard let command = args.first, command != "help", command != "--help" else {
+            return try encode(["commands": usage])
+        }
+        let arguments = Array(args.dropFirst())
+        switch command {
+        case "patch":
+            guard arguments.count == 3 else { throw Failure("Usage: patch SOURCE.papergrain PATCH.json OUTPUT.papergrain") }
+            let output = url(arguments[2], relativeTo: currentDirectory)
+            let book = try BookCLIEditing.patch(source: url(arguments[0], relativeTo: currentDirectory),
+                                                patchURL: url(arguments[1], relativeTo: currentDirectory), output: output)
+            return try encode(["project": output.path, "id": book.id.uuidString])
+        case "auto-layout":
+            guard arguments.count == 2 else { throw Failure("Usage: auto-layout SOURCE.papergrain OUTPUT.papergrain") }
+            let output = url(arguments[1], relativeTo: currentDirectory)
+            let book = try BookCLIEditing.derive(source: url(arguments[0], relativeTo: currentDirectory), output: output) { book, _ in
+                guard !book.photos.isEmpty else { throw Failure("Automatic layout needs at least one photo") }
+                book.autoLayout()
+            }
+            return try encode(["project": output.path, "id": book.id.uuidString])
+        case "build":
+            guard arguments.count == 2 else { throw Failure("Usage: build SPEC.json OUTPUT.papergrain") }
+            return try execute([command] + arguments.map { url($0, relativeTo: currentDirectory).path })
+        case "inspect":
+            guard arguments.count == 1 else { throw Failure("Usage: inspect PROJECT.papergrain") }
+            return try execute([command, url(arguments[0], relativeTo: currentDirectory).path])
+        case "templates": return try execute(args)
+        default:
+            if let output = try await BookCLIPhotoIndex.run(command: command, arguments: arguments, currentDirectory: currentDirectory) {
+                return output
+            }
+            if let output = try await BookCLIMedia.run(command: command, arguments: arguments, currentDirectory: currentDirectory) {
+                return output
+            }
+            throw Failure("Unknown command: \(command). Run 'cli help' for usage.")
+        }
+    }
+
+    private static var usage: [String] {
+        ["templates", "build SPEC.json OUTPUT.papergrain", "inspect PROJECT.papergrain",
+         "patch SOURCE.papergrain PATCH.json OUTPUT.papergrain", "auto-layout SOURCE.papergrain OUTPUT.papergrain"]
+            + BookCLIPhotoIndex.usage + BookCLIMedia.usage
+    }
+
     static func execute(_ args: [String]) throws -> Data {
         let usage = ["templates", "build SPEC.json OUTPUT.papergrain", "inspect PROJECT.papergrain"]
         switch (args.first, args.count) {
@@ -57,17 +102,24 @@ enum BookCLI {
             return try encode(["commands": usage])
         case ("templates", 1):
             struct Arrangement: Encodable { let id: String; let layout: String; let capacity: Int }
+            struct Defaults: Encodable {
+                let adjustments = PhotoAdjustments()
+                let film = FilmSettings()
+                let printSettings = PrintSettings()
+                let crop = PhotoCrop()
+            }
             struct Catalog: Encodable {
                 let templates: [BookTemplate]
                 let layouts: [PageLayout]
                 let arrangements: [Arrangement]
+                let defaults = Defaults()
             }
             return try encode(Catalog(templates: BookTemplate.allCases, layouts: PageLayout.allCases,
                                       arrangements: PageArrangement.allCases.map {
                 Arrangement(id: $0.rawValue, layout: $0.layout.rawValue, capacity: $0.photoCapacity)
             }))
         case ("inspect", 2):
-            return try encode(BookStorage.read(from: URL(fileURLWithPath: args[1])))
+            return try BookCLIEditing.readManifest(source: URL(fileURLWithPath: args[1]))
         case ("build", 3):
             let source = URL(fileURLWithPath: args[1]).standardizedFileURL
             let output = URL(fileURLWithPath: args[2]).standardizedFileURL
@@ -78,10 +130,14 @@ enum BookCLI {
         }
     }
 
-    private static func encode<Value: Encodable>(_ value: Value) throws -> Data {
+    static func encode<Value: Encodable>(_ value: Value) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
         return try encoder.encode(value)
+    }
+
+    static func url(_ path: String, relativeTo directory: URL) -> URL {
+        URL(fileURLWithPath: path, relativeTo: directory).standardizedFileURL
     }
 
     static func build(specURL: URL, output: URL) throws -> Book {

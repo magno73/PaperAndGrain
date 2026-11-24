@@ -238,7 +238,7 @@ final class Workspace: ObservableObject {
     }
 
     func analyze(language: String) {
-        analyze(language: language, photos: book.photos.filter { $0.analysis == nil })
+        analyze(language: language, photos: book.photos.filter { ($0.analysis?.revision ?? 0) < PhotoAnalysis.currentRevision })
     }
 
     private func analyze(language: String, photos pending: [BookPhoto]) {
@@ -249,6 +249,7 @@ final class Workspace: ObservableObject {
         analysisProgress = (0, pending.count)
         analysisTask = Task {
             var failures = 0
+            var updated: [UUID: PhotoAnalysis] = [:]
             for (offset, photo) in pending.enumerated() {
                 if Task.isCancelled || book.id != documentID { break }
                 do {
@@ -256,16 +257,19 @@ final class Workspace: ObservableObject {
                         url: BookStorage.assetURL(filename: photo.filename, in: directory)
                     )
                     if Task.isCancelled || book.id != documentID { break }
-                    if let index = book.photos.firstIndex(where: { $0.id == photo.id }) {
-                        book.photos[index].analysis = result
-                    }
+                    updated[photo.id] = result
                 } catch {
                     if Task.isCancelled { break }
                     failures += 1
                 }
+                if updated.count >= 8 {
+                    applyPhotoAnalysis(updated)
+                    updated.removeAll(keepingCapacity: true)
+                }
                 if analysisRun == runID { analysisProgress = (offset + 1, pending.count) }
             }
             guard analysisRun == runID else { return }
+            applyPhotoAnalysis(updated)
             analysisProgress = nil
             analysisTask = nil
             analysisRun = nil
@@ -275,6 +279,15 @@ final class Workspace: ObservableObject {
                     : "Analysis failed for \(failures) photos. You can retry from the editor."
             }
         }
+    }
+
+    private func applyPhotoAnalysis(_ updated: [UUID: PhotoAnalysis]) {
+        guard !updated.isEmpty else { return }
+        var photos = book.photos
+        for index in photos.indices {
+            if let analysis = updated[photos[index].id] { photos[index].analysis = analysis }
+        }
+        book.photos = photos
     }
 
     private var analysisRun: UUID?

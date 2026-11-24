@@ -48,15 +48,20 @@ enum BookPDF {
         guard PixartPrintProfile.supports(book.format), PixartPrintProfile.isValidSpine(spineMM) else {
             throw ExportError.invalidBook
         }
+        try render(book, directory: directory, settings: pixartSettings(book), cover: nil, to: destination,
+                   pixartSpineMM: spineMM)
+    }
+
+    private static func pixartSettings(_ book: Book) -> PrintSettings {
         var settings = book.printSettings ?? PrintSettings()
         settings.spreads = false
         settings.bleedMM = PixartPrintProfile.bleed
         settings.targetPPI = 300
-        try render(book, directory: directory, settings: settings, cover: nil, to: destination, pixartSpineMM: spineMM)
+        return settings
     }
 
-    static func printWarnings(_ book: Book) -> [String] {
-        let settings = book.printSettings ?? PrintSettings()
+    static func printWarnings(_ book: Book, pixart: Bool = false) -> [String] {
+        let settings = pixart ? pixartSettings(book) : book.printSettings ?? PrintSettings()
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = settings.bleedMM * pointsPerMM
@@ -75,7 +80,7 @@ enum BookPDF {
                 warnings.append(String(format: "%@ · %@ · %.0f ppi < %.0f ppi", location, photo.name, actual, settings.targetPPI))
             }
         }
-        let slots = leaves(book.pages, settings: settings)
+        let slots = leaves(book.pages, settings: settings, pixart: pixart)
         let blanks = slots.indices.filter { slots[$0] == nil }.map { String($0 + 1) }
         if !blanks.isEmpty {
             warnings.append("Pagine bianche di compensazione / Blank pages for alignment · " + blanks.joined(separator: ", "))
@@ -94,8 +99,12 @@ enum BookPDF {
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
                 guard let id else { continue }
                 if let photo = book.photo(id) {
-                    let face = BookCoverGeometry(book: book, front: front, bleed: bleed)
-                    check(photo, frame: face.photoFrame, fills: face.fills, crop: PhotoCrop(), location: "Copertina / Cover")
+                    let face = BookCoverGeometry(book: book, front: front, bleed: pixart ? 0 : bleed)
+                    let frame = pixart ? face.photoFrame.applying(CGAffineTransform(
+                        scaleX: PixartPrintProfile.panelWidth / book.format.widthMM,
+                        y: PixartPrintProfile.panelHeight / book.format.heightMM
+                    )) : face.photoFrame
+                    check(photo, frame: frame, fills: face.fills, crop: PhotoCrop(), location: "Copertina / Cover")
                 } else { warnings.append("Copertina / Cover · Foto mancante / Missing photo") }
             }
         }
@@ -108,7 +117,7 @@ enum BookPDF {
         let number: Int
     }
 
-    private static func leaves(_ pages: [BookPage], settings: PrintSettings?) -> [Leaf?] {
+    private static func leaves(_ pages: [BookPage], settings: PrintSettings?, pixart: Bool = false) -> [Leaf?] {
         var leaves = [Leaf?]()
         if settings?.firstPageOnRight == true { leaves.append(nil) }
         for page in pages {
@@ -121,6 +130,11 @@ enum BookPDF {
             }
         }
         if settings?.spreads == true && !leaves.count.isMultiple(of: 2) { leaves.append(nil) }
+        if pixart {
+            // Generic imposition starts at a left slot; the first physical Pixart interior is right.
+            if settings?.firstPageOnRight == true { leaves.removeFirst() }
+            else { leaves.insert(nil, at: 0) }
+        }
         return leaves
     }
 
@@ -206,12 +220,7 @@ enum BookPDF {
             try drawFace(front, photoID: cover.frontPhotoID, ppi: ppi, book: book, directory: directory, context: ctx)
             ctx.endPDFPage()
         } else {
-            var slots = leaves(book.pages, settings: settings)
-            if pixartSpineMM != nil {
-                // Generic imposition starts at a left slot; the first physical Pixart interior is right.
-                if settings?.firstPageOnRight == true { slots.removeFirst() }
-                else { slots.insert(nil, at: 0) }
-            }
+            let slots = leaves(book.pages, settings: settings, pixart: pixartSpineMM != nil)
             let size = settings?.spreads == true ? 2 : 1
             for first in stride(from: 0, to: slots.count, by: size) {
                 let sheet = slots[first..<(first + size)]

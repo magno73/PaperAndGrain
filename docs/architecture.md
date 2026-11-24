@@ -25,11 +25,11 @@ Il manifest si sostituisce atomicamente. **Salva progetto** aggiorna il pacchett
 
 `PhotoAnalyzer` usa ImageIO per normalizzare l’orientamento e Vision per classificare la scena. Dopo il filtro di confidenza, conserva le etichette più pertinenti. Associa quelle etichette a temi stabili come `desert`, `wildlife`, `water` e `people`. Le traduzioni dei temi servono all’interfaccia. Il matching usa etichette inglesi e sinonimi comuni in italiano e inglese, con punteggi positivi per le parole o espressioni riscontrate. Il tema descrive ciò che il modello riconosce e va trattato come una proposta. La classificazione corrente non stabilisce dove è stata scattata la foto o chi vi compare.
 
-Le foto arrivate da PhotoKit possono provenire da iCloud. La copia richiede la versione corrente, incluse le modifiche visibili in Foto. La classificazione lavora sulla copia locale e memorizza l’analisi nel documento. Al cambio libro si interrompe la sequenza in corso.
+Le foto arrivate da PhotoKit possono provenire da iCloud. La copia richiede la versione corrente, incluse le modifiche visibili in Foto. L’analisi lavora sulla copia locale e scrive la revisione e i risultati nel documento. La revisione 2 memorizza classificazioni con confidenza, rilevamenti, OCR, misure sui pixel e impronta visiva. L’editor applica gli aggiornamenti in piccoli gruppi e interrompe l’analisi al cambio libro.
 
 Il pannello Foto riceve anche file trascinati e file promessi da Foto. Li copia in una cartella temporanea e aggiunge alla libreria del progetto le immagini lette correttamente. Il workspace verifica la sessione prima di trasferire gli asset e aggiorna il manifest in una sola scrittura.
 
-L’ispettore calcola i suggerimenti fuori dal thread dell’interfaccia quando cambiano il racconto, gli scatti della pagina o le foto disponibili. Annulla la ricerca precedente se cambia uno di questi dati.
+L’ispettore calcola i suggerimenti fuori dal thread dell’interfaccia quando cambiano titolo, racconto, scatti della pagina o foto disponibili. Usa le corrispondenze con soggetti, OCR e temi e mostra la fonte più specifica. Annulla la ricerca precedente se cambia uno di questi dati.
 
 ## Geometria e PDF
 
@@ -71,7 +71,7 @@ Griglia svizzera, Quaderno berlinese e Intervallo giapponese definiscono posizio
 
 L’ispettore osserva la propria navigazione. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
 
-La CLI usa il modello e la scrittura dei pacchetti dell’app. Con un argomento `cli` il binario compone un nuovo pacchetto da una specifica JSON e dagli asset locali. I risultati e gli errori sono JSON. [Contratto della CLI](cli.md)
+Il binario con argomento `cli` usa il modello, l’importazione, l’analisi e il rendering dell’app senza avviare la finestra. I comandi di modifica lavorano su una copia privata del pacchetto e pubblicano con rinomina esclusiva. `inspect` restituisce il manifest validato con gli indici originali per JSON Patch. I risultati e gli errori sono JSON. [Contratto della CLI](cli.md)
 
 L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB come output intent. I fogli avviati a destra e i panorami possono richiedere pagine bianche di compensazione. La stampa produce interni e copertina in file separati. Abbondanza e dorso vanno impostati con le specifiche del prodotto scelto.
 

@@ -3,9 +3,20 @@ import ImageIO
 import Vision
 
 struct PhotoAnalysis: Codable, Hashable, Sendable {
+    static let currentRevision = 2
     var labels: [String]
     var concepts: [String]
     var revision: Int = 1
+    var classifications: [PhotoClassification]?
+    var detections: [PhotoDetection]?
+    var recognizedText: [PhotoText]?
+    var visual: PhotoVisualSignals?
+    var unavailableSignals: [String]?
+}
+
+struct PhotoMatchEvidence: Codable, Hashable, Sendable {
+    var source, value: String
+    var score: Double
 }
 
 enum PhotoAnalyzer {
@@ -46,28 +57,80 @@ enum PhotoAnalyzer {
                   let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                     kCGImageSourceCreateThumbnailFromImageAlways: true,
                     kCGImageSourceCreateThumbnailWithTransform: true,
-                    kCGImageSourceThumbnailMaxPixelSize: 640,
+                    kCGImageSourceThumbnailMaxPixelSize: 1600,
                     kCGImageSourceShouldCacheImmediately: true
                   ] as CFDictionary) else { throw CocoaError(.fileReadCorruptFile) }
 
-            let request = VNClassifyImageRequest()
-            try VNImageRequestHandler(cgImage: image, orientation: .up).perform([request])
-            try Task.checkCancellation()
-            let observations = (request.results ?? []).filter { $0.confidence >= 0.25 }
-                .sorted { lhs, rhs in
-                    if lhs.confidence == rhs.confidence { return lhs.identifier < rhs.identifier }
-                    return lhs.confidence > rhs.confidence
+            let handler = VNImageRequestHandler(cgImage: image, orientation: .up)
+            var unavailable: [String] = []
+            func perform(_ request: VNRequest, _ name: String) throws -> Bool {
+                try Task.checkCancellation()
+                do {
+                    try handler.perform([request])
+                    return true
+                } catch {
+                    unavailable.append(name)
+                    return false
                 }
-            var observed = Set<String>()
-            let labels = observations.prefix(18).compactMap { observation -> String? in
-                let label = observation.identifier.replacingOccurrences(of: "_", with: " ")
-                return observed.insert(label).inserted ? label : nil
             }
-            let normalized = labels.map(normalize)
+            let classifier = VNClassifyImageRequest()
+            var classes: [PhotoClassification] = []
+            if try perform(classifier, "classification") {
+                let candidates = (classifier.results ?? []).filter { $0.confidence >= 0.06 }
+                    .sorted { $0.confidence == $1.confidence ? $0.identifier < $1.identifier : $0.confidence > $1.confidence }
+                var seen = Set<String>()
+                for item in candidates {
+                    let label = item.identifier.replacingOccurrences(of: "_", with: " ")
+                    if seen.insert(label).inserted {
+                        classes.append(PhotoClassification(label: label, confidence: Double(item.confidence)))
+                    }
+                    if classes.count == 48 { break }
+                }
+            }
+            var detections: [PhotoDetection] = []
+            let humans = VNDetectHumanRectanglesRequest()
+            humans.upperBodyOnly = false
+            if try perform(humans, "people") {
+                detections += (humans.results ?? []).map {
+                    PhotoDetection(kind: "person", label: "person", confidence: Double($0.confidence), box: PhotoBox($0.boundingBox))
+                }
+            }
+            let faces = VNDetectFaceRectanglesRequest()
+            if try perform(faces, "faces") {
+                detections += (faces.results ?? []).map {
+                    PhotoDetection(kind: "face", label: "face", confidence: Double($0.confidence), box: PhotoBox($0.boundingBox))
+                }
+            }
+            let animals = VNRecognizeAnimalsRequest()
+            if try perform(animals, "animals") {
+                detections += (animals.results ?? []).compactMap {
+                    guard let best = $0.labels.first else { return nil }
+                    return PhotoDetection(kind: "animal", label: best.identifier.lowercased(),
+                                          confidence: Double(best.confidence), box: PhotoBox($0.boundingBox))
+                }
+            }
+            let ocr = VNRecognizeTextRequest()
+            ocr.recognitionLevel = .accurate
+            ocr.automaticallyDetectsLanguage = true
+            var words: [PhotoText] = []
+            if try perform(ocr, "text") {
+                words = (ocr.results ?? []).compactMap {
+                    guard let candidate = $0.topCandidates(1).first, candidate.confidence >= 0.3 else { return nil }
+                    return PhotoText(text: candidate.string, confidence: Double(candidate.confidence), box: PhotoBox($0.boundingBox))
+                }
+            }
+            let labels = classes.map(\.label)
+            var evidence = classes.filter { $0.confidence >= 0.18 }.map { normalize($0.label) }
+            evidence += detections.map { $0.kind == "face" ? "person" : normalize($0.label) }
             let concepts = topics.filter { topic in
-                topic.visual.contains { word in normalized.contains { contains($0, phrase: word) } }
+                topic.visual.contains { word in evidence.contains { contains($0, phrase: word) } }
             }.map(\.key)
-            return PhotoAnalysis(labels: labels, concepts: concepts)
+            let visual = PhotoVisualSignals.measure(image)
+            if visual == nil { unavailable.append("visual") }
+            try Task.checkCancellation()
+            return PhotoAnalysis(labels: labels, concepts: concepts, revision: PhotoAnalysis.currentRevision,
+                                 classifications: classes, detections: detections, recognizedText: words,
+                                 visual: visual, unavailableSignals: unavailable)
         }
     }
 
@@ -86,24 +149,80 @@ enum PhotoAnalyzer {
         "zebra": ["zebre", "zebras"], "lion": ["leone", "leoni", "lions"], "oryx": ["orice", "orici"],
         "ostrich": ["struzzo", "struzzi", "ostriches"], "rhinoceros": ["rinoceronte", "rinoceronti", "rhino"],
         "flamingo": ["fenicottero", "fenicotteri", "flamingos"], "leopard": ["leopardo", "leopardi", "leopards"],
+        "dog": ["cane", "cani", "dogs"], "cat": ["gatto", "gatti", "cats"],
+        "face": ["viso", "volto", "volti", "facce", "faces"], "tree": ["albero", "alberi", "trees"],
+        "boat": ["barca", "barche", "boats"], "bridge": ["ponte", "ponti", "bridges"],
+        "building": ["edificio", "edifici", "buildings"], "sign": ["cartello", "cartelli", "signs"],
         "cheetah": ["ghepardo", "ghepardi", "cheetahs"], "antelope": ["antilope", "antilopi", "antelopes"]
     ]
 
-    static func score(_ analysis: PhotoAnalysis, for text: String) -> Double {
-        let query = normalize(text)
-        guard !query.isEmpty else { return 0 }
-        let labels = analysis.labels.map(normalize)
-        var score = 0.0
-        for (rank, label) in labels.enumerated() where label.count > 2 {
-            if contains(query, phrase: label) { score += 2.0 / (1 + Double(rank) * 0.1) }
+    private static func subjectWeights(_ analysis: PhotoAnalysis) -> [String: Double] {
+        var evidence: [String: Double] = [:]
+        for item in analysis.classifications ?? [] {
+            evidence[normalize(item.label)] = item.confidence
         }
-        for term in translations.keys.sorted() where labels.contains(where: { contains($0, phrase: term) }) {
-            if translations[term]!.contains(where: { contains(query, phrase: $0) && $0 != term }) { score += 2 }
+        for (rank, label) in analysis.labels.enumerated() where evidence[normalize(label)] == nil {
+            evidence[normalize(label)] = 1 / (1 + Double(rank) * 0.1)
+        }
+        for item in analysis.detections ?? [] {
+            for term in [item.kind, item.label] {
+                let key = normalize(term)
+                evidence[key] = max(evidence[key] ?? 0, item.confidence)
+            }
+        }
+        return evidence
+    }
+
+    static func relatedness(_ lhs: PhotoAnalysis, _ rhs: PhotoAnalysis) -> Double? {
+        let a = subjectWeights(lhs), b = subjectWeights(rhs)
+        let normA = a.values.reduce(0) { $0 + $1 * $1 }
+        let normB = b.values.reduce(0) { $0 + $1 * $1 }
+        guard normA > 0, normB > 0 else { return nil }
+        let dot = a.reduce(0.0) { $0 + $1.value * (b[$1.key] ?? 0) }
+        return min(1, dot / sqrt(normA * normB))
+    }
+
+    static func score(_ analysis: PhotoAnalysis, for text: String) -> Double {
+        matches(analysis, for: text).reduce(0) { $0 + $1.score }
+    }
+
+    static func matches(_ analysis: PhotoAnalysis, for text: String) -> [PhotoMatchEvidence] {
+        let query = normalize(text)
+        guard !query.isEmpty else { return [] }
+        let evidence = subjectWeights(analysis)
+        var matches: [PhotoMatchEvidence] = []
+        for label in evidence.keys.sorted() where label.count > 2 {
+            let weight = 0.55 + 1.45 * (evidence[label] ?? 0)
+            if contains(query, phrase: label) {
+                matches.append(PhotoMatchEvidence(source: "subject", value: label, score: weight))
+            } else if translations.contains(where: { term, aliases in
+                contains(label, phrase: term) && aliases.contains { contains(query, phrase: $0) }
+            }) {
+                matches.append(PhotoMatchEvidence(source: "subject", value: label, score: weight))
+            }
+        }
+        let queryWords = Set(query.components(separatedBy: " ").filter { $0.count >= 3 })
+        let stopWords: Set<String> = ["the", "and", "with", "for", "was", "that", "con", "per", "del", "della", "una", "nel", "alla", "gli", "che"]
+        var textWeights: [String: Double] = [:]
+        for line in analysis.recognizedText ?? [] {
+            let shared = queryWords.intersection(normalize(line.text).components(separatedBy: " ")).subtracting(stopWords)
+            for word in shared { textWeights[word] = max(textWeights[word] ?? 0, line.confidence) }
+        }
+        for (word, weight) in textWeights.sorted(by: { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }).prefix(4) {
+            matches.append(PhotoMatchEvidence(source: "text", value: word, score: 0.65 + weight))
         }
         for topic in topics where analysis.concepts.contains(topic.key) {
-            if topic.aliases.contains(where: { contains(query, phrase: normalize($0)) }) { score += 1 }
+            if topic.aliases.contains(where: { contains(query, phrase: normalize($0)) }) {
+                matches.append(PhotoMatchEvidence(source: "concept", value: topic.key, score: 0.45))
+            }
         }
-        return score
+        return matches.sorted { $0.score > $1.score }
+    }
+
+    static func distance(_ lhs: PhotoAnalysis, _ rhs: PhotoAnalysis) -> Double? {
+        guard let l = lhs.visual?.perceptualHash, l.count == 16, let a = UInt64(l, radix: 16),
+              let r = rhs.visual?.perceptualHash, r.count == 16, let b = UInt64(r, radix: 16) else { return nil }
+        return Double((a ^ b).nonzeroBitCount) / 64
     }
 
     static func displayName(for concept: String, language: String) -> String {
