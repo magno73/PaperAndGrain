@@ -1,6 +1,33 @@
 import Foundation
 import CoreGraphics
 
+struct PhotoLocation: Codable, Hashable, Sendable {
+    let name: String?
+    let latitude: Double?
+    let longitude: Double?
+
+    init(name: String? = nil, latitude: Double? = nil, longitude: Double? = nil) {
+        let label = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.name = label?.isEmpty == false ? label : nil
+        if let latitude, let longitude, (-90...90).contains(latitude), (-180...180).contains(longitude) {
+            self.latitude = latitude
+            self.longitude = longitude
+        } else {
+            self.latitude = nil
+            self.longitude = nil
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(name: values.decodeIfPresent(String.self, forKey: .name),
+                      latitude: values.decodeIfPresent(Double.self, forKey: .latitude),
+                      longitude: values.decodeIfPresent(Double.self, forKey: .longitude))
+    }
+
+    var hasMetadata: Bool { name != nil || latitude != nil }
+}
+
 struct BookPhoto: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var name: String
@@ -12,6 +39,7 @@ struct BookPhoto: Identifiable, Codable, Hashable, Sendable {
     var analysis: PhotoAnalysis? = nil
     var film: FilmSettings? = nil
     var adjustments: PhotoAdjustments? = nil
+    var location: PhotoLocation? = nil
 }
 
 enum PageLayout: String, Codable, CaseIterable, Identifiable, Sendable {

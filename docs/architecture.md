@@ -13,7 +13,7 @@ Un progetto `.papergrain` ha `manifest.json` e una cartella `assets/` e, se nece
 | Dato | Responsabilità |
 |---|---|
 | Libro | ID, titolo, formato in mm, ordine delle pagine e versione dello schema |
-| Foto | ID, nome, data di scatto, dimensioni orientate, filename locale e analisi facoltativa |
+| Foto | ID, nome, data di scatto, dimensioni orientate, filename locale, luogo e analisi facoltativi |
 | Pagina | ID, tipo di composizione, foto nell’ordine di disposizione, titolo e racconto, posizione del testo e inquadratura facoltativa |
 | Analisi | Lista di etichette Vision, chiavi stabili dei temi e revisione |
 | Pellicola | Profilo del libro, eccezioni per foto e riferimento alla LUT inclusa nel progetto |
@@ -70,7 +70,7 @@ Griglia svizzera, Quaderno berlinese e Intervallo giapponese definiscono posizio
 
 `EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. L’anteprima di Pellicola durante il gesto usa una coda a parte e un massimo di 640 pixel sul lato lungo. Al rilascio, l’editor registra una singola azione annullabile e carica l’anteprima ad alta risoluzione. Le miniature usano i valori confermati. Le cornici e i ritagli della copertina sono condivisi da canvas, miniature e PDF. In stampa, ogni foto viene ritagliata entro la propria faccia e l’abbondanza.
 
-L’ispettore osserva la propria navigazione. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
+L’ispettore osserva la propria navigazione. I risultati filtrati della libreria si possono ordinare per giorno, luogo, argomento principale o utilizzo. Il luogo deriva dai campi IPTC o GPS e dalla posizione in Foto quando disponibile. Per i progetti precedenti l’ispettore legge i metadati delle copie in sottofondo. Per le copie senza luogo può consultare gli ID Foto già autorizzati senza richiedere accesso. Le coordinate senza nome sono raggruppate in zone di circa 0,05°. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
 
 Il binario con argomento `cli` usa il modello, l’importazione, l’analisi e il rendering dell’app senza avviare la finestra. I comandi di modifica lavorano su una copia privata del pacchetto e pubblicano con rinomina esclusiva. `inspect` restituisce il manifest validato con gli indici originali per JSON Patch. I risultati e gli errori sono JSON. [Contratto della CLI](cli.md)
 

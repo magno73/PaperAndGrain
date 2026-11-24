@@ -1,4 +1,5 @@
 import AppKit
+import CoreLocation
 import Foundation
 import ImageIO
 import Photos
@@ -59,6 +60,20 @@ enum PhotoLibrary {
         return result
     }
 
+    static func locations(for sourceIDs: [String]) -> [String: PhotoLocation] {
+        guard !sourceIDs.isEmpty else { return [:] }
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard status == .authorized || status == .limited else { return [:] }
+        var locations: [String: PhotoLocation] = [:]
+        PHAsset.fetchAssets(withLocalIdentifiers: sourceIDs, options: nil).enumerateObjects { asset, _, _ in
+            if let coordinate = asset.location?.coordinate, CLLocationCoordinate2DIsValid(coordinate) {
+                locations[asset.localIdentifier] = PhotoLocation(latitude: coordinate.latitude,
+                                                                longitude: coordinate.longitude)
+            }
+        }
+        return locations
+    }
+
     private static func imageOptions() -> PHFetchOptions {
         let options = PHFetchOptions()
         options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue)
@@ -105,10 +120,15 @@ enum PhotoLibrary {
         }
         try Task.checkCancellation()
         let originalName = PHAssetResource.assetResources(for: asset).first?.originalFilename
-        return try LocalImages.store(
+        var imported = try LocalImages.store(
             data, preferredExtension: type.flatMap { UTType($0)?.preferredFilenameExtension },
             name: originalName ?? "Foto", sourceID: photo.id, date: photo.capturedAt, in: directory
         )
+        if let coordinate = asset.location?.coordinate, CLLocationCoordinate2DIsValid(coordinate) {
+            imported.location = PhotoLocation(name: imported.location?.name, latitude: coordinate.latitude,
+                                              longitude: coordinate.longitude)
+        }
+        return imported
     }
 }
 
@@ -178,7 +198,41 @@ enum LocalImages {
         let filename = UUID().uuidString + "." + suffix
         try data.write(to: BookStorage.assetURL(filename: filename, in: directory), options: .atomic)
         return BookPhoto(name: name, sourceID: sourceID, capturedAt: date ?? exifDate(from: props),
-                         filename: filename, pixelWidth: rotated ? height : width, pixelHeight: rotated ? width : height)
+                         filename: filename, pixelWidth: rotated ? height : width, pixelHeight: rotated ? width : height,
+                         location: location(from: props))
+    }
+
+    static func location(at url: URL) -> PhotoLocation? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else { return nil }
+        return location(from: props)
+    }
+
+    private static func location(from props: [CFString: Any]) -> PhotoLocation? {
+        let iptc = props[kCGImagePropertyIPTCDictionary] as? [CFString: Any]
+        func placeName(_ fields: [CFString]) -> String? {
+            fields.compactMap { (iptc?[$0] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .first { !$0.isEmpty }
+        }
+        let name = placeName([kCGImagePropertyIPTCSubLocation, kCGImagePropertyIPTCCity])
+        let gps = props[kCGImagePropertyGPSDictionary] as? [CFString: Any]
+        func degrees(_ key: CFString, reference: CFString, positive: String, negative: String) -> Double? {
+            guard let value = (gps?[key] as? NSNumber)?.doubleValue else { return nil }
+            switch (gps?[reference] as? String)?.uppercased() {
+            case positive: return abs(value)
+            case negative: return -abs(value)
+            case nil: return value
+            default: return nil
+            }
+        }
+        let location = PhotoLocation(name: name,
+            latitude: degrees(kCGImagePropertyGPSLatitude, reference: kCGImagePropertyGPSLatitudeRef,
+                              positive: "N", negative: "S"),
+            longitude: degrees(kCGImagePropertyGPSLongitude, reference: kCGImagePropertyGPSLongitudeRef,
+                               positive: "E", negative: "W"))
+        if location.hasMetadata { return location }
+        return placeName([kCGImagePropertyIPTCProvinceState, kCGImagePropertyIPTCCountryPrimaryLocationName])
+            .map { PhotoLocation(name: $0) }
     }
 
     static func load(_ url: URL, maxPixelSize: Int) -> CGImage? {

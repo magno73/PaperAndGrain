@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.9.5 · 24 novembre 2026
+
+**Foto → Libreria** raggruppa per data, luogo, argomento o utilizzo. L’ordine predefinito segue la data di scatto. I luoghi dei file già importati vengono letti in sottofondo. Le foto senza i metadati richiesti restano consultabili in un gruppo in fondo. I test coprono ordinamento cronologico, zone GPS, metadati di immagini sintetiche e aggiornamento dei gruppi. La build risiede in `dist/0.9.5/`.
+
 ## 0.9.4 · 24 novembre 2026
 
 **Modelli del libro** consente di mostrare o nascondere i numeri sulle pagine con margini. Anteprima, editor e PDF leggono la stessa impostazione. I progetti precedenti ereditano il valore del modello finché viene scelta un’impostazione esplicita. Il test verifica salvataggio, annullamento e testo effettivo nel PDF. La build risiede in `dist/0.9.4/`.

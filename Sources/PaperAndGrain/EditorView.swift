@@ -59,6 +59,10 @@ struct EditorView: View {
     @State private var search = ""
     @State private var photoLibraryCache = InspectorPhotoLibraryCache()
     @State private var photoUsageIndex = PhotoUsageIndex()
+    @AppStorage("libraryPhotoOrder") private var photoOrder: PhotoLibraryOrder = .date
+    @State private var libraryOrdering = PhotoLibraryOrdering()
+    @State private var placesRead: [UUID: PhotoLocation] = [:]
+    @State private var scannedPlaceAssets: Set<PlaceAsset> = []
     @State private var suggestedPhotos: [PhotoSuggestion] = []
     @State private var undoTarget = EditorUndo()
     @State private var cropSession: CropSession?
@@ -142,6 +146,12 @@ struct EditorView: View {
         let photoID: UUID
         var draft: PhotoAdjustments
         var preview: PhotoAdjustments
+    }
+
+    private struct PlaceAsset: Hashable, Sendable {
+        let id: UUID
+        let filename: String
+        let sourceID: String?
     }
 
     private struct PhotoSuggestion: Identifiable, Sendable {
@@ -1931,6 +1941,12 @@ struct EditorView: View {
 
     private var photoLibrary: some View {
         let results = photoLibraryCache.results(photos: book.photos, language: language, search: search, concept: concept)
+        let photoLocations = photoUsageIndex.locations(in: book)
+        let sections = libraryOrdering.groups(
+            for: results.photos, order: photoOrder, locale: Locale(identifier: language),
+            places: placesRead, used: photoOrder == .usage ? Set(photoLocations.keys) : []
+        )
+        let pendingPlaces = placeAssetsToRead
         let needsAnalysis = book.photos.contains { ($0.analysis?.revision ?? 0) < PhotoAnalysis.currentRevision }
         let hasOlderAnalysis = book.photos.contains { $0.analysis.map { $0.revision < PhotoAnalysis.currentRevision } == true }
         return VStack(alignment: .leading, spacing: 13) {
@@ -1955,6 +1971,24 @@ struct EditorView: View {
                     TextField(tr("Cerca foto", "Search photos"), text: $search)
                         .textFieldStyle(.roundedBorder)
                         .focused($searchingPhotos)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .foregroundStyle(muted)
+                            .accessibilityHidden(true)
+                        Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
+                            ForEach(PhotoLibraryOrder.allCases) { order in
+                                Text(photoOrderLabel(order)).tag(order)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .help(libraryLabel("sort", "Ordina per", "Sort by"))
+                        if !pendingPlaces.isEmpty {
+                            ProgressView()
+                                .controlSize(.small)
+                                .accessibilityLabel(libraryLabel("reading_places", "Lettura dei luoghi", "Reading locations"))
+                        }
+                    }
                     conceptFilter(results.concepts)
                 }
             }
@@ -1963,8 +1997,14 @@ struct EditorView: View {
             if !book.photos.isEmpty {
                 ScrollViewReader { scroll in
                     ScrollView {
-                        photoGrid(results.photos).padding(.horizontal, 15).padding(.bottom, 8)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Color.clear.frame(height: 0).id("photoLibraryTop").accessibilityHidden(true)
+                            photoGrid(sections, locations: photoLocations)
+                        }
+                        .padding(.horizontal, 15)
+                        .padding(.bottom, 8)
                     }
+                    .onChange(of: photoOrder) { _, _ in scroll.scrollTo("photoLibraryTop", anchor: .top) }
                     .task(id: importedPhotoToReveal) {
                         guard let id = importedPhotoToReveal else { return }
                         await Task.yield()
@@ -1994,6 +2034,84 @@ struct EditorView: View {
             }
         }
         .frame(maxHeight: .infinity, alignment: .topLeading)
+        .task(id: pendingPlaces) { await readPhotoPlaces(pendingPlaces) }
+    }
+
+    private var placeAssetsToRead: [PlaceAsset] {
+        guard photoOrder == .place else { return [] }
+        return book.photos.compactMap { photo in
+            guard photo.location == nil else { return nil }
+            let asset = PlaceAsset(id: photo.id, filename: photo.filename, sourceID: photo.sourceID)
+            return scannedPlaceAssets.contains(asset) ? nil : asset
+        }
+    }
+
+    private func readPhotoPlaces(_ pending: [PlaceAsset]) async {
+        guard !pending.isEmpty else { return }
+        let directory = directory
+        let work = Task.detached(priority: .utility) {
+            var locations: [UUID: PhotoLocation] = [:]
+            for asset in pending {
+                if Task.isCancelled { return locations }
+                if let location = LocalImages.location(at: BookStorage.assetURL(filename: asset.filename, in: directory)) {
+                    locations[asset.id] = location
+                }
+            }
+            let missing = pending.filter { locations[$0.id] == nil }
+            let fromPhotos = PhotoLibrary.locations(for: missing.compactMap(\.sourceID))
+            for asset in missing {
+                locations[asset.id] = asset.sourceID.flatMap { fromPhotos[$0] }
+            }
+            return locations
+        }
+        let locations = await withTaskCancellationHandler {
+            await work.value
+        } onCancel: {
+            work.cancel()
+        }
+        guard !Task.isCancelled else { return }
+        placesRead.merge(locations, uniquingKeysWith: { _, latest in latest })
+        scannedPlaceAssets.formUnion(pending)
+    }
+
+    private func libraryLabel(_ key: String, _ italian: String, _ english: String) -> String {
+        localized("editor.photo_library." + key, fallback: tr(italian, english))
+    }
+
+    private func photoOrderLabel(_ order: PhotoLibraryOrder) -> String {
+        switch order {
+        case .date: libraryLabel("date", "Data", "Date")
+        case .place: libraryLabel("place", "Luogo", "Place")
+        case .subject: libraryLabel("subject", "Argomento", "Subject")
+        case .usage: libraryLabel("usage", "Non usate prima", "Unused First")
+        }
+    }
+
+    private func photoSectionTitle(_ section: PhotoLibraryOrdering.Section.Key) -> String {
+        let locale = Locale(identifier: language)
+        switch section {
+        case let .day(day):
+            return day.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale))
+        case let .place(name):
+            return name
+        case let .area(lat, lon):
+            let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2)).locale(locale)
+            let latitude = (Double(abs(lat)) / 20).formatted(format) + (lat < 0 ? "° S" : "° N")
+            let longitude = (Double(abs(lon)) / 20).formatted(format) + (lon < 0 ? "° " + tr("O", "W") : "° E")
+            return latitude + " · " + longitude
+        case let .subject(topic):
+            return conceptName(topic)
+        case .unused:
+            return libraryLabel("unused", "Non usate", "Unused")
+        case .used:
+            return libraryLabel("used", "Già usate", "Already Used")
+        case .unknown:
+            switch photoOrder {
+            case .date: return libraryLabel("unknown_date", "Senza data", "No Date")
+            case .place: return libraryLabel("unknown_place", "Senza luogo", "No Location")
+            case .subject, .usage: return libraryLabel("unknown_subject", "Senza argomento", "No Subject")
+            }
+        }
     }
 
     private func conceptFilter(_ concepts: [InspectorPhotoLibraryCache.Concept]) -> some View {
@@ -2076,64 +2194,74 @@ struct EditorView: View {
         .controlSize(.small)
     }
 
-    private func photoGrid(_ filtered: [BookPhoto]) -> some View {
+    private func photoGrid(_ sections: [PhotoLibraryOrdering.Section],
+                           locations: [UUID: [PhotoUsageIndex.Location]]) -> some View {
         let assigned = Set(coverSide.map { [coverPhotoID($0)].compactMap { $0 } } ?? page?.photoIDs ?? [])
-        let photoLocations = photoUsageIndex.locations(in: book)
-        return VStack(alignment: .leading, spacing: 7) {
-            if filtered.isEmpty { intro(tr("Nessuna foto corrispondente.", "No matching photos.")) }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 67), spacing: 7)], spacing: 7) {
-                ForEach(filtered) { photo in
-                    let active = photo.id == selectedPhoto
-                    let used = assigned.contains(photo.id)
-                    let locations = photoLocations[photo.id] ?? []
-                    let usage = locations.map(usageDescription).joined(separator: ", ")
-                    preview(photo, small: true)
-                        .frame(height: 56)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .overlay(alignment: .bottomTrailing) {
-                            if let first = locations.first {
-                                let additional = locations.count - 1
-                                Text(usageBadge(first) + (additional > 0 ? " +\(additional)" : ""))
-                                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(used ? pine : .black.opacity(0.80), in: Capsule())
-                                    .padding(3)
-                                    .allowsHitTesting(false)
-                                    .accessibilityHidden(true)
-                            }
+        return LazyVStack(alignment: .leading, spacing: 11) {
+            if sections.isEmpty { intro(tr("Nessuna foto corrispondente.", "No matching photos.")) }
+            ForEach(sections) { section in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(photoSectionTitle(section.id))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(muted)
+                        .accessibilityAddTraits(.isHeader)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 67), spacing: 7)], spacing: 7) {
+                        ForEach(section.photos) { photo in
+                            photoLibraryTile(photo, used: assigned.contains(photo.id), locations: locations[photo.id] ?? [])
                         }
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 4).strokeBorder(active ? pine : .clear, lineWidth: 2)
-                        }
-                        .contentShape(Rectangle())
-                        .gesture(editorDrag(.photo(photo.id)))
-                        .simultaneousGesture(TapGesture(count: 2).onEnded {
-                            selectLibraryPhoto(photo.id)
-                            togglePhoto(photo.id)
-                        })
-                        .help(usage.isEmpty ? photo.name : photo.name + "\n" + usage)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(photo.name)
-                        .accessibilityValue(usage)
-                        .accessibilityAddTraits(.isButton)
-                        .accessibilityAddTraits(active ? .isSelected : [])
-                        .accessibilityAction { selectLibraryPhoto(photo.id) }
-                        .accessibilityAction(named: Text(used ? tr("Rimuovi dalla pagina", "Remove from page")
-                                                             : tr("Aggiungi alla pagina", "Add to page"))) {
-                            togglePhoto(photo.id)
-                        }
-                        .contextMenu {
-                            Button(used ? tr("Rimuovi dalla pagina", "Remove from page")
-                                        : tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
-                            .disabled(page == nil && coverSide == nil)
-                        }
-                        .libraryPhotoFrame(photo.id)
-                        .id(photo.id)
+                    }
                 }
             }
         }
+    }
+
+    private func photoLibraryTile(_ photo: BookPhoto, used: Bool, locations: [PhotoUsageIndex.Location]) -> some View {
+        let active = photo.id == selectedPhoto
+        let usage = locations.map(usageDescription).joined(separator: ", ")
+        return preview(photo, small: true)
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(alignment: .bottomTrailing) {
+                if let first = locations.first {
+                    let additional = locations.count - 1
+                    Text(usageBadge(first) + (additional > 0 ? " +\(additional)" : ""))
+                        .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(used ? pine : .black.opacity(0.80), in: Capsule())
+                        .padding(3)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 4).strokeBorder(active ? pine : .clear, lineWidth: 2)
+            }
+            .contentShape(Rectangle())
+            .gesture(editorDrag(.photo(photo.id)))
+            .simultaneousGesture(TapGesture(count: 2).onEnded {
+                selectLibraryPhoto(photo.id)
+                togglePhoto(photo.id)
+            })
+            .help(usage.isEmpty ? photo.name : photo.name + "\n" + usage)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(photo.name)
+            .accessibilityValue(usage)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAddTraits(active ? .isSelected : [])
+            .accessibilityAction { selectLibraryPhoto(photo.id) }
+            .accessibilityAction(named: Text(used ? tr("Rimuovi dalla pagina", "Remove from page")
+                                                 : tr("Aggiungi alla pagina", "Add to page"))) {
+                togglePhoto(photo.id)
+            }
+            .contextMenu {
+                Button(used ? tr("Rimuovi dalla pagina", "Remove from page")
+                            : tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
+                .disabled(page == nil && coverSide == nil)
+            }
+            .libraryPhotoFrame(photo.id)
+            .id(photo.id)
     }
 
     private func usageBadge(_ location: PhotoUsageIndex.Location) -> String {
