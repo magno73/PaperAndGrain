@@ -5,12 +5,13 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 ## Punti di ingresso
 
 - `PaperAndGrainApp.swift` e `Workspace.swift` collegano finestre, apertura, autosalvataggio e attività in corso.
+- `BookCLI.swift` compone pacchetti nativi da specifiche JSON. Aggiorna il contratto in [CLI](docs/cli.md) quando cambiano argomenti, input o output.
 - `AlbumPicker.swift` e `PhotoLibrary.swift` collegano selezione, PhotoKit e copia delle immagini. `DroppedPhotos.swift` importa file nella libreria del libro aperto. `PhotoPromiseDropTarget.swift` riceve i file promessi dalle app macOS.
 - `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
 - `EditorView.swift` gestisce il libro aperto, il navigatore, l’ispettore e le interazioni.
 - `PageComposition.swift` risolve cornici, ritagli, testo e copertina in punti tipografici. `CanvasObjectControls.swift` gestisce lo spostamento e il ridimensionamento e `CanvasCropControl.swift` la modifica dell’immagine e della cornice durante il ritaglio. `CanvasStoryGroup.swift` sposta insieme titolo, racconto e sfondo.
 - `CanvasAlignment.swift` calcola l’aggancio fra foto e box. `CanvasAlignmentGuides.swift` disegna le guide temporanee sul canvas. `CanvasPhotoSwap.swift` individua la foto sotto il puntatore durante il trascinamento e scambia le due cornici.
-- `CanvasDeleteShortcut.swift` intercetta Backspace, Canc e il clic nella finestra del libro. `EditorPhotoHitTest.swift` individua la foto sotto il puntatore usando la geometria della pagina. `EditorPreviewLoader.swift` separa il carico delle anteprime e delle miniature.
+- `CanvasDeleteShortcut.swift` osserva i clic e inoltra i comandi della tastiera nella finestra del libro. La mappa in `EditorPhotoHitTest.swift` usa la geometria di disegno per selezionare l’oggetto visibile. `EditorPreviewLoader.swift` separa il carico delle anteprime e delle miniature.
 - `EditorFilePanels.swift` presenta i selettori file e il controllo di stampa come schede asincrone della finestra. Gli errori operativi rimangono visibili nella finestra senza richiederne l’attivazione.
 - `PhotoAnalysis.swift` produce etichette e temi con Vision e ordina i risultati compatibili con un racconto.
 - `BookTemplate.swift` definisce carta, geometria editoriale e tipi condivisi tra anteprima ed esportazione. `EditorialTypography.swift` risolve gli stili del libro e le modifiche locali. `PageArrangement.swift` definisce le composizioni della singola pagina. [Modelli](docs/templates.md) documenta le scelte visive.

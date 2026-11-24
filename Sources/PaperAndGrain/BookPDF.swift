@@ -263,11 +263,14 @@ enum BookPDF {
         let backgrounds = composition.storyBackgroundFrames(page: page, blocks: storyBlocks)
         if !backgrounds.isEmpty {
             context.saveGState()
-            context.setAlpha(0.90)
-            context.setFillColor(EditorialStyle.color(style.paper))
+            context.setAlpha(style.overlayOpacity)
+            context.setFillColor(EditorialStyle.color(style.overlayPaper))
             context.addRects(backgrounds)
             context.fillPath()
             context.restoreGState()
+            context.setFillColor(EditorialStyle.color(style.overlayAccent))
+            context.addRects(backgrounds.compactMap { style.overlayMark(in: $0) })
+            context.fillPath()
         }
         for block in storyBlocks where block.text.length > 0 {
             try drawText(block.text, in: block.frame, pageNumber: pageNumber, context: context)

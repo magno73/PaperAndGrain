@@ -70,6 +70,55 @@ final class TypographyTests: XCTestCase {
         XCTAssertEqual(selection.bounds(for: first).maxX, rect.maxX, accuracy: 4)
     }
 
+    func testStudioCoversAndStoryColumnsAcrossPageSizes() throws {
+        let page = BookPage(layout: .text, text: "An observation about light.", heading: "Field notes")
+        for template in [BookTemplate.swissGrid, .berlinQuarter, .japaneseInterval] {
+            var book = Book(title: "Field notes", pages: [page], template: template)
+            for (width, height) in [(148.0, 210.0), (300, 190), (210, 210)] {
+                book.format.widthMM = width
+                book.format.heightMM = height
+                let face = BookCoverGeometry(book: book, front: true, bleed: 9)
+                let title = try XCTUnwrap(face.titleFrame)
+                let area = try XCTUnwrap(PageComposition(page: page, book: book).story)
+                let panel = face.bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
+                XCTAssertTrue(face.bounds.contains(face.photoFrame))
+                XCTAssertFalse(face.photoFrame.intersects(title))
+                XCTAssertTrue(EditorialTypesetter.fits(face.title, in: title))
+                XCTAssertEqual(area.width, panel.width * template.style.columnFraction, accuracy: 0.01)
+                switch template {
+                case .swissGrid:
+                    XCTAssertNotNil(face.rule)
+                    XCTAssertEqual(face.photoFrame.minX, panel.minX + panel.width / 3, accuracy: 0.01)
+                case .berlinQuarter:
+                    XCTAssertLessThan(face.photoFrame.maxY, title.minY)
+                    XCTAssertEqual(face.photoFrame.width, panel.width, accuracy: 0.01)
+                case .japaneseInterval:
+                    XCTAssertLessThan(face.photoFrame.width * face.photoFrame.height, panel.width * panel.height / 3)
+                    XCTAssertGreaterThan(area.minY, panel.minY + 0.18 * panel.height)
+                default: XCTFail("Unexpected template")
+                }
+            }
+        }
+    }
+
+    func testStudioMediumHeadlineFitsOneLineAndPreservesAuthoredTypography() throws {
+        let headline = "Quando il deserto cambia colore"
+        let page = BookPage(layout: .text, heading: headline)
+        for template in [BookTemplate.swissGrid, .berlinQuarter, .japaneseInterval] {
+            let book = Book(title: headline, pages: [page], template: template)
+            let area = try XCTUnwrap(PageComposition(page: page, book: book).story)
+            let style = template.style
+            let chosen = style.fittedTitleStyle(headline, width: area.width, mixed: false, override: .init())
+            let text = style.typography("", heading: headline, mixed: false, titleStyle: chosen)
+            let setter = CTTypesetterCreateWithAttributedString(text)
+            XCTAssertEqual(CTTypesetterSuggestLineBreak(setter, 0, area.width), text.length, template.rawValue)
+            let explicit = EditorialTextStyle(fontName: "Georgia", pointSize: 48, alignment: .center)
+            XCTAssertEqual(style.fittedTitleStyle(headline, width: area.width / 2, mixed: false, override: explicit), explicit)
+            XCTAssertNil(style.fittedTitleStyle("Quando il deserto\ncambia colore", width: 160, mixed: false, override: .init()).pointSize)
+            XCTAssertNil(style.fittedTitleStyle(String(repeating: "Distanza ", count: 9), width: 160, mixed: false, override: .init()).pointSize)
+        }
+    }
+
     func testCoverAccommodatesLargerTypeOnBothFaces() throws {
         var book = Book(title: "Cover", template: .essential)
         book.cover = BookCover(title: "A\nB", backText: "X\nY", typography: .init(title: .init(pointSize: 84), body: .init(pointSize: 84)))

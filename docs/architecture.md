@@ -51,7 +51,7 @@ L’aggancio usa la posizione libera a ogni aggiornamento del trascinamento. Cer
 
 Lo scambio usa la posizione del puntatore nel canvas e si attiva all’interno di un’altra foto visibile sulla stessa pagina. Il comando scambia cornici e ordine, conserva i ritagli associati agli scatti e si annulla in una sola operazione. Nei modelli a posizioni fisse le cornici automatiche rimangono automatiche. Nelle griglie basate sulle proporzioni si fissano le cornici visibili prima dello scambio.
 
-Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. La scorciatoia di eliminazione è legata alla finestra del libro e alla selezione nel canvas. I controlli di testo ricevono i loro eventi di cancellazione. La selezione foto parte dal rilascio del pulsante nella finestra e risolve la posizione visibile nella libreria, sulla pagina o sulla copertina. L’ispettore resta nella modalità aperta.
+Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. Il monitor della finestra inoltra il clic dopo il rilascio del pulsante. La mappa di selezione usa le cornici già calcolate dal canvas, nell’ordine di disegno. Le scorciatoie rispettano i campi di testo attivi. Il clic nella libreria risolve le coordinate della miniatura e mantiene la modalità aperta dell’ispettore.
 
 Le LUT Fujifilm incluse sono risorse sRGB. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini sviluppate con Provia. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
 
@@ -63,11 +63,15 @@ I campi facoltativi delle cornici di titolo, racconto e copertina usano coordina
 
 Il trascinamento del racconto come gruppo applica lo stesso spostamento al titolo, al testo e alle eventuali cornici dello sfondo. Il riquadro complessivo limita lo spostamento ai bordi della pagina. Le cornici dello sfondo si salvano come coordinate normalizzate e mantengono la posizione durante i trascinamenti dei singoli testi. Le miniature e il PDF usano le stesse cornici.
 
+Griglia svizzera, Quaderno berlinese e Intervallo giapponese definiscono posizioni per le gallerie automatiche e pannelli per **Testo sulla foto**. `PageComposition` risolve cornici, dimensione del titolo e posizione del pannello. Editor, miniature, selettore dei modelli ed esportatore disegnano il pannello con la palette e il segno grafico di `EditorialStyle`. Il corpo impostato dall’autore ha la precedenza sul ridimensionamento automatico del titolo.
+
 `BookPhoto.adjustments` è facoltativo nei progetti esistenti. `PhotoAdjustments` misura una copia ridotta della foto per proporre modifiche ripetibili alla luce e al colore. La pipeline condivisa applica le regolazioni allo scatto prima del look pellicola e della grana. Il PDF, l’editor e le miniature usano gli stessi valori. Il file immagine importato resta il riferimento per il confronto.
 
 `EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. Al rilascio, l’editor registra la regolazione nel progetto e carica la versione a piena risoluzione di anteprima.
 
 L’ispettore osserva la propria navigazione. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
+
+La CLI usa il modello e la scrittura dei pacchetti dell’app. Con un argomento `cli` il binario compone un nuovo pacchetto da una specifica JSON e dagli asset locali. I risultati e gli errori sono JSON. [Contratto della CLI](cli.md)
 
 L’esportazione di stampa usa TrimBox e BleedBox espliciti e incorpora sRGB come output intent. I fogli avviati a destra e i panorami possono richiedere pagine bianche di compensazione. La stampa produce interni e copertina in file separati. Abbondanza e dorso vanno impostati con le specifiche del prodotto scelto.
 

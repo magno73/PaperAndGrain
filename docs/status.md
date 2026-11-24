@@ -1,5 +1,15 @@
 # Stato dello sviluppo
 
+## 0.8.1 · 24 novembre 2026
+
+I tre modelli editoriali usano gallerie e riquadri **Testo sulla foto** distinti. I titoli hanno corpi più contenuti e si adattano alla larghezza quando possono stare su una riga con un corpo leggibile. Foto, titolo e riquadro condividono la posizione tra selettore dei modelli, editor, miniature ed esportazione. Verificate copertine, testo sulla foto e gallerie su esempi sintetici. La build risiede in `dist/0.8.1/`.
+
+## 0.8.0 · 24 novembre 2026
+
+Il canvas usa la geometria di disegno per selezionare l’elemento in primo piano. Il clic sul vuoto e i comandi da tastiera deselezionano. Le frecce spostano gli oggetti, Canc rimuove le foto e i box selezionati e Tipografia offre i comandi − e +. Il pannello Pagina prepara la numerazione delle destinazioni in un passaggio e carica le righe foto man mano. Il pannello Foto riusa i risultati dei filtri. I tre nuovi [modelli editoriali](templates.md) sono Griglia svizzera, Quaderno berlinese e Intervallo giapponese. La [CLI](cli.md) crea libri modificabili da specifiche JSON.
+
+Verificati la geometria della selezione, le scorciatoie, i nuovi modelli su tre formati, copertine e pagine sintetiche esportate e la creazione di un pacchetto CLI con immagini locali. Restano il collaudo del puntatore nella finestra e la misura della risposta dei pannelli sul libro Namibia. La build risiede in `dist/0.8.0/`.
+
 ## 0.7.1 · 23 novembre 2026
 
 La maniglia del racconto e il suo sfondo spostano insieme titolo, testo e sfondo. Il trascinamento diretto di titolo o testo agisce sul singolo riquadro. Il pannello **Foto** accetta immagini trascinate nella libreria del libro. I test verificano persistenza e spostamento dei riquadri, importazione di immagini e precedenza del file originale sulla miniatura. Resta da provare il rilascio dal Finder e da Foto nella finestra dell’app. La build risiede in `dist/0.7.1/`.

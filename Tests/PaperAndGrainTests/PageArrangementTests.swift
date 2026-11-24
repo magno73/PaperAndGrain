@@ -7,6 +7,37 @@ import XCTest
 @testable import PaperAndGrain
 
 final class PageArrangementTests: XCTestCase {
+    func testStudioGalleryAndPhotoTextPlacementDifferByTemplate() throws {
+        let photos = (1...3).map { index in
+            BookPhoto(name: "Photo \(index)", filename: "photo-\(index).jpg", pixelWidth: 600, pixelHeight: 400)
+        }
+        let gallery = BookPage(photoIDs: photos.map(\.id))
+        let overlay = BookPage(photoIDs: [photos[0].id], text: "In viaggio al mattino presto.",
+                               heading: "Quando il deserto cambia colore", arrangement: .textOverPhoto)
+        let templates: [BookTemplate] = [.swissGrid, .berlinQuarter, .japaneseInterval]
+        for format in [BookFormat.square, .portrait, .landscape] {
+            let books = templates.map { Book(title: "Example", format: format, photos: photos, template: $0) }
+            let galleries = books.map { PageComposition(page: gallery, book: $0) }
+            XCTAssertEqual(galleries[0].photos[0].frame.width, galleries[0].photos[1].frame.width, accuracy: 0.001)
+            XCTAssertGreaterThan(galleries[1].photos[0].frame.width, galleries[1].photos[1].frame.width * 2)
+            XCTAssertGreaterThan(galleries[2].photos[0].frame.minX, galleries[2].photos[1].frame.minX)
+            XCTAssertGreaterThan(galleries[2].photos[1].frame.minY, galleries[2].photos[0].frame.maxY)
+            let overlays = books.map { PageComposition(page: overlay, book: $0) }
+            let panels = try overlays.map { try XCTUnwrap($0.storyBackground) }
+            XCTAssertLessThan(panels[1].maxY, panels[0].minY)
+            XCTAssertLessThan(panels[0].minX, panels[2].minX)
+            for (book, composition) in zip(books, overlays) {
+                XCTAssertEqual(composition.photos.first?.frame, composition.bounds)
+                let panel = try XCTUnwrap(composition.storyBackground)
+                let mark = try XCTUnwrap(book.editorialStyle.overlayMark(in: panel))
+                XCTAssertTrue(panel.contains(mark))
+                let block = try XCTUnwrap(composition.storyDrawingBlocks(page: overlay, book: book).first)
+                XCTAssertTrue(panel.contains(block.frame))
+                XCTAssertTrue(EditorialTypesetter.fits(block.text, in: block.frame))
+            }
+        }
+    }
+
     func testEveryArrangementRespectsItsCapacityAndMarginsInEachFormat() throws {
         XCTAssertEqual(PageArrangement.allCases.count, 16)
         for format in [BookFormat.square, .portrait, .landscape] {

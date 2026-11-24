@@ -20,7 +20,6 @@ struct CanvasStoryGroup<Content: View>: View {
             if !backdrops.isEmpty {
                 Color.clear
                     .contentShape(Path { $0.addRects(backdrops) })
-                    .onTapGesture(perform: onSelect)
                     .gesture(drag)
                     .accessibilityHidden(true)
             }
@@ -40,9 +39,7 @@ struct CanvasStoryGroup<Content: View>: View {
     }
 
     private var grip: some View {
-        let availableRight = bounds.maxX - frame.maxX
-        let x = availableRight >= 24 ? frame.maxX + 12 : min(bounds.maxX - 11, frame.maxX - 11)
-        let y = frame.minY - bounds.minY >= 24 ? frame.minY - 12 : frame.minY + 11
+        let grip = CanvasStoryGrip.frame(for: frame, in: bounds)
         return Button(action: onSelect) {
             Image(systemName: "arrow.up.and.down.and.arrow.left.and.right")
                 .font(.system(size: 10, weight: .semibold))
@@ -70,7 +67,7 @@ struct CanvasStoryGroup<Content: View>: View {
             if delta != .zero { onMove(delta) }
         }
         .gesture(drag)
-        .position(x: max(bounds.minX + 11, x), y: min(bounds.maxY - 11, y))
+        .position(x: grip.midX, y: grip.midY)
     }
 
     private var drag: some Gesture {
@@ -96,5 +93,13 @@ struct CanvasStoryGroup<Content: View>: View {
 
     private func offset(to destination: CGRect) -> CGSize {
         CGSize(width: destination.minX - frame.minX, height: destination.minY - frame.minY)
+    }
+}
+
+enum CanvasStoryGrip {
+    static func frame(for story: CGRect, in bounds: CGRect) -> CGRect {
+        let x = bounds.maxX - story.maxX >= 24 ? story.maxX + 12 : min(bounds.maxX - 11, story.maxX - 11)
+        let y = story.minY - bounds.minY >= 24 ? story.minY - 12 : story.minY + 11
+        return CGRect(x: max(bounds.minX, x - 11), y: min(bounds.maxY - 22, y - 11), width: 22, height: 22)
     }
 }

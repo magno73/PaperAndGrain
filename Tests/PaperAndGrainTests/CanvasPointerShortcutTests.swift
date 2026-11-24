@@ -18,6 +18,21 @@ final class CanvasPointerShortcutTests: XCTestCase {
         XCTAssertFalse(CanvasDeleteShortcut.isWithinClickDistance(from: origin, to: CGPoint(x: 22.5, y: 32.5)))
     }
 
+    func testEscapeAndKeynoteDeselectShortcutLeaveOtherCombinationsAvailable() {
+        XCTAssertTrue(CanvasDeleteShortcut.isDeselectKey(53, modifiers: [], isRepeat: false))
+        XCTAssertTrue(CanvasDeleteShortcut.isDeselectKey(0, modifiers: [.command, .shift], isRepeat: false))
+        XCTAssertFalse(CanvasDeleteShortcut.isDeselectKey(53, modifiers: [.option], isRepeat: false))
+        XCTAssertFalse(CanvasDeleteShortcut.isDeselectKey(0, modifiers: [.command], isRepeat: false))
+        XCTAssertFalse(CanvasDeleteShortcut.isDeselectKey(53, modifiers: [], isRepeat: true))
+    }
+
+    func testArrowKeysNudgeByOneOrTenPoints() {
+        XCTAssertEqual(CanvasDeleteShortcut.nudgeOffset(123, modifiers: []), CGSize(width: -1, height: 0))
+        XCTAssertEqual(CanvasDeleteShortcut.nudgeOffset(126, modifiers: [.shift]), CGSize(width: 0, height: -10))
+        XCTAssertNil(CanvasDeleteShortcut.nudgeOffset(124, modifiers: [.command]))
+        XCTAssertNil(CanvasDeleteShortcut.nudgeOffset(0, modifiers: [.shift]))
+    }
+
     func testDetachedAnchorConvertsCoordinatesAndDoesNotInterceptHitTesting() async {
         await MainActor.run {
             let root = NSView(frame: CGRect(x: 0, y: 0, width: 480, height: 360))

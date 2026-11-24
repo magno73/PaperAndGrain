@@ -11,7 +11,6 @@ struct CanvasObjectControl<Content: View>: View {
     var allowsPhotoOverflow = false
     var preservesAspectRatio = false
     var showsWidthHandles = false
-    var selectsWithTap = true
     var moveSpace: CoordinateSpace = .global
     var swapTargetAt: ((CGPoint) -> CanvasPhotoSwap.Target?)? = nil
     var onSwap: ((UUID) -> Void)? = nil
@@ -20,7 +19,6 @@ struct CanvasObjectControl<Content: View>: View {
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
 
-    @FocusState private var focused: Bool
     @GestureState private var dragPreview: DragPreview?
 
     private struct DragPreview {
@@ -36,10 +34,8 @@ struct CanvasObjectControl<Content: View>: View {
             .clipped()
             .contentShape(ReachableFrame(rect: reachable))
             .gesture(drag())
-            .simultaneousGesture(tap)
             .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleClick?() })
             .focusable()
-            .focused($focused)
             .onKeyPress(.space) {
                 onSelect()
                 return .handled
@@ -66,13 +62,6 @@ struct CanvasObjectControl<Content: View>: View {
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
             .preference(key: CanvasGuidePreference.self, value: dragPreview?.placement.guides ?? [])
             .preference(key: CanvasSwapTargetPreference.self, value: dragPreview?.swapTarget)
-    }
-
-    private var tap: some Gesture {
-        TapGesture().onEnded {
-            focused = true
-            if selectsWithTap { onSelect() }
-        }
     }
 
     private func drag(_ corner: CanvasCorner? = nil, widthOnly: Bool = false) -> some Gesture {
@@ -110,6 +99,7 @@ struct CanvasObjectControl<Content: View>: View {
     }
 
     private func nudge(_ direction: MoveCommandDirection) {
+        guard selected else { return }
         let offset: CGSize
         switch direction {
         case .left: offset = CGSize(width: -1, height: 0)
@@ -118,16 +108,12 @@ struct CanvasObjectControl<Content: View>: View {
         case .down: offset = CGSize(width: 0, height: 1)
         @unknown default: return
         }
-        if !selected { onSelect() }
         let destination = adjustedFrame(by: offset)
         if destination != frame { onChange(destination) }
     }
 
     private func adjustedFrame(by translation: CGSize) -> CGRect {
-        let limits = movementBounds
-        let x = min(limits.maxX - frame.width, max(limits.minX, frame.minX + translation.width))
-        let y = min(limits.maxY - frame.height, max(limits.minY, frame.minY + translation.height))
-        return CGRect(x: x, y: y, width: frame.width, height: frame.height)
+        CanvasPhotoGeometry.moved(frame, by: translation, within: movementBounds)
     }
 
     private var movementBounds: CGRect {
@@ -153,6 +139,12 @@ struct CanvasSwapTargetPreference: PreferenceKey {
 }
 
 enum CanvasPhotoGeometry {
+    static func moved(_ frame: CGRect, by translation: CGSize, within limits: CGRect) -> CGRect {
+        let x = min(limits.maxX - frame.width, max(limits.minX, frame.minX + translation.width))
+        let y = min(limits.maxY - frame.height, max(limits.minY, frame.minY + translation.height))
+        return CGRect(x: x, y: y, width: frame.width, height: frame.height)
+    }
+
     static func movementBounds(for size: CGSize, in bounds: CGRect) -> CGRect {
         let horizontalOverflow = max(0, size.width - bounds.width * PageRect.photoOverlapFraction)
         let verticalOverflow = max(0, size.height - bounds.height * PageRect.photoOverlapFraction)

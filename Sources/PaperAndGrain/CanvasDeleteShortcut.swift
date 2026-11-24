@@ -1,9 +1,11 @@
 import AppKit
 import SwiftUI
 
-/// Observes clicks and routes deletion keys within the editor window.
+/// Routes editor commands and observes completed clicks without intercepting pointer events.
 struct CanvasDeleteShortcut: NSViewRepresentable {
     let onDelete: () -> Bool
+    let onDeselect: () -> Bool
+    let onNudge: (CGSize) -> Bool
     let onClick: (CGPoint) -> Void
 
     func makeNSView(context: Context) -> Anchor {
@@ -14,6 +16,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
 
     func updateNSView(_ anchor: Anchor, context: Context) {
         anchor.onDelete = onDelete
+        anchor.onDeselect = onDeselect
+        anchor.onNudge = onNudge
         anchor.onClick = onClick
     }
 
@@ -33,6 +37,24 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         clickCount == 1 && !modifiers.contains(.control)
     }
 
+    nonisolated static func isDeselectKey(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags, isRepeat: Bool) -> Bool {
+        guard !isRepeat else { return false }
+        let shortcut = modifiers.intersection([.command, .control, .option, .shift])
+        return (keyCode == 53 && shortcut.isEmpty) || (keyCode == 0 && shortcut == [.command, .shift])
+    }
+
+    nonisolated static func nudgeOffset(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> CGSize? {
+        guard modifiers.isDisjoint(with: [.command, .control, .option]) else { return nil }
+        let step: CGFloat = modifiers.contains(.shift) ? 10 : 1
+        switch keyCode {
+        case 123: return CGSize(width: -step, height: 0)
+        case 124: return CGSize(width: step, height: 0)
+        case 125: return CGSize(width: 0, height: step)
+        case 126: return CGSize(width: 0, height: -step)
+        default: return nil
+        }
+    }
+
     nonisolated static func isWithinClickDistance(from origin: CGPoint, to point: CGPoint) -> Bool {
         let dx = point.x - origin.x
         let dy = point.y - origin.y
@@ -41,6 +63,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
 
     final class Anchor: NSView {
         var onDelete: () -> Bool = { false }
+        var onDeselect: () -> Bool = { false }
+        var onNudge: (CGSize) -> Bool = { _ in false }
         var onClick: (CGPoint) -> Void = { _ in }
         private var monitor: Any?
         private var pressOrigin: CGPoint?
@@ -81,10 +105,18 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 return event
             }
             guard window.isKeyWindow, event.window == nil || event.window === window,
-                  CanvasDeleteShortcut.isDeleteKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat),
                   !(window.firstResponder is NSText), !(window.firstResponder is NSTextField)
             else { return event }
-            return onDelete() ? nil : event
+            if CanvasDeleteShortcut.isDeleteKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
+                return onDelete() ? nil : event
+            }
+            if CanvasDeleteShortcut.isDeselectKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
+                return onDeselect() ? nil : event
+            }
+            if let offset = CanvasDeleteShortcut.nudgeOffset(event.keyCode, modifiers: event.modifierFlags) {
+                return onNudge(offset) ? nil : event
+            }
+            return event
         }
 
         private func trackClick(_ event: NSEvent, in window: NSWindow) {
@@ -114,7 +146,13 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                       CanvasDeleteShortcut.isPrimaryMousePress(clickCount: event.clickCount, modifiers: event.modifierFlags)
                 else { return }
                 let point = convert(location, from: nil)
-                if bounds.contains(point) { onClick(point) }
+                guard bounds.contains(point) else { return }
+                // Let AppKit finish dispatching mouse-up before selection changes replace SwiftUI controls.
+                DispatchQueue.main.async { [weak self, weak window] in
+                    guard let self, let window, self.window === window, window.isKeyWindow,
+                          window.attachedSheet == nil else { return }
+                    self.onClick(point)
+                }
             default:
                 break
             }

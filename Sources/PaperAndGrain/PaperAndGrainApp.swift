@@ -2,6 +2,16 @@ import AppKit
 import SwiftUI
 
 @main
+enum PaperAndGrainEntry {
+    @MainActor static func main() {
+        let arguments = CommandLine.arguments.dropFirst()
+        if arguments.first == "cli" {
+            exit(BookCLI.run(Array(arguments.dropFirst())))
+        }
+        PaperAndGrainApp.main()
+    }
+}
+
 struct PaperAndGrainApp: App {
     @StateObject private var workspace = Workspace()
     @AppStorage("interfaceLanguage") private var preferredLanguage = "system"

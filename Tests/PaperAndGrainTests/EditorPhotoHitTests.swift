@@ -30,9 +30,30 @@ final class EditorPhotoHitTests: XCTestCase {
         let geometry = BookCoverGeometry(book: book, front: true)
         let frame = CGRect(x: 270, y: 120, width: 300, height: 300)
 
-        XCTAssertTrue(EditorPhotoHitTest.onCover(at: CGPoint(x: 420, y: 250), frame: frame, geometry: geometry))
-        XCTAssertFalse(EditorPhotoHitTest.onCover(at: CGPoint(x: 420, y: 340), frame: frame, geometry: geometry))
-        XCTAssertFalse(EditorPhotoHitTest.onCover(at: CGPoint(x: 269, y: 250), frame: frame, geometry: geometry))
+        let photo = UUID()
+        let map = CanvasHitMap.cover(geometry, photoID: photo)
+        XCTAssertEqual(map.target(at: CGPoint(x: 420, y: 250), in: frame), .photo(photo))
+        XCTAssertNotEqual(map.target(at: CGPoint(x: 420, y: 340), in: frame), .photo(photo))
+        XCTAssertNil(map.target(at: CGPoint(x: 269, y: 250), in: frame))
+    }
+
+    func testCanvasRoutesEachClickToTheTopVisibleObjectOrPaper() {
+        let photo = UUID()
+        let box = UUID()
+        let bounds = CGRect(x: 0, y: 0, width: 200, height: 200)
+        let frame = CGRect(x: 50, y: 20, width: 100, height: 100)
+        let map = CanvasHitMap(bounds: bounds, regions: [
+            .init(frame: CGRect(x: 0, y: 0, width: 200, height: 130), target: .photo(photo)),
+            .init(frame: CGRect(x: 20, y: 20, width: 110, height: 80), target: .storyGroup),
+            .init(frame: CGRect(x: 30, y: 30, width: 90, height: 20), target: .story(.title)),
+            .init(frame: CGRect(x: 40, y: 40, width: 20, height: 20), target: .textBox(box)),
+        ])
+        XCTAssertEqual(map.target(at: CGPoint(x: 130, y: 60), in: frame), .photo(photo))
+        XCTAssertEqual(map.target(at: CGPoint(x: 65, y: 62), in: frame), .storyGroup)
+        XCTAssertEqual(map.target(at: CGPoint(x: 98, y: 41), in: frame), .story(.title))
+        XCTAssertEqual(map.target(at: CGPoint(x: 75, y: 43), in: frame), .textBox(box))
+        XCTAssertEqual(map.target(at: CGPoint(x: 73, y: 99), in: frame), .paper)
+        XCTAssertNil(map.target(at: CGPoint(x: 72, y: 121), in: frame))
     }
 
     func testPhotoHitUsesTheMovedTextFrame() {

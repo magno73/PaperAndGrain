@@ -8,10 +8,12 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.7.1/Paper & Grain.app'
+open 'dist/0.8.1/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
+
+Un agente può costruire un libro modificabile a partire da una specifica JSON e da immagini locali. La [guida della CLI](docs/cli.md) descrive i comandi `templates`, `build` e `inspect`.
 
 ## Fare un primo libro
 
@@ -22,11 +24,15 @@ Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in 
 
 ## Montare le pagine
 
+- Un clic seleziona l’elemento visibile più in alto. Clicca sulla carta libera o fuori dalla pagina per deselezionare, oppure usa **Esc** o **⇧⌘A**. Le frecce spostano l’oggetto selezionato di un punto. Tieni premuto **⇧** per spostarlo di dieci punti.
+- Premi **Canc** o **⌫** sulla foto in pagina o in copertina, oppure su un box di testo selezionato, per rimuoverlo. **⌘Z** ripristina l’elemento. Gli scatti in attesa di un riquadro si gestiscono nell’elenco **Foto nella pagina**.
+
 - In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi selezionarlo e premere **⌫** o **Canc** per rimuoverlo dalla composizione. Lo scatto resta nella libreria del libro. Le maniglie agli angoli permettono di ingrandirlo anche oltre il bordo. La parte oltre il taglio rimane fuori dalla pagina. Fai doppio clic sulla foto in pagina per modificarne il ritaglio e premi **Fine** per applicare.
 - In **Pagina → Modello di pagina** scegli una composizione **Con margini** o **Al vivo**. I modelli al vivo comprendono due foto affiancate o una sopra l’altra, tre colonne, una griglia di quattro e una foto grande sopra due più piccole. Scegliere un modello ridistribuisce le cornici. Testo, box, scatti e ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
 - Per scambiare due foto della stessa pagina, trascina una foto all’interno dell’altra e rilascia quando vedi il bordo con le frecce. I ritagli seguono i rispettivi scatti. Tieni premuto **⌥** per sovrapporre liberamente le foto. **⌘Z** annulla lo scambio.
 - **Inserisci → Box di testo** crea un riquadro indipendente. **Inserisci → Titolo di pagina** aggiunge un titolo anche su una pagina fotografica. Clicca un titolo, un racconto o un box e trascinalo per spostarlo. Usa le maniglie laterali per allargarlo e gli angoli per cambiarne anche l’altezza. Fai doppio clic per scrivere nella pagina. Titolo e racconto si adattano alla larghezza impostata. **Usa tutta la larghezza** elimina i margini interni di un box.
 - Trascina lo sfondo del racconto o la maniglia **Sposta blocco** per muovere insieme titolo, testo e sfondo. Trascina direttamente il titolo o il testo per spostare solo quel riquadro.
+- In **Tipografia**, usa **−** e **+** per cambiare la dimensione di un punto o digita il valore nel campo.
 - Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Le guide compaiono anche trascinando una foto dalla scheda **Foto** o usando le maniglie della foto e del riquadro di ritaglio. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente.
 - **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Sulle facce della copertina puoi trascinare una foto o sceglierla dalla scheda **Foto**, spostare e ridimensionare titolo e testo del retro e aprire **Regola foto** o **Pellicola** dallo stesso pannello.
 

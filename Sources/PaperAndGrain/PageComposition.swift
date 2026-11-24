@@ -116,7 +116,9 @@ struct PageComposition {
     func storyDrawingBlocks(page: BookPage, book: Book) -> [TextBlock] {
         if page.titleFrame == nil && page.storyFrame == nil {
             guard let story else { return [] }
-            return [TextBlock(role: .combined, frame: story, text: Self.storyText(page: page, book: book))]
+            return [TextBlock(role: .combined, frame: story, text: Self.storyText(
+                page: page, book: book, width: story.width, overPhoto: storyBackground != nil
+            ))]
         }
         return storyBlocks(page: page, book: book)
     }
@@ -134,10 +136,13 @@ struct PageComposition {
         let area = story ?? bounds
         let mixed = page.effectiveLayout == .mixed
         let style = book.editorialStyle
-        let title = style.typography("", heading: page.heading, mixed: mixed, titleStyle: book.titleStyle(for: page))
-        let body = style.typography(page.text, heading: nil, mixed: mixed, bodyStyle: book.bodyStyle(for: page))
+        let overPhoto = storyBackground != nil
+        let titleWidth = page.titleFrame?.rect(in: bounds).width ?? area.width
+        let titleStyle = style.fittedTitleStyle(page.heading, width: titleWidth, mixed: mixed, override: book.titleStyle(for: page))
+        let title = style.typography("", heading: page.heading, mixed: mixed, titleStyle: titleStyle, overPhoto: overPhoto)
+        let body = style.typography(page.text, heading: nil, mixed: mixed, bodyStyle: book.bodyStyle(for: page), overPhoto: overPhoto)
         var blocks: [TextBlock] = []
-        let titleHeight = EditorialTypesetter.requiredHeight(title, width: area.width)
+        let titleHeight = EditorialTypesetter.requiredHeight(title, width: titleWidth)
         if (title.length > 0 && story != nil) || page.titleFrame != nil {
             let frame = page.titleFrame?.rect(in: bounds) ?? CGRect(x: area.minX, y: area.minY, width: area.width,
                                                                     height: min(area.height, titleHeight))
@@ -150,7 +155,7 @@ struct PageComposition {
             } else {
                 var offset: CGFloat = 0
                 if title.length > 0 && body.length > 0 {
-                    let joined = Self.storyText(page: page, book: book)
+                    let joined = Self.storyText(page: page, book: book, width: area.width, overPhoto: overPhoto)
                     // The body is a new paragraph in the legacy frame. Compare the original first
                     // baseline with the same line drawn as its own paragraph, including font leading.
                     let combinedBaseline = EditorialTypesetter.baseline(joined, at: title.length + 1, in: area)
@@ -175,9 +180,13 @@ struct PageComposition {
         let crop: PhotoCrop
     }
 
-    static func storyText(page: BookPage, book: Book) -> NSAttributedString {
-        book.editorialStyle.typography(page.text, heading: page.heading, mixed: page.effectiveLayout == .mixed,
-                                       titleStyle: book.titleStyle(for: page), bodyStyle: book.bodyStyle(for: page))
+    static func storyText(page: BookPage, book: Book, width: CGFloat? = nil, overPhoto: Bool = false) -> NSAttributedString {
+        let mixed = page.effectiveLayout == .mixed
+        let style = book.editorialStyle
+        let override = book.titleStyle(for: page)
+        let title = width.map { style.fittedTitleStyle(page.heading, width: $0, mixed: mixed, override: override) } ?? override
+        return style.typography(page.text, heading: page.heading, mixed: mixed,
+                                titleStyle: title, bodyStyle: book.bodyStyle(for: page), overPhoto: overPhoto)
     }
 
     static func boxText(box: PageTextBox, book: Book) -> NSAttributedString {
@@ -202,7 +211,7 @@ struct PageComposition {
         let full = layout == .fullPage || layout == .fullSpread || page.arrangement?.isFullBleed == true
         let style = book.editorialStyle
         let safe = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
-        rule = style.rule && !full ? CGRect(x: safe.minX, y: safe.minY - 9, width: safe.width, height: 0.55) : nil
+        rule = full ? nil : style.pageRule(in: safe)
         folio = style.folio && !full ? CGRect(x: safe.minX, y: safe.maxY + 6, width: 45, height: 20) : nil
         let mixed = layout == .mixed
         let alignedRoles = [page.heading?.isEmpty == false ? book.titleStyle(for: page).alignment : nil,
@@ -214,8 +223,14 @@ struct PageComposition {
         if let arrangement = page.arrangement {
             let geometry = arrangement.geometry(in: bounds, inside: safe, gap: style.imageGap)
             arrangementPhotoSlots = geometry.photos
-            story = geometry.story.map { style.textArea(in: $0, mixed: mixed, fullColumn: fullColumn) }
-            storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
+            if arrangement == .textOverPhoto, let panel = book.template?.storyOverlayPanel(in: safe) {
+                let padding = min(safe.width, safe.height) * 0.043
+                story = panel.insetBy(dx: padding, dy: padding)
+                storyBackground = page.hasStoryText ? panel : nil
+            } else {
+                story = geometry.story.map { style.textArea(in: $0, mixed: mixed, fullColumn: fullColumn) }
+                storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
+            }
             photos = page.photoIDs.enumerated().compactMap { index, id in
                 guard let photo = lookup(id) else { return nil }
                 let placement = page.photoPlacements?[id]
@@ -241,6 +256,9 @@ struct PageComposition {
         storyBackground = nil
         let images = page.photoIDs.compactMap(lookup)
         let autoImages = images.filter { page.photoPlacements?[$0.id]?.frame == nil }
+        let studioGallery = layout == .gallery
+            ? book.template?.studioGallery(count: autoImages.count, in: safe, gap: style.imageGap)
+            : nil
         let automaticFrames: [CGRect]
         switch page.layout {
         case .fullPage, .fullSpread:
@@ -250,7 +268,7 @@ struct PageComposition {
         case .text:
             automaticFrames = []
         case .mixed, .gallery:
-            automaticFrames = BookLayoutGeometry.rectangles(
+            automaticFrames = studioGallery ?? BookLayoutGeometry.rectangles(
                 for: autoImages.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) },
                 in: mixed ? parts.photo : safe, gap: style.imageGap)
         }
@@ -259,9 +277,63 @@ struct PageComposition {
             let manual = page.photoPlacements?[photo.id]
             guard let frame = manual?.frame?.photoRect(in: bounds, bleed: bleed) ?? slots.next() else { return nil }
             let alignment = full ? page.framing ?? 0.5 : 0.5
-            return Photo(photo: photo, frame: frame, fills: full || manual?.frame != nil || manual?.crop != nil,
+            return Photo(photo: photo, frame: frame,
+                         fills: full || studioGallery != nil || manual?.frame != nil || manual?.crop != nil,
                          crop: manual?.crop ?? PhotoCrop(x: alignment, y: alignment))
         }
+    }
+}
+
+private extension BookTemplate {
+    func studioGallery(count: Int, in safe: CGRect, gap: CGFloat) -> [CGRect]? {
+        guard count > 0, !safe.isEmpty else { return nil }
+        func place(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat) -> CGRect {
+            CGRect(x: safe.minX + x * safe.width, y: safe.minY + y * safe.height,
+                   width: width * safe.width, height: height * safe.height)
+        }
+        switch self {
+        case .swissGrid:
+            if count == 1 { return [place(1 / 6, 0.06, 5 / 6, 0.88)] }
+            let columns = count > 4 ? 3 : 2
+            let rows = (count + columns - 1) / columns
+            let area = place(0, 0.06, 1, 0.88)
+            return (0..<count).map { index in
+                let cellWidth = area.width / CGFloat(columns)
+                let cellHeight = area.height / CGFloat(rows)
+                return CGRect(x: area.minX + CGFloat(index % columns) * cellWidth,
+                              y: area.minY + CGFloat(index / columns) * cellHeight,
+                              width: cellWidth - min(gap, cellWidth * 0.12),
+                              height: cellHeight - min(gap, cellHeight * 0.12))
+            }
+        case .berlinQuarter:
+            guard count > 1 else { return [place(0, 0.04, 1, 0.92)] }
+            let stripHeight = 0.90 / CGFloat(count - 1)
+            return [place(0, 0.04, 0.71, 0.92)] + (0..<(count - 1)).map { index in
+                place(0.75, 0.045 + CGFloat(index) * stripHeight, 0.25, stripHeight * 0.94)
+            }
+        case .japaneseInterval:
+            switch count {
+            case 1: return [place(0.30, 0.21, 0.62, 0.56)]
+            case 2: return [place(0.43, 0.07, 0.51, 0.38), place(0.05, 0.62, 0.50, 0.29)]
+            case 3: return [place(0.40, 0.04, 0.56, 0.40), place(0.06, 0.61, 0.35, 0.28),
+                            place(0.54, 0.58, 0.34, 0.25)]
+            default: return nil
+            }
+        default: return nil
+        }
+    }
+
+    func storyOverlayPanel(in safe: CGRect) -> CGRect? {
+        let panel: CGRect
+        switch self {
+        case .swissGrid: panel = CGRect(x: 0, y: 0.70, width: 0.90, height: 0.30)
+        case .berlinQuarter: panel = CGRect(x: 0.12, y: 0.035, width: 0.88, height: 0.31)
+        case .japaneseInterval: panel = CGRect(x: 0.33, y: 0.66, width: 0.67, height: 0.34)
+        default: return nil
+        }
+        guard !safe.isEmpty else { return nil }
+        return CGRect(x: safe.minX + panel.minX * safe.width, y: safe.minY + panel.minY * safe.height,
+                      width: panel.width * safe.width, height: panel.height * safe.height)
     }
 }
 
@@ -312,9 +384,11 @@ struct BookCoverGeometry {
             background = style.paper
             fills = front
             band = nil
-            rule = front && style.rule ? CGRect(x: panel.minX, y: panel.minY, width: panel.width, height: 0.8) : nil
+            rule = front ? style.coverRule(in: panel) : nil
             if front {
-                title = style.typography("", heading: titleText, mixed: false, titleStyle: override)
+                let adapted = style.fittedTitleStyle(titleText, width: manual?.width ?? panel.width,
+                                                     mixed: false, override: override)
+                title = style.typography("", heading: titleText, mixed: false, titleStyle: adapted)
                 var picture = style.coverPicture(in: panel, bleed: bleed)
                 let defaultHeight = panel.height * (style.coverTitleBelow ? 0.28 : 0.25)
                 let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0

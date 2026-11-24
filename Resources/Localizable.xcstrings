@@ -1462,6 +1462,40 @@
         }
       }
     },
+    "template.berlinQuarter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berlin Notebook"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quaderno berlinese"
+          }
+        }
+      }
+    },
+    "template.berlinQuarter.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Midnight blue, citron headlines and a strip of photography above the masthead."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blu notte, titoli cedro e una fascia fotografica sopra la testata."
+          }
+        }
+      }
+    },
     "template.chooser": {
       "extractionState": "manual",
       "localizations": {
@@ -1530,6 +1564,40 @@
         }
       }
     },
+    "template.japaneseInterval": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japanese Interval"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervallo giapponese"
+          }
+        }
+      }
+    },
+    "template.japaneseInterval.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An off-centre print, Mincho headings and a caption on warm paper."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piccola stampa decentrata, titoli Mincho e una didascalia su carta calda."
+          }
+        }
+      }
+    },
     "template.restore": {
       "extractionState": "manual",
       "localizations": {
@@ -1543,6 +1611,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ripristina stile di base"
+          }
+        }
+      }
+    },
+    "template.swissGrid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swiss Grid"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Griglia svizzera"
+          }
+        }
+      }
+    },
+    "template.swissGrid.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Six-column grid, compact bold type and a caption panel marked in red."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Griglia a sei colonne, neretto compatto e cartiglio segnato in rosso."
           }
         }
       }

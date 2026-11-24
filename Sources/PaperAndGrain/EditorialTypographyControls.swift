@@ -61,7 +61,8 @@ struct EditorialTypographyControls: View {
         let label = tr("Dimensione carattere", "Font Size")
         let reference = tr("Da 6 a 120 punti. Cancella il valore per usare la dimensione ereditata.",
                            "6 to 120 points. Clear the value to use the inherited size.")
-        return HStack(spacing: 3) {
+        return HStack(spacing: 2) {
+            sizeButton("minus", tr("Riduci dimensione carattere", "Decrease Font Size"), step: -1)
             TextField(label, text: Binding(get: { sizeDraft ?? formattedSize }, set: { draft in
                 sizeDraft = draft
                 if updatesSizeWhileTyping { applySize(draft) }
@@ -71,7 +72,7 @@ struct EditorialTypographyControls: View {
                 .focused($editingSize)
                 .multilineTextAlignment(.trailing)
                 .monospacedDigit()
-                .frame(width: 46)
+                .frame(width: 42)
                 .onSubmit {
                     commitSize()
                     editingSize = false
@@ -91,7 +92,27 @@ struct EditorialTypographyControls: View {
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
+            sizeButton("plus", tr("Aumenta dimensione carattere", "Increase Font Size"), step: 1)
         }
+    }
+
+    private func sizeButton(_ symbol: String, _ label: String, step: Double) -> some View {
+        let range = EditorialTextStyle.pointSizeRange
+        return Button {
+            commitSize()
+            editingSize = false
+            let next = min(range.upperBound, max(range.lowerBound, effectiveSize + step))
+            set(\.pointSize, to: next)
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 19, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(sizeDraft == nil && (step < 0 ? effectiveSize <= range.lowerBound : effectiveSize >= range.upperBound))
+        .accessibilityLabel(label)
+        .help(label)
     }
 
     private var alignmentControl: some View {
