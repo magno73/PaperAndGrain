@@ -104,28 +104,8 @@ struct PaperAndGrainApp: App {
                     workspace.start(photos, title: title, format: format, language: language)
                 }
             }
-            .sheet(isPresented: $showBookTemplates) {
-                if let directory = workspace.directory {
-                    BookTemplateChooser(book: workspace.book, directory: directory, language: language,
-                                        onCancel: { showBookTemplates = false }) { template in
-                        workspace.book.template = template
-                        workspace.flushSave()
-                        showBookTemplates = false
-                    }
-                }
-            }
-            .sheet(isPresented: $showBookSettings) {
-                BookSettingsView(book: workspace.book, language: language, close: { showBookSettings = false }) {
-                    title, format, printSettings, cover, typography in
-                    workspace.book.title = title
-                    workspace.book.format = format
-                    workspace.book.printSettings = printSettings
-                    workspace.book.cover = cover
-                    workspace.book.typography = typography
-                    workspace.flushSave()
-                    showBookSettings = false
-                }
-            }
+            .modifier(BookSettingsSheets(workspace: workspace, language: language,
+                                         showSettings: $showBookSettings, showTemplates: $showBookTemplates))
             .sheet(isPresented: $showPDFExport, onDismiss: runPDFExport) {
                 let book = workspace.book
                 let directory = workspace.directory
@@ -227,6 +207,37 @@ struct PaperAndGrainApp: App {
             .padding(26)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
         }
+    }
+}
+
+private struct BookSettingsSheets: ViewModifier {
+    @Environment(\.undoManager) private var undoManager
+    let workspace: Workspace
+    let language: String
+    @Binding var showSettings: Bool
+    @Binding var showTemplates: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $showTemplates) {
+                if let directory = workspace.directory {
+                    BookTemplateChooser(book: workspace.book, directory: directory, language: language,
+                                        onCancel: { showTemplates = false }) { template in
+                        workspace.applyBookTemplate(template, undoManager: undoManager,
+                                                    actionName: language == "it" ? "Modello del libro" : "Book Template")
+                        showTemplates = false
+                    }
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                BookSettingsView(book: workspace.book, language: language, close: { showSettings = false }) {
+                    title, format, printSettings, cover, typography in
+                    workspace.applyBookPrintSettings(title: title, format: format, printSettings: printSettings,
+                                                     cover: cover, typography: typography, undoManager: undoManager,
+                                                     actionName: language == "it" ? "Libro e stampa" : "Book & Print")
+                    showSettings = false
+                }
+            }
     }
 }
 

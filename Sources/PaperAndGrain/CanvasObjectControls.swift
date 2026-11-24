@@ -16,6 +16,7 @@ struct CanvasObjectControl<Content: View>: View {
     var onSwap: ((UUID) -> Void)? = nil
     var onDoubleClick: (() -> Void)? = nil
     let onSelect: () -> Void
+    let onNudge: (CGSize) -> Bool
     let onChange: (CGRect) -> Void
     @ViewBuilder let content: (CGSize) -> Content
 
@@ -40,7 +41,7 @@ struct CanvasObjectControl<Content: View>: View {
                 onSelect()
                 return .handled
             }
-            .onMoveCommand(perform: nudge)
+            .canvasArrowKeys(perform: onNudge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityName)
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
@@ -98,20 +99,6 @@ struct CanvasObjectControl<Content: View>: View {
         return DragPreview(placement: CanvasAlignment.duringDrag(proposed, to: targets, within: movementBounds))
     }
 
-    private func nudge(_ direction: MoveCommandDirection) {
-        guard selected else { return }
-        let offset: CGSize
-        switch direction {
-        case .left: offset = CGSize(width: -1, height: 0)
-        case .right: offset = CGSize(width: 1, height: 0)
-        case .up: offset = CGSize(width: 0, height: -1)
-        case .down: offset = CGSize(width: 0, height: 1)
-        @unknown default: return
-        }
-        let destination = adjustedFrame(by: offset)
-        if destination != frame { onChange(destination) }
-    }
-
     private func adjustedFrame(by translation: CGSize) -> CGRect {
         CanvasPhotoGeometry.moved(frame, by: translation, within: movementBounds)
     }
@@ -126,6 +113,24 @@ struct CanvasObjectControl<Content: View>: View {
         func path(in bounds: CGRect) -> Path {
             let intersection = rect.intersection(bounds)
             return intersection.isEmpty ? Path() : Path(intersection)
+        }
+    }
+}
+
+extension View {
+    func canvasArrowKeys(perform action: @escaping (CGSize) -> Bool) -> some View {
+        onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow], phases: [.down, .repeat]) { press in
+            guard press.modifiers.intersection([.command, .option, .control]).isEmpty else { return .ignored }
+            let step: CGFloat = press.modifiers.contains(.shift) ? 10 : 1
+            let offset: CGSize
+            switch press.key {
+            case .leftArrow: offset = CGSize(width: -step, height: 0)
+            case .rightArrow: offset = CGSize(width: step, height: 0)
+            case .upArrow: offset = CGSize(width: 0, height: -step)
+            case .downArrow: offset = CGSize(width: 0, height: step)
+            default: return .ignored
+            }
+            return action(offset) ? .handled : .ignored
         }
     }
 }

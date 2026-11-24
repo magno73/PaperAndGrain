@@ -39,6 +39,57 @@ final class ProjectSaveTests: XCTestCase {
         }
     }
 
+    func testSettingsUndoAndRedoPreserveLaterPageEditsAndSaveTheResult() async throws {
+        let folder = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let project = folder.appendingPathComponent("Settings.papergrain", isDirectory: true)
+        let original = Book(title: "Before", pages: [BookPage(text: "Before")])
+        try BookStorage.write(original, to: project)
+
+        try await MainActor.run {
+            let workspace = Workspace(defaults: MemoryDefaults())
+            workspace.openProject(at: project)
+            let undoManager = UndoManager()
+            undoManager.groupsByEvent = false
+
+            undoManager.beginUndoGrouping()
+            workspace.applyBookPrintSettings(title: "After", format: .portrait, printSettings: PrintSettings(),
+                                             cover: BookCover(title: "Cover"), typography: nil,
+                                             undoManager: undoManager, actionName: "Book & Print")
+            undoManager.endUndoGrouping()
+
+            undoManager.beginUndoGrouping()
+            workspace.applyBookTemplate(.atlas, undoManager: undoManager, actionName: "Book Template")
+            undoManager.endUndoGrouping()
+
+            workspace.book.pages[0].text = "Later edit"
+            undoManager.undo()
+            XCTAssertNil(workspace.book.template)
+            XCTAssertEqual(workspace.book.title, "After")
+
+            undoManager.undo()
+            XCTAssertFalse(undoManager.canUndo)
+            XCTAssertEqual(workspace.book.title, original.title)
+            XCTAssertEqual(workspace.book.format, original.format)
+            XCTAssertNil(workspace.book.cover)
+            XCTAssertNil(workspace.book.printSettings)
+            XCTAssertEqual(workspace.book.pages[0].text, "Later edit")
+            XCTAssertEqual(try BookStorage.read(from: project), workspace.book)
+
+            undoManager.redo()
+            undoManager.redo()
+            XCTAssertEqual(workspace.book.title, "After")
+            XCTAssertEqual(workspace.book.format, .portrait)
+            XCTAssertEqual(workspace.book.cover?.title, "Cover")
+            XCTAssertEqual(workspace.book.template, .atlas)
+            XCTAssertEqual(workspace.book.pages[0].text, "Later edit")
+            XCTAssertEqual(try BookStorage.read(from: project), workspace.book)
+
+            workspace.closeBook()
+            XCTAssertFalse(undoManager.canUndo)
+        }
+    }
+
     func testNamedSaveWritesOnlyAnExistingManifest() throws {
         let folder = try scratchFolder()
         defer { try? FileManager.default.removeItem(at: folder) }

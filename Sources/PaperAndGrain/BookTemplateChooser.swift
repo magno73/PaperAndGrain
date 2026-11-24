@@ -113,7 +113,11 @@ struct BookTemplateChooser: View {
                                 y: (size.height - face.bounds.height * scale) / 2)
             context.scaleBy(x: scale, y: scale)
             context.fill(Path(face.bounds), with: .color(paper))
-            if let hero { drawPreviewPhoto(hero, in: face.photoFrame, context: context) }
+            if let hero {
+                var clipped = context
+                clipped.clip(to: Path(face.bounds))
+                drawPreviewPhoto(hero, in: face.photoFrame, crop: face.photoCrop, fills: face.fills, context: clipped)
+            }
             if let rule = face.rule { context.fill(Path(rule), with: .color(Color(cgColor: EditorialStyle.color(style.accent)))) }
             if let frame = face.titleFrame {
                 context.withCGContext { cg in _ = EditorialTypesetter.draw(face.title, in: frame, context: cg) }
@@ -136,13 +140,13 @@ struct BookTemplateChooser: View {
         }
     }
 
-    private func drawPreviewPhoto(_ photo: NSImage, in frame: CGRect, context: GraphicsContext) {
-        guard photo.size.width > 0, photo.size.height > 0 else { return }
-        let scale = max(frame.width / photo.size.width, frame.height / photo.size.height)
-        let w = photo.size.width * scale, h = photo.size.height * scale
+    private func drawPreviewPhoto(_ photo: NSImage, in frame: CGRect, crop: PhotoCrop = PhotoCrop(),
+                                  fills: Bool = true, context: GraphicsContext) {
+        let placement = crop.imageRect(for: photo.size, in: frame, fills: fills)
+        guard !placement.isEmpty else { return }
         var clipped = context
         clipped.clip(to: Path(frame))
-        clipped.draw(Image(nsImage: photo), in: CGRect(x: frame.midX - w / 2, y: frame.midY - h / 2, width: w, height: h))
+        clipped.draw(Image(nsImage: photo), in: placement)
     }
 
     private func tr(_ italian: String, _ english: String) -> String { language == "it" ? italian : english }

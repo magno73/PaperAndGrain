@@ -104,7 +104,7 @@ enum BookPDF {
                         scaleX: PixartPrintProfile.panelWidth / book.format.widthMM,
                         y: PixartPrintProfile.panelHeight / book.format.heightMM
                     )) : face.photoFrame
-                    check(photo, frame: frame, fills: face.fills, crop: PhotoCrop(), location: "Copertina / Cover")
+                    check(photo, frame: frame, fills: face.fills, crop: face.photoCrop, location: "Copertina / Cover")
                 } else { warnings.append("Copertina / Cover · Foto mancante / Missing photo") }
             }
         }
@@ -214,10 +214,14 @@ enum BookPDF {
             let back = BookCoverGeometry(book: book, front: false, bleed: bleed)
             ctx.setFillColor(EditorialStyle.color(back.background))
             ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
-            try drawFace(back, photoID: cover.backPhotoID, ppi: ppi, book: book, directory: directory, context: ctx)
+            let backOuter = CGRect(x: -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
+            try drawFace(back, photoID: cover.backPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
+                         trim: cover.backPhotoPlacement == nil ? nil : back.bounds, outer: backOuter)
             ctx.translateBy(x: w + spine, y: 0)
             let front = BookCoverGeometry(book: book, front: true, bleed: bleed)
-            try drawFace(front, photoID: cover.frontPhotoID, ppi: ppi, book: book, directory: directory, context: ctx)
+            let frontOuter = CGRect(x: 0, y: -bleed, width: w + bleed, height: h + 2 * bleed)
+            try drawFace(front, photoID: cover.frontPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
+                         trim: cover.frontPhotoPlacement == nil ? nil : front.bounds, outer: frontOuter)
             ctx.endPDFPage()
         } else {
             let slots = leaves(book.pages, settings: settings, pixart: pixartSpineMM != nil)
@@ -399,7 +403,10 @@ enum BookPDF {
                                  trim: CGRect? = nil, outer: CGRect? = nil) throws {
         if let id = photoID {
             guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
-            try paint(photo, rect: face.photoFrame.applying(map), fills: face.fills, crop: PhotoCrop(), ppi: ppi,
+            context.saveGState()
+            defer { context.restoreGState() }
+            if let outer { context.clip(to: outer) }
+            try paint(photo, rect: face.photoFrame.applying(map), fills: face.fills, crop: face.photoCrop, ppi: ppi,
                       book: book, directory: directory, context: context, trim: trim, outer: outer)
         }
         if let band = face.band {

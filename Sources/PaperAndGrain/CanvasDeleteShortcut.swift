@@ -7,6 +7,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     let onDeselect: () -> Bool
     let onNudge: (CGSize) -> Bool
     let onClick: (CGPoint) -> Void
+    let onPointerDown: (CGPoint) -> Void
+    let onKeyboardTraversal: () -> Void
 
     func makeNSView(context: Context) -> Anchor {
         let anchor = Anchor(frame: .zero)
@@ -19,6 +21,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         anchor.onDeselect = onDeselect
         anchor.onNudge = onNudge
         anchor.onClick = onClick
+        anchor.onPointerDown = onPointerDown
+        anchor.onKeyboardTraversal = onKeyboardTraversal
     }
 
     static func dismantleNSView(_ anchor: Anchor, coordinator: ()) {
@@ -66,6 +70,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         var onDeselect: () -> Bool = { false }
         var onNudge: (CGSize) -> Bool = { _ in false }
         var onClick: (CGPoint) -> Void = { _ in }
+        var onPointerDown: (CGPoint) -> Void = { _ in }
+        var onKeyboardTraversal: () -> Void = {}
         private var monitor: Any?
         private var pressOrigin: CGPoint?
 
@@ -104,9 +110,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 trackClick(event, in: window)
                 return event
             }
-            guard window.isKeyWindow, event.window == nil || event.window === window,
-                  !(window.firstResponder is NSText), !(window.firstResponder is NSTextField)
-            else { return event }
+            guard window.isKeyWindow, event.window == nil || event.window === window else { return event }
+            if event.keyCode == 48 { onKeyboardTraversal() } // Tab can move focus from the canvas to a control.
+            guard !(window.firstResponder is NSText), !(window.firstResponder is NSTextField) else { return event }
             if CanvasDeleteShortcut.isDeleteKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
                 return onDelete() ? nil : event
             }
@@ -129,6 +135,7 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             switch event.type {
             case .leftMouseDown:
                 let point = convert(location, from: nil)
+                onPointerDown(point)
                 if bounds.contains(point),
                    CanvasDeleteShortcut.isPrimaryMousePress(clickCount: event.clickCount, modifiers: event.modifierFlags) {
                     pressOrigin = location

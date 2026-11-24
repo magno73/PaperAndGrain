@@ -25,11 +25,12 @@ struct CanvasHitMap: Equatable {
                        y: bounds.minY + (point.y - frame.minY) * bounds.height / frame.height)
     }
 
-    static func cover(_ geometry: BookCoverGeometry, photoID: UUID?) -> Self {
+    static func cover(_ geometry: BookCoverGeometry, photoID: UUID?, cropFrame: CGRect? = nil) -> Self {
         var regions: [Region] = []
         if let photoID { regions.append(Region(frame: geometry.photoFrame, target: .photo(photoID))) }
         if let band = geometry.band { regions.append(Region(frame: band, target: .paper)) }
         if let text = geometry.titleFrame { regions.append(Region(frame: text, target: .coverText)) }
+        if let cropFrame { regions.append(Region(frame: cropFrame, target: .crop)) }
         return Self(bounds: geometry.bounds, regions: regions)
     }
 }

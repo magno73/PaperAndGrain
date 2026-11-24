@@ -9,6 +9,7 @@ struct CanvasStoryGroup<Content: View>: View {
     let selected: Bool
     let moveLabel: String
     let onSelect: () -> Void
+    let onNudge: (CGSize) -> Bool
     let onMove: (CGSize) -> Void
     @ViewBuilder let content: () -> Content
 
@@ -53,19 +54,7 @@ struct CanvasStoryGroup<Content: View>: View {
         .help(moveLabel)
         .accessibilityLabel(moveLabel)
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .onMoveCommand { direction in
-            let step: CGSize
-            switch direction {
-            case .left: step = CGSize(width: -1, height: 0)
-            case .right: step = CGSize(width: 1, height: 0)
-            case .up: step = CGSize(width: 0, height: -1)
-            case .down: step = CGSize(width: 0, height: 1)
-            @unknown default: return
-            }
-            onSelect()
-            let delta = offset(to: movedFrame(by: step))
-            if delta != .zero { onMove(delta) }
-        }
+        .canvasArrowKeys(perform: onNudge)
         .gesture(drag)
         .position(x: grip.midX, y: grip.midY)
     }

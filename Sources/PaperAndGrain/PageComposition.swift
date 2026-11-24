@@ -347,6 +347,7 @@ extension BookFormat {
 struct BookCoverGeometry {
     let bounds: CGRect
     let photoFrame: CGRect
+    let photoCrop: PhotoCrop
     let fills: Bool
     let background: UInt32
     let rule: CGRect?
@@ -366,12 +367,16 @@ struct BookCoverGeometry {
         let override = book.coverTextStyle(front: front)
         let manual = (front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame)?.rect(in: bounds)
         let custom = manual == nil && override != EditorialTextStyle()
+        let placement = front ? book.cover?.frontPhotoPlacement : book.cover?.backPhotoPlacement
+        photoCrop = placement?.crop ?? PhotoCrop()
+        let photoBleed = placement?.frame != nil || placement?.crop != nil ? 0 : bleed
+        let automaticPhotoFrame: CGRect
         let automaticTitleFrame: CGRect?
         if book.template == nil {
             title = style.typography(titleText, heading: nil, mixed: false, bodyStyle: override)
             background = 0x292929
             fills = true
-            photoFrame = CGRect(x: front ? 0 : -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
+            automaticPhotoFrame = CGRect(x: front ? 0 : -photoBleed, y: -photoBleed, width: w + photoBleed, height: h + 2 * photoBleed)
             var bandTop = h * 0.63
             if custom {
                 bandTop = max(0, min(bandTop, panel.maxY - EditorialTypesetter.requiredHeight(title, width: panel.width) - inset))
@@ -382,14 +387,14 @@ struct BookCoverGeometry {
             rule = nil
         } else {
             background = style.paper
-            fills = front
+            fills = front || placement?.crop != nil
             band = nil
             rule = front ? style.coverRule(in: panel) : nil
             if front {
                 let adapted = style.fittedTitleStyle(titleText, width: manual?.width ?? panel.width,
                                                      mixed: false, override: override)
                 title = style.typography("", heading: titleText, mixed: false, titleStyle: adapted)
-                var picture = style.coverPicture(in: panel, bleed: bleed)
+                var picture = style.coverPicture(in: panel, bleed: photoBleed)
                 let defaultHeight = panel.height * (style.coverTitleBelow ? 0.28 : 0.25)
                 let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0
                 if style.coverTitleBelow {
@@ -409,7 +414,7 @@ struct BookCoverGeometry {
                     automaticTitleFrame = CGRect(x: panel.minX, y: titleY, width: panel.width,
                                         height: custom ? max(0, min(panel.maxY, picture.minY) - titleY) : defaultHeight)
                 }
-                photoFrame = picture
+                automaticPhotoFrame = picture
             } else {
                 title = style.typography(titleText, heading: nil, mixed: true, bodyStyle: override)
                 var picture = CGRect(x: inset * 1.35, y: h * 0.38, width: max(0, w - 2.7 * inset), height: h * 0.28)
@@ -419,12 +424,13 @@ struct BookCoverGeometry {
                     picture.origin.y = max(panel.minY, photoBottom - picture.height)
                     picture.size.height = photoBottom - picture.minY
                 }
-                photoFrame = picture
+                automaticPhotoFrame = picture
                 let textTop = picture.maxY + 16
                 automaticTitleFrame = titleText.isEmpty ? nil : CGRect(x: picture.minX, y: textTop, width: picture.width,
                                                                height: max(0, panel.maxY - textTop))
             }
         }
+        photoFrame = placement?.frame?.photoRect(in: bounds) ?? automaticPhotoFrame
         titleFrame = manual ?? automaticTitleFrame
     }
 }

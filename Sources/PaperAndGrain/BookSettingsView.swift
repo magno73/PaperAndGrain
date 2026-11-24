@@ -109,7 +109,11 @@ struct BookSettingsView: View {
                 Button(s("Annulla", "Cancel"), action: close).keyboardShortcut(.cancelAction)
                 Button(s("Applica", "Apply")) {
                     let type = typography.title == nil && typography.body == nil ? nil : typography
-                    apply(title.trimmingCharacters(in: .whitespacesAndNewlines), format, printProfile, hasCover ? cover : nil, type)
+                    var updatedCover = cover
+                    if cover.frontPhotoID != book.cover?.frontPhotoID { updatedCover.frontPhotoPlacement = nil }
+                    if cover.backPhotoID != book.cover?.backPhotoID { updatedCover.backPhotoPlacement = nil }
+                    apply(title.trimmingCharacters(in: .whitespacesAndNewlines), format, printProfile,
+                          hasCover ? updatedCover : nil, type)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.19, green: 0.34, blue: 0.27))

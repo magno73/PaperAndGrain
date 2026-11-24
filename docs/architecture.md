@@ -4,7 +4,7 @@
 
 `AlbumPicker` seleziona foto e formato. `PhotoLibrary` chiede a PhotoKit la versione corrente delle immagini. L’import esplicito dal Finder passa per `LocalImages`. `Workspace` salva ogni risorsa in locale e crea il documento. Avvia l’analisi in serie dopo che l’editor è disponibile.
 
-`EditorView` modifica il documento con binding SwiftUI. Un cambio nella foto o nel testo aggiorna la vista. Il salvataggio del manifest è ritardato di poco per evitare scritture ad ogni carattere. `BookPDF` lavora con una copia del documento per mantenere coerente ogni esportazione.
+`EditorView` modifica il documento con binding SwiftUI. Un cambio nella foto o nel testo aggiorna la vista. L’autosalvataggio acquisisce una copia del documento dopo una breve pausa. Una coda seriale esegue la codifica e la scrittura atomica. I salvataggi espliciti e la copia del pacchetto rispettano l’ordine della coda. `BookPDF` lavora con una copia del documento per mantenere coerente ogni esportazione.
 
 ## Pacchetto di libro
 
@@ -18,6 +18,7 @@ Un progetto `.papergrain` ha `manifest.json` e una cartella `assets/` e, se nece
 | Analisi | Lista di etichette Vision, chiavi stabili dei temi e revisione |
 | Pellicola | Profilo del libro, eccezioni per foto e riferimento alla LUT inclusa nel progetto |
 | Stampa | Abbondanza, margine, PPI, ordine delle facciate e copertina facoltativa |
+| Copertina | Titolo, testo del retro, foto e posizioni e ritagli facoltativi indipendenti per fronte e retro |
 
 Il manifest si sostituisce atomicamente. **Salva progetto** aggiorna il pacchetto esistente. Il primo salvataggio di una bozza e **Salva con nome** copiano il pacchetto nella destinazione scelta e la adottano dopo la scrittura. Il workspace verifica l’identità della cartella durante il salvataggio. Le risorse si risolvono sotto `assets/`. L’app conserva una bozza locale e riapre l’ultimo progetto idoneo quando parte. Cambi che aggiungono dati facoltativi devono poter decodificare i progetti salvati senza quei campi.
 
@@ -67,7 +68,7 @@ Griglia svizzera, Quaderno berlinese e Intervallo giapponese definiscono posizio
 
 `BookPhoto.adjustments` è facoltativo nei progetti esistenti. `PhotoAdjustments` misura una copia ridotta della foto per proporre modifiche ripetibili alla luce e al colore. La pipeline condivisa applica le regolazioni allo scatto prima del look pellicola e della grana. Il PDF, l’editor e le miniature usano gli stessi valori. Il file immagine importato resta il riferimento per il confronto.
 
-`EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. Al rilascio, l’editor registra la regolazione nel progetto e carica la versione a piena risoluzione di anteprima.
+`EditorPreviewLoader` condivide le richieste uguali e usa cache e code distinte per miniature e anteprime del canvas. Durante il movimento di un cursore, i valori provvisori aggiornano a intervalli la sola anteprima del canvas. L’anteprima di Pellicola durante il gesto usa una coda a parte e un massimo di 640 pixel sul lato lungo. Al rilascio, l’editor registra una singola azione annullabile e carica l’anteprima ad alta risoluzione. Le miniature usano i valori confermati. Le cornici e i ritagli della copertina sono condivisi da canvas, miniature e PDF. In stampa, ogni foto viene ritagliata entro la propria faccia e l’abbondanza.
 
 L’ispettore osserva la propria navigazione. Le coordinate delle miniature in libreria sono rilevate all’interno dell’ispettore e lette al clic. I campioni del pannello Pellicola hanno una coda di render distinta dalle miniature del libro e della libreria.
 

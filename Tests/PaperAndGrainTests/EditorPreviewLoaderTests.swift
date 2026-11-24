@@ -87,6 +87,34 @@ final class EditorPreviewLoaderTests: XCTestCase {
         XCTAssertEqual(starts.count(obsolete), 0)
     }
 
+    func testLiveFilmPreviewCanFinishWhileFullCanvasIsRendering() async throws {
+        let sample = try pixels()
+        let full = request("image", size: 1440)
+        let live = EditorPreviewRequest(url: full.url, limit: 640, look: FilmSettings(grain: 0.25),
+                                        lutURL: nil, adjustments: nil, isInteractive: true)
+        let fullStarted = expectation(description: "Full canvas render started")
+        let liveStarted = expectation(description: "Live preview did not wait for the canvas")
+        let permitFull = DispatchSemaphore(value: 0)
+        defer { permitFull.signal() }
+        let loader = EditorPreviewLoader { request in
+            if request == full {
+                fullStarted.fulfill()
+                _ = permitFull.wait(timeout: .now() + 5)
+            }
+            if request == live { liveStarted.fulfill() }
+            return sample
+        }
+        let fullRender = Task { await loader.load(full) }
+        await fulfillment(of: [fullStarted], timeout: 2)
+        let liveRender = Task { await loader.load(live) }
+        await fulfillment(of: [liveStarted], timeout: 2)
+        let livePixels = await liveRender.value
+        XCTAssertTrue(livePixels === sample)
+        permitFull.signal()
+        let fullPixels = await fullRender.value
+        XCTAssertTrue(fullPixels === sample)
+    }
+
     func testCancellingOneSubscriberLeavesAnIdenticalInFlightRenderAvailable() async throws {
         let sample = try pixels()
         let starts = Starts()

@@ -17,6 +17,9 @@ final class Workspace: ObservableObject {
     private var importTask: Task<Void, Never>?
     private var exportTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    // Order autosaves before durable writes and package copies.
+    private let saveQueue = DispatchQueue(label: "local.paperandgrain.manifest", qos: .utility)
+    private weak var settingsUndoManager: UndoManager?
     private var documentSession = UUID()
     private var directoryIdentity: BookStorage.DirectoryIdentity?
     private let defaults: UserDefaults
@@ -41,14 +44,28 @@ final class Workspace: ObservableObject {
     }
 
     func scheduleSave() {
-        guard directory != nil else { return }
+        guard let directory else { return }
         let origin = documentLocation
         saveTask?.cancel()
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(220))
             guard !Task.isCancelled, documentLocation == origin else { return }
+            let snapshot = book
+            let identity = directoryIdentity
+            do {
+                try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                    saveQueue.async {
+                        continuation.resume(with: Result {
+                            try Self.writeManifest(snapshot, in: directory, identity: identity)
+                        })
+                    }
+                }
+            } catch {
+                guard !Task.isCancelled, documentLocation == origin else { return }
+                problem = error.localizedDescription
+            }
+            guard !Task.isCancelled, documentLocation == origin else { return }
             saveTask = nil
-            flushSave()
         }
     }
 
@@ -58,13 +75,59 @@ final class Workspace: ObservableObject {
         saveTask = nil
         guard let directory else { return true }
         do {
-            try validateLocation(directory)
-            try BookStorage.writeExisting(book, to: directory)
+            let snapshot = book
+            let identity = directoryIdentity
+            try saveQueue.sync {
+                try Self.writeManifest(snapshot, in: directory, identity: identity)
+            }
             return true
         } catch {
             problem = error.localizedDescription
             return false
         }
+    }
+
+    func applyBookPrintSettings(title: String, format: BookFormat, printSettings: PrintSettings,
+                                cover: BookCover?, typography: EditorialTypography?,
+                                undoManager: UndoManager?, actionName: String) {
+        let changes = [
+            SettingsChange(\.title, from: book.title, to: title),
+            SettingsChange(\.format, from: book.format, to: format),
+            SettingsChange(\.printSettings, from: book.printSettings, to: printSettings),
+            SettingsChange(\.cover, from: book.cover, to: cover),
+            SettingsChange(\.typography, from: book.typography, to: typography),
+        ].compactMap { $0 }
+        applySettings(changes, restoring: false, undoManager: undoManager, actionName: actionName)
+    }
+
+    func applyBookTemplate(_ template: BookTemplate?, undoManager: UndoManager?, actionName: String) {
+        guard let change = SettingsChange(\.template, from: book.template, to: template) else { return }
+        applySettings([change], restoring: false, undoManager: undoManager, actionName: actionName)
+    }
+
+    private struct SettingsChange {
+        let apply: (inout Book, Bool) -> Void
+
+        init?<Value: Equatable>(_ key: WritableKeyPath<Book, Value>, from previous: Value, to next: Value) {
+            guard previous != next else { return nil }
+            apply = { book, restoring in book[keyPath: key] = restoring ? previous : next }
+        }
+    }
+
+    private func applySettings(_ changes: [SettingsChange], restoring: Bool,
+                               undoManager: UndoManager?, actionName: String) {
+        guard directory != nil, !changes.isEmpty else { return }
+        var updated = book
+        for change in changes { change.apply(&updated, restoring) }
+        book = updated
+        if let undoManager {
+            settingsUndoManager = undoManager
+            undoManager.registerUndo(withTarget: self) { [weak undoManager] target in
+                target.applySettings(changes, restoring: !restoring, undoManager: undoManager, actionName: actionName)
+            }
+            undoManager.setActionName(actionName)
+        }
+        flushSave()
     }
 
     func start(_ imported: [LibraryPhoto], title: String, format: BookFormat, language: String) {
@@ -174,7 +237,11 @@ final class Workspace: ObservableObject {
             }
             var updated = book
             updated.photos.append(contentsOf: photos)
-            try BookStorage.writeExisting(updated, to: directory)
+            let snapshot = updated
+            let identity = directoryIdentity
+            try saveQueue.sync {
+                try Self.writeManifest(snapshot, in: directory, identity: identity)
+            }
             book = updated
         } catch {
             for destination in installed { try? files.removeItem(at: destination) }
@@ -293,6 +360,7 @@ final class Workspace: ObservableObject {
     private var analysisRun: UUID?
 
     private func open(_ incoming: Book, in folder: URL) {
+        settingsUndoManager?.removeAllActions(withTarget: self)
         analysisTask?.cancel()
         analysisTask = nil
         analysisRun = nil
@@ -315,7 +383,17 @@ final class Workspace: ObservableObject {
     }
 
     private func validateLocation(_ folder: URL) throws {
-        if let directoryIdentity, BookStorage.identity(of: folder) != directoryIdentity {
+        try Self.validateLocation(folder, identity: directoryIdentity)
+    }
+
+    private nonisolated static func writeManifest(_ snapshot: Book, in folder: URL,
+                                                  identity: BookStorage.DirectoryIdentity?) throws {
+        try validateLocation(folder, identity: identity)
+        try BookStorage.writeExisting(snapshot, to: folder)
+    }
+
+    private nonisolated static func validateLocation(_ folder: URL, identity: BookStorage.DirectoryIdentity?) throws {
+        if let identity, BookStorage.identity(of: folder) != identity {
             throw CocoaError(.fileNoSuchFile, userInfo: [NSURLErrorKey: folder])
         }
     }
@@ -358,6 +436,7 @@ final class Workspace: ObservableObject {
 
     func closeBook() {
         guard flushSave() else { return }
+        settingsUndoManager?.removeAllActions(withTarget: self)
         analysisTask?.cancel()
         analysisTask = nil
         analysisRun = nil
@@ -391,8 +470,12 @@ final class Workspace: ObservableObject {
             return
         }
         do {
-            try validateLocation(directory)
-            try BookStorage.copy(book, from: directory, to: destination)
+            let snapshot = book
+            let identity = directoryIdentity
+            try saveQueue.sync {
+                try Self.validateLocation(directory, identity: identity)
+                try BookStorage.copy(snapshot, from: directory, to: destination)
+            }
             // An in-flight classifier keeps reading the old asset directory.
             // Its results still update this document and are saved to the new location.
             rememberLocation(destination)

@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.9.1/Paper & Grain.app'
+open 'dist/0.9.2/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -26,7 +26,7 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 ## Montare le pagine
 
 - Un clic seleziona l’elemento visibile più in alto. Clicca sulla carta libera o fuori dalla pagina per deselezionare, oppure usa **Esc** o **⇧⌘A**. Le frecce spostano l’oggetto selezionato di un punto. Tieni premuto **⇧** per spostarlo di dieci punti.
-- Premi **Canc** o **⌫** sulla foto in pagina o in copertina, oppure su un box di testo selezionato, per rimuoverlo. **⌘Z** ripristina l’elemento. Gli scatti in attesa di un riquadro si gestiscono nell’elenco **Foto nella pagina**.
+- Con il canvas attivo, premi **Canc** o **⌫** per rimuovere la foto o il box selezionato. **⌘Z** ripristina l’elemento. I pulsanti ai lati della barra mostrano o nascondono **Pagine** e **Ispettore**. Gli scatti in attesa di un riquadro si gestiscono nell’elenco **Foto nella pagina**.
 
 - In **Foto**, fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi selezionarlo e premere **⌫** o **Canc** per rimuoverlo dalla composizione. Lo scatto resta nella libreria del libro. Le maniglie agli angoli permettono di ingrandirlo anche oltre il bordo. La parte oltre il taglio rimane fuori dalla pagina. Fai doppio clic sulla foto in pagina per modificarne il ritaglio e premi **Fine** per applicare.
 - In **Pagina → Modello di pagina** scegli una composizione **Con margini** o **Al vivo**. I modelli al vivo comprendono due foto affiancate o una sopra l’altra, tre colonne, una griglia di quattro e una foto grande sopra due più piccole. Scegliere un modello ridistribuisce le cornici. Testo, box, scatti e ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
@@ -35,7 +35,7 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 - Trascina lo sfondo del racconto o la maniglia **Sposta blocco** per muovere insieme titolo, testo e sfondo. Trascina direttamente il titolo o il testo per spostare solo quel riquadro.
 - In **Tipografia**, usa **−** e **+** per cambiare la dimensione di un punto o digita il valore nel campo.
 - Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Le guide compaiono anche trascinando una foto dalla scheda **Foto** o usando le maniglie della foto e del riquadro di ritaglio. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente.
-- **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Sulle facce della copertina puoi trascinare una foto o sceglierla dalla scheda **Foto**, spostare e ridimensionare titolo e testo del retro e aprire **Regola foto** o **Pellicola** dallo stesso pannello.
+- **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Su fronte e retro puoi trascinare una foto, spostarla, ridimensionarla con le maniglie e fare doppio clic per ritagliarla. Seleziona un testo per spostarne o allargarne il riquadro e aprire i controlli tipografici. Fai doppio clic per scrivere nel canvas. Se la faccia è vuota, usa **Aggiungi testo**.
 
 ## Modelli del libro
 
@@ -49,7 +49,7 @@ In **Libro e stampa → Tipografia del libro** imposti font, dimensione in punti
 
 Seleziona una foto e apri **Foto → Regola**. La bacchetta **Migliora in automatico** analizza la foto sul Mac e propone valori modificabili di luce e colore. I controlli comprendono luce, colore e bilanciamento del bianco, bianco e nero, dettagli e nitidezza, riduzione del rumore, vignettatura, curve, livelli e colore selettivo. Il confronto mostra il file di partenza. Le modifiche seguono lo scatto in ogni pagina e nel PDF.
 
-La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro.
+La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro. Ogni scelta di look o trascinamento di un cursore forma una singola azione per **⌘Z**. Anche **Applica** in **Libro e stampa** o in **Modelli del libro** si annulla con una sola azione.
 
 Il menu **LUT Fujifilm** contiene già le 14 LUT sRGB di abpy. Le undici LUT in **Base a contrasto lineare** richiedono uno sviluppo con contrasto lineare. Le tre in **Da Provia** sono pensate per immagini già sviluppate con Provia. Il file che scegli viene copiato nel progetto. [Crediti e licenza delle LUT](Resources/FujifilmFilmLooks/CREDITS.md).
 

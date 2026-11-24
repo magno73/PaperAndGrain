@@ -228,6 +228,17 @@ enum BookCLIEditing {
         func checkFrame(_ frame: PageRect) throws {
             guard frame.width > 0, frame.height > 0 else { throw Failure("Frame dimensions must be positive") }
         }
+        func checkPlacement(_ placement: PhotoPlacement) throws {
+            if let frame = placement.frame { try checkFrame(frame) }
+            if let crop = placement.crop {
+                guard (0...1).contains(crop.x), (0...1).contains(crop.y), (1...12).contains(crop.zoom) else {
+                    throw Failure("Invalid crop center or zoom")
+                }
+            }
+        }
+        for placement in [book.cover?.frontPhotoPlacement, book.cover?.backPhotoPlacement].compactMap({ $0 }) {
+            try checkPlacement(placement)
+        }
         for page in book.pages {
             if let framing = page.framing, !(0...1).contains(framing) { throw Failure("Invalid page framing") }
             let ids = Set(page.photoIDs)
@@ -236,14 +247,7 @@ enum BookCLIEditing {
                   Set((page.textBoxes ?? []).map(\.id)).count == (page.textBoxes ?? []).count else {
                 throw Failure("Invalid page placements or duplicate IDs")
             }
-            for placement in page.photoPlacements?.values.map({ $0 }) ?? [] {
-                if let frame = placement.frame { try checkFrame(frame) }
-                if let crop = placement.crop {
-                    guard (0...1).contains(crop.x), (0...1).contains(crop.y), (1...12).contains(crop.zoom) else {
-                        throw Failure("Invalid crop center or zoom")
-                    }
-                }
-            }
+            for placement in page.photoPlacements?.values.map({ $0 }) ?? [] { try checkPlacement(placement) }
             for frame in [page.titleFrame, page.storyFrame].compactMap({ $0 }) + (page.storyBackdropFrames ?? [])
                 + (page.textBoxes ?? []).map(\.frame) { try checkFrame(frame) }
         }

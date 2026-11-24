@@ -1,5 +1,11 @@
 # Stato dello sviluppo
 
+## 0.9.2 · 24 novembre 2026
+
+Le scorciatoie degli oggetti seguono il focus del canvas. Le anteprime delle miniature restano riutilizzabili quando cambia solo la selezione. Pagine e Ispettore si possono nascondere indipendentemente. I cursori di Pellicola aggiornano un’anteprima ridotta su una coda dedicata e registrano una sola operazione annullabile al rilascio. È possibile annullare anche l’applicazione di Libro e stampa e del modello del libro. L’autosalvataggio codifica il manifest fuori dal thread dell’interfaccia.
+
+Fronte e retro offrono selezione, trascinamento, ridimensionamento e ritaglio delle foto nel canvas. La selezione del testo apre i controlli tipografici. Miniature ed esportazione riprendono le cornici salvate. Le prove automatiche verificano geometria, salvataggio, annullamento delle impostazioni, code delle anteprime e resa nei PDF generico e Pixart. Resta da misurare nella finestra il tempo fra clic e comparsa della selezione su Namibia. La build risiede in `dist/0.9.2/`.
+
 ## 0.9.1 · 24 novembre 2026
 
 La ricerca italiana riconosce le etichette Vision `sand dune` e `desert`. Il collaudo di Namibia ha analizzato 184 foto in circa 15 secondi e ha rilevato testo in 12 immagini. Le anteprime degli originali JPEG sono state verificate sul binario firmato fuori dal sandbox di collaudo. Resta da completare il collaudo dei permessi Apple Foto per l’invocazione da terminale. La build risiede in `dist/0.9.1/`.

@@ -8,6 +8,7 @@ struct EditorPreviewRequest: Hashable, Sendable {
     let lutURL: URL?
     let adjustments: PhotoAdjustments?
     var isFilmSwatch = false
+    var isInteractive = false
 }
 
 actor EditorPreviewLoader {
@@ -37,6 +38,7 @@ actor EditorPreviewLoader {
     }
 
     private let canvas = Lane(name: "PaperAndGrain.preview.canvas", qos: .userInitiated, megabytes: 80)
+    private let interactive = Lane(name: "PaperAndGrain.preview.interactive", qos: .userInitiated, megabytes: 24)
     private let thumbnails = Lane(name: "PaperAndGrain.preview.thumbnails", qos: .utility, megabytes: 20)
     private let filmSwatches = Lane(name: "PaperAndGrain.preview.filmSwatches", qos: .userInitiated, megabytes: 4)
     private static let shared = EditorPreviewLoader { request in
@@ -76,6 +78,7 @@ actor EditorPreviewLoader {
     }
 
     private func lane(for request: EditorPreviewRequest) -> Lane {
+        if request.isInteractive { return interactive }
         if request.isFilmSwatch { return filmSwatches }
         return request.limit <= 180 ? thumbnails : canvas
     }

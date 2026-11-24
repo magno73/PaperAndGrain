@@ -41,6 +41,7 @@ Prima delle modifiche posizionali, usare `test` su `/pages/0/id` o `/photos/0/id
 - Le cornici hanno `x`, `y`, `width` e `height` in proporzione alla pagina, con origine in alto a sinistra. Le stesse coordinate si applicano a `titleFrame`, `storyFrame`, `storyBackdropFrames`, ai `textBoxes` e ai due riquadri della copertina. Ogni box di testo ha `id`, `text` e `frame`, con stile tipografico locale facoltativo.
 - `/typography`, `/pages/0/typography` e `/cover/typography` accettano `title` e `body`. Ogni stile può specificare `fontName`, `pointSize` e `alignment` (`left`, `center`, `right`, `justified`).
 - `/cover` raccoglie `title`, `spineMM`, `frontPhotoID`, `backPhotoID`, `backText`, `typography`, `frontTitleFrame` e `backTextFrame`. I riferimenti foto devono appartenere al libro.
+- `/cover/frontPhotoPlacement` e `/cover/backPhotoPlacement` possono specificare `frame` (coordinate normalizzate `x`, `y`, `width`, `height`) e `crop` (`x` e `y` da 0 a 1, `zoom` da 1 a 12). Se il campo è assente, si usa il posizionamento del modello per la faccia.
 - `/film` e `/photos/0/film` contengono `preset`, `strength`, `grain`, `grainSize` e l’eventuale `lutFilename` già presente in `looks`. `/photos/0/adjustments` contiene i valori di sviluppo. Per cambiare un singolo parametro già presente usare ad esempio `replace /photos/0/adjustments/exposure`.
 - `/format` imposta `widthMM` e `heightMM`. `/printSettings` raccoglie `bleedMM`, `safeMM`, `targetPPI`, `spreads` e il facoltativo `firstPageOnRight`. `/template` accetta gli identificatori del catalogo `templates`.
 

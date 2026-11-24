@@ -29,10 +29,13 @@ struct EditorView: View {
     @State private var selectedEditorial: EditorialObject?
     @State private var editingEditorial: EditorialObject?
     @State private var coverSide: CoverSide?
+    @State private var coverTypographyExpanded = false
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
     @State private var canvasHits = CanvasHitStorage()
-    @State private var canvasKeyboardActive = false
+    @State private var canvasInput = CanvasInput()
+    @AppStorage("editorShowsPages") private var showsNavigator = true
+    @AppStorage("editorShowsInspector") private var showsInspector = true
     @State private var libraryHitFrames = LibraryHitFrames()
     @State private var hoveringPhotoDrop = false
     @State private var hoveringPhotoPromise = false
@@ -43,6 +46,8 @@ struct EditorView: View {
     @State private var showDelete = false
     @State private var inspectorNavigation = InspectorNavigation()
     @State private var filmScope: FilmScope = .book
+    @State private var filmEdit = FilmEdit()
+    @State private var filmPreviewTask: Task<Void, Never>?
     @State private var compareOriginal = false
     @State private var comparePhotoOriginal: UUID?
     @State private var enhancingPhotos: [UUID: UUID] = [:]
@@ -70,6 +75,10 @@ struct EditorView: View {
         var photos: PhotoPanelMode = .library
     }
 
+    private final class CanvasInput {
+        var ownsKeyboard = false
+    }
+
     private final class LibraryHitFrames {
         var frames = LibraryPhotoFrames()
     }
@@ -92,6 +101,7 @@ struct EditorView: View {
         let filmTitle: String
         let edge: Color
         let finishAdjustment: () -> Void
+        let finishFilm: () -> Void
         @ViewBuilder let content: (Inspector, PhotoPanelMode) -> Content
 
         var body: some View {
@@ -109,6 +119,7 @@ struct EditorView: View {
             }
             .onChange(of: navigation.tab) { _, tab in
                 if tab != .photos { finishAdjustment() }
+                if tab != .film { finishFilm() }
             }
             .onChange(of: navigation.photos) { _, mode in
                 if mode != .adjust { finishAdjustment() }
@@ -190,7 +201,7 @@ struct EditorView: View {
     }
 
     private struct CropSession {
-        let pageID: UUID
+        let surface: EditorDropTarget
         let photoID: UUID
         let initialFrame: PageRect
         let initialCrop: PhotoCrop
@@ -277,17 +288,24 @@ struct EditorView: View {
             masthead
             Rectangle().fill(edge).frame(height: 1)
             HStack(spacing: 0) {
-                navigator.frame(width: 158)
-                Rectangle().fill(edge).frame(width: 1)
+                if showsNavigator {
+                    navigator.frame(width: 158)
+                    Rectangle().fill(edge).frame(width: 1)
+                }
                 canvas.frame(maxWidth: .infinity, maxHeight: .infinity)
-                Rectangle().fill(edge).frame(width: 1)
-                sidePanel.frame(width: 260)
+                if showsInspector {
+                    Rectangle().fill(edge).frame(width: 1)
+                    sidePanel.frame(width: 260)
+                }
             }
         }
         .background(panel)
         .background(alignment: .topLeading) {
             CanvasDeleteShortcut(onDelete: deleteSelectedCanvasObject, onDeselect: deselectCanvas,
-                                 onNudge: nudgeCanvasSelection, onClick: selectObject(at:))
+                                 onNudge: nudgeCanvasSelection, onClick: selectObject(at:),
+                                 onPointerDown: { point in
+                canvasInput.ownsKeyboard = dropFrames[.canvasViewport]?.contains(point) == true
+            }, onKeyboardTraversal: { canvasInput.ownsKeyboard = false })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -310,8 +328,14 @@ struct EditorView: View {
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
             if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
+            if case let .photo(target)? = filmEdit.target, target != id { finishFilmEdit() }
         }
-        .onDisappear { adjustPreviewCleanup() }
+        .onChange(of: filmScope) { _, _ in finishFilmEdit() }
+        .onDisappear {
+            adjustmentPreviewTask?.cancel()
+            filmPreviewTask?.cancel()
+            undoManager?.removeAllActions(withTarget: undoTarget)
+        }
         .overlay(alignment: .topLeading) {
             dragPreview.allowsHitTesting(false).accessibilityHidden(true)
         }
@@ -327,6 +351,10 @@ struct EditorView: View {
 
     private var masthead: some View {
         HStack(spacing: 14) {
+            action("sidebar.left", showsNavigator ? localized("editor.pages.hide", fallback: "Hide Pages")
+                                                   : localized("editor.pages.show", fallback: "Show Pages")) {
+                showsNavigator.toggle()
+            }
             Image(systemName: "book.closed.fill")
                 .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(pine)
@@ -378,6 +406,14 @@ struct EditorView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
             .disabled(cropSession != nil)
+            action("sidebar.right", showsInspector ? localized("editor.inspector.hide", fallback: "Hide Inspector")
+                                                    : localized("editor.inspector.show", fallback: "Show Inspector")) {
+                if showsInspector {
+                    finishPhotoAdjustmentEdit()
+                    finishFilmEdit()
+                }
+                showsInspector.toggle()
+            }
         }
         .padding(.horizontal, 17)
         .frame(height: 63)
@@ -449,7 +485,10 @@ struct EditorView: View {
         return navigatorCard(label, active: active) {
             select(leaf)
         } preview: {
-            mini(leaf).frame(width: width, height: width / ratio)
+            navigatorPreview(for: .navigatorPage(leaf.id)) {
+                mini(leaf)
+            }
+            .frame(width: width, height: width / ratio)
         }
         .accessibilityLabel(first ? tr("Prima pagina", "First Page") : tr("Pagina", "Page") + " " + number)
         .help(tr("Trascina per riordinare la pagina", "Drag to reorder the page"))
@@ -484,7 +523,9 @@ struct EditorView: View {
         return navigatorCard(coverName(side), active: coverSide == side) {
             selectCover(side)
         } preview: {
-            coverCanvas(side, scale: width / book.format.pageSize.width, thumbnail: true)
+            navigatorPreview(for: .cover(front: side == .front)) {
+                coverCanvas(side, scale: width / book.format.pageSize.width, thumbnail: true)
+            }
                 .shadow(color: .black.opacity(0.11), radius: 2, y: 1)
         }
     }
@@ -512,6 +553,13 @@ struct EditorView: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? .isSelected : [])
+    }
+
+    private func navigatorPreview<Content: View>(for target: EditorDropTarget,
+                                                  @ViewBuilder content: @escaping () -> Content) -> some View {
+        NavigatorPreview(target: target, book: book, directory: directory, original: compareOriginal,
+                         originalPhoto: comparePhotoOriginal, content: content)
+            .equatable()
     }
 
     private func mini(_ leaf: BookPage) -> some View {
@@ -613,17 +661,17 @@ struct EditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            if let page {
-                VStack(spacing: 10) {
-                    if let cropSession {
-                        cropToolbar(cropSession)
-                    } else {
-                        canvasTools(page)
-                    }
+            VStack(spacing: 10) {
+                if let cropSession {
+                    cropToolbar(cropSession)
+                } else if let coverSide {
+                    coverTools(coverSide)
+                } else if let page {
+                    canvasTools(page)
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 21)
             }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 21)
         }
         .background {
             LinearGradient(colors: [
@@ -710,6 +758,27 @@ struct EditorView: View {
         .frame(height: 26)
     }
 
+    private func coverTools(_ side: CoverSide) -> some View {
+        HStack(spacing: 10) {
+            if let selection = canvasPhotoSelection, selection.surface == .cover(front: side == .front) {
+                Button(tr("Ritaglia", "Crop"), systemImage: "crop") { beginCoverCrop(side) }
+                    .controlSize(.small)
+            }
+            if coverEditorialValue(side).wrappedValue.isEmpty {
+                Button(localized("editor.cover.add_text", fallback: "Add Text"), systemImage: "textformat") {
+                    showsInspector = true
+                    inspector = .page
+                    Task { @MainActor in
+                        await Task.yield()
+                        if coverSide == side { writing = true }
+                    }
+                }
+                .controlSize(.small)
+            }
+        }
+        .frame(height: 26)
+    }
+
     private func cropToolbar(_ session: CropSession) -> some View {
         HStack(spacing: 8) {
             Label(tr("Ritaglia", "Crop"), systemImage: "crop")
@@ -762,7 +831,7 @@ struct EditorView: View {
                     .allowsHitTesting(false)
             }
             ForEach(composition.photos) { item in
-                if cropSession?.pageID != leaf.id || cropSession?.photoID != item.id {
+                if cropSession?.surface != .canvasPage(leaf.id) || cropSession?.photoID != item.id {
                     let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
                     canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds, scale: scale,
                                 alignmentTargets: targets, textFrames: textFrames)
@@ -778,10 +847,10 @@ struct EditorView: View {
                 positioned(editorialText(label, scale: scale), in: scaled(folio, by: scale))
                     .allowsHitTesting(false).accessibilityHidden(true)
             }
-            if let session = cropSession, session.pageID == leaf.id,
+            if let session = cropSession, session.surface == .canvasPage(leaf.id),
                let item = composition.photos.first(where: { $0.id == session.photoID }) {
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
-                canvasCrop(session, item: item, bounds: bounds, scale: scale, alignmentTargets: targets)
+                canvasCrop(session, photo: item.photo, bounds: bounds, scale: scale, alignmentTargets: targets)
             }
         }
         .frame(width: bounds.width, height: bounds.height)
@@ -867,7 +936,8 @@ struct EditorView: View {
                                 + composition.textBoxes.map { scaled($0.frame.rect(in: composition.bounds), by: scale) },
                              selected: selectedEditorial == object,
                              moveLabel: tr("Sposta blocco", "Move Story Group"),
-                             onSelect: { selectEditorial(object, on: leaf) },
+                             onSelect: { activateCanvas { selectEditorial(object, on: leaf) } },
+                             onNudge: { nudgeFromKeyboard($0) { selectEditorial(object, on: leaf) } },
                              onMove: { delta in moveStoryGroup(on: leaf.id, by: CGSize(width: delta.width / scale,
                                                                                      height: delta.height / scale)) }) {
                 canvasStoryContents(leaf, composition: composition, blocks: blocks, backings: backings,
@@ -906,7 +976,7 @@ struct EditorView: View {
         if let inlineEditingBox, let box = composition.textBoxes.first(where: { $0.id == inlineEditingBox }) {
             regions.append(Region(frame: box.frame.rect(in: composition.bounds), target: .textBox(box.id)))
         }
-        if let cropSession, cropSession.pageID == leaf.id {
+        if let cropSession, cropSession.surface == .canvasPage(leaf.id) {
             regions.append(Region(frame: cropSession.frame.photoRect(in: composition.bounds), target: .crop))
         }
         return CanvasHitMap(bounds: composition.bounds, regions: regions)
@@ -962,7 +1032,8 @@ struct EditorView: View {
                                    moveSpace: .named(leaf.id), swapTargetAt: swapTargetAt,
                                    onSwap: { swapPhoto(item.id, with: $0, on: leaf.id) },
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
-                                   onSelect: { selectCanvasPhoto(item.id, in: leaf) },
+                                   onSelect: { activateCanvas { selectCanvasPhoto(item.id, in: leaf) } },
+                                   onNudge: { nudgeFromKeyboard($0) { selectCanvasPhoto(item.id, in: leaf) } },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
             preview(item.photo, crop: item.crop, fills: item.fills)
         }
@@ -972,19 +1043,19 @@ struct EditorView: View {
         }
     }
 
-    private func canvasCrop(_ session: CropSession, item: PageComposition.Photo, bounds: CGRect, scale: CGFloat,
+    private func canvasCrop(_ session: CropSession, photo: BookPhoto, bounds: CGRect, scale: CGFloat,
                             alignmentTargets: [CGRect]) -> some View {
         let frame = session.frame.photoRect(in: bounds)
-        let size = CGSize(width: item.photo.pixelWidth, height: item.photo.pixelHeight)
+        let size = CGSize(width: photo.pixelWidth, height: photo.pixelHeight)
         return CanvasCropControl(frame: frame, bounds: bounds, sourceSize: size, crop: session.crop,
                                  minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
                                  alignmentTargets: alignmentTargets,
                                  onChange: { nextFrame, nextCrop in
-            guard cropSession?.photoID == session.photoID, cropSession?.pageID == session.pageID else { return }
+            guard cropSession?.photoID == session.photoID, cropSession?.surface == session.surface else { return }
             if nextFrame != frame { cropSession?.frame = PageRect(nextFrame, in: bounds).photoClamped }
             cropSession?.crop = nextCrop
         }, image: {
-            preview(item.photo, fills: false)
+            preview(photo, fills: false)
         })
     }
 
@@ -1044,7 +1115,8 @@ struct EditorView: View {
             CanvasObjectControl(frame: frame, bounds: bounds, selected: selectedEditorial == object,
                                 minimumSize: CGSize(width: 55 * scale, height: 22 * scale), accessibilityName: name,
                                 alignmentTargets: targets, showsWidthHandles: true, onDoubleClick: beginEditing,
-                                onSelect: onSelect, onChange: onChange) { _ in
+                                onSelect: { activateCanvas(onSelect) },
+                                onNudge: { nudgeFromKeyboard($0, selecting: onSelect) }, onChange: onChange) { _ in
                 if content.length == 0 {
                     Text(label)
                         .font(.custom(type.fontName ?? style.bodyFont, size: max(9, (type.pointSize ?? style.bodySize) * scale)))
@@ -1074,7 +1146,8 @@ struct EditorView: View {
                                    accessibilityName: empty ? label : box.text,
                                    alignmentTargets: alignmentTargets, showsWidthHandles: true,
                                    onDoubleClick: { beginInlineBoxEditing(box.id, in: leaf) },
-                                   onSelect: { selectTextBox(box.id, in: leaf) },
+                                   onSelect: { activateCanvas { selectTextBox(box.id, in: leaf) } },
+                                   onNudge: { nudgeFromKeyboard($0) { selectTextBox(box.id, in: leaf) } },
                                    onChange: { updateTextBoxFrame(box.id, on: leaf.id, to: PageRect($0, in: bounds)) }) { _ in
                 Group {
                     if empty {
@@ -1126,15 +1199,18 @@ struct EditorView: View {
         let page = BookCoverGeometry(book: book, front: side == .front)
         let bounds = scaled(page.bounds, by: scale)
         let photo = coverPhotoID(side).flatMap(indexedPhoto)
+        let surface = EditorDropTarget.cover(front: side == .front)
+        let activeCrop = thumbnail || cropSession?.surface != surface ? nil : cropSession
+        let photoTargets = [page.titleFrame, page.band].compactMap { $0 }.map { scaled($0, by: scale) }
         let content = ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(page.background))
             if let photo {
-                positioned(preview(photo, small: thumbnail, fills: page.fills), in: scaled(page.photoFrame, by: scale))
-                if !thumbnail && canvasPhotoSelection?.surface == .cover(front: side == .front)
-                    && canvasPhotoSelection?.photoID == photo.id {
-                    let frame = scaled(page.photoFrame.intersection(page.bounds), by: scale)
-                    positioned(Rectangle().strokeBorder(pine, lineWidth: 1.5), in: frame)
-                        .allowsHitTesting(false)
+                if thumbnail {
+                    positioned(preview(photo, small: true, crop: page.photoCrop, fills: page.fills),
+                               in: scaled(page.photoFrame, by: scale))
+                } else if activeCrop == nil {
+                    coverPhotoControl(photo, side: side, geometry: page, bounds: bounds, scale: scale,
+                                      targets: photoTargets)
                 }
             } else if !thumbnail {
                 positioned(placeholder, in: scaled(page.photoFrame, by: scale))
@@ -1146,6 +1222,7 @@ struct EditorView: View {
             }
             if let band = page.band {
                 positioned(Color(white: 0.97, opacity: 0.94), in: scaled(band, by: scale))
+                    .allowsHitTesting(false)
             }
             if let rule = page.rule {
                 positioned(Color(cgColor: EditorialStyle.color(book.editorialStyle.accent)), in: scaled(rule, by: scale))
@@ -1156,6 +1233,9 @@ struct EditorView: View {
                 } else {
                     coverEditorialText(side, geometry: page, frame: scaled(title, by: scale), bounds: bounds, scale: scale)
                 }
+            }
+            if let activeCrop, let photo {
+                canvasCrop(activeCrop, photo: photo, bounds: bounds, scale: scale, alignmentTargets: photoTargets)
             }
         }
         .frame(width: bounds.width, height: bounds.height)
@@ -1170,14 +1250,37 @@ struct EditorView: View {
                 .overlayPreferenceValue(CanvasGuidePreference.self) { guides in
                     CanvasAlignmentGuides(guides: guides).allowsHitTesting(false)
                 }
-                .editorDropFrame(.cover(front: side == .front))
-                .preference(key: CanvasHitMaps.self, value: [.cover(front: side == .front): .cover(page, photoID: photo?.id)])
+                .editorDropFrame(surface)
+                .preference(key: CanvasHitMaps.self, value: [surface: .cover(
+                    page, photoID: photo?.id, cropFrame: activeCrop?.frame.photoRect(in: page.bounds)
+                )])
                 .overlay {
                     if isPhotoDropTarget(.cover(front: side == .front)) {
                         Rectangle().strokeBorder(pine, lineWidth: 2).allowsHitTesting(false)
                     }
                 }
         }
+    }
+
+    private func coverPhotoControl(_ photo: BookPhoto, side: CoverSide, geometry: BookCoverGeometry,
+                                   bounds: CGRect, scale: CGFloat, targets: [CGRect]) -> some View {
+        let active = canvasPhotoSelection?.surface == .cover(front: side == .front)
+            && canvasPhotoSelection?.photoID == photo.id
+        return CanvasObjectControl(frame: scaled(geometry.photoFrame, by: scale), bounds: bounds, selected: active,
+                                   minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
+                                   accessibilityName: photo.name, alignmentTargets: targets,
+                                   allowsPhotoOverflow: true, preservesAspectRatio: true,
+                                   onDoubleClick: { beginCoverCrop(side) },
+                                   onSelect: { activateCanvas { selectCoverPhoto(photo.id) } },
+                                   onNudge: { nudgeFromKeyboard($0) { selectCoverPhoto(photo.id) } },
+                                   onChange: { frame in
+            changeCoverPhotoPlacement(side, name: tr("Sposta o ridimensiona foto", "Move or Resize Photo")) {
+                $0.frame = PageRect(frame, in: bounds).photoClamped
+            }
+        }) { _ in
+            preview(photo, crop: geometry.photoCrop, fills: geometry.fills)
+        }
+        .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCoverCrop(side) }
     }
 
     private func coverEditorialText(_ side: CoverSide, geometry: BookCoverGeometry, frame: CGRect,
@@ -1223,7 +1326,7 @@ struct EditorView: View {
         InspectorHost(navigation: inspectorNavigation, title: tr("Ispettore", "Inspector"),
                       pageTitle: tr("Pagina", "Page"), photosTitle: tr("Foto", "Photos"),
                       filmTitle: tr("Pellicola", "Film"), edge: edge,
-                      finishAdjustment: finishPhotoAdjustmentEdit) { tab, photoMode in
+                      finishAdjustment: finishPhotoAdjustmentEdit, finishFilm: finishFilmEdit) { tab, photoMode in
             if tab == .photos {
                 photoInspector(mode: photoMode)
             } else {
@@ -1463,6 +1566,7 @@ struct EditorView: View {
                     set: { value in changeCover { $0.title = value } }
                 ))
                 .textFieldStyle(.roundedBorder)
+                .focused($writing)
             } else {
                 TextEditor(text: Binding(
                     get: { book.cover?.backText ?? "" },
@@ -1476,7 +1580,7 @@ struct EditorView: View {
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))
                 .accessibilityLabel(tr("Testo del retro", "Back Cover Text"))
             }
-            DisclosureGroup(tr("Tipografia", "Typography")) {
+            DisclosureGroup(tr("Tipografia", "Typography"), isExpanded: $coverTypographyExpanded) {
                 let style = book.editorialStyle
                 let front = side == .front
                 let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
@@ -1507,6 +1611,13 @@ struct EditorView: View {
                     Button(tr("Pellicola", "Film")) {
                         selectCoverPhoto(photo.id)
                         inspector = .film
+                    }
+                }
+                if coverPhotoPlacement(side) != nil {
+                    Button(localized("editor.cover.reset_photo", fallback: "Reset Photo Placement and Crop")) {
+                        changeCoverPhotoPlacement(side, name: tr("Ripristina foto di copertina", "Reset Cover Photo")) {
+                            $0 = PhotoPlacement()
+                        }
                     }
                 }
             }
@@ -1580,7 +1691,12 @@ struct EditorView: View {
                 var type = book.cover?.typography ?? EditorialTypography()
                 guard type[keyPath: key] != value else { return }
                 type[keyPath: key] = value
+                let previous = book.cover?.typography
                 changeCover { $0.typography = type.title == nil && type.body == nil ? nil : type }
+                if let undoManager {
+                    undoTarget.registerCoverValue(undoManager, binding: $book, bookID: book.id, key: \.typography,
+                                                  previous: previous, name: tr("Modifica tipografia", "Change Typography"))
+                }
             }
         )
     }
@@ -2018,13 +2134,14 @@ struct EditorView: View {
     }
 
     private func browsePhotos() {
+        showsInspector = true
         photoPanelMode = .library
         inspector = .photos
     }
 
     private func selectObject(at point: CGPoint) {
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
-        canvasKeyboardActive = insideCanvas
+        canvasInput.ownsKeyboard = insideCanvas
         guard insideCanvas else {
             if inspector == .photos, photoPanelMode == .library,
                let id = libraryHitFrames.frames.photo(at: point) {
@@ -2037,6 +2154,7 @@ struct EditorView: View {
             case let .photo(id): selectCoverPhoto(id)
             case .coverText:
                 if editingEditorial != .cover(coverSide) { selectEditorial(.cover(coverSide)) }
+            case .crop: break
             default: clearCanvasSelection()
             }
             return
@@ -2081,6 +2199,7 @@ struct EditorView: View {
     }
 
     private func deselectCanvas() -> Bool {
+        guard canvasInput.ownsKeyboard else { return false }
         if cropSession != nil {
             cropSession = nil
             return true
@@ -2094,8 +2213,32 @@ struct EditorView: View {
         return true
     }
 
+    private func activateCanvas(_ select: () -> Void) {
+        canvasInput.ownsKeyboard = true
+        select()
+    }
+
+    private func nudgeFromKeyboard(_ offset: CGSize, selecting: () -> Void) -> Bool {
+        activateCanvas(selecting)
+        return nudgeCanvasSelection(offset)
+    }
+
     private func nudgeCanvasSelection(_ offset: CGSize) -> Bool {
-        guard canvasKeyboardActive, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil else { return false }
+        guard canvasInput.ownsKeyboard, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
+        else { return false }
+        if let side = coverSide, let selection = canvasPhotoSelection,
+           selection.surface == .cover(front: side == .front),
+           let map = canvasHits.maps[selection.surface],
+           let frame = map.regions.last(where: { $0.target == .photo(selection.photoID) })?.frame {
+            let limits = CanvasPhotoGeometry.movementBounds(for: frame.size, in: map.bounds)
+            let moved = CanvasPhotoGeometry.moved(frame, by: offset, within: limits)
+            if moved != frame {
+                changeCoverPhotoPlacement(side, name: tr("Sposta foto di copertina", "Move Cover Photo")) {
+                    $0.frame = PageRect(moved, in: map.bounds).photoClamped
+                }
+            }
+            return true
+        }
         if let coverSide, selectedEditorial == .cover(coverSide),
            let map = canvasHits.maps[.cover(front: coverSide == .front)],
            let frame = map.regions.last(where: { $0.target == .coverText })?.frame {
@@ -2159,6 +2302,7 @@ struct EditorView: View {
                     Toggle(tr("Usa il look del libro", "Use book look"), isOn: Binding(
                         get: { filmPhoto?.film == nil },
                         set: { inherit in
+                            finishFilmEdit()
                             if inherit {
                                 setPhotoFilm(nil, for: photo.id)
                             } else {
@@ -2317,39 +2461,79 @@ struct EditorView: View {
         }
     }
 
+    private var filmTarget: FilmTarget? {
+        if filmScope == .book { return .book }
+        return filmPhoto.map { .photo($0.id) }
+    }
+
     private func filmSlider(_ label: String, value: WritableKeyPath<FilmSettings, Double>) -> some View {
-        let amount = currentFilm[keyPath: value]
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(label).font(.system(size: 11))
-                Spacer()
-                Text(amount.formatted(.percent.precision(.fractionLength(0))))
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(muted)
+        FilmSlider(label: label, value: value, target: filmTarget, committed: currentFilm, edit: filmEdit,
+                   change: { amount in updateFilmDraft(value, to: amount) },
+                   editingChanged: { editing in
+            finishFilmEdit()
+            if editing, let target = filmTarget {
+                filmEdit.start(bookID: book.id, target: target, settings: currentFilm)
             }
-            .accessibilityHidden(true)
-            Slider(value: Binding(
-                get: { currentFilm[keyPath: value] },
-                set: { amount in setFilm { $0[keyPath: value] = amount } }
-            ), in: 0...1, step: 0.02)
-                .accessibilityLabel(label)
+        })
+    }
+
+    private func updateFilmDraft(_ key: WritableKeyPath<FilmSettings, Double>, to amount: Double) {
+        guard filmEdit.target == filmTarget, let draft = filmEdit.draft else {
+            setFilm { $0[keyPath: key] = amount }
+            return
+        }
+        guard draft[keyPath: key] != amount else { return }
+        filmEdit.draft?[keyPath: key] = amount
+        guard filmPreviewTask == nil else { return }
+        filmPreviewTask = Task { @MainActor in
+            do { try await Task.sleep(for: .milliseconds(55)) } catch { return }
+            filmPreviewTask = nil
+            if filmEdit.preview != filmEdit.draft { filmEdit.preview = filmEdit.draft }
         }
     }
 
+    private func finishFilmEdit() {
+        filmPreviewTask?.cancel()
+        filmPreviewTask = nil
+        guard let target = filmEdit.target, let draft = filmEdit.draft else { return }
+        let shouldCommit = filmEdit.bookID == book.id && draft != filmEdit.initial
+        filmEdit.clear()
+        if shouldCommit { commitFilm(draft, to: target) }
+    }
+
     private func setFilm(_ edit: (inout FilmSettings) -> Void) {
-        var settings = currentFilm
+        finishFilmEdit()
+        guard let target = filmTarget else { return }
+        let previous = currentFilm
+        var settings = previous
         edit(&settings)
-        guard settings != currentFilm else { return }
-        if filmScope == .photo {
-            if let photo = filmPhoto { setPhotoFilm(settings, for: photo.id) }
-        } else if filmScope == .book {
+        if settings != previous { commitFilm(settings, to: target) }
+    }
+
+    private func commitFilm(_ settings: FilmSettings, to target: FilmTarget) {
+        switch target {
+        case .book:
+            let previous = book.film
+            guard settings != previous else { return }
             book.film = settings
+            if let undoManager {
+                undoTarget.registerBookFilm(undoManager, binding: $book, bookID: book.id, previous: previous,
+                                            name: tr("Modifica pellicola", "Change Film Look"))
+            }
+        case let .photo(id):
+            setPhotoFilm(settings, for: id)
         }
     }
 
     private func setPhotoFilm(_ settings: FilmSettings?, for id: UUID) {
         guard let index = photoIndex(id) else { return }
+        let previous = book.photos[index].film
+        guard settings != previous else { return }
         book.photos[index].film = settings
+        if let undoManager {
+            undoTarget.registerPhotoValue(undoManager, binding: $book, bookID: book.id, photoID: id,
+                                         key: \.film, previous: previous, name: tr("Modifica pellicola", "Change Film Look"))
+        }
     }
 
     private func setPhotoAdjustments(_ value: PhotoAdjustments, for id: UUID,
@@ -2364,8 +2548,8 @@ struct EditorView: View {
         book.photos[index].adjustments = normalized
         if let undoManager {
             let name = actionName ?? tr("Regola foto", "Adjust Photo")
-            undoTarget.registerPhotoAdjustments(undoManager, binding: $book, bookID: book.id,
-                                                photoID: id, previous: previous, name: name)
+            undoTarget.registerPhotoValue(undoManager, binding: $book, bookID: book.id,
+                                         photoID: id, key: \.adjustments, previous: previous, name: name)
         }
     }
 
@@ -2480,7 +2664,9 @@ struct EditorView: View {
         let request = EditorPreviewRequest(url: url, limit: limit, look: look, lutURL: lutURL,
                                            adjustments: original ? nil : corrections,
                                            isFilmSwatch: settings != nil)
-        return EditorPreview(request: request, crop: crop, fills: fills) {
+        return EditorPreview(request: request, crop: crop, fills: fills,
+                             filmEdit: !small && settings == nil && !original ? filmEdit : nil,
+                             photoID: photo.id, inheritsBookFilm: photo.film == nil) {
             placeholder
         }
     }
@@ -2544,6 +2730,11 @@ struct EditorView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    private func localized(_ key: String, fallback: String) -> String {
+        let bundle = Bundle.main.url(forResource: language, withExtension: "lproj").flatMap(Bundle.init(url:))
+        return (bundle ?? .main).localizedString(forKey: key, value: fallback, table: nil)
+    }
+
     private func action(_ symbol: String, _ label: String, perform: @escaping () -> Void) -> some View {
         Button(action: perform) {
             Image(systemName: symbol)
@@ -2596,6 +2787,7 @@ struct EditorView: View {
         finishCrop()
         endInlineTextEditing()
         coverSide = side
+        coverTypographyExpanded = false
         canvasPhotoSelection = nil
         selectedPhoto = nil
         selectedBox = nil
@@ -2608,6 +2800,8 @@ struct EditorView: View {
 
     private func selectCoverPhoto(_ id: UUID) {
         endInlineTextEditing()
+        writing = false
+        writingBox = false
         selectedPhoto = id
         selectedBox = nil
         selectedEditorial = nil
@@ -2624,23 +2818,52 @@ struct EditorView: View {
         book.cover = cover
     }
 
+    private func coverPlacementKey(_ side: CoverSide) -> WritableKeyPath<BookCover, PhotoPlacement?> {
+        side == .front ? \.frontPhotoPlacement : \.backPhotoPlacement
+    }
+
+    private func coverPhotoPlacement(_ side: CoverSide) -> PhotoPlacement? {
+        book.cover?[keyPath: coverPlacementKey(side)]
+    }
+
+    private func changeCoverPhotoPlacement(_ side: CoverSide, name: String,
+                                           _ edit: (inout PhotoPlacement) -> Void) {
+        let key = coverPlacementKey(side)
+        let previous = coverPhotoPlacement(side)
+        var placement = previous ?? PhotoPlacement()
+        edit(&placement)
+        let next = placement == PhotoPlacement() ? nil : placement
+        guard next != previous else { return }
+        changeCover { $0[keyPath: key] = next }
+        if let undoManager {
+            undoTarget.registerCoverValue(undoManager, binding: $book, bookID: book.id, key: key, previous: previous, name: name)
+        }
+    }
+
     private func setCoverPhoto(_ id: UUID?, side: CoverSide) {
+        finishCrop()
         let key: WritableKeyPath<BookCover, UUID?> = side == .front ? \.frontPhotoID : \.backPhotoID
-        let previous = book.cover?[keyPath: key]
-        changeCover { $0[keyPath: key] = id }
-        if let undoManager, previous != id {
-            undoTarget.registerCoverValue(undoManager, binding: $book, bookID: book.id, key: key,
-                                          previous: previous,
-                                          name: id == nil ? tr("Rimuovi foto di copertina", "Remove Cover Photo")
-                                              : tr("Imposta foto di copertina", "Set Cover Photo"))
+        let placement = coverPlacementKey(side)
+        let previous = CoverImage(id: coverPhotoID(side), placement: coverPhotoPlacement(side))
+        if previous.id != id {
+            changeCover {
+                $0[keyPath: key] = id
+                $0[keyPath: placement] = nil
+            }
+            if let undoManager {
+                undoTarget.registerCoverImage(undoManager, binding: $book, bookID: book.id,
+                                             idKey: key, placementKey: placement, previous: previous,
+                                             name: id == nil ? tr("Rimuovi foto di copertina", "Remove Cover Photo")
+                                                 : tr("Imposta foto di copertina", "Set Cover Photo"))
+            }
         }
         if let id { selectCoverPhoto(id) }
         else { clearCanvasSelection() }
     }
 
     private func select(_ leaf: BookPage) {
-        if cropSession?.pageID != leaf.id { finishCrop() }
-        if leaf.id != page?.id {
+        if cropSession?.surface != .canvasPage(leaf.id) { finishCrop() }
+        if coverSide != nil || leaf.id != page?.id {
             endInlineTextEditing()
             canvasPhotoSelection = nil
             selectedPhoto = nil
@@ -2655,7 +2878,7 @@ struct EditorView: View {
     }
 
     private func selectCanvasPhoto(_ id: UUID, in leaf: BookPage) {
-        if cropSession?.photoID != id { finishCrop() }
+        if cropSession?.surface != .canvasPage(leaf.id) || cropSession?.photoID != id { finishCrop() }
         endInlineTextEditing()
         select(leaf)
         searchingPhotos = false
@@ -2702,6 +2925,7 @@ struct EditorView: View {
         if editingEditorial != object { endInlineTextEditing() }
         if let leaf { select(leaf) }
         selectedEditorial = object
+        if case .cover = object { coverTypographyExpanded = true }
         selectedBox = nil
         selectedPhoto = nil
         canvasPhotoSelection = nil
@@ -2982,13 +3206,15 @@ struct EditorView: View {
         if let coverSide {
             let key = EditorDropTarget.cover(front: coverSide == .front)
             if dropFrames[key]?.contains(location) == true {
-                setCoverPhoto(id, side: coverSide)
+                activateCanvas { setCoverPhoto(id, side: coverSide) }
             }
         } else {
             for leaf in book.pages {
                 guard let rect = dropFrames[.canvasPage(leaf.id)], rect.contains(location) else { continue }
                 let local = CGPoint(x: location.x - rect.minX, y: location.y - rect.minY)
-                dropPhoto(id, on: leaf, at: local, in: CGRect(origin: .zero, size: rect.size))
+                activateCanvas {
+                    dropPhoto(id, on: leaf, at: local, in: CGRect(origin: .zero, size: rect.size))
+                }
                 break
             }
         }
@@ -3137,8 +3363,19 @@ struct EditorView: View {
         guard let item = composition.photos.first(where: { $0.id == photoID }) else { return }
         selectCanvasPhoto(photoID, in: current)
         let frame = PageRect(item.frame, in: composition.bounds)
-        cropSession = CropSession(pageID: leaf.id, photoID: photoID, initialFrame: frame, initialCrop: item.crop,
+        cropSession = CropSession(surface: .canvasPage(leaf.id), photoID: photoID, initialFrame: frame,
+                                  initialCrop: item.crop,
                                   frame: frame, crop: item.crop)
+    }
+
+    private func beginCoverCrop(_ side: CoverSide) {
+        finishCrop()
+        guard let id = coverPhotoID(side) else { return }
+        let geometry = BookCoverGeometry(book: book, front: side == .front)
+        selectCoverPhoto(id)
+        let frame = PageRect(geometry.photoFrame, in: geometry.bounds)
+        cropSession = CropSession(surface: .cover(front: side == .front), photoID: id, initialFrame: frame,
+                                  initialCrop: geometry.photoCrop, frame: frame, crop: geometry.photoCrop)
     }
 
     private func magnifyCrop(_ factor: Double) {
@@ -3151,8 +3388,18 @@ struct EditorView: View {
         cropSession = nil
         let changedFrame = session.frame != session.initialFrame
         let changedCrop = session.crop != session.initialCrop
-        guard changedFrame || changedCrop,
-              let index = book.pages.firstIndex(where: { $0.id == session.pageID }),
+        guard changedFrame || changedCrop else { return }
+        if case let .cover(front) = session.surface {
+            let side: CoverSide = front ? .front : .back
+            guard coverPhotoID(side) == session.photoID else { return }
+            changeCoverPhotoPlacement(side, name: tr("Ritaglia foto", "Crop Photo")) {
+                if changedFrame { $0.frame = session.frame }
+                $0.crop = session.crop
+            }
+            return
+        }
+        guard case let .canvasPage(pageID) = session.surface,
+              let index = book.pages.firstIndex(where: { $0.id == pageID }),
               book.pages[index].photoIDs.contains(session.photoID) else { return }
         let current = book.pages[index]
         editPages(tr("Ritaglia foto", "Crop Photo")) { pages in
@@ -3235,7 +3482,8 @@ struct EditorView: View {
     }
 
     private func deleteSelectedCanvasObject() -> Bool {
-        guard cropSession == nil, inlineEditingBox == nil, editingEditorial == nil else { return false }
+        guard canvasInput.ownsKeyboard, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
+        else { return false }
         if let selectedBox, let page, page.textBoxes?.contains(where: { $0.id == selectedBox }) == true {
             changeTextBoxes(on: page.id, name: tr("Rimuovi box", "Remove Box")) { boxes in
                 boxes.removeAll { $0.id == selectedBox }
@@ -3283,7 +3531,44 @@ struct EditorView: View {
 
 }
 
+private struct NavigatorPreview<Content: View>: View, Equatable {
+    let target: EditorDropTarget
+    let book: Book
+    let directory: URL
+    let original: Bool
+    let originalPhoto: UUID?
+    @ViewBuilder let content: () -> Content
+
+    var body: some View { content() }
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.target == rhs.target && lhs.book == rhs.book && lhs.directory == rhs.directory
+            && lhs.original == rhs.original && lhs.originalPhoto == rhs.originalPhoto
+    }
+}
+
+private struct CoverImage {
+    let id: UUID?
+    let placement: PhotoPlacement?
+}
+
 private final class EditorUndo {
+    func registerCoverImage(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                            idKey: WritableKeyPath<BookCover, UUID?>,
+                            placementKey: WritableKeyPath<BookCover, PhotoPlacement?>,
+                            previous: CoverImage, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID, var cover = binding.wrappedValue.cover else { return }
+            let current = CoverImage(id: cover[keyPath: idKey], placement: cover[keyPath: placementKey])
+            cover[keyPath: idKey] = previous.id
+            cover[keyPath: placementKey] = previous.placement
+            binding.wrappedValue.cover = cover
+            target.registerCoverImage(manager, binding: binding, bookID: bookID, idKey: idKey,
+                                      placementKey: placementKey, previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
+
     func registerCoverValue<Value>(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
                                    key: WritableKeyPath<BookCover, Value>, previous: Value, name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
@@ -3318,17 +3603,86 @@ private final class EditorUndo {
         manager.setActionName(name)
     }
 
-    func registerPhotoAdjustments(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
-                                  photoID: UUID, previous: PhotoAdjustments?, name: String) {
+    func registerBookFilm(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                          previous: FilmSettings?, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID else { return }
+            let current = binding.wrappedValue.film
+            binding.wrappedValue.film = previous
+            target.registerBookFilm(manager, binding: binding, bookID: bookID, previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
+
+    func registerPhotoValue<Value>(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                                   photoID: UUID, key: WritableKeyPath<BookPhoto, Value>, previous: Value, name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
             guard let manager, binding.wrappedValue.id == bookID,
                   let index = binding.wrappedValue.photos.firstIndex(where: { $0.id == photoID }) else { return }
-            let current = binding.wrappedValue.photos[index].adjustments
-            binding.wrappedValue.photos[index].adjustments = previous
-            target.registerPhotoAdjustments(manager, binding: binding, bookID: bookID, photoID: photoID,
-                                            previous: current, name: name)
+            let current = binding.wrappedValue.photos[index][keyPath: key]
+            binding.wrappedValue.photos[index][keyPath: key] = previous
+            target.registerPhotoValue(manager, binding: binding, bookID: bookID, photoID: photoID, key: key,
+                                      previous: current, name: name)
         }
         manager.setActionName(name)
+    }
+}
+
+private enum FilmTarget: Equatable {
+    case book, photo(UUID)
+}
+
+@Observable private final class FilmEdit {
+    private(set) var bookID: UUID?
+    private(set) var target: FilmTarget?
+    private(set) var initial: FilmSettings?
+    var draft: FilmSettings?
+    var preview: FilmSettings?
+
+    func start(bookID: UUID, target: FilmTarget, settings: FilmSettings) {
+        self.bookID = bookID
+        self.target = target
+        initial = settings
+        draft = settings
+        preview = nil
+    }
+
+    func clear() {
+        target = nil
+        bookID = nil
+        initial = nil
+        draft = nil
+        preview = nil
+    }
+}
+
+private struct FilmSlider: View {
+    let label: String
+    let value: WritableKeyPath<FilmSettings, Double>
+    let target: FilmTarget?
+    let committed: FilmSettings
+    let edit: FilmEdit
+    let change: (Double) -> Void
+    let editingChanged: (Bool) -> Void
+
+    private var amount: Double {
+        (edit.target == target ? edit.draft ?? committed : committed)[keyPath: value]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label).font(.system(size: 11))
+                Spacer()
+                Text(amount.formatted(.percent.precision(.fractionLength(0))))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            Slider(value: Binding(get: { amount }, set: change), in: 0...1, step: 0.02,
+                   onEditingChanged: editingChanged)
+                .accessibilityLabel(label)
+        }
     }
 }
 
@@ -3336,12 +3690,25 @@ private struct EditorPreview<Placeholder: View>: View {
     let request: EditorPreviewRequest
     let crop: PhotoCrop
     let fills: Bool
+    let filmEdit: FilmEdit?
+    let photoID: UUID
+    let inheritsBookFilm: Bool
     @ViewBuilder let placeholder: () -> Placeholder
 
     @State private var image: NSImage?
     @State private var displayedURL: URL?
 
+    private var liveRequest: EditorPreviewRequest {
+        guard let filmEdit, let target = filmEdit.target,
+              target == .photo(photoID) || (target == .book && inheritsBookFilm),
+              let look = filmEdit.preview, look != request.look else { return request }
+        // Slider drafts keep the committed preset and its LUT. Smaller renders use a separate queue.
+        return EditorPreviewRequest(url: request.url, limit: 640, look: look, lutURL: request.lutURL,
+                                    adjustments: request.adjustments, isInteractive: true)
+    }
+
     var body: some View {
+        let request = liveRequest
         GeometryReader { geometry in
             if let image, displayedURL == request.url {
                 let frame = crop.imageRect(for: image.size, in: CGRect(origin: .zero, size: geometry.size), fills: fills)
@@ -3356,7 +3723,6 @@ private struct EditorPreview<Placeholder: View>: View {
         }
         .clipped()
         .task(id: request) {
-            let request = request
             let pixels = await EditorPreviewLoader.image(for: request)
             guard !Task.isCancelled else { return }
             image = pixels.map {

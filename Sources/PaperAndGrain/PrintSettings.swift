@@ -17,4 +17,6 @@ struct BookCover: Codable, Hashable, Sendable {
     var typography: EditorialTypography? = nil
     var frontTitleFrame: PageRect? = nil
     var backTextFrame: PageRect? = nil
+    var frontPhotoPlacement: PhotoPlacement? = nil
+    var backPhotoPlacement: PhotoPlacement? = nil
 }

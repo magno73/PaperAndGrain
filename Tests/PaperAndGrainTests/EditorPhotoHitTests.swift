@@ -35,6 +35,9 @@ final class EditorPhotoHitTests: XCTestCase {
         XCTAssertEqual(map.target(at: CGPoint(x: 420, y: 250), in: frame), .photo(photo))
         XCTAssertNotEqual(map.target(at: CGPoint(x: 420, y: 340), in: frame), .photo(photo))
         XCTAssertNil(map.target(at: CGPoint(x: 269, y: 250), in: frame))
+
+        let crop = CanvasHitMap.cover(geometry, photoID: photo, cropFrame: geometry.bounds)
+        XCTAssertEqual(crop.target(at: CGPoint(x: 420, y: 340), in: frame), .crop)
     }
 
     func testCanvasRoutesEachClickToTheTopVisibleObjectOrPaper() {
