@@ -1,5 +1,11 @@
 # Stato dello sviluppo
 
+## 0.9.3 · 24 novembre 2026
+
+La libreria mostra la pagina o la faccia della copertina in cui compare lo scatto. Una doppia pagina usa entrambi i numeri. Il bollino conta gli altri utilizzi e il tooltip li elenca. Il menu LUT mostra il nome del file importato o del profilo Fujifilm attivo anche quando è chiuso.
+
+La prova automatica copre scatti fuori dalla composizione, doppi utilizzi, fronte, retro e aggiornamento della numerazione al riordino. La build risiede in `dist/0.9.3/`.
+
 ## 0.9.2 · 24 novembre 2026
 
 Le scorciatoie degli oggetti seguono il focus del canvas. Le anteprime delle miniature restano riutilizzabili quando cambia solo la selezione. Pagine e Ispettore si possono nascondere indipendentemente. I cursori di Pellicola aggiornano un’anteprima ridotta su una coda dedicata e registrano una sola operazione annullabile al rilascio. È possibile annullare anche l’applicazione di Libro e stampa e del modello del libro. L’autosalvataggio codifica il manifest fuori dal thread dell’interfaccia.

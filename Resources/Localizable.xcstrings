@@ -570,6 +570,23 @@
         }
       }
     },
+    "editor.lut.choose": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose LUT"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli LUT"
+          }
+        }
+      }
+    },
     "editor.move_to_page": {
       "extractionState": "manual",
       "localizations": {

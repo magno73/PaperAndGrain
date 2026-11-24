@@ -58,6 +58,7 @@ struct EditorView: View {
     @State private var concept: String?
     @State private var search = ""
     @State private var photoLibraryCache = InspectorPhotoLibraryCache()
+    @State private var photoUsageIndex = PhotoUsageIndex()
     @State private var suggestedPhotos: [PhotoSuggestion] = []
     @State private var undoTarget = EditorUndo()
     @State private var cropSession: CropSession?
@@ -2077,21 +2078,30 @@ struct EditorView: View {
 
     private func photoGrid(_ filtered: [BookPhoto]) -> some View {
         let assigned = Set(coverSide.map { [coverPhotoID($0)].compactMap { $0 } } ?? page?.photoIDs ?? [])
+        let photoLocations = photoUsageIndex.locations(in: book)
         return VStack(alignment: .leading, spacing: 7) {
             if filtered.isEmpty { intro(tr("Nessuna foto corrispondente.", "No matching photos.")) }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 67), spacing: 7)], spacing: 7) {
                 ForEach(filtered) { photo in
                     let active = photo.id == selectedPhoto
                     let used = assigned.contains(photo.id)
+                    let locations = photoLocations[photo.id] ?? []
+                    let usage = locations.map(usageDescription).joined(separator: ", ")
                     preview(photo, small: true)
                         .frame(height: 56)
                         .clipShape(RoundedRectangle(cornerRadius: 4))
                         .overlay(alignment: .bottomTrailing) {
-                            if used {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(.white, pine)
+                            if let first = locations.first {
+                                let additional = locations.count - 1
+                                Text(usageBadge(first) + (additional > 0 ? " +\(additional)" : ""))
+                                    .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(used ? pine : .black.opacity(0.80), in: Capsule())
                                     .padding(3)
+                                    .allowsHitTesting(false)
+                                    .accessibilityHidden(true)
                             }
                         }
                         .overlay {
@@ -2103,11 +2113,12 @@ struct EditorView: View {
                             selectLibraryPhoto(photo.id)
                             togglePhoto(photo.id)
                         })
-                        .help(photo.name)
+                        .help(usage.isEmpty ? photo.name : photo.name + "\n" + usage)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(photo.name)
+                        .accessibilityValue(usage)
                         .accessibilityAddTraits(.isButton)
-                        .accessibilityAddTraits(used ? .isSelected : [])
+                        .accessibilityAddTraits(active ? .isSelected : [])
                         .accessibilityAction { selectLibraryPhoto(photo.id) }
                         .accessibilityAction(named: Text(used ? tr("Rimuovi dalla pagina", "Remove from page")
                                                              : tr("Aggiungi alla pagina", "Add to page"))) {
@@ -2122,6 +2133,29 @@ struct EditorView: View {
                         .id(photo.id)
                 }
             }
+        }
+    }
+
+    private func usageBadge(_ location: PhotoUsageIndex.Location) -> String {
+        switch location {
+        case let .page(numbers):
+            numbers.lowerBound == numbers.upperBound ? "\(numbers.lowerBound)" : "\(numbers.lowerBound)–\(numbers.upperBound)"
+        case .frontCover:
+            tr("C", "F")
+        case .backCover:
+            tr("R", "B")
+        }
+    }
+
+    private func usageDescription(_ location: PhotoUsageIndex.Location) -> String {
+        switch location {
+        case let .page(numbers):
+            (numbers.lowerBound == numbers.upperBound ? tr("Pagina", "Page") : tr("Pagine", "Pages"))
+                + " " + usageBadge(location)
+        case .frontCover:
+            coverName(.front)
+        case .backCover:
+            coverName(.back)
         }
     }
 
@@ -2314,30 +2348,15 @@ struct EditorView: View {
             }
             VStack(alignment: .leading, spacing: 9) {
                 filmSwatches
-                if let resources = Bundle.main.resourceURL, let sample = FujifilmFilmLook.all.first,
-                   (try? sample.url(in: resources).checkResourceIsReachable()) == true {
-                    fujifilmLookMenu(resources: resources)
-                }
-                Button {
-                    importFilmLUT()
-                } label: {
-                    Label(tr("Importa LUT", "Import LUT"), systemImage: "square.and.arrow.down")
-                }
+                filmLUTMenu
                 if let lutImportError {
                     Text(lutImportError).font(.callout).foregroundStyle(.secondary)
                     Button(tr("Chiudi avviso", "Dismiss Message")) { self.lutImportError = nil }
                         .buttonStyle(.link)
                 }
-                if currentFilm.preset == .custom, let filename = currentFilm.lutFilename {
-                    let builtIn = FujifilmFilmLook.importedLook(filename: filename)
-                    Text(builtIn?.name ?? filmLUTName(filename))
-                        .font(.system(size: 10))
-                        .foregroundStyle(muted)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    if let builtIn {
-                        intro(fujifilmInputDescription(builtIn.input))
-                    }
+                if currentFilm.preset == .custom,
+                   let selected = currentFilm.lutFilename.flatMap(FujifilmFilmLook.importedLook) {
+                    intro(fujifilmInputDescription(selected.input))
                 }
             }
             .disabled(filmScope == .photo && filmPhoto == nil)
@@ -2356,22 +2375,56 @@ struct EditorView: View {
         }
     }
 
-    private func fujifilmLookMenu(resources: URL) -> some View {
-        let selected = currentFilm.preset == .custom
-            ? currentFilm.lutFilename.flatMap(FujifilmFilmLook.importedLook) : nil
+    private var filmLUTMenu: some View {
+        let filename = currentFilm.lutFilename
+        let builtIn = filename.flatMap(FujifilmFilmLook.importedLook)
+        let name = builtIn?.name ?? filename.map(filmLUTName)
+        let active = currentFilm.preset == .custom
+        let prompt = localized("editor.lut.choose", fallback: "Choose LUT")
+        let title = active ? name ?? prompt : prompt
         return Menu {
-            Section(tr("Da Provia", "From Provia")) {
-                fujifilmLooks(.provia, selected: selected, resources: resources)
+            if let filename, builtIn == nil {
+                Button {
+                    setFilm {
+                        $0.preset = .custom
+                        $0.lutFilename = filename
+                    }
+                } label: {
+                    if active {
+                        Label(name ?? filename, systemImage: "checkmark")
+                    } else {
+                        Text(name ?? filename)
+                    }
+                }
+                Divider()
             }
-            Section(tr("Base a contrasto lineare", "Linear-Contrast Input")) {
-                fujifilmLooks(.linear, selected: selected, resources: resources)
+            if let resources = Bundle.main.resourceURL, let sample = FujifilmFilmLook.all.first,
+               (try? sample.url(in: resources).checkResourceIsReachable()) == true {
+                Section(tr("Da Provia", "From Provia")) {
+                    fujifilmLooks(.provia, selected: active ? builtIn : nil, resources: resources)
+                }
+                Section(tr("Base a contrasto lineare", "Linear-Contrast Input")) {
+                    fujifilmLooks(.linear, selected: active ? builtIn : nil, resources: resources)
+                }
+                Link(tr("Fonte e licenza", "Source and License"),
+                     destination: URL(string: "https://github.com/abpy/FujifilmCameraProfiles#licensing")!)
+                Divider()
             }
-            Divider()
-            Link(tr("Fonte e licenza", "Source and License"),
-                 destination: URL(string: "https://github.com/abpy/FujifilmCameraProfiles#licensing")!)
+            Button(action: importFilmLUT) {
+                Label(tr("Importa LUT…", "Import LUT…"), systemImage: "square.and.arrow.down")
+            }
         } label: {
-            Label(tr("LUT Fujifilm", "Fujifilm LUTs"), systemImage: "camera.filters")
+            Label {
+                Text(title)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } icon: {
+                Image(systemName: "camera.filters")
+            }
         }
+        .help(title)
+        .accessibilityLabel(prompt)
+        .accessibilityValue(active ? name ?? "" : "")
     }
 
     private func fujifilmLooks(_ input: FujifilmFilmLook.Input, selected: FujifilmFilmLook?,
