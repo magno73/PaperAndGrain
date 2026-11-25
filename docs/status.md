@@ -2,7 +2,7 @@
 
 ## 0.10.0-redesign · bordi della pagina magnetici · 25 novembre 2026
 
-Spostando o ridimensionando, foto, box, testi e foto di copertina si agganciano ai bordi e al centro della pagina, con guida visibile. Il bordo ha una portata più ampia degli altri oggetti: 10,5 punti a schermo invece di 6 (`CanvasAlignment.edgeToleranceFactor`). Così una foto rilasciata a pochi punti dal taglio arriva esattamente al bordo, e il PDF la estende in abbondanza. Vale anche per il ritaglio, il trascinamento dalla fototeca e il blocco del racconto. **⌥** disattiva ogni aggancio.
+Spostando o ridimensionando, foto, box, testi e foto di copertina si agganciano ai bordi e al centro della pagina, con guida visibile. Il bordo ha una portata più ampia degli altri oggetti: 9 punti a schermo invece di 6 (`CanvasAlignment.edgeToleranceFactor`). L’aggancio avviene durante il trascinamento: la foto salta al bordo con la guida visibile e al rilascio resta dove la si vede. Trascinando oltre la presa la foto si stacca e va dove si vuole, anche oltre il taglio. Così una foto portata vicino al taglio arriva esattamente al bordo, e il PDF la estende in abbondanza. Vale anche per il ritaglio, il trascinamento dalla fototeca e il blocco del racconto. **⌥** disattiva ogni aggancio.
 
 **Verificato nell’app:**
 - una foto spostata a circa 5 punti dal bordo sinistro si aggancia al bordo;

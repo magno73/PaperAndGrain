@@ -13,7 +13,7 @@ enum CanvasAlignment {
 
     /// The page edges pull harder than other objects: a photo meant to reach the trim must not
     /// stop a few pixels short, or paper shows in print.
-    static let edgeToleranceFactor: CGFloat = 1.75
+    static let edgeToleranceFactor: CGFloat = 1.5
 
     /// Every snapping reference with its own reach in displayed points.
     private static func references(_ targets: [CGRect], edges: CGRect?, tolerance: CGFloat) -> [(rect: CGRect, reach: CGFloat)] {

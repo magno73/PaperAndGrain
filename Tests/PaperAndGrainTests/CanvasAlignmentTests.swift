@@ -149,7 +149,7 @@ final class PageEdgeSnappingTests: XCTestCase {
         let nine = CGRect(x: 9, y: 150, width: 120, height: 80)
         let neighbour = CGRect(x: 0, y: 0, width: 50, height: 50)
         XCTAssertEqual(CanvasAlignment.snap(nine, to: [neighbour], within: page).frame.minX, 9, "6 pt reach for objects")
-        XCTAssertEqual(CanvasAlignment.snap(nine, to: [], edges: page, within: page).frame.minX, 0, "10.5 pt reach for the page")
+        XCTAssertEqual(CanvasAlignment.snap(nine, to: [], edges: page, within: page).frame.minX, 0, "9 pt reach for the page")
         let far = CGRect(x: 14, y: 150, width: 120, height: 80)
         XCTAssertEqual(CanvasAlignment.snap(far, to: [], edges: page, within: page).frame.minX, 14)
 

@@ -119,8 +119,8 @@ struct HelpView: View {
                   "**Layout** picks the page layout. Drag the **Pages** thumbnails to reorder; ← → and ↑ ↓ move between pages and spreads."),
                 s("Tasto destro su un elemento: ritaglio, regolazioni e **Porta in primo piano / in fondo**. Doppio clic su una foto per ritagliarla.",
                   "Right-click an object for crop, adjustments and **Bring to Front / Send to Back**. Double-click a photo to crop it."),
-                s("Spostando o ridimensionando, le guide agganciano foto e testi agli altri elementi e ai bordi della pagina, così una foto arriva al bordo senza lasciare spazi. Tieni premuto ⌥ per muoverti liberamente.",
-                  "When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Hold ⌥ to move freely."),
+                s("Spostando o ridimensionando, le guide agganciano foto e testi agli altri elementi e ai bordi della pagina, così una foto arriva al bordo senza lasciare spazi. Trascina oltre per staccarla, o tieni premuto ⌥ per muoverti liberamente.",
+                  "When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Drag further to pull it away, or hold ⌥ to move freely."),
             ]),
             Topic(id: "text", symbol: "3.circle", title: s("Scrivi", "Write"), lines: [
                 s("**Inserisci › Box di testo** o **Titolo di pagina**. Doppio clic per scrivere nella pagina.",
