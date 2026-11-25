@@ -89,10 +89,32 @@ final class PhotoAdjustmentTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: project) }
         let url = try fixture(in: project)
         let original = try render(url)
-        for field in [\PhotoAdjustments.definition, \.sharpness, \.noiseReduction, \.vignette] {
+        for field in [\PhotoAdjustments.definition, \.vignette] {
             var settings = PhotoAdjustments()
             settings[keyPath: field] = 1
             XCTAssertNotEqual(try render(url, adjustments: settings), original, String(describing: field))
+        }
+        // Sharpening and noise reduction work at a fraction of the long edge, which is below a pixel
+        // on the 40 px fixture, so they are checked on a photo-sized pattern.
+        let side = 1600
+        for field in [\PhotoAdjustments.sharpness, \.noiseReduction] {
+            let large = try XCTUnwrap(CGContext(data: nil, width: side, height: side, bitsPerComponent: 8,
+                                                bytesPerRow: side * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let pixels = try XCTUnwrap(large.data).assumingMemoryBound(to: UInt8.self)
+            for i in stride(from: 0, to: side * side * 4, by: 4) {
+                let x = (i / 4) % side, y = (i / 4) / side
+                let fleck: UInt8 = (x + y).isMultiple(of: 2) ? 6 : 0
+                pixels[i] = (x < side / 2 ? 142 : 42) + fleck
+                pixels[i + 1] = (x < side / 2 ? 40 : 142) + fleck
+                pixels[i + 2] = 38 + fleck
+                pixels[i + 3] = 255
+            }
+            let before = Data(bytes: pixels, count: side * side * 4)
+            var settings = PhotoAdjustments()
+            settings[keyPath: field] = 1
+            XCTAssertTrue(PhotoDevelopment.applySpatial(settings, to: large))
+            XCTAssertNotEqual(Data(bytes: pixels, count: side * side * 4), before, String(describing: field))
         }
         let lut = project.appendingPathComponent("constant.cube")
         let body = ["LUT_3D_SIZE 2"] + Array(repeating: "0.28 0.46 0.67", count: 8)

@@ -396,6 +396,53 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertLessThan(cover.bytes[above], 80)
     }
 
+    // MARK: B10 sharpening at any size
+
+    func testSharpeningLooksTheSameInPreviewAndPrint() throws {
+        // The same scene, a hard edge and a fine stripe pattern, at preview and at print size.
+        // Viewed at the same size (the print averaged down to the preview), the detail added by
+        // sharpening must match; with whole-pixel radii the print got about a fifth of it.
+        func added(width: Int, settings: PhotoAdjustments, downscale: Int) throws -> [Double] {
+            let height = 48
+            let context = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                                  bytesPerRow: width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let pixels = try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self)
+            func scene(_ x: Int) -> UInt8 {
+                let position = Double(x) / Double(width)
+                if position < 0.5 { return position < 0.25 ? 80 : 170 }
+                return UInt8(125 + 45 * sin(position * 2 * .pi * 24))
+            }
+            for y in 0..<height {
+                for x in 0..<width {
+                    let i = (y * width + x) * 4
+                    let value = scene(x)
+                    pixels[i] = value; pixels[i + 1] = value; pixels[i + 2] = value; pixels[i + 3] = 255
+                }
+            }
+            XCTAssertTrue(PhotoDevelopment.applySpatial(settings, to: context))
+            return stride(from: 0, to: width, by: downscale).map { start in
+                (start..<(start + downscale)).reduce(0.0) { sum, x in
+                    sum + Double(Int(pixels[(24 * width + x) * 4]) - Int(scene(x)))
+                } / Double(downscale)
+            }
+        }
+        var sharp = PhotoAdjustments()
+        sharp.sharpness = 1
+        // Preview sizes of the canvas against print renders (whole-pixel radii gave 0.06 to 0.43).
+        for (preview, print, factor) in [(600, 3000, 5), (1200, 3600, 3), (1440, 2880, 2), (2048, 4096, 2)] {
+            let shown = try added(width: preview, settings: sharp, downscale: 1).reduce(0) { $0 + abs($1) }
+            let printed = try added(width: print, settings: sharp, downscale: factor).reduce(0) { $0 + abs($1) }
+            XCTAssertGreaterThan(shown, 0)
+            XCTAssertEqual(printed / shown, 1, accuracy: 0.4, "\(preview) px against \(print) px")
+        }
+        let radii = PhotoDevelopment.spatialRadii(longEdge: 3000)
+        let small = PhotoDevelopment.spatialRadii(longEdge: 600)
+        XCTAssertEqual(radii.noise / small.noise, 5, accuracy: 0.0001)
+        XCTAssertEqual(radii.sharpness / small.sharpness, 5, accuracy: 0.0001)
+        XCTAssertEqual(radii.definition / small.definition, 5, accuracy: 0.0001)
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }

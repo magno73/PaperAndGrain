@@ -175,34 +175,66 @@ enum PhotoDevelopment {
         return cache
     }()
 
+    /// Neighborhood radii in pixels for noise reduction, definition and sharpening. They are fractions
+    /// of the long edge, so a preview and the print render show the same effect at the same viewing size.
+    static func spatialRadii(longEdge: Int) -> (noise: Double, definition: Double, sharpness: Double) {
+        let edge = Double(max(0, longEdge))
+        return (edge / 1600, edge / 145, edge / 2100)
+    }
+
     /// Accelerate supplies the neighborhood means. Denoising attenuates small color
     /// variations, while definition and sharpening add luminance detail at two scales.
+    /// A fractional radius blends the means of the two nearest whole-pixel tent kernels.
     static func applySpatial(_ settings: PhotoAdjustments, to bitmap: CGContext) -> Bool {
         guard settings.noiseReduction > 0 || settings.definition > 0 || settings.sharpness > 0 else { return true }
         let width = bitmap.width, height = bitmap.height
-        let edge = max(width, height)
-        guard let data = bitmap.data, let temporary = malloc(bitmap.bytesPerRow * height) else { return false }
-        defer { free(temporary) }
+        let bytes = bitmap.bytesPerRow * height
+        guard let data = bitmap.data, let lowerData = malloc(bytes), let upperData = malloc(bytes) else { return false }
+        defer {
+            free(lowerData)
+            free(upperData)
+        }
         var source = vImage_Buffer(data: data, height: vImagePixelCount(height), width: vImagePixelCount(width),
                                    rowBytes: bitmap.bytesPerRow)
-        var local = vImage_Buffer(data: temporary, height: source.height, width: source.width, rowBytes: source.rowBytes)
+        var lowerBuffer = vImage_Buffer(data: lowerData, height: source.height, width: source.width, rowBytes: source.rowBytes)
+        var upperBuffer = vImage_Buffer(data: upperData, height: source.height, width: source.width, rowBytes: source.rowBytes)
         let pixels = data.assumingMemoryBound(to: UInt8.self)
-        let blurred = temporary.assumingMemoryBound(to: UInt8.self)
-        let passes = [(amount: settings.noiseReduction, radius: max(1, edge / 1600), denoise: true),
-                      (amount: settings.definition * 0.85, radius: max(2, edge / 145), denoise: false),
-                      (amount: settings.sharpness * 1.75, radius: max(1, edge / 2100), denoise: false)]
-        for pass in passes where pass.amount > 0 {
-            let radius = min(pass.radius, (min(width, height) - 1) / 2)
-            guard radius > 0 else { continue }
+        let lower = lowerData.assumingMemoryBound(to: UInt8.self)
+        let upper = upperData.assumingMemoryBound(to: UInt8.self)
+        let radii = spatialRadii(longEdge: max(width, height))
+        let passes = [(amount: settings.noiseReduction, radius: radii.noise, denoise: true),
+                      (amount: settings.definition * 0.85, radius: radii.definition, denoise: false),
+                      (amount: settings.sharpness * 1.75, radius: radii.sharpness, denoise: false)]
+        func tent(_ radius: Int, into buffer: inout vImage_Buffer) -> Bool {
             let kernel = UInt32(2 * radius + 1)
-            guard vImageTentConvolve_ARGB8888(&source, &local, nil, 0, 0, kernel, kernel,
-                                               nil, vImage_Flags(kvImageEdgeExtend)) == kvImageNoError else { return false }
+            return vImageTentConvolve_ARGB8888(&source, &buffer, nil, 0, 0, kernel, kernel,
+                                               nil, vImage_Flags(kvImageEdgeExtend)) == kvImageNoError
+        }
+        for pass in passes where pass.amount > 0 {
+            let radius = min(pass.radius, Double((min(width, height) - 1) / 2))
+            guard radius > 0.001 else { continue }
+            let whole = Int(radius.rounded(.down))
+            // Blend the two kernels so the blur's variance follows the radius continuously. A tent of
+            // whole radius k has variance k(k + 2)/6; radius 0 leaves the pixel unchanged.
+            func variance(_ radius: Double) -> Double { radius * (radius + 2) / 6 }
+            let fraction = Float((variance(radius) - variance(Double(whole)))
+                / (variance(Double(whole + 1)) - variance(Double(whole))))
+            // The lower mean of radius 0 is the pixel itself.
+            let lowerMean = whole > 0 ? lower : pixels
+            if whole > 0 { guard tent(whole, into: &lowerBuffer) else { return false } }
+            if fraction > 0.001 { guard tent(whole + 1, into: &upperBuffer) else { return false } }
             let amount = Float(pass.amount)
-            for i in stride(from: 0, to: width * height * 4, by: 4) where pixels[i+3] != 0 && blurred[i+3] != 0 {
+            for i in stride(from: 0, to: width * height * 4, by: 4) where pixels[i+3] != 0 {
                 let alpha = Float(pixels[i+3])
+                var mean = FilmRGB(Float(lowerMean[i]), Float(lowerMean[i+1]), Float(lowerMean[i+2]))
+                var meanAlpha = Float(lowerMean[i+3])
+                if fraction > 0.001 {
+                    mean += (FilmRGB(Float(upper[i]), Float(upper[i+1]), Float(upper[i+2])) - mean) * fraction
+                    meanAlpha += (Float(upper[i+3]) - meanAlpha) * fraction
+                }
+                guard meanAlpha > 0 else { continue }
                 let rgb = FilmRGB(Float(pixels[i]), Float(pixels[i+1]), Float(pixels[i+2]))
-                let mean = FilmRGB(Float(blurred[i]), Float(blurred[i+1]), Float(blurred[i+2])) * (alpha / Float(blurred[i+3]))
-                let difference = rgb - mean
+                let difference = rgb - mean * (alpha / meanAlpha)
                 let result: FilmRGB
                 if pass.denoise {
                     let similarity = max(0, 1 - simd_abs(difference).max() / (alpha * (0.055 + 0.10*amount)))
