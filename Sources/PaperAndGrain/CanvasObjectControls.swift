@@ -21,6 +21,11 @@ struct CanvasObjectControl<Content: View>: View {
     @ViewBuilder let content: (CGSize) -> Content
 
     @GestureState private var dragPreview: DragPreview?
+    /// The last placement shown during the drag: the release commits exactly this.
+    @State private var shownPlacement: DragPreview?
+    /// Holds the released frame on screen until the document reports it, so the object
+    /// never flashes back to where it started.
+    @State private var settlingFrame: CGRect?
 
     private struct DragPreview {
         let placement: CanvasAlignment.Result
@@ -28,7 +33,7 @@ struct CanvasObjectControl<Content: View>: View {
     }
 
     var body: some View {
-        let visibleFrame = dragPreview?.placement.frame ?? frame
+        let visibleFrame = dragPreview?.placement.frame ?? settlingFrame ?? frame
         let reachable = visibleFrame.intersection(bounds).offsetBy(dx: -visibleFrame.minX, dy: -visibleFrame.minY)
         content(visibleFrame.size)
             .frame(width: visibleFrame.width, height: visibleFrame.height)
@@ -66,6 +71,13 @@ struct CanvasObjectControl<Content: View>: View {
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
             .preference(key: CanvasGuidePreference.self, value: dragPreview?.placement.guides ?? [])
             .preference(key: CanvasSwapTargetPreference.self, value: dragPreview?.swapTarget)
+            .onChange(of: frame) { _, _ in settlingFrame = nil }
+            .task(id: settlingFrame) {
+                // If the document keeps the old frame (a refused move), stop holding the new one.
+                guard settlingFrame != nil else { return }
+                try? await Task.sleep(for: .milliseconds(400))
+                if !Task.isCancelled { settlingFrame = nil }
+            }
     }
 
     private func drag(_ corner: CanvasCorner? = nil, widthOnly: Bool = false) -> some Gesture {
@@ -73,13 +85,22 @@ struct CanvasObjectControl<Content: View>: View {
             .updating($dragPreview) { value, preview, _ in
                 preview = dragDestination(value, resizing: corner, widthOnly: widthOnly)
             }
+            .onChanged { value in
+                shownPlacement = dragDestination(value, resizing: corner, widthOnly: widthOnly)
+            }
             .onEnded { value in
-                let destination = dragDestination(value, resizing: corner, widthOnly: widthOnly)
+                // Commit what was on screen, not a fresh computation from the release point:
+                // the last pointer move could otherwise snap or unsnap at the very end.
+                let destination = shownPlacement ?? dragDestination(value, resizing: corner, widthOnly: widthOnly)
+                shownPlacement = nil
                 if let target = destination.swapTarget, let onSwap {
                     onSwap(target.id)
                 } else {
                     if !selected { onSelect() }
-                    if destination.placement.frame != frame { onChange(destination.placement.frame) }
+                    if destination.placement.frame != frame {
+                        settlingFrame = destination.placement.frame
+                        onChange(destination.placement.frame)
+                    }
                 }
             }
     }

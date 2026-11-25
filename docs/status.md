@@ -1,5 +1,12 @@
 # Stato dello sviluppo
 
+## 0.10.0 · nome dell’app e rilascio senza scatti · 25 novembre 2026
+
+- **Nome e versione.** L’app si chiama **Paper & Grain** e la versione è 0.10.0. La build si installa in `~/Applications/Paper & Grain.app`. L’identificativo `local.paperandgrain.mac.redesign` non cambia, quindi bozze, impostazioni e permesso di Foto restano gli stessi.
+- **Rilascio di un oggetto trascinato.** Al rilascio si salva la posizione mostrata durante il trascinamento, non una ricalcolata dall’ultimo movimento del mouse, che poteva agganciarsi o staccarsi all’ultimo istante. L’oggetto resta nella nuova posizione finché il documento non la conferma: prima, per un fotogramma, tornava al punto di partenza (`CanvasObjectControl.settlingFrame`).
+
+**Resta da provare:** il rilascio dopo aver forzato l’aggancio, fatto a mano dall’utente.
+
 ## 0.10.0-redesign · bordi della pagina magnetici · 25 novembre 2026
 
 Spostando o ridimensionando, foto, box, testi e foto di copertina si agganciano ai bordi e al centro della pagina, con guida visibile. Il bordo ha una portata più ampia degli altri oggetti: 9 punti a schermo invece di 6 (`CanvasAlignment.edgeToleranceFactor`). L’aggancio avviene durante il trascinamento: la foto salta al bordo con la guida visibile e al rilascio resta dove la si vede. Trascinando oltre la presa la foto si stacca e va dove si vuole, anche oltre il taglio. Così una foto portata vicino al taglio arriva esattamente al bordo, e il PDF la estende in abbondanza. Vale anche per il ritaglio, il trascinamento dalla fototeca e il blocco del racconto. **⌥** disattiva ogni aggancio.

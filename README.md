@@ -28,12 +28,12 @@ From the repository root:
 ```sh
 ./scripts/build-app.sh            # debug build
 ./scripts/build-app.sh release    # optimised build
-open ~/Applications/"Paper & Grain Redesign.app"
+open ~/Applications/"Paper & Grain.app"
 ```
 
-The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain Redesign.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else.
+The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else.
 
-The app is built as **Paper & Grain Redesign** (`local.paperandgrain.mac.redesign`) and keeps its drafts in its own folder, separate from any other Paper & Grain build. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
+The bundle identifier is `local.paperandgrain.mac.redesign`; the app keeps its drafts in its own folder, `~/Library/Application Support/PaperAndGrain-Redesign`. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
 
 Run the tests with:
 
@@ -131,7 +131,7 @@ The app binary includes a CLI. It can build a book from a JSON spec, list and se
 
 ```sh
 swift run PaperAndGrain cli build trip.json Trip.papergrain
-"Paper & Grain Redesign.app/Contents/MacOS/PaperAndGrain" cli export-pdf Trip.papergrain --profile print --output Trip.pdf
+~/Applications/"Paper & Grain.app"/Contents/MacOS/PaperAndGrain cli export-pdf Trip.papergrain --profile print --output Trip.pdf
 ```
 
 See the [CLI guide](docs/cli.md) for every command and the JSON formats.
