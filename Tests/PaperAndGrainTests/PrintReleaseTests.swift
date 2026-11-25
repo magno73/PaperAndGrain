@@ -290,6 +290,34 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertEqual(pixart.all.count, 2 + 1 + 6)
     }
 
+    // MARK: B6 re-export a print package
+
+    func testPrintPackageReplacesAPreviousExportAndChecksTheFolderFirst() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var book = Book(title: "Again", pages: [BookPage(layout: .text, text: "Prima")])
+        book.cover = BookCover(title: "Again")
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        try Data().write(to: package.appendingPathComponent(".DS_Store"))
+        book.pages[0].text = "Seconda"
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let words = try PrintFixtures.pageWords(package.appendingPathComponent("Interior.pdf"))
+        XCTAssertTrue(words[0].contains("Seconda"))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: package.path).sorted(), ["Cover.pdf", "Interior.pdf"])
+
+        // A folder with other files is refused before anything is rendered: the missing photo is never reached.
+        let other = folder.appendingPathComponent("other")
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        try Data("keep".utf8).write(to: other.appendingPathComponent("notes.txt"))
+        book.pages[0].photoIDs = [UUID()]
+        XCTAssertThrowsError(try BookPDF.writePrint(book, directory: folder, to: other)) { error in
+            XCTAssertEqual((error as? CocoaError)?.code, .fileWriteFileExists, "\(error)")
+        }
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: other.path), ["notes.txt"])
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted(), ["assets", "other", "print"])
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }

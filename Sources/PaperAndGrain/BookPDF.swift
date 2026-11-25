@@ -39,6 +39,12 @@ enum BookPDF {
         let meter = ProgressMeter(total: sheetCount(book, settings: settings, pixart: false) + (book.cover == nil ? 0 : 1),
                                   report: progress)
         let fm = FileManager.default
+        // Check the destination before rendering: only a previous package may be replaced.
+        if fm.fileExists(atPath: destination.path) {
+            let previous = Set(["Interior.pdf", "Cover.pdf", ".DS_Store"])
+            guard let contents = try? fm.contentsOfDirectory(atPath: destination.path),
+                  Set(contents).isSubset(of: previous) else { throw CocoaError(.fileWriteFileExists) }
+        }
         let scratch = destination.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at: scratch, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: scratch) }
@@ -50,7 +56,6 @@ enum BookPDF {
         }
         try Task.checkCancellation()
         if fm.fileExists(atPath: destination.path) {
-            guard try fm.contentsOfDirectory(atPath: destination.path).isEmpty else { throw CocoaError(.fileWriteFileExists) }
             _ = try fm.replaceItemAt(destination, withItemAt: scratch)
         } else {
             try fm.moveItem(at: scratch, to: destination)
