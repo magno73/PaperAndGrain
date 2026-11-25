@@ -2,7 +2,7 @@ import CoreGraphics
 
 /// Fixed slots are ordered in reading order: left to right, then top to bottom.
 enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
-    case fullBleed, bleedTwoAcross, bleedTwoStacked, bleedThreeAcross, bleedFourGrid, bleedHeroAboveTwo
+    case fullBleed, fullSpread, bleedTwoAcross, bleedTwoStacked, bleedThreeAcross, bleedFourGrid, bleedHeroAboveTwo
     case twoAcross, twoStacked, fourGrid, heroAboveTwo, twoAboveHero
     case textAbovePhoto, photoAboveText, textBesidePhoto, textOverPhoto, textOnly
 
@@ -10,7 +10,7 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var isFullBleed: Bool {
         switch self {
-        case .fullBleed, .textOverPhoto, .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross,
+        case .fullBleed, .fullSpread, .textOverPhoto, .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross,
              .bleedFourGrid, .bleedHeroAboveTwo:
             true
         default:
@@ -21,6 +21,7 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
     var layout: PageLayout {
         switch self {
         case .fullBleed: .fullPage
+        case .fullSpread: .fullSpread
         case .twoAcross, .twoStacked, .fourGrid, .heroAboveTwo, .twoAboveHero,
              .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross, .bleedFourGrid, .bleedHeroAboveTwo: .gallery
         case .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: .mixed
@@ -31,7 +32,7 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
     var photoCapacity: Int {
         switch self {
         case .textOnly: 0
-        case .fullBleed, .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: 1
+        case .fullBleed, .fullSpread, .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: 1
         case .twoAcross, .twoStacked, .bleedTwoAcross, .bleedTwoStacked: 2
         case .heroAboveTwo, .twoAboveHero, .bleedThreeAcross, .bleedHeroAboveTwo: 3
         case .fourGrid, .bleedFourGrid: 4
@@ -62,7 +63,7 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
         }
 
         switch self {
-        case .fullBleed:
+        case .fullBleed, .fullSpread:
             return Geometry(photos: [bounds])
         case .twoAcross, .bleedTwoAcross:
             return Geometry(photos: pairAcross(photoArea))

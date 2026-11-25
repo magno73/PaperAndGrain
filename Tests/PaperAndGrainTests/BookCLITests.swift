@@ -14,7 +14,7 @@ final class BookCLITests: XCTestCase {
         try Data("""
         {"version":1,"title":"Test","template":"atlas","assets":[{"id":"a","path":"pixel.png"}],
          "pages":[{"arrangement":"textBesidePhoto","photos":["a"],"heading":"Prima","text":"Racconto"},
-                  {"layout":"fullSpread","photos":["a"]}],"cover":{"frontPhoto":"a","backText":"Retro"}}
+                  {"arrangement":"fullSpread","photos":["a"]}],"cover":{"frontPhoto":"a","backText":"Retro"}}
         """.utf8).write(to: spec)
         _ = try BookCLI.execute(["build", spec.path, project.path])
         let inspected = try JSONDecoder().decode(Book.self, from: BookCLI.execute(["inspect", project.path]))

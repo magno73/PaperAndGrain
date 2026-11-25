@@ -444,20 +444,25 @@ struct EditorView: View {
             .padding(.vertical, 14)
             ScrollViewReader { scroll in
                 ScrollView {
-                    LazyVStack(spacing: 7) {
+                    LazyVStack(spacing: 3) {
                         coverItem(.front).id(CoverSide.front)
                         ForEach(navigatorSpreads) { spread in
-                            HStack(spacing: 3) {
+                            navigatorInsertButton(.before(spread.id), betweenColumns: false)
+                            HStack(spacing: 2) {
                                 if spread.blankLeft {
                                     navigatorBlankPage
                                 }
                                 ForEach(spread.pages) { leaf in
+                                    if leaf.id != spread.id {
+                                        navigatorInsertButton(.before(leaf.id), betweenColumns: true)
+                                    }
                                     navigatorItem(leaf, paired: spread.paired,
                                                   insertionAfter: insertion?.id == leaf.id ? insertion?.after : nil)
                                         .id(leaf.id)
                                 }
                             }
                         }
+                        navigatorInsertButton(.end, betweenColumns: false)
                         coverItem(.back).id(CoverSide.back)
                     }
                     .padding(.horizontal, 9).padding(.bottom, 8)
@@ -486,11 +491,38 @@ struct EditorView: View {
         .background(Color(red: 0.93, green: 0.93, blue: 0.89))
     }
 
+    private func navigatorInsertButton(_ gap: NavigatorPageGap, betweenColumns: Bool) -> some View {
+        let label = localized("editor.insert_page_here", fallback: tr("Inserisci pagina qui", "Insert Page Here"))
+        return Button {
+            guard let index = gap.index(in: book.pages) else { return }
+            insert(.gallery, at: index)
+        } label: {
+            ZStack {
+                Capsule().fill(edge)
+                    .frame(width: betweenColumns ? 1 : nil, height: betweenColumns ? 30 : 1)
+                    .padding(.horizontal, betweenColumns ? 0 : 8)
+                Image(systemName: "plus")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(pine)
+                    .frame(width: 15, height: 15)
+                    .background(panel, in: Circle())
+                    .overlay { Circle().strokeBorder(pine.opacity(0.30)) }
+            }
+            .frame(width: betweenColumns ? 18 : nil, height: betweenColumns ? 50 : 18)
+            .frame(maxWidth: betweenColumns ? nil : .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .help(label)
+        .editorDropFrame(.navigatorGap(gap))
+    }
+
     private func navigatorItem(_ leaf: BookPage, paired: Bool, insertionAfter: Bool?) -> some View {
         let active = leaf.id == page?.id
         let first = leaf.id == book.pages.first?.id
         let ratio = aspect * (leaf.effectiveLayout == .fullSpread ? 2 : 1)
-        let width = min(paired ? 63 : 115, 47 * ratio)
+        let width = min(paired ? 56 : 115, 47 * ratio)
         let number = spreadNumber([leaf])
         let label = first && !paired ? tr("Prima pagina", "First Page") : number
         return navigatorCard(label, active: active) {
@@ -520,7 +552,7 @@ struct EditorView: View {
     }
 
     private var navigatorBlankPage: some View {
-        let width = min(63, 47 * aspect)
+        let width = min(56, 47 * aspect)
         return Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
             .frame(width: width, height: width / aspect)
             .overlay { Rectangle().strokeBorder(.black.opacity(0.09)) }
@@ -1362,7 +1394,8 @@ struct EditorView: View {
             let visiblePhotos = Set(pageComposition(page).photos.map(\.id))
             let waiting = page.photoIDs.count - visiblePhotos.count
             VStack(alignment: .leading, spacing: 7) {
-                PageArrangementPicker(selection: page.arrangement, language: language,
+                PageArrangementPicker(selection: page.arrangement ?? (page.layout == .fullSpread ? .fullSpread : nil),
+                                      language: language,
                                       pageSize: book.format.pageSize) { arrangement in
                     applyPageArrangement(arrangement, to: page.id)
                 }
@@ -2217,10 +2250,22 @@ struct EditorView: View {
 
     private func photoLibraryTile(_ photo: BookPhoto, used: Bool, locations: [PhotoUsageIndex.Location]) -> some View {
         let active = photo.id == selectedPhoto
-        let usage = locations.map(usageDescription).joined(separator: ", ")
-        return preview(photo, small: true)
+        let orientation = photoOrientation(photo)
+        let details = ([orientation.label] + locations.map(usageDescription)).joined(separator: " · ")
+        return preview(photo, small: true, fills: false)
             .frame(height: 56)
+            .background(pine.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(alignment: .topLeading) {
+                Image(systemName: orientation.symbol)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 16, height: 16)
+                    .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 4))
+                    .padding(3)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             .overlay(alignment: .bottomTrailing) {
                 if let first = locations.first {
                     let additional = locations.count - 1
@@ -2244,10 +2289,10 @@ struct EditorView: View {
                 selectLibraryPhoto(photo.id)
                 togglePhoto(photo.id)
             })
-            .help(usage.isEmpty ? photo.name : photo.name + "\n" + usage)
+            .help(photo.name + "\n" + details)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(photo.name)
-            .accessibilityValue(usage)
+            .accessibilityValue(details)
             .accessibilityAddTraits(.isButton)
             .accessibilityAddTraits(active ? .isSelected : [])
             .accessibilityAction { selectLibraryPhoto(photo.id) }
@@ -2262,6 +2307,16 @@ struct EditorView: View {
             }
             .libraryPhotoFrame(photo.id)
             .id(photo.id)
+    }
+
+    private func photoOrientation(_ photo: BookPhoto) -> (symbol: String, label: String) {
+        if photo.pixelWidth > photo.pixelHeight {
+            return ("rectangle", localized("editor.photo_orientation.landscape", fallback: tr("Orizzontale", "Landscape")))
+        }
+        if photo.pixelWidth < photo.pixelHeight {
+            return ("rectangle.portrait", localized("editor.photo_orientation.portrait", fallback: tr("Verticale", "Portrait")))
+        }
+        return ("square", localized("editor.photo_orientation.square", fallback: tr("Quadrata", "Square")))
     }
 
     private func usageBadge(_ location: PhotoUsageIndex.Location) -> String {
@@ -3197,10 +3252,13 @@ struct EditorView: View {
         endInlineTextEditing()
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
         editPages(tr("Cambia modello della pagina", "Change Page Template")) { pages in
+            let wasSpread = pages[index].effectiveLayout == .fullSpread
             pages[index].arrangement = arrangement
             if let arrangement {
                 pages[index].layout = arrangement.layout
                 pages[index].photoPlacements = Self.photoCrops(from: pages[index].photoPlacements)
+            } else if wasSpread {
+                pages[index].layout = .gallery
             }
         }
         if let selection = canvasPhotoSelection, selection.pageID == pageID,
@@ -3210,9 +3268,9 @@ struct EditorView: View {
         }
     }
 
-    private func insert(_ layout: PageLayout) {
+    private func insert(_ layout: PageLayout, at position: Int? = nil) {
         let newPage = BookPage(layout: layout)
-        let insertionIndex = (index ?? (book.pages.count - 1)) + 1
+        let insertionIndex = position ?? index.map { $0 + 1 } ?? book.pages.endIndex
         editPages(tr("Inserisci pagina", "Insert Page")) { $0.insert(newPage, at: insertionIndex) }
         select(newPage)
         inspector = .page
@@ -3337,6 +3395,9 @@ struct EditorView: View {
 
     private func pageInsertion(at location: CGPoint) -> (id: UUID, after: Bool)? {
         guard dropFrames[.navigatorViewport]?.contains(location) == true else { return nil }
+        for (target, frame) in dropFrames where frame.contains(location) {
+            if case let .navigatorGap(gap) = target { return gap.dropTarget(in: book.pages) }
+        }
         for spread in navigatorSpreads {
             for leaf in spread.pages {
                 guard let rect = dropFrames[.navigatorPage(leaf.id)],
@@ -3445,6 +3506,9 @@ struct EditorView: View {
                                         bounds: CGRect, textFrames: [CGRect]) -> IncomingPhotoPlacement? {
         guard let dragging, case let .photo(id) = dragging.item, let photo = indexedPhoto(id),
               isPhotoDropTarget(.canvasPage(leaf.id)), let screenFrame = dropFrames[.canvasPage(leaf.id)] else { return nil }
+        if leaf.effectiveLayout == .fullSpread {
+            return .position(CanvasAlignment.Result(frame: bounds, guides: []))
+        }
         let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
         if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
             return .swap(target)
@@ -3479,6 +3543,13 @@ struct EditorView: View {
     private func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {
         guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
+        if current.effectiveLayout == .fullSpread {
+            editPages(tr("Posiziona foto su due pagine", "Place Photo Across Both Pages")) {
+                $0[index].placePhotoAcrossSpread(id)
+            }
+            selectCanvasPhoto(id, in: leaf)
+            return
+        }
         let composition = pageComposition(current)
         let blocks = composition.storyBlocks(page: current, book: book)
         let textFrames = blocks.map(\.frame) + composition.storyBackgroundFrames(page: current, blocks: blocks)

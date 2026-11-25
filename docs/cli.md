@@ -65,7 +65,7 @@ Il rilevatore animali di Apple Vision localizza cani e gatti. Per la fauna selva
 - Sono obbligatori `version`, un `title` con contenuto, `assets` (anche vuoto) e almeno una voce in `pages`. Il formato predefinito misura 210 × 210 mm. L’assenza di `template` usa lo stile classico dell’app. `showPageNumbers` è un booleano facoltativo che abilita o disabilita la numerazione sulle pagine interne con margini. Se è assente, vale l’impostazione del modello.
 - Ogni asset ha un ID univoco e un percorso file assoluto o relativo alla specifica. Il comando copia gli originali nel pacchetto. Gli ID della specifica valgono durante la composizione. L’app assegna UUID alle foto importate.
 - L’ordine di `pages` è quello del libro. L’ordine di `photos` assegna gli slot sulla pagina. Una foto può ricorrere su più pagine e in copertina. Ogni pagina accetta una sola occorrenza dello stesso ID.
-- `templates` elenca ID dei modelli del libro, tipi di pagina e composizioni con capacità e layout corrispondente. Una pagina priva di `layout` e `arrangement` usa `gallery`. La composizione determina il layout. Con `mixed` e `text` si possono includere `heading` e `text`. `fullSpread` dispone una foto su due facciate.
+- `templates` elenca ID dei modelli del libro, tipi di pagina e composizioni con capacità e layout corrispondente. Una pagina priva di `layout` e `arrangement` usa `gallery`. La composizione determina il layout. Con `mixed` e `text` si possono includere `heading` e `text`. `fullSpread` dispone una foto su due facciate. Si può indicare anche come `arrangement` per selezionarla come modello della pagina.
 - La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText` e un dorso `spineMM` in millimetri.
 
 ## Contratto dei comandi

@@ -62,7 +62,10 @@ struct PageArrangementPicker: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             LazyVGrid(columns: columns, spacing: 7) {
-                if !fullBleedGroup { tile(nil) }
+                if !fullBleedGroup {
+                    tile(nil)
+                    tile(.fullSpread)
+                }
                 ForEach(PageArrangement.allCases.filter { $0.isFullBleed == fullBleedGroup }) { tile($0) }
             }
         }
@@ -105,6 +108,7 @@ struct PageArrangementPicker: View {
         let title: (italian: String, english: String) = switch arrangement {
         case nil: ("Automatico", "Automatic")
         case .fullBleed: ("Foto al vivo", "Full bleed")
+        case .fullSpread: ("Due pagine", "Full Spread")
         case .twoAcross: ("Due affiancate", "Two across")
         case .twoStacked: ("Due in verticale", "Two stacked")
         case .fourGrid: ("Griglia a quattro", "Four-photo grid")
@@ -140,7 +144,7 @@ private struct PageArrangementDiagram: View {
     var body: some View {
         Canvas { context, size in
             guard size.width > 2, size.height > 2 else { return }
-            let bookRatio = pageSize.width / pageSize.height
+            let bookRatio = pageSize.width / pageSize.height * (arrangement == .fullSpread ? 2 : 1)
             let ratio = bookRatio.isFinite && bookRatio > 0 ? bookRatio : 4.0 / 3
             let width = min(size.width - 2, (size.height - 2) * ratio)
             let height = width / ratio
@@ -173,6 +177,13 @@ private struct PageArrangementDiagram: View {
                 context.draw(icon, at: CGPoint(x: page.midX, y: page.midY))
             }
             context.stroke(outline, with: .color(ink.opacity(0.5)), lineWidth: 0.7)
+            if arrangement == .fullSpread {
+                let fold = Path { path in
+                    path.move(to: CGPoint(x: page.midX, y: page.minY))
+                    path.addLine(to: CGPoint(x: page.midX, y: page.maxY))
+                }
+                context.stroke(fold, with: .color(ink.opacity(0.65)), style: StrokeStyle(lineWidth: 0.8, dash: [2, 2]))
+            }
         }
         .accessibilityHidden(true)
     }

@@ -39,7 +39,7 @@ final class PageArrangementTests: XCTestCase {
     }
 
     func testEveryArrangementRespectsItsCapacityAndMarginsInEachFormat() throws {
-        XCTAssertEqual(PageArrangement.allCases.count, 16)
+        XCTAssertEqual(PageArrangement.allCases.count, 17)
         for format in [BookFormat.square, .portrait, .landscape] {
             let bounds = CGRect(origin: CGPoint(x: 12, y: 22), size: format.pageSize)
             let safe = bounds.insetBy(dx: 30, dy: 30)
@@ -92,11 +92,41 @@ final class PageArrangementTests: XCTestCase {
         }
     }
 
+    func testLibraryDropReplacesASmallSpreadFrameWithOnePhotoAcrossBothPages() throws {
+        let old = BookPhoto(name: "Old", filename: "old.jpg", pixelWidth: 1600, pixelHeight: 1200)
+        let incoming = BookPhoto(name: "Wide", filename: "wide.jpg", pixelWidth: 4000, pixelHeight: 1600)
+        let book = Book(title: "Panorama", photos: [old, incoming])
+        let small = PageRect(x: 0.12, y: 0.23, width: 0.31, height: 0.32)
+        let crop = PhotoCrop(x: 0.3, y: 0.6, zoom: 1.2)
+
+        for template in [nil, PageArrangement.fullSpread] {
+            var page = BookPage(layout: .fullSpread)
+            page.arrangement = template
+            page.placePhotoAcrossSpread(incoming.id)
+            XCTAssertEqual(PageComposition(page: page, book: book).photos.first?.frame.width,
+                           2 * book.format.pageSize.width)
+
+            page.photoIDs = [old.id, incoming.id]
+            page.photoPlacements = [
+                old.id: PhotoPlacement(frame: small), incoming.id: PhotoPlacement(frame: small, crop: crop)
+            ]
+            page.placePhotoAcrossSpread(incoming.id)
+            XCTAssertEqual(page.photoIDs, [incoming.id, old.id])
+
+            let composition = PageComposition(page: page, book: book, bleed: 5)
+            XCTAssertEqual(composition.photos.map(\.id), [incoming.id])
+            let photo = try XCTUnwrap(composition.photos.first)
+            XCTAssertTrue(photo.fills)
+            XCTAssertEqual(photo.frame, composition.bounds.insetBy(dx: -5, dy: -5))
+            XCTAssertEqual(photo.crop, crop)
+        }
+    }
+
     func testSeamlessPhotoLayoutsExtendOnlyOutsideEdgesForPrint() throws {
         let counts: [PageArrangement: Int] = [
             .bleedTwoAcross: 2, .bleedTwoStacked: 2, .bleedThreeAcross: 3, .bleedFourGrid: 4, .bleedHeroAboveTwo: 3
         ]
-        XCTAssertEqual(Set(PageArrangement.allCases.filter(\.isFullBleed)), Set(counts.keys).union([.fullBleed, .textOverPhoto]))
+        XCTAssertEqual(Set(PageArrangement.allCases.filter(\.isFullBleed)), Set(counts.keys).union([.fullBleed, .fullSpread, .textOverPhoto]))
         let photos = (0..<4).map { BookPhoto(name: "Slot \($0)", filename: "slot\($0).png", pixelWidth: 40, pixelHeight: 60) }
         let book = Book(title: "Seams", format: BookFormat(widthMM: 182, heightMM: 211), photos: photos, template: .atlas)
         let bounds = CGRect(origin: .zero, size: book.format.pageSize)

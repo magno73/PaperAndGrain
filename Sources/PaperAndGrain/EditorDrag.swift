@@ -9,10 +9,27 @@ struct EditorDragPreview: Equatable {
     let location: CGPoint
 }
 
+enum NavigatorPageGap: Hashable {
+    case before(UUID), end
+
+    func index(in pages: [BookPage]) -> Int? {
+        switch self {
+        case let .before(id): pages.firstIndex { $0.id == id }
+        case .end: pages.endIndex
+        }
+    }
+
+    func dropTarget(in pages: [BookPage]) -> (id: UUID, after: Bool)? {
+        guard let position = index(in: pages) else { return nil }
+        if position < pages.endIndex { return (pages[position].id, false) }
+        return pages.last.map { ($0.id, true) }
+    }
+}
+
 enum EditorDropTarget: Hashable {
     static let coordinateSpace = "PaperAndGrainEditor"
     case navigatorViewport, canvasViewport
-    case navigatorPage(UUID), canvasPage(UUID), cover(front: Bool)
+    case navigatorPage(UUID), navigatorGap(NavigatorPageGap), canvasPage(UUID), cover(front: Bool)
 }
 
 struct EditorDropFrames: PreferenceKey {

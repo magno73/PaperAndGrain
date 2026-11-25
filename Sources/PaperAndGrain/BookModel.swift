@@ -101,6 +101,21 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
         if !backgrounds.isEmpty { storyBackdropFrames = backgrounds.map(translated) }
     }
 
+    mutating func placePhotoAcrossSpread(_ id: UUID) {
+        let previous = photoIDs.first
+        photoIDs.removeAll { $0 == id }
+        photoIDs.insert(id, at: 0)
+        var placements = photoPlacements ?? [:]
+        for photoID in Set([previous, id].compactMap { $0 }) {
+            if let crop = placements[photoID]?.crop {
+                placements[photoID] = PhotoPlacement(crop: crop)
+            } else {
+                placements.removeValue(forKey: photoID)
+            }
+        }
+        photoPlacements = placements.isEmpty ? nil : placements
+    }
+
     var effectiveLayout: PageLayout { arrangement?.layout ?? layout }
     var hasStoryText: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

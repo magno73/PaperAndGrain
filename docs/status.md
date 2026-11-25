@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.9.6 · 25 novembre 2026
+
+Le miniature della libreria mostrano l’orientamento e conservano l’inquadratura originale. Il navigatore offre un **+** fra le pagine e mantiene il riordino per trascinamento nelle stesse posizioni. **Due pagine** è disponibile nel selettore dei modelli. Quando si trascina uno scatto da Foto sulla doppia, la cornice occupa entrambe le facciate. Le prove automatiche coprono l’inserimento ai confini della doppia e la sostituzione di una cornice piccola con una foto a tutta doppia. La build risiede in `dist/0.9.6/`.
+
 ## 0.9.5 · 24 novembre 2026
 
 **Foto → Libreria** raggruppa per data, luogo, argomento o utilizzo. L’ordine predefinito segue la data di scatto. I luoghi dei file già importati vengono letti in sottofondo. Le foto senza i metadati richiesti restano consultabili in un gruppo in fondo. I test coprono ordinamento cronologico, zone GPS, metadati di immagini sintetiche e aggiornamento dei gruppi. La build risiede in `dist/0.9.5/`.

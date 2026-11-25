@@ -87,7 +87,7 @@ final class CoreRegressionTests: XCTestCase {
         var (book, photo) = try fixture(in: folder)
         book.pages = [
             BookPage(layout: .gallery, photoIDs: [photo.id]),
-            BookPage(layout: .fullSpread, photoIDs: [photo.id], framing: 0.7),
+            BookPage(layout: .fullSpread, photoIDs: [photo.id], framing: 0.7, arrangement: .fullSpread),
         ]
         book.printSettings = PrintSettings(bleedMM: 3, spreads: true)
         book.cover = BookCover(title: "Namibia", frontPhotoID: photo.id, spineMM: 10)
