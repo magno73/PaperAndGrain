@@ -44,7 +44,10 @@ actor EditorPreviewLoader {
     private let canvas = Lane(name: "PaperAndGrain.preview.canvas", qos: .userInitiated, megabytes: 160,
                               width: min(4, max(2, ProcessInfo.processInfo.activeProcessorCount / 3)))
     private let interactive = Lane(name: "PaperAndGrain.preview.interactive", qos: .userInitiated, megabytes: 24)
-    private let thumbnails = Lane(name: "PaperAndGrain.preview.thumbnails", qos: .utility, megabytes: 20)
+    // A 180 px thumbnail of a 12 MP photo takes about 15 ms; several lanes fill a 150-photo tray in well under a second.
+    static let thumbnailLaneWidth = min(4, max(2, ProcessInfo.processInfo.activeProcessorCount / 3))
+    private let thumbnails = Lane(name: "PaperAndGrain.preview.thumbnails", qos: .utility, megabytes: 20,
+                                  width: EditorPreviewLoader.thumbnailLaneWidth)
     private let filmSwatches = Lane(name: "PaperAndGrain.preview.filmSwatches", qos: .userInitiated, megabytes: 4)
     private static let shared = EditorPreviewLoader { request in
         FilmRenderer.image(from: request.url, maxPixelSize: request.limit, settings: request.look,

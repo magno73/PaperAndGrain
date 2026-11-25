@@ -46,18 +46,22 @@ final class EditorPreviewLoaderTests: XCTestCase {
     func testBlockedThumbnailAllowsCanvasAndFilmSwatchAndCancelledWorkNeverRuns() async throws {
         let sample = try pixels()
         let starts = Starts()
-        let first = request("first", size: 180)
+        // Every thumbnail lane is busy, so a newer thumbnail waits and can still be dropped.
+        let width = EditorPreviewLoader.thumbnailLaneWidth
+        let blockers = (0..<width).map { request("first-\($0)", size: 180) }
+        let first = blockers[0]
         let obsolete = request("obsolete", size: 180)
         let current = request("current", size: 1440)
         let swatch = request("current", size: 180, isFilmSwatch: true)
-        let entered = expectation(description: "First thumbnail is rendering")
+        let entered = expectation(description: "Every thumbnail lane is rendering")
+        entered.expectedFulfillmentCount = width
         let displayed = expectation(description: "Canvas rendered while thumbnails were busy")
         let filmDisplayed = expectation(description: "Film swatch rendered while thumbnails were busy")
         let permitFinish = DispatchSemaphore(value: 0)
-        defer { permitFinish.signal() }
+        defer { for _ in 0..<width { permitFinish.signal() } }
         let loader = EditorPreviewLoader { request in
             starts.record(request)
-            if request == first {
+            if blockers.contains(request) {
                 entered.fulfill()
                 _ = permitFinish.wait(timeout: .now() + 5)
             }
@@ -66,6 +70,7 @@ final class EditorPreviewLoaderTests: XCTestCase {
             return sample
         }
         let thumbnail = Task { await loader.load(first) }
+        let others = blockers.dropFirst().map { blocker in Task { await loader.load(blocker) } }
         await fulfillment(of: [entered], timeout: 2)
         let hidden = Task { await loader.load(obsolete) }
         let canvas = Task { await loader.load(current) }
@@ -74,8 +79,9 @@ final class EditorPreviewLoaderTests: XCTestCase {
         hidden.cancel()
         let discarded = await hidden.value
         XCTAssertNil(discarded)
-        permitFinish.signal()
+        for _ in 0..<width { permitFinish.signal() }
         let visibleThumbnail = await thumbnail.value
+        for other in others { _ = await other.value }
         let visibleCanvas = await canvas.value
         let visibleSwatch = await film.value
         XCTAssertNotNil(visibleThumbnail)

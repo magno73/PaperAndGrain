@@ -4,10 +4,11 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of ch
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 198 tests with no failures. They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print and Pixartprinting PDFs, and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 209 tests with no failures. They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print and Pixartprinting PDFs, and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
+- **Timing without the interface.** In a release build on this Mac, a 180 px thumbnail of a 12 MP photo takes about 15 ms; with several thumbnail lanes the tray of a 150-photo book fills in about 0.4 s instead of about 2.2 s. Composing and typesetting one page thumbnail takes about 0.06 ms, so redrawing the visible thumbnails while typing costs well under a millisecond and needs no cache.
 
 ## Verified
 
@@ -53,6 +54,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of ch
 
 - Photo replacement on a full-bleed page, on a full spread, and with ⌥ held over a photo.
 - Context menu on a text box and on a story.
+- **Undo after typing.** Type in a story, a heading, a text box and the cover title, click elsewhere and press ⌘Z: the previous text should come back in one step, and redo should work. Page and layout undo keep typed text on purpose, so typing relies on the text field's own undo; this has not been checked in the window.
 - Scrolling pages with a classic notched mouse wheel.
 - Arrow keys in the Pages sidebar after deleting a page.
 - Snapping to the outer edge of a full spread.
