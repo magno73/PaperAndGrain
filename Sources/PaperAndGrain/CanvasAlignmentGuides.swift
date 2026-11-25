@@ -46,7 +46,7 @@ struct CanvasAlignmentGuides: View {
                 }
             }
             context.stroke(path, with: .color(.white.opacity(0.86)), lineWidth: 3)
-            context.stroke(path, with: .color(Color(red: 0.81, green: 0.13, blue: 0.39)), lineWidth: 1)
+            context.stroke(path, with: .color(Theme.guide), lineWidth: 1)
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)

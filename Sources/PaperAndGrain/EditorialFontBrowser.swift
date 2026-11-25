@@ -18,8 +18,8 @@ struct EditorialFontBrowser: View {
     @State private var faceID: String?
     @FocusState private var searchFocused: Bool
 
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
-    private let paper = Color(red: 0.98, green: 0.97, blue: 0.93)
+    private let pine = Theme.accent
+    private let paper = Theme.field
 
     private enum Scope: CaseIterable {
         case all, favorites, recent

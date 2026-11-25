@@ -54,7 +54,7 @@ struct BookTemplateChooser: View {
                 Button(tr("Annulla", "Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
                 Button(tr("Applica", "Apply")) { onApply(selected, showPageNumbers) }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.19, green: 0.34, blue: 0.27))
+                    .tint(Theme.accent)
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -84,7 +84,7 @@ struct BookTemplateChooser: View {
                 HStack {
                     Text(option.name(language: language)).font(.system(size: 19, design: .serif))
                     Spacer()
-                    if active { Image(systemName: "checkmark.circle.fill").foregroundStyle(Color(red: 0.19, green: 0.34, blue: 0.27)) }
+                    if active { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
                 }
                 Text(option.description(language: language))
                     .font(.callout)

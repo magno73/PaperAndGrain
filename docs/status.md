@@ -1,5 +1,28 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · 25 novembre 2026 · branch `redesign/mac-ui`
+
+Nuova struttura della finestra secondo le linee guida di macOS 26 e 27. La barra degli strumenti è quella di sistema, con titolo, sottotitolo e menu del titolo (**Libro e stampa**, **Modelli del libro**, salvataggi ed esportazioni). La testata personalizzata non c’è più. L’ispettore è un `.inspector` nativo e le sue schede seguono la selezione: **Pagina** o **Copertina**, poi **Foto** e **Regola** quando una foto è selezionata, e infine **Pellicola**. La libreria delle foto diventa la **Fototeca**, un cassetto in fondo al canvas con i filtri **Tutte**, **Non usate** e **In pagina**, l’ordinamento, la ricerca e la zona per il trascinamento. Il navigatore è ridimensionabile e le miniature crescono con la sua larghezza. Il **+** fra le pagine compare al passaggio del puntatore. Su macOS 26 e successivi navigatore, fototeca e controlli del canvas usano Liquid Glass. Sui sistemi precedenti usano i materiali.
+
+I nuovi menu **Inserisci**, **Pagina** e **Foto** e le voci aggiunte in **Vista** e **File** espongono tutte le azioni della barra e del canvas con le scorciatoie. **Apri recente** e la finestra di benvenuto mostrano i libri recenti con la copertina. Sotto la selezione compare un HUD con **Ritaglia**, **Regola**, **Pellicola** e **Togli dalla pagina**. Navigatore e canvas hanno un menu contestuale. **Sfoglia il libro** (⌥⌘↩) mostra le doppie a tutta finestra. La lingua si sceglie in **Impostazioni** (⌘,). I colori stanno in `Theme.swift` e seguono la modalità chiara o scura e il contrasto aumentato. Le pagine conservano i colori del modello. **Esporta PDF** mostra la verifica di prestampa prima di scegliere la destinazione. Il formato del libro offre 21 misure predefinite di fotolibro, quadrate, orizzontali e verticali, oltre a quella personalizzata.
+
+Il navigatore resta nella stessa gerarchia del canvas. `NavigationSplitView` ospiterebbe le colonne in viste separate e interromperebbe trascinamenti e riferimenti di coordinate fra pagine, canvas e fototeca.
+
+**Verificato sulla build `dist/0.10.0-redesign/`** con il libro dimostrativo:
+- benvenuto, menu Inserisci › Pagina, trascinamento dalla fototeca alla pagina, riordino nel navigatore e Annulla dal menu Modifica;
+- selettore dei modelli dalla barra, HUD, schede contestuali e Sfoglia;
+- verifica di prestampa con un avviso reale di risoluzione e formati predefiniti in Libro e stampa;
+- modalità scura, provata con un aggancio di debug poi rimosso;
+- `swift test` con 111 test superati.
+
+**Resta da provare:**
+- un libro grande come Namibia, con prestazioni del cassetto e navigatore largo;
+- ritaglio e testo in linea con il nuovo HUD;
+- VoiceOver;
+- l’aspetto su macOS 14 e 15.
+
+La build usa un identificativo e una cartella di bozze propri, quindi non apre i libri della 0.9.x.
+
 ## 0.9.7 · 25 novembre 2026
 
 **Canc** e **⌫** eliminano la pagina selezionata nel navigatore. **⌘Z** la ripristina. Il comando segue la selezione attiva, con copertine e campi di testo esclusi dall’eliminazione di pagine. La prova automatica verifica i due tasti e il controllo della pagina selezionata. La build risiede in `dist/0.9.7/`.

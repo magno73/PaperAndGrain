@@ -13,7 +13,7 @@ struct EditorialTypographyControls: View {
     @State private var showingFonts = false
     @FocusState private var editingSize: Bool
 
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
+    private let pine = Theme.accent
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

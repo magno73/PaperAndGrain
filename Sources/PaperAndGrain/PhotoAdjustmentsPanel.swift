@@ -11,7 +11,7 @@ struct PhotoAdjustmentsPanel: View {
 
     @State private var expanded: Set<Group> = [.light]
 
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
+    private let pine = Theme.accent
 
     private enum Group: CaseIterable {
         case light, color, monochrome, detail, curves, levels, selectiveColor

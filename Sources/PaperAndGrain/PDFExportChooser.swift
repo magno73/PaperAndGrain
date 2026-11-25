@@ -14,6 +14,7 @@ struct PDFExportChooser: View {
 
     @State private var profile: Profile = .proof
     @State private var spine: String
+    @State private var warnings: [String]?
 
     private enum Profile: CaseIterable {
         case proof, printPackage, pixart
@@ -30,7 +31,7 @@ struct PDFExportChooser: View {
         _spine = State(initialValue: book.cover.flatMap { $0.spineMM > 0 ? $0.spineMM.formatted(number) : nil } ?? "")
     }
 
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
+    private let pine = Theme.accent
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -41,6 +42,7 @@ struct PDFExportChooser: View {
                 ForEach(Profile.allCases, id: \.self, content: option)
             }
             if profile == .pixart { pixartOptions }
+            preflight
             HStack {
                 Spacer()
                 Button(tr("Annulla", "Cancel"), action: cancel).keyboardShortcut(.cancelAction)
@@ -115,6 +117,76 @@ struct PDFExportChooser: View {
         }
         .font(.callout)
         .padding(.horizontal, 3)
+    }
+
+    /// Print checks shown before choosing where to save, so problems can be fixed first.
+    private var preflight: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(tr("Verifica prima della stampa", "Preflight"))
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+            if profile == .proof {
+                Text(tr("Il PDF da sfogliare non richiede controlli di stampa.",
+                        "The viewing PDF needs no print checks."))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else if let warnings {
+                if warnings.isEmpty {
+                    Label(tr("Nessun problema trovato", "No problems found"), systemImage: "checkmark.circle.fill")
+                        .font(.callout)
+                        .symbolRenderingMode(.multicolor)
+                } else {
+                    ForEach(Array(warnings.prefix(6).enumerated()), id: \.offset) { _, warning in
+                        Label {
+                            Text(localizedWarning(warning)).fixedSize(horizontal: false, vertical: true)
+                        } icon: {
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                        }
+                        .font(.callout)
+                    }
+                    if warnings.count > 6 {
+                        Text(tr("e altri \(warnings.count - 6) avvisi", "and \(warnings.count - 6) more warnings"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(tr("Puoi esportare comunque: gli stessi avvisi compaiono alla fine dell’esportazione.",
+                            "You can still export: the same warnings appear when the export finishes."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                HStack(spacing: 6) {
+                    ProgressView().controlSize(.small)
+                    Text(tr("Controllo risoluzione e pagine…", "Checking resolution and pages…"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .task(id: profile) {
+            warnings = nil
+            guard profile != .proof else { return }
+            let book = book
+            let pixart = profile == .pixart
+            let found = await Task.detached(priority: .userInitiated) { BookPDF.printWarnings(book, pixart: pixart) }.value
+            if !Task.isCancelled { warnings = found }
+        }
+    }
+
+    /// Print warnings carry both languages ("Italiano / English"); show only the interface language.
+    private func localizedWarning(_ warning: String) -> String {
+        let italian = language.hasPrefix("it")
+        let parts = warning.components(separatedBy: " · ")
+        if parts.count == 2, parts[0] == "Dimensioni non valide" { return italian ? parts[0] : parts[1] }
+        return parts.map { part in
+            let sides = part.components(separatedBy: " / ")
+            guard sides.count == 2 else { return part }
+            return italian ? sides[0] : sides[1]
+        }.joined(separator: " · ")
     }
 
     private var request: PDFExportRequest? {

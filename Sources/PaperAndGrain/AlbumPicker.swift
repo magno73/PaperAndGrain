@@ -12,23 +12,17 @@ struct AlbumPicker: View {
     @State private var albumID: Album.ID?
     @State private var entries: [LibraryPhoto] = []
     @State private var selected = Set<String>()
-    @State private var formatChoice = SizeChoice.square
+    @State private var formatChoice = "square-21"
     @State private var width = "210"
     @State private var height = "210"
     @State private var loading = true
 
-    enum SizeChoice: String, CaseIterable, Identifiable {
-        case square, landscape, portrait, custom
-        var id: Self { self }
-    }
+    private static let customChoice = "custom"
 
     private var album: Album? { albums.first { $0.id == albumID } }
     private var format: BookFormat? {
-        switch formatChoice {
-        case .square: return .square
-        case .landscape: return .landscape
-        case .portrait: return .portrait
-        case .custom:
+        if let preset = BookFormatPreset.all.first(where: { $0.id == formatChoice }) { return preset.format }
+        do {
             let formatter = NumberFormatter()
             formatter.locale = Locale(identifier: language)
             formatter.numberStyle = .decimal
@@ -150,13 +144,19 @@ struct AlbumPicker: View {
                     }
                 }
                 Picker(s("Formato del libro", "Book Size"), selection: $formatChoice) {
-                    Text(s("Quadrato", "Square")).tag(SizeChoice.square)
-                    Text(s("Orizzontale", "Landscape")).tag(SizeChoice.landscape)
-                    Text(s("Verticale", "Portrait")).tag(SizeChoice.portrait)
-                    Text(s("Personalizzato", "Custom")).tag(SizeChoice.custom)
+                    ForEach(BookFormatPreset.Shape.allCases, id: \.self) { shape in
+                        Section(shape.title(language)) {
+                            ForEach(BookFormatPreset.presets(shape)) { preset in
+                                Text(preset.name(language)).tag(preset.id)
+                            }
+                        }
+                    }
+                    Divider()
+                    Text(s("Personalizzato…", "Custom…")).tag(Self.customChoice)
                 }
-                .pickerStyle(.segmented)
-                if formatChoice == .custom {
+                .pickerStyle(.menu)
+                .frame(maxWidth: 460, alignment: .leading)
+                if formatChoice == Self.customChoice {
                     HStack {
                         TextField(s("Larghezza in mm", "Width in mm"), text: $width)
                         TextField(s("Altezza in mm", "Height in mm"), text: $height)
@@ -194,7 +194,7 @@ private struct LibraryThumbnail: View {
             if selected {
                 Image(systemName: "checkmark.circle.fill")
                     .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, Color(red: 0.19, green: 0.34, blue: 0.27))
+                    .foregroundStyle(.white, Theme.accent)
                     .font(.system(size: 16))
                     .padding(5)
             }
@@ -203,7 +203,7 @@ private struct LibraryThumbnail: View {
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .overlay {
             if selected {
-                RoundedRectangle(cornerRadius: 7).strokeBorder(Color(red: 0.19, green: 0.34, blue: 0.27), lineWidth: 2)
+                RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.accent, lineWidth: 2)
             }
         }
         .task(id: photo.id) { image = await PhotoLibrary.thumbnail(photo) }

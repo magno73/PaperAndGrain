@@ -39,6 +39,17 @@ struct PaperAndGrainApp: App {
             : preferredLanguage
     }
 
+    private var editorActions: EditorAppActions {
+        EditorAppActions(closeBook: workspace.closeBook,
+                         showTemplates: { showBookTemplates = true },
+                         showBookSettings: { showBookSettings = true },
+                         save: workspace.saveProject,
+                         saveTitle: saveProjectTitle,
+                         saveAs: workspace.saveProjectAs,
+                         exportPrint: { workspace.exportPrint(language: language) },
+                         importFiles: { workspace.importFiles(language: language) })
+    }
+
     var body: some Scene {
         Window("Paper & Grain", id: "book") {
             Group {
@@ -52,52 +63,21 @@ struct PaperAndGrainApp: App {
                                onDropPhotoPromises: { promises, reveal in
                                    workspace.addDroppedPhotoPromises(promises, language: language, onImported: reveal)
                                },
-                               onExport: { showPDFExport = true })
+                               onExport: { showPDFExport = true },
+                               actions: editorActions)
                         .id(workspace.book.id)
                 } else {
-                    WelcomeView(language: language, onAlbums: { showAlbums = true },
+                    WelcomeView(language: language, recents: workspace.recentBooks,
+                                onAlbums: { showAlbums = true },
                                 onFiles: { workspace.importFiles(language: language) },
-                                onOpen: workspace.openProject, onDemo: { workspace.loadDemo(language: language) })
+                                onOpen: workspace.openProject,
+                                onOpenRecent: { workspace.openProject(at: $0.url) },
+                                onForget: workspace.forgetRecentBook,
+                                onDemo: { workspace.loadDemo(language: language) })
                 }
             }
-            .frame(minWidth: 980, minHeight: 680)
+            .frame(minWidth: 1020, minHeight: 680)
             .environment(\.locale, Locale(identifier: language))
-            .toolbar {
-                ToolbarItem(placement: .navigation) {
-                    if workspace.directory != nil {
-                        Button(action: workspace.closeBook) {
-                            Label(s("Libreria", "Library"), systemImage: "books.vertical")
-                        }
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    if workspace.directory != nil {
-                        Menu {
-                            Button(s("Modelli del libro…", "Book Templates…")) { showBookTemplates = true }
-                            Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
-                            Button(saveProjectTitle, action: workspace.saveProject)
-                            Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
-                            Divider()
-                            Button(s("Esporta per la stampa…", "Export for Print…")) {
-                                workspace.exportPrint(language: language)
-                            }
-                            .disabled(workspace.book.pages.isEmpty || workspace.exporting)
-                        } label: {
-                            Label(s("Libro e stampa", "Book & Print"), systemImage: "book.closed")
-                        }
-                    }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Picker(s("Lingua dell’interfaccia", "App Language"), selection: $preferredLanguage) {
-                            Text(s("Come il sistema", "System Default")).tag("system")
-                            Text("Italiano").tag("it")
-                            Text("English").tag("en")
-                        }
-                    } label: { Image(systemName: "globe") }
-                    .accessibilityLabel(s("Lingua dell’interfaccia", "App Language"))
-                }
-            }
             .sheet(isPresented: $showAlbums) {
                 AlbumPicker(language: language, close: { showAlbums = false }) { photos, title, format in
                     showAlbums = false
@@ -137,22 +117,54 @@ struct PaperAndGrainApp: App {
                 }
             }
         }
-        .defaultSize(width: 1330, height: 840)
+        .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(after: .newItem) {
-                Button(s("Nuovo da Foto…", "New from Photos…")) { showAlbums = true }
+                Button(s("Nuovo libro da Foto…", "New Book from Photos…")) { showAlbums = true }
                     .keyboardShortcut("n")
-                Button(s("Apri progetto…", "Open Project…"), action: workspace.openProject)
+                Button(s("Nuovo libro da file…", "New Book from Files…")) { workspace.importFiles(language: language) }
+                Button(s("Apri…", "Open…"), action: workspace.openProject)
                     .keyboardShortcut("o")
+                Menu(s("Apri recente", "Open Recent")) {
+                    ForEach(workspace.recentBooks) { recent in
+                        Button(recent.title.isEmpty ? recent.url.deletingPathExtension().lastPathComponent : recent.title) {
+                            workspace.openProject(at: recent.url)
+                        }
+                    }
+                }
+                .disabled(workspace.recentBooks.isEmpty)
+                Divider()
+                Button(s("Torna alla libreria", "Back to Library"), action: workspace.closeBook)
+                    .keyboardShortcut("l", modifiers: [.command, .shift])
+                    .disabled(workspace.directory == nil)
+            }
+            CommandGroup(replacing: .saveItem) {
                 Button(saveProjectTitle, action: workspace.saveProject)
                     .keyboardShortcut("s")
                     .disabled(workspace.directory == nil)
                 Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                     .disabled(workspace.directory == nil)
-                Button(s("Esporta PDF…", "Export PDF…")) { showPDFExport = true }
-                    .disabled(workspace.book.pages.isEmpty || workspace.exporting)
             }
+            CommandGroup(after: .saveItem) {
+                Divider()
+                Button(s("Modelli del libro…", "Book Templates…")) { showBookTemplates = true }
+                    .disabled(workspace.directory == nil)
+                Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
+                    .keyboardShortcut("p", modifiers: [.command, .option])
+                    .disabled(workspace.directory == nil)
+                Divider()
+                Button(s("Esporta PDF…", "Export PDF…")) { showPDFExport = true }
+                    .keyboardShortcut("e", modifiers: [.command, .shift])
+                    .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
+                Button(s("Esporta per la stampa…", "Export for Print…")) { workspace.exportPrint(language: language) }
+                    .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
+            }
+            EditorMenus(language: language)
+        }
+
+        Settings {
+            AppSettingsView(language: language, preferredLanguage: $preferredLanguage)
         }
     }
 
@@ -175,7 +187,7 @@ struct PaperAndGrainApp: App {
 
     private func errorBanner(_ message: String) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 .accessibilityHidden(true)
             Text(message)
                 .textSelection(.enabled)
@@ -189,9 +201,11 @@ struct PaperAndGrainApp: App {
             .accessibilityLabel(s("Chiudi avviso", "Dismiss Message"))
         }
         .font(.callout)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.regularMaterial)
+        .floatingPanel(cornerRadius: 14)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 10)
     }
 
     private func progressCard(label: String, value: String, cancel: (() -> Void)?) -> some View {
@@ -205,7 +219,7 @@ struct PaperAndGrainApp: App {
             }
             .frame(width: 225)
             .padding(26)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            .floatingPanel(cornerRadius: 22)
         }
     }
 }
@@ -241,57 +255,196 @@ private struct BookSettingsSheets: ViewModifier {
     }
 }
 
+/// Paper & Grain › Settings (⌘,). The interface language lives here instead of the toolbar.
+private struct AppSettingsView: View {
+    let language: String
+    @Binding var preferredLanguage: String
+
+    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
+
+    var body: some View {
+        Form {
+            Picker(s("Lingua dell’interfaccia", "App Language"), selection: $preferredLanguage) {
+                Text(s("Come il sistema", "System Default")).tag("system")
+                Text("Italiano").tag("it")
+                Text("English").tag("en")
+            }
+            Text(s("Puoi scegliere la lingua anche in Impostazioni di Sistema › Generali › Lingua e zona › Applicazioni.",
+                   "You can also choose it in System Settings › General › Language & Region › Applications."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .formStyle(.grouped)
+        .frame(width: 460)
+        .fixedSize(horizontal: false, vertical: true)
+        .environment(\.locale, Locale(identifier: language))
+    }
+}
+
 private struct WelcomeView: View {
     let language: String
+    let recents: [Workspace.RecentBook]
     let onAlbums: () -> Void
     let onFiles: () -> Void
     let onOpen: () -> Void
+    let onOpenRecent: (Workspace.RecentBook) -> Void
+    let onForget: (Workspace.RecentBook) -> Void
     let onDemo: () -> Void
 
     private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
     var body: some View {
-        GeometryReader { proxy in
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 24) {
-                    Spacer()
-                    Text("Paper\n& Grain")
-                        .font(.system(size: 80, weight: .regular, design: .serif))
-                        .tracking(-5)
-                        .lineSpacing(-4)
-                        .foregroundStyle(Color(red: 0.16, green: 0.25, blue: 0.20))
-                        .accessibilityAddTraits(.isHeader)
-                    Text(s("I tuoi viaggi, pagina dopo pagina.", "Your travels, page by page."))
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Button(action: onAlbums) { Label(s("Scegli un album da Foto", "Choose an Album from Photos"), systemImage: "photo.on.rectangle") }
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.large)
-                            .tint(Color(red: 0.19, green: 0.34, blue: 0.27))
-                        HStack {
-                            Button(s("Importa file…", "Import Files…"), action: onFiles)
-                            Button(s("Apri progetto…", "Open Project…"), action: onOpen)
-                        }
-                        Button(s("Apri il libro dimostrativo", "Open the Sample Book"), action: onDemo)
-                            .buttonStyle(.link)
-                    }
-                    Spacer()
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 24) {
+                Spacer()
+                Text("Paper\n& Grain")
+                    .font(.system(size: 72, weight: .regular, design: .serif))
+                    .tracking(-3.5)
+                    .lineSpacing(-6)
+                    .foregroundStyle(Theme.welcomeInk)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityLabel("Paper & Grain")
+                Text(s("I tuoi viaggi, pagina dopo pagina.", "Your travels, page by page."))
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    welcomeButton(s("Nuovo libro da un album di Foto", "New Book from a Photos Album"),
+                                  symbol: "photo.on.rectangle", prominent: true, action: onAlbums)
+                    welcomeButton(s("Nuovo libro da file del Finder", "New Book from Finder Files"),
+                                  symbol: "folder", action: onFiles)
+                    welcomeButton(s("Apri il libro dimostrativo", "Open the Sample Book"),
+                                  symbol: "book", action: onDemo)
                 }
-                .padding(.horizontal, 50)
-                .frame(width: proxy.size.width * 0.49, alignment: .leading)
-                .frame(maxHeight: .infinity)
-                .background(Color(red: 0.97, green: 0.95, blue: 0.90))
-                if let source = Bundle.main.url(forResource: "Demo", withExtension: "png"), let picture = NSImage(contentsOf: source) {
-                    Image(nsImage: picture)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: proxy.size.width * 0.51, height: proxy.size.height)
-                        .clipped()
-                        .accessibilityHidden(true)
+                .frame(maxWidth: 330)
+                Spacer()
+            }
+            .padding(.horizontal, 48)
+            .frame(width: 420, alignment: .leading)
+            .frame(maxHeight: .infinity)
+            .background(Theme.welcome.ignoresSafeArea())
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text(s("I tuoi libri", "Your Books"))
+                        .font(.title2.weight(.bold))
+                    Spacer()
+                    Button(s("Apri altro…", "Open Other…"), action: onOpen)
+                }
+                if recents.isEmpty {
+                    if #available(macOS 14.0, *) {
+                        ContentUnavailableView {
+                            Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
+                        } description: {
+                            Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
+                                   "Choose a Photos album to lay out your first book, or open the sample."))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 24, alignment: .top)],
+                                  alignment: .leading, spacing: 28) {
+                            ForEach(recents) { recent in
+                                RecentBookCard(recent: recent, language: language)
+                                    .onTapGesture(count: 2) { onOpenRecent(recent) }
+                                    .onTapGesture { onOpenRecent(recent) }
+                                    .contextMenu {
+                                        Button(s("Apri", "Open")) { onOpenRecent(recent) }
+                                        Button(s("Mostra nel Finder", "Show in Finder")) {
+                                            NSWorkspace.shared.activateFileViewerSelecting([recent.url])
+                                        }
+                                        .disabled(recent.isDraft)
+                                        Divider()
+                                        Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityAddTraits(.isButton)
+                                    .accessibilityAction { onOpenRecent(recent) }
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
                 }
             }
+            .padding(.horizontal, 40)
+            .padding(.vertical, 32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(.background)
         }
-        .preferredColorScheme(.light)
+    }
+
+    private func welcomeButton(_ title: String, symbol: String, prominent: Bool = false,
+                               action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.body.weight(prominent ? .semibold : .regular))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(prominent ? Color.white : Color.primary)
+        .background(prominent ? Theme.accent : Color.primary.opacity(0.06),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+private struct RecentBookCard: View {
+    let recent: Workspace.RecentBook
+    let language: String
+    @State private var cover: CGImage?
+    @State private var hovering = false
+
+    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ZStack(alignment: .bottomLeading) {
+                Rectangle().fill(Theme.welcomeInk.opacity(0.85))
+                if let cover {
+                    Image(decorative: cover, scale: 1)
+                        .resizable()
+                        .scaledToFill()
+                }
+                LinearGradient(colors: [.clear, .black.opacity(0.45)], startPoint: .center, endPoint: .bottom)
+                Text(recent.title)
+                    .font(.system(size: 17, design: .serif))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .padding(12)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 3,
+                                              bottomTrailingRadius: 7, topTrailingRadius: 7, style: .continuous))
+            .overlay(alignment: .leading) {
+                Rectangle().fill(.black.opacity(0.14)).frame(width: 5)
+            }
+            .shadow(color: .black.opacity(hovering ? 0.28 : 0.18), radius: hovering ? 16 : 10, y: hovering ? 8 : 5)
+            .scaleEffect(hovering ? 1.02 : 1)
+            .animation(.snappy(duration: 0.18), value: hovering)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(recent.title.isEmpty ? s("Senza titolo", "Untitled") : recent.title)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                Text(details)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .task(id: recent.coverURL) {
+            guard let url = recent.coverURL else { return }
+            cover = await Task.detached(priority: .utility) { LocalImages.load(url, maxPixelSize: 420) }.value
+        }
+    }
+
+    private var details: String {
+        let date = recent.opened.formatted(.relative(presentation: .named).locale(Locale(identifier: language)))
+        let pages = s("\(recent.pageCount) pagine", "\(recent.pageCount) pages")
+        return (recent.isDraft ? s("Bozza", "Draft") + " · " : "") + pages + " · " + date
     }
 }

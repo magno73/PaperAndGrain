@@ -56,10 +56,21 @@ struct BookSettingsView: View {
             Form {
                 Section(s("Libro", "Book")) {
                     TextField(s("Titolo", "Title"), text: $title)
-                    HStack {
-                        Button(s("Quadrato", "Square")) { format = .square }
-                        Button(s("Orizzontale", "Landscape")) { format = .landscape }
-                        Button(s("Verticale", "Portrait")) { format = .portrait }
+                    Picker(s("Formato", "Size"), selection: Binding(
+                        get: { BookFormatPreset.matching(format)?.id ?? "custom" },
+                        set: { id in
+                            if let preset = BookFormatPreset.all.first(where: { $0.id == id }) { format = preset.format }
+                        }
+                    )) {
+                        ForEach(BookFormatPreset.Shape.allCases, id: \.self) { shape in
+                            Section(shape.title(language)) {
+                                ForEach(BookFormatPreset.presets(shape)) { preset in
+                                    Text(preset.name(language)).tag(preset.id)
+                                }
+                            }
+                        }
+                        Divider()
+                        Text(s("Personalizzato", "Custom")).tag("custom")
                     }
                     TextField(s("Larghezza (mm)", "Width (mm)"), value: $format.widthMM, format: number)
                     TextField(s("Altezza (mm)", "Height (mm)"), value: $format.heightMM, format: number)
@@ -116,7 +127,7 @@ struct BookSettingsView: View {
                           hasCover ? updatedCover : nil, type)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.19, green: 0.34, blue: 0.27))
+                .tint(Theme.accent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!valid)
             }

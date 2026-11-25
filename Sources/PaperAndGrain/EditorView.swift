@@ -13,6 +13,7 @@ struct EditorView: View {
     let onDropPhotos: ([NSItemProvider], @escaping (UUID) -> Void) -> Bool
     let onDropPhotoPromises: ([NSFilePromiseReceiver], @escaping (UUID) -> Void) -> Bool
     let onExport: () -> Void
+    let actions: EditorAppActions
 
     @Environment(\.undoManager) private var undoManager
     @FocusState private var writing: Bool
@@ -36,6 +37,12 @@ struct EditorView: View {
     @State private var editorInput = EditorInput()
     @AppStorage("editorShowsPages") private var showsNavigator = true
     @AppStorage("editorShowsInspector") private var showsInspector = true
+    @AppStorage("editorShowsTray") private var showsTray = true
+    @AppStorage("editorNavigatorWidth") private var navigatorWidth = 212.0
+    @State private var showLayoutPopover = false
+    @State private var browsingSpread: Int?
+    @State private var hoveredGap: NavigatorPageGap?
+    @State private var trayFilter: TrayFilter = .all
     @State private var libraryHitFrames = LibraryHitFrames()
     @State private var hoveringPhotoDrop = false
     @State private var hoveringPhotoPromise = false
@@ -68,16 +75,15 @@ struct EditorView: View {
     @State private var cropSession: CropSession?
 
     fileprivate enum Inspector: String, CaseIterable {
-        case page, photos, film
+        case page, photo, adjust, film
     }
 
-    fileprivate enum PhotoPanelMode: Hashable {
-        case library, adjust
+    fileprivate enum TrayFilter: Hashable {
+        case all, unused, onPage
     }
 
     @Observable fileprivate final class InspectorNavigation {
         var tab: Inspector = .page
-        var photos: PhotoPanelMode = .library
     }
 
     private final class EditorInput {
@@ -93,43 +99,38 @@ struct EditorView: View {
         nonmutating set { inspectorNavigation.tab = newValue }
     }
 
-    private var photoPanelMode: PhotoPanelMode {
-        get { inspectorNavigation.photos }
-        nonmutating set { inspectorNavigation.photos = newValue }
-    }
-
     private struct InspectorHost<Content: View>: View {
         @Bindable var navigation: InspectorNavigation
         let title: String
-        let pageTitle: String
-        let photosTitle: String
-        let filmTitle: String
-        let edge: Color
+        let tabs: [InspectorTab]
         let finishAdjustment: () -> Void
         let finishFilm: () -> Void
-        @ViewBuilder let content: (Inspector, PhotoPanelMode) -> Content
+        @ViewBuilder let content: (Inspector) -> Content
 
         var body: some View {
             VStack(spacing: 0) {
                 Picker(title, selection: $navigation.tab) {
-                    Text(pageTitle).tag(Inspector.page)
-                    Text(photosTitle).tag(Inspector.photos)
-                    Text(filmTitle).tag(Inspector.film)
+                    ForEach(tabs) { tab in
+                        Text(tab.title).tag(tab.id)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                .padding(14)
-                Rectangle().fill(edge).frame(height: 1)
-                content(navigation.tab, navigation.photos)
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+                content(navigation.tab)
             }
             .onChange(of: navigation.tab) { _, tab in
-                if tab != .photos { finishAdjustment() }
+                if tab != .adjust { finishAdjustment() }
                 if tab != .film { finishFilm() }
             }
-            .onChange(of: navigation.photos) { _, mode in
-                if mode != .adjust { finishAdjustment() }
-            }
         }
+    }
+
+    private struct InspectorTab: Identifiable {
+        let id: Inspector
+        let title: String
     }
 
     private struct CanvasPhotoSelection {
@@ -237,12 +238,12 @@ struct EditorView: View {
         }
     }
 
-    private let ink = Color(red: 0.14, green: 0.17, blue: 0.14)
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
-    private let muted = Color(red: 0.33, green: 0.37, blue: 0.33)
-    private let paper = Color(red: 0.98, green: 0.97, blue: 0.93)
-    private let panel = Color(red: 0.95, green: 0.95, blue: 0.91)
-    private let edge = Color(red: 0.82, green: 0.83, blue: 0.78)
+    private let ink = Theme.ink
+    private let pine = Theme.accent
+    private let muted = Theme.muted
+    private let paper = Theme.field
+    private let panel = Theme.panel
+    private let edge = Theme.edge
 
     private var page: BookPage? {
         guard coverSide == nil else { return nil }
@@ -295,22 +296,51 @@ struct EditorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            masthead
-            Rectangle().fill(edge).frame(height: 1)
-            HStack(spacing: 0) {
-                if showsNavigator {
-                    navigator.frame(width: 158)
-                    Rectangle().fill(edge).frame(width: 1)
+        editorContent
+            .inspector(isPresented: $showsInspector) {
+                sidePanel
+                    .inspectorColumnWidth(min: 270, ideal: 300, max: 420)
+            }
+            .toolbar(id: "editor") { editorToolbar }
+            .navigationTitle(book.title.isEmpty ? tr("Senza titolo", "Untitled") : book.title)
+            .navigationSubtitle(toolbarSubtitle)
+            .toolbarTitleMenu { bookTitleMenu }
+            .focusedSceneValue(\.editorCommands, editorCommands)
+            .onChange(of: showsInspector) { _, visible in
+                if !visible {
+                    finishPhotoAdjustmentEdit()
+                    finishFilmEdit()
                 }
+            }
+            .alert(tr("Eliminare la pagina?", "Delete the page?"), isPresented: $showDelete) {
+                Button(tr("Annulla", "Cancel"), role: .cancel) {}
+                Button(tr("Elimina", "Delete"), role: .destructive, action: deletePage)
+            } message: {
+                Text(tr("Le foto della pagina resteranno disponibili nel libro.",
+                        "The page’s photos will remain available in the book."))
+            }
+            .overlay {
+                if let browsing = browsingSpread {
+                    bookBrowser(start: browsing)
+                }
+            }
+    }
+
+    private var editorContent: some View {
+        HStack(spacing: 0) {
+            if showsNavigator {
+                navigatorPane
+                    .transition(.move(edge: .leading).combined(with: .opacity))
+            }
+            VStack(spacing: 0) {
                 canvas.frame(maxWidth: .infinity, maxHeight: .infinity)
-                if showsInspector {
-                    Rectangle().fill(edge).frame(width: 1)
-                    sidePanel.frame(width: 260)
+                if showsTray {
+                    photoTray
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
-        .background(panel)
+        .background { Theme.table.ignoresSafeArea() }
         .background(alignment: .topLeading) {
             CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
                                  onNudge: nudgeCanvasSelection, onClick: selectObject(at:),
@@ -335,11 +365,12 @@ struct EditorView: View {
         .onChange(of: editorialFocus) { previous, current in
             if let previous, current == nil, editingEditorial == previous { editingEditorial = nil }
         }
-        .onChange(of: selectedPhoto) { _, id in
+        .onChange(of: selectedPhoto) { previous, id in
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
             if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
             if case let .photo(target)? = filmEdit.target, target != id { finishFilmEdit() }
+            followSelectionInInspector(previous: previous, current: id)
         }
         .onChange(of: filmScope) { _, _ in finishFilmEdit() }
         .onDisappear {
@@ -350,84 +381,345 @@ struct EditorView: View {
         .overlay(alignment: .topLeading) {
             dragPreview.allowsHitTesting(false).accessibilityHidden(true)
         }
-        .preferredColorScheme(.light)
-        .alert(tr("Eliminare la pagina?", "Delete the page?"), isPresented: $showDelete) {
-            Button(tr("Annulla", "Cancel"), role: .cancel) {}
-            Button(tr("Elimina", "Delete"), role: .destructive, action: deletePage)
-        } message: {
-            Text(tr("Le foto della pagina resteranno disponibili nel libro.",
-                    "The page’s photos will remain available in the book."))
+        .animation(.snappy(duration: 0.22), value: showsNavigator)
+        .animation(.snappy(duration: 0.22), value: showsTray)
+    }
+
+    /// The navigator floats as a glass pane on macOS 26 and sits in a classic sidebar column before.
+    @ViewBuilder private var navigatorPane: some View {
+        if #available(macOS 26.0, *) {
+            HStack(spacing: 0) {
+                navigator
+                    .frame(width: navigatorWidth)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .floatingPanel(cornerRadius: 18)
+                    .padding(.leading, 8)
+                    .padding(.vertical, 8)
+                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Larghezza delle pagine", "Pages Width"))
+            }
+        } else {
+            HStack(spacing: 0) {
+                navigator
+                    .frame(width: navigatorWidth)
+                    .background(Theme.sidebar)
+                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Larghezza delle pagine", "Pages Width"))
+                    .overlay { Rectangle().fill(edge).frame(width: 1) }
+            }
         }
     }
 
-    private var masthead: some View {
-        HStack(spacing: 14) {
-            action("sidebar.left", showsNavigator ? localized("editor.pages.hide", fallback: "Hide Pages")
-                                                   : localized("editor.pages.show", fallback: "Show Pages")) {
-                showsNavigator.toggle()
-            }
-            Image(systemName: "book.closed.fill")
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(pine)
-                .frame(width: 35, height: 35)
-                .background(pine.opacity(0.09), in: RoundedRectangle(cornerRadius: 8))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(book.title).font(.system(size: 19, weight: .medium, design: .serif)).lineLimit(1)
-                Text(dimensions).font(.system(size: 11, design: .monospaced)).foregroundStyle(muted)
-            }
-            Spacer()
-            HStack(spacing: 4) {
-                action("arrow.uturn.backward", tr("Annulla", "Undo")) {
-                    if cropSession != nil {
-                        cropSession = nil
-                        return
-                    }
-                    if writing || writingBox || inlineBoxFocus != nil || editorialFocus != nil,
-                       NSApp.sendAction(Selector(("undo:")), to: nil, from: nil) { return }
-                    undoManager?.undo()
+    private var toolbarSubtitle: String {
+        let count = physicalPageCount
+        let pages = count == 1 ? tr("1 pagina", "1 page") : tr("\(count) pagine", "\(count) pages")
+        return pages + " · " + dimensions
+    }
+
+    private var editorToolbar: some CustomizableToolbarContent {
+        Group {
+            ToolbarItem(id: "pages", placement: .navigation) {
+                Button {
+                    showsNavigator.toggle()
+                } label: {
+                    Label(tr("Pagine", "Pages"), systemImage: "sidebar.left")
                 }
-                action("arrow.uturn.forward", tr("Ripristina", "Redo")) {
-                    if writing || writingBox || inlineBoxFocus != nil || editorialFocus != nil,
-                       NSApp.sendAction(Selector(("redo:")), to: nil, from: nil) { return }
-                    undoManager?.redo()
-                }
-                .disabled(cropSession != nil)
+                .help(showsNavigator ? tr("Nascondi pagine", "Hide Pages") : tr("Mostra pagine", "Show Pages"))
             }
-            Divider().frame(height: 23)
-            Menu {
-                Button(tr("Box di testo", "Text Box"), systemImage: "character.textbox", action: insertTextBox)
-                    .disabled(page == nil)
-                Button(tr("Frontespizio", "Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
-                Button(tr("Titolo di pagina", "Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
-                    .disabled(page == nil)
-                Divider()
-                ForEach(layouts, id: \.self) { layout in
-                    Button(layoutName(layout), systemImage: layoutIcon(layout)) { insert(layout) }
+            ToolbarItem(id: "library", placement: .navigation) {
+                Button(action: actions.closeBook) {
+                    Label(tr("Libreria", "Library"), systemImage: "books.vertical")
                 }
-            } label: {
-                Label(tr("Inserisci", "Insert"), systemImage: "plus")
+                .help(tr("Torna ai tuoi libri", "Back to your books"))
             }
-            .fixedSize()
-            Button(action: onExport) {
-                Label(tr("Esporta PDF", "Export PDF"), systemImage: "square.and.arrow.up")
-                    .font(.system(size: 12, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .disabled(cropSession != nil)
-            action("sidebar.right", showsInspector ? localized("editor.inspector.hide", fallback: "Hide Inspector")
-                                                    : localized("editor.inspector.show", fallback: "Show Inspector")) {
-                if showsInspector {
-                    finishPhotoAdjustmentEdit()
-                    finishFilmEdit()
+            ToolbarItem(id: "insert", placement: .principal) {
+                Menu {
+                    insertMenuItems
+                } label: {
+                    Label(tr("Inserisci", "Insert"), systemImage: "plus")
                 }
-                showsInspector.toggle()
+                .help(tr("Inserisci pagine, testi e frontespizio", "Insert pages, text and a title page"))
+            }
+            ToolbarItem(id: "layout", placement: .principal) {
+                Button {
+                    showLayoutPopover = true
+                } label: {
+                    Label(tr("Modello", "Layout"), systemImage: "rectangle.3.group")
+                }
+                .help(tr("Scegli il modello della pagina", "Choose the page layout"))
+                .disabled(page == nil || coverSide != nil)
+                .popover(isPresented: $showLayoutPopover, arrowEdge: .bottom) {
+                    layoutPopover
+                }
+            }
+            ToolbarItem(id: "film", placement: .principal) {
+                Button {
+                    showInspectorTab(.film)
+                } label: {
+                    Label(tr("Pellicola", "Film"), systemImage: "camera.filters")
+                }
+                .help(tr("Look pellicola del libro o della foto", "Film look for the book or photo"))
+            }
+            ToolbarItem(id: "export", placement: .primaryAction) {
+                Button(action: onExport) {
+                    Label(tr("Esporta", "Export"), systemImage: "square.and.arrow.up")
+                        .labelStyle(.titleAndIcon)
+                }
+                .prominentToolbarButton()
+                .tint(Theme.accent)
+                .disabled(cropSession != nil || book.pages.isEmpty)
+                .help(tr("Esporta il libro in PDF", "Export the book as PDF"))
+            }
+            ToolbarItem(id: "tray", placement: .primaryAction) {
+                Toggle(isOn: $showsTray) {
+                    Label(tr("Fototeca", "Photo Library"), systemImage: "photo.on.rectangle")
+                }
+                .help(showsTray ? tr("Nascondi la fototeca", "Hide Photo Library") : tr("Mostra la fototeca", "Show Photo Library"))
+            }
+            ToolbarItem(id: "inspector", placement: .primaryAction) {
+                Toggle(isOn: $showsInspector) {
+                    Label(tr("Ispettore", "Inspector"), systemImage: "sidebar.right")
+                }
+                .help(showsInspector ? tr("Nascondi ispettore", "Hide Inspector") : tr("Mostra ispettore", "Show Inspector"))
             }
         }
-        .padding(.horizontal, 17)
-        .frame(height: 63)
+    }
+
+    @ViewBuilder private var insertMenuItems: some View {
+        Button(tr("Pagina", "Page"), systemImage: "doc.badge.plus") { insert(.gallery) }
+        Button(tr("Box di testo", "Text Box"), systemImage: "character.textbox", action: insertTextBox)
+            .disabled(page == nil)
+        Button(tr("Titolo di pagina", "Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
+            .disabled(page == nil)
+        Button(tr("Frontespizio", "Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
+        Divider()
+        Menu(tr("Pagina con composizione", "Page with Layout")) {
+            ForEach(layouts, id: \.self) { layout in
+                Button(layoutName(layout), systemImage: layoutIcon(layout)) { insert(layout) }
+            }
+        }
+    }
+
+    @ViewBuilder private var bookTitleMenu: some View {
+        Button(tr("Modelli del libro…", "Book Templates…"), action: actions.showTemplates)
+        Button(tr("Libro e stampa…", "Book & Print…"), action: actions.showBookSettings)
+        Divider()
+        Button(actions.saveTitle, action: actions.save)
+        Button(tr("Salva con nome…", "Save As…"), action: actions.saveAs)
+        Divider()
+        Button(tr("Esporta PDF…", "Export PDF…"), action: onExport)
+            .disabled(book.pages.isEmpty)
+        Button(tr("Esporta per la stampa…", "Export for Print…"), action: actions.exportPrint)
+            .disabled(book.pages.isEmpty)
+    }
+
+    private var layoutPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let page {
+                PageArrangementChoices(selection: page.arrangement ?? (page.layout == .fullSpread ? .fullSpread : nil),
+                                       language: language,
+                                       pageSize: book.format.pageSize) { arrangement in
+                    applyPageArrangement(arrangement, to: page.id)
+                    showLayoutPopover = false
+                }
+                Text(tr("Scegliere un modello ridistribuisce le cornici. Testi, foto e ritagli restano nella pagina.",
+                        "Choosing a layout rearranges the frames. Text, photos and crops stay on the page."))
+                    .font(.caption)
+                    .foregroundStyle(muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 12)
+            }
+        }
+        .padding(.bottom, 12)
+        .frame(width: 350)
+    }
+
+    // MARK: Menu bar
+
+    private var editorCommands: EditorCommandSet {
+        var commands = EditorCommandSet()
+        let current = index
+        commands.hasPage = page != nil
+        commands.hasPhotoSelection = canvasPhotoSelection != nil
+        commands.canMoveEarlier = current.map { $0 > 0 } ?? false
+        commands.canMoveLater = current.map { $0 < book.pages.count - 1 } ?? false
+        commands.canGoBack = coverSide == .back || (current.map { $0 > 0 } ?? false) || (coverSide == nil && !book.pages.isEmpty)
+        commands.canGoForward = coverSide == .front || (current.map { $0 < book.pages.count - 1 } ?? false) || (coverSide == nil && !book.pages.isEmpty)
+        commands.showsNavigator = showsNavigator
+        commands.showsInspector = showsInspector
+        commands.showsTray = showsTray
+        commands.showsSpread = showSpread
+        commands.gutterGuide = gutterGuide
+        commands.insertPage = { insert(.gallery) }
+        commands.insertTextBox = insertTextBox
+        commands.insertHeading = insertPageHeading
+        commands.insertTitlePage = insertTitlePage
+        commands.chooseLayout = {
+            if coverSide == nil, page != nil { showLayoutPopover = true }
+        }
+        commands.previousPage = { stepPage(-1) }
+        commands.nextPage = { stepPage(1) }
+        commands.moveEarlier = { move(-1) }
+        commands.moveLater = { move(1) }
+        commands.deletePage = { if page != nil { showDelete = true } }
+        commands.crop = cropSelection
+        commands.adjust = { showInspectorTab(.adjust) }
+        commands.autoEnhance = {
+            if let id = canvasPhotoSelection?.photoID, let photo = indexedPhoto(id) { autoEnhance(photo) }
+        }
+        commands.film = {
+            if selectedPhoto != nil { filmScope = .photo }
+            showInspectorTab(.film)
+        }
+        commands.removePhoto = { _ = deleteSelectedCanvasObject() }
+        commands.toggleNavigator = { showsNavigator.toggle() }
+        commands.toggleInspector = { showsInspector.toggle() }
+        commands.toggleTray = { showsTray.toggle() }
+        commands.setSpread = { value in if coverSide == nil { showSpread = value } }
+        commands.zoomIn = { stepZoom(1) }
+        commands.zoomOut = { stepZoom(-1) }
+        commands.zoomToFit = { zoom = .fitPage }
+        commands.toggleGutter = { gutterGuide.toggle() }
+        commands.browse = openBrowser
+        return commands
+    }
+
+    private func cropSelection() {
+        guard let selection = canvasPhotoSelection else { return }
+        if case let .cover(front) = selection.surface {
+            beginCoverCrop(front ? .front : .back)
+        } else if let id = selection.pageID, let leaf = book.pages.first(where: { $0.id == id }) {
+            beginCrop(selection.photoID, in: leaf)
+        }
+    }
+
+    private func stepPage(_ offset: Int) {
+        if let coverSide {
+            if coverSide == .front, offset > 0, let first = book.pages.first { select(first) }
+            if coverSide == .back, offset < 0, let last = book.pages.last { select(last) }
+            clearCanvasSelection()
+            return
+        }
+        guard let current = index else { return }
+        let target = current + offset
+        if target < 0 {
+            selectCover(.front)
+        } else if target >= book.pages.count {
+            selectCover(.back)
+        } else {
+            select(book.pages[target])
+            clearCanvasSelection()
+        }
+    }
+
+    private func stepZoom(_ direction: Int) {
+        let steps = [25, 50, 75, 100, 150, 200]
+        let current: Int = if case let .percent(value) = zoom { value } else { 100 }
+        if direction > 0 {
+            zoom = .percent(steps.first { $0 > current } ?? 200)
+        } else {
+            zoom = .percent(steps.last { $0 < current } ?? 25)
+        }
+    }
+
+    // MARK: Browse
+
+    private func openBrowser() {
+        guard !book.pages.isEmpty else { return }
+        finishCrop()
+        endInlineTextEditing()
+        editorInput.target = .none
+        if coverSide == .front { browsingSpread = 0; return }
+        if coverSide == .back { browsingSpread = navigatorSpreads.count + 1; return }
+        let position = navigatorSpreads.firstIndex { $0.pages.contains { $0.id == page?.id } } ?? 0
+        browsingSpread = position + 1
+    }
+
+    private func bookBrowser(start position: Int) -> some View {
+        let spreads = navigatorSpreads
+        let last = spreads.count + 1
+        let position = min(max(position, 0), last)
+        let pageSize = book.format.pageSize
+        let label: String = switch position {
+        case 0: coverName(.front)
+        case last: coverName(.back)
+        default: spreadNumber(spreads[position - 1].pages)
+        }
+        return ZStack {
+            Rectangle().fill(Color(white: 0.07)).ignoresSafeArea()
+            GeometryReader { geometry in
+                let wide = position != 0 && position != last
+                let artboard = CGSize(width: pageSize.width * (wide ? 2 : 1), height: pageSize.height)
+                let scale = min((geometry.size.width - 140) / artboard.width, (geometry.size.height - 120) / artboard.height)
+                let size = CGSize(width: artboard.width * max(scale, 0.1), height: artboard.height * max(scale, 0.1))
+                Group {
+                    if position == 0 {
+                        coverCanvas(.front, scale: size.width / pageSize.width, thumbnail: true)
+                    } else if position == last {
+                        coverCanvas(.back, scale: size.width / pageSize.width, thumbnail: true)
+                    } else {
+                        let spread = spreads[position - 1]
+                        HStack(spacing: 0) {
+                            if spread.blankLeft {
+                                Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
+                                    .frame(width: size.width / 2, height: size.height)
+                            }
+                            ForEach(spread.pages) { leaf in
+                                let pages: CGFloat = leaf.effectiveLayout == .fullSpread ? 2 : 1
+                                mini(leaf, small: false)
+                                    .frame(width: size.width / 2 * pages, height: size.height)
+                            }
+                        }
+                        .frame(width: size.width, height: size.height, alignment: spread.pages.count == 1 && !spread.blankLeft
+                               && spread.pages.first?.effectiveLayout != .fullSpread ? .trailing : .center)
+                    }
+                }
+                .frame(width: size.width, height: size.height)
+                .shadow(color: .black.opacity(0.5), radius: 30, y: 12)
+                .position(x: geometry.size.width / 2, y: geometry.size.height / 2 - 20)
+                .id(position)
+                .transition(.opacity)
+            }
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(tr("Fine", "Done")) { browsingSpread = nil }
+                        .keyboardShortcut(.cancelAction)
+                        .controlSize(.large)
+                }
+                Spacer()
+                HStack(spacing: 18) {
+                    Button {
+                        browsingSpread = max(0, position - 1)
+                    } label: {
+                        Image(systemName: "chevron.left").frame(width: 28, height: 22)
+                    }
+                    .keyboardShortcut(.leftArrow, modifiers: [])
+                    .disabled(position == 0)
+                    .accessibilityLabel(tr("Doppia precedente", "Previous Spread"))
+                    Text(label)
+                        .font(.callout.weight(.medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.white.opacity(0.85))
+                        .frame(minWidth: 110)
+                    Button {
+                        browsingSpread = min(last, position + 1)
+                    } label: {
+                        Image(systemName: "chevron.right").frame(width: 28, height: 22)
+                    }
+                    .keyboardShortcut(.rightArrow, modifiers: [])
+                    .disabled(position == last)
+                    .accessibilityLabel(tr("Doppia successiva", "Next Spread"))
+                }
+                .controlSize(.large)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+                .floatingCapsule()
+            }
+            .padding(20)
+            .environment(\.colorScheme, .dark)
+        }
+        .animation(.easeInOut(duration: 0.2), value: position)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(tr("Sfoglia il libro", "Browse the Book"))
     }
 
     private var navigator: some View {
@@ -437,11 +729,14 @@ struct EditorView: View {
                 caption(tr("Pagine", "Pages"))
                 Spacer()
                 Text(String(physicalPageCount))
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.subheadline)
+                    .monospacedDigit()
                     .foregroundStyle(muted)
+                    .accessibilityLabel(tr("\(physicalPageCount) pagine", "\(physicalPageCount) pages"))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
             ScrollViewReader { scroll in
                 ScrollView {
                     LazyVStack(spacing: 3) {
@@ -465,7 +760,7 @@ struct EditorView: View {
                         navigatorInsertButton(.end, betweenColumns: false)
                         coverItem(.back).id(CoverSide.back)
                     }
-                    .padding(.horizontal, 9).padding(.bottom, 8)
+                    .padding(.horizontal, 10).padding(.bottom, 8)
                 }
                 .editorDropFrame(.navigatorViewport)
                 .task(id: navigatorScrollDirection) {
@@ -478,28 +773,41 @@ struct EditorView: View {
                     if let side { withAnimation(.easeOut(duration: 0.2)) { scroll.scrollTo(side, anchor: .center) } }
                 }
             }
-            Rectangle().fill(edge).frame(height: 1)
-            HStack(spacing: 10) {
-                action("plus", tr("Aggiungi pagina", "Add page")) { insert(.gallery) }
+            Divider()
+            HStack(spacing: 6) {
+                Button { insert(.gallery) } label: {
+                    Label(tr("Pagina", "Page"), systemImage: "plus")
+                }
+                .buttonStyle(.borderless)
+                .help(tr("Aggiungi pagina", "Add page"))
+                Spacer()
                 action("chevron.up", tr("Sposta prima", "Move earlier")) { move(-1) }
                     .disabled(index.map { $0 < 1 } ?? true)
                 action("chevron.down", tr("Sposta dopo", "Move later")) { move(1) }
                     .disabled(index.map { $0 >= book.pages.count - 1 } ?? true)
+                action("book", tr("Sfoglia il libro", "Browse the Book")) { openBrowser() }
+                    .disabled(book.pages.isEmpty)
             }
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
-        .background(Color(red: 0.93, green: 0.93, blue: 0.89))
+    }
+
+    /// Thumbnail edge for one page, following the navigator's width.
+    private var thumbBase: CGFloat {
+        max(47, min(118, (CGFloat(navigatorWidth) - 50) / 2))
     }
 
     private func navigatorInsertButton(_ gap: NavigatorPageGap, betweenColumns: Bool) -> some View {
         let label = localized("editor.insert_page_here", fallback: tr("Inserisci pagina qui", "Insert Page Here"))
+        let visible = hoveredGap == gap
         return Button {
             guard let index = gap.index(in: book.pages) else { return }
             insert(.gallery, at: index)
         } label: {
             ZStack {
-                Capsule().fill(edge)
-                    .frame(width: betweenColumns ? 1 : nil, height: betweenColumns ? 30 : 1)
+                Capsule().fill(visible ? pine.opacity(0.5) : .clear)
+                    .frame(width: betweenColumns ? 1.5 : nil, height: betweenColumns ? thumbBase * 0.7 : 1.5)
                     .padding(.horizontal, betweenColumns ? 0 : 8)
                 Image(systemName: "plus")
                     .font(.system(size: 8, weight: .semibold))
@@ -507,12 +815,17 @@ struct EditorView: View {
                     .frame(width: 15, height: 15)
                     .background(panel, in: Circle())
                     .overlay { Circle().strokeBorder(pine.opacity(0.30)) }
+                    .opacity(visible ? 1 : 0)
             }
-            .frame(width: betweenColumns ? 18 : nil, height: betweenColumns ? 50 : 18)
+            .frame(width: betweenColumns ? 14 : nil, height: betweenColumns ? thumbBase : 12)
             .frame(maxWidth: betweenColumns ? nil : .infinity)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { inside in
+            if inside { hoveredGap = gap } else if hoveredGap == gap { hoveredGap = nil }
+        }
+        .animation(.easeOut(duration: 0.12), value: visible)
         .accessibilityLabel(label)
         .help(label)
         .editorDropFrame(.navigatorGap(gap))
@@ -522,7 +835,7 @@ struct EditorView: View {
         let active = leaf.id == page?.id
         let first = leaf.id == book.pages.first?.id
         let ratio = aspect * (leaf.effectiveLayout == .fullSpread ? 2 : 1)
-        let width = min(paired ? 56 : 115, 47 * ratio)
+        let width = min(paired ? thumbBase * 1.2 : thumbBase * 2.45, thumbBase * ratio)
         let number = spreadNumber([leaf])
         let label = first && !paired ? tr("Prima pagina", "First Page") : number
         return navigatorCard(label, active: active) {
@@ -543,6 +856,7 @@ struct EditorView: View {
         }
         .editorDropFrame(.navigatorPage(leaf.id))
         .simultaneousGesture(editorDrag(.page(leaf.id)))
+        .contextMenu { navigatorContextMenu(leaf) }
         .overlay(alignment: navigatorInsertionAlignment(paired: paired, after: insertionAfter == true)) {
             if insertionAfter != nil {
                 Capsule().fill(pine).frame(width: paired ? 3 : nil, height: paired ? nil : 3)
@@ -552,23 +866,69 @@ struct EditorView: View {
         }
     }
 
+    @ViewBuilder private func navigatorContextMenu(_ leaf: BookPage) -> some View {
+        let position = book.pages.firstIndex { $0.id == leaf.id }
+        Button(tr("Inserisci pagina prima", "Insert Page Before")) {
+            if let position { insert(.gallery, at: position) }
+        }
+        Button(tr("Inserisci pagina dopo", "Insert Page After")) {
+            if let position { insert(.gallery, at: position + 1) }
+        }
+        Divider()
+        Button(tr("Sposta prima", "Move Earlier")) {
+            select(leaf)
+            move(-1)
+        }
+        .disabled(position.map { $0 < 1 } ?? true)
+        Button(tr("Sposta dopo", "Move Later")) {
+            select(leaf)
+            move(1)
+        }
+        .disabled(position.map { $0 >= book.pages.count - 1 } ?? true)
+        Divider()
+        Button(tr("Elimina pagina…", "Delete Page…"), role: .destructive) {
+            select(leaf)
+            showDelete = true
+        }
+    }
+
+    @ViewBuilder private var canvasContextMenu: some View {
+        if canvasPhotoSelection != nil {
+            Button(tr("Ritaglia", "Crop"), action: cropSelection)
+            Button(tr("Regola", "Adjust")) { showInspectorTab(.adjust) }
+            Button(tr("Look pellicola", "Film Look")) {
+                filmScope = .photo
+                showInspectorTab(.film)
+            }
+            Divider()
+            Button(tr("Togli dalla pagina", "Remove from Page"), role: .destructive) { _ = deleteSelectedCanvasObject() }
+            Divider()
+        }
+        if coverSide == nil, page != nil {
+            Button(tr("Inserisci box di testo", "Insert Text Box"), action: insertTextBox)
+            Button(tr("Modello di pagina…", "Page Layout…")) { showLayoutPopover = true }
+        }
+        Button(tr("Sfoglia il libro", "Browse the Book"), action: openBrowser)
+            .disabled(book.pages.isEmpty)
+    }
+
     private func navigatorInsertionAlignment(paired: Bool, after: Bool) -> Alignment {
         if paired { return after ? .trailing : .leading }
         return after ? .bottom : .top
     }
 
     private var navigatorBlankPage: some View {
-        let width = min(56, 47 * aspect)
+        let width = min(thumbBase * 1.2, thumbBase * aspect)
         return Color(cgColor: EditorialStyle.color(book.editorialStyle.paper))
             .frame(width: width, height: width / aspect)
             .overlay { Rectangle().strokeBorder(.black.opacity(0.09)) }
             .frame(maxWidth: .infinity)
-            .padding(.bottom, 16)
+            .padding(.bottom, 18)
             .accessibilityHidden(true)
     }
 
     private func coverItem(_ side: CoverSide) -> some View {
-        let width = min(88, 47 * aspect)
+        let width = min(thumbBase * 1.9, thumbBase * aspect)
         return navigatorCard(coverName(side), active: coverSide == side) {
             selectCover(side)
         } preview: {
@@ -583,20 +943,21 @@ struct EditorView: View {
                                                   action: @escaping () -> Void,
                                                   @ViewBuilder preview: () -> Thumbnail) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                preview().frame(height: 48)
+            VStack(spacing: 5) {
+                preview().frame(height: thumbBase + 1)
                 Text(label)
-                    .font(.system(size: 10, weight: active ? .semibold : .regular))
+                    .font(.caption.weight(active ? .semibold : .regular))
+                    .monospacedDigit()
                     .foregroundStyle(active ? pine : muted)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 74)
+            .frame(height: thumbBase + 30)
             .contentShape(Rectangle())
-            .background(active ? pine.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: 6))
+            .background(active ? pine.opacity(0.13) : .clear, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(active ? pine.opacity(0.65) : .clear)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .strokeBorder(active ? pine.opacity(0.55) : .clear, lineWidth: 1.5)
                     .allowsHitTesting(false)
             }
         }
@@ -611,7 +972,7 @@ struct EditorView: View {
             .equatable()
     }
 
-    private func mini(_ leaf: BookPage) -> some View {
+    private func mini(_ leaf: BookPage, small: Bool = true) -> some View {
         let composition = pageComposition(leaf)
         let style = book.editorialStyle
         let blocks = composition.storyDrawingBlocks(page: leaf, book: book)
@@ -626,7 +987,7 @@ struct EditorView: View {
                     positioned(Color(cgColor: EditorialStyle.color(style.accent)), in: scaled(rule, by: scale))
                 }
                 ForEach(composition.photos) { item in
-                    positioned(preview(item.photo, small: true, crop: item.crop, fills: item.fills),
+                    positioned(preview(item.photo, small: small, crop: item.crop, fills: item.fills),
                                in: scaled(item.frame, by: scale))
                 }
                 storyBacking(backings, scale: scale)
@@ -656,14 +1017,19 @@ struct EditorView: View {
 
     private var canvas: some View {
         VStack(spacing: 0) {
-            HStack {
-                if let coverSide {
-                    caption(coverName(coverSide))
-                } else if let page {
-                    caption(page.id == book.pages.first?.id
-                            ? tr("Prima pagina", "First Page")
-                            : tr("Pagina", "Page") + " " + spreadNumber([page]))
+            HStack(spacing: 10) {
+                Group {
+                    if let coverSide {
+                        Text(coverName(coverSide))
+                    } else if let page {
+                        Text(page.id == book.pages.first?.id
+                             ? tr("Prima pagina", "First Page")
+                             : tr("Pagina", "Page") + " " + spreadNumber([page]))
+                    }
                 }
+                .font(.callout.weight(.medium))
+                .foregroundStyle(muted)
+                .monospacedDigit()
                 Spacer()
                 if compareOriginal {
                     Button(tr("Torna alle regolazioni", "Return to Edits")) { compareOriginal = false }
@@ -672,27 +1038,10 @@ struct EditorView: View {
                     Button(tr("Torna alle regolazioni", "Return to Edits")) { comparePhotoOriginal = nil }
                         .controlSize(.small)
                 }
-                Picker(tr("Zoom della pagina", "Page Zoom"), selection: $zoom) {
-                    ForEach(CanvasZoom.all, id: \.self) { level in
-                        Text(zoomName(level)).tag(level)
-                    }
-                }
-                .labelsHidden()
-                .fixedSize()
-                .help(tr("Zoom della pagina", "Page Zoom"))
-                Picker(tr("Vista", "View"), selection: $showSpread) {
-                    Image(systemName: "rectangle.portrait").tag(false)
-                        .accessibilityLabel(tr("Pagina singola", "Single Page"))
-                    Image(systemName: "book").tag(true)
-                        .accessibilityLabel(tr("Doppia pagina", "Two-Page View"))
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 82)
-                .disabled(coverSide != nil)
+                canvasViewControls
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 16)
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
             GeometryReader { geometry in
                 if let coverSide {
                     let scale = zoom.scale(viewport: geometry.size, artboard: book.format.pageSize)
@@ -710,7 +1059,9 @@ struct EditorView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            VStack(spacing: 10) {
+        }
+        .overlay(alignment: .bottom) {
+            Group {
                 if let cropSession {
                     cropToolbar(cropSession)
                 } else if let coverSide {
@@ -719,15 +1070,44 @@ struct EditorView: View {
                     canvasTools(page)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 21)
+            .padding(.bottom, 14)
         }
-        .background {
-            LinearGradient(colors: [
-                Color(red: 0.90, green: 0.91, blue: 0.86),
-                Color(red: 0.83, green: 0.85, blue: 0.79)
-            ], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// Page view and zoom: a small floating control in the corner of the canvas.
+    private var canvasViewControls: some View {
+        HStack(spacing: 2) {
+            Picker(tr("Vista", "View"), selection: $showSpread) {
+                Image(systemName: "rectangle.portrait").tag(false)
+                    .accessibilityLabel(tr("Pagina singola", "Single Page"))
+                Image(systemName: "book").tag(true)
+                    .accessibilityLabel(tr("Doppia pagina", "Two-Page View"))
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .disabled(coverSide != nil)
+            .help(tr("Pagina singola o doppia", "Single or two-page view"))
+            Menu {
+                Picker(tr("Zoom della pagina", "Page Zoom"), selection: $zoom) {
+                    ForEach(CanvasZoom.all, id: \.self) { level in
+                        Text(zoomName(level)).tag(level)
+                    }
+                }
+                .pickerStyle(.inline)
+                Divider()
+                Toggle(tr("Guida della piega", "Gutter Guide"), isOn: $gutterGuide)
+            } label: {
+                Text(zoomName(zoom)).monospacedDigit()
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .help(tr("Zoom della pagina", "Page Zoom"))
         }
+        .controlSize(.small)
+        .padding(4)
+        .floatingCapsule()
     }
 
     private func zoomName(_ level: CanvasZoom) -> String {
@@ -747,6 +1127,7 @@ struct EditorView: View {
                 .frame(minWidth: viewport.width, minHeight: viewport.height)
         }
         .defaultScrollAnchor(.center)
+        .contextMenu { canvasContextMenu }
         .editorDropFrame(.canvasViewport)
     }
 
@@ -789,32 +1170,57 @@ struct EditorView: View {
         }
     }
 
-    private func canvasTools(_ page: BookPage) -> some View {
-        let hasFold = page.effectiveLayout == .fullSpread
-            || (showSpread && groups.contains { $0.count == 2 && $0.contains { $0.id == page.id } })
-        return HStack(spacing: 10) {
-            if hasFold {
-                Toggle(tr("Guida della piega", "Gutter Guide"), isOn: $gutterGuide)
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 11))
-                    .foregroundStyle(muted)
+    @ViewBuilder private func canvasTools(_ page: BookPage) -> some View {
+        if let photo = canvasPhotoSelection, photo.pageID == page.id {
+            HStack(spacing: 2) {
+                hudButton(tr("Ritaglia", "Crop"), "crop") { beginCrop(photo.photoID, in: page) }
+                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showInspectorTab(.adjust) }
+                hudButton(tr("Pellicola", "Film"), "camera.filters") {
+                    filmScope = .photo
+                    showInspectorTab(.film)
+                }
+                Divider().frame(height: 16).padding(.horizontal, 3)
+                hudButton(tr("Togli dalla pagina", "Remove from Page"), "trash", role: .destructive, iconOnly: true) {
+                    _ = deleteSelectedCanvasObject()
+                }
             }
-            if let photo = canvasPhotoSelection, photo.pageID == page.id {
-                Button(tr("Ritaglia", "Crop"), systemImage: "crop") { beginCrop(photo.photoID, in: page) }
-                    .controlSize(.small)
-            }
+            .padding(4)
+            .floatingCapsule()
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        .frame(height: 26)
     }
 
-    private func coverTools(_ side: CoverSide) -> some View {
-        HStack(spacing: 10) {
-            if let selection = canvasPhotoSelection, selection.surface == .cover(front: side == .front) {
-                Button(tr("Ritaglia", "Crop"), systemImage: "crop") { beginCoverCrop(side) }
-                    .controlSize(.small)
+    private func hudButton(_ title: String, _ symbol: String, role: ButtonRole? = nil, iconOnly: Bool = false,
+                           action: @escaping () -> Void) -> some View {
+        Button(role: role, action: action) {
+            Group {
+                if iconOnly {
+                    Image(systemName: symbol)
+                } else {
+                    Label(title, systemImage: symbol)
+                }
+            }
+            .font(.callout)
+            .padding(.horizontal, iconOnly ? 8 : 10)
+            .padding(.vertical, 6)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(role == .destructive ? Theme.destructive : ink)
+        .help(title)
+        .accessibilityLabel(title)
+    }
+
+    @ViewBuilder private func coverTools(_ side: CoverSide) -> some View {
+        let photoSelected = canvasPhotoSelection?.surface == .cover(front: side == .front)
+        if photoSelected || coverEditorialValue(side).wrappedValue.isEmpty {
+        HStack(spacing: 2) {
+            if photoSelected {
+                hudButton(tr("Ritaglia", "Crop"), "crop") { beginCoverCrop(side) }
+                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showInspectorTab(.adjust) }
             }
             if coverEditorialValue(side).wrappedValue.isEmpty {
-                Button(localized("editor.cover.add_text", fallback: "Add Text"), systemImage: "textformat") {
+                hudButton(localized("editor.cover.add_text", fallback: "Add Text"), "textformat") {
                     showsInspector = true
                     inspector = .page
                     Task { @MainActor in
@@ -822,10 +1228,11 @@ struct EditorView: View {
                         if coverSide == side { writing = true }
                     }
                 }
-                .controlSize(.small)
             }
         }
-        .frame(height: 26)
+        .padding(4)
+        .floatingCapsule()
+        }
     }
 
     private func cropToolbar(_ session: CropSession) -> some View {
@@ -848,8 +1255,9 @@ struct EditorView: View {
                 .keyboardShortcut(.defaultAction)
         }
         .controlSize(.small)
-        .padding(5)
-        .background(paper, in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .floatingCapsule()
     }
 
     private func canvasPage(_ leaf: BookPage, scale: CGFloat) -> some View {
@@ -1371,26 +1779,72 @@ struct EditorView: View {
         rect.applying(CGAffineTransform(scaleX: scale, y: scale))
     }
 
+    private var inspectorTabs: [InspectorTab] {
+        var tabs = [InspectorTab(id: .page, title: coverSide == nil ? tr("Pagina", "Page") : tr("Copertina", "Cover"))]
+        if selectedPhoto != nil {
+            tabs.append(InspectorTab(id: .photo, title: tr("Foto", "Photo")))
+            tabs.append(InspectorTab(id: .adjust, title: tr("Regola", "Adjust")))
+        }
+        tabs.append(InspectorTab(id: .film, title: tr("Pellicola", "Film")))
+        return tabs
+    }
+
     private var sidePanel: some View {
-        InspectorHost(navigation: inspectorNavigation, title: tr("Ispettore", "Inspector"),
-                      pageTitle: tr("Pagina", "Page"), photosTitle: tr("Foto", "Photos"),
-                      filmTitle: tr("Pellicola", "Film"), edge: edge,
-                      finishAdjustment: finishPhotoAdjustmentEdit, finishFilm: finishFilmEdit) { tab, photoMode in
-            if tab == .photos {
-                photoInspector(mode: photoMode)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 21) {
-                        if tab == .page { pageInspector }
-                        else { filmInspector }
+        let tabs = inspectorTabs
+        return InspectorHost(navigation: inspectorNavigation, title: tr("Ispettore", "Inspector"), tabs: tabs,
+                             finishAdjustment: finishPhotoAdjustmentEdit, finishFilm: finishFilmEdit) { tab in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    switch tab {
+                    case .page: pageInspector
+                    case .photo: selectedPhotoInspector
+                    case .adjust: photoAdjustmentsInspector
+                    case .film: filmInspector
                     }
-                    .padding(15)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(panel)
+        .foregroundStyle(ink)
+        .tint(pine)
         .disabled(cropSession != nil)
+        .onChange(of: tabs.map(\.id)) { _, ids in
+            if !ids.contains(inspector) { inspector = .page }
+        }
+    }
+
+    /// Keynote-style: selecting a photo brings its tab forward, deselecting returns to the page.
+    private func followSelectionInInspector(previous: UUID?, current: UUID?) {
+        if current != nil, previous == nil, inspector == .page { inspector = .photo }
+        if current == nil, inspector == .photo || inspector == .adjust { inspector = .page }
+    }
+
+    private func showInspectorTab(_ tab: Inspector) {
+        showsInspector = true
+        if (tab == .photo || tab == .adjust) && selectedPhoto == nil { inspector = .page; return }
+        inspector = tab
+    }
+
+    @ViewBuilder private var selectedPhotoInspector: some View {
+        if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
+            HStack(spacing: 10) {
+                preview(photo, small: true, fills: false)
+                    .frame(width: 64, height: 46)
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(photo.name).font(.callout.weight(.semibold)).lineLimit(1)
+                    Text("\(photo.pixelWidth) × \(photo.pixelHeight) · \(photoOrientation(photo).label)")
+                        .font(.caption).foregroundStyle(muted)
+                }
+            }
+            selectedPhotoDetails(photo)
+        } else {
+            intro(tr("Seleziona una foto nella pagina o nella fototeca.",
+                     "Select a photo on the page or in the photo library."))
+        }
     }
 
     @ViewBuilder private var pageInspector: some View {
@@ -1487,8 +1941,8 @@ struct EditorView: View {
                     let pagePhotos = photos(on: page)
                     let destinations = pagePhotos.isEmpty ? [] : photoTransferDestinations(excluding: page.id)
                     if pagePhotos.isEmpty {
-                        intro(tr("Scegli una foto dalla libreria o trascinala nella pagina.",
-                                 "Choose a photo from the library or drag it onto the page."))
+                        intro(tr("Scegli una foto dalla fototeca o trascinala nella pagina.",
+                                 "Choose a photo from the photo library or drag it onto the page."))
                     }
                     ForEach(pagePhotos) { photo in
                         HStack(spacing: 8) {
@@ -1534,7 +1988,7 @@ struct EditorView: View {
                     .font(.system(size: 11))
             }
             .buttonStyle(.plain)
-            .foregroundStyle(Color(red: 0.61, green: 0.27, blue: 0.16))
+            .foregroundStyle(Theme.destructive)
         } else {
             intro(tr("Aggiungi una pagina per impaginare foto e racconti.",
                      "Add a page to arrange photos and stories."))
@@ -1655,8 +2109,7 @@ struct EditorView: View {
                 HStack {
                     Button(tr("Regola foto", "Adjust Photo")) {
                         selectCoverPhoto(photo.id)
-                        photoPanelMode = .adjust
-                        inspector = .photos
+                        inspector = .adjust
                     }
                     Button(tr("Pellicola", "Film")) {
                         selectCoverPhoto(photo.id)
@@ -1713,7 +2166,7 @@ struct EditorView: View {
     private func typeOverflow(_ message: String) -> some View {
         Label(message, systemImage: "exclamationmark.triangle")
             .font(.caption)
-            .foregroundStyle(Color(red: 0.61, green: 0.27, blue: 0.16))
+            .foregroundStyle(Theme.destructive)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -1863,60 +2316,12 @@ struct EditorView: View {
         }
     }
 
-    private func photoInspector(mode: PhotoPanelMode) -> some View {
-        VStack(spacing: 0) {
-            Picker(tr("Pannello foto", "Photo Panel"), selection: Binding(
-                get: { photoPanelMode }, set: { photoPanelMode = $0 }
-            )) {
-                Text(tr("Libreria", "Library")).tag(PhotoPanelMode.library)
-                Text(tr("Regola", "Adjust")).tag(PhotoPanelMode.adjust)
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 15)
-            .padding(.top, 11)
-            photoDropZone.padding(.horizontal, 15).padding(.top, 8)
-            if mode == .adjust {
-                ScrollView {
-                    photoAdjustmentsInspector
-                        .padding(15)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            } else {
-                photoLibrary
-            }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(pine.opacity(hoveringPhotoDrop || hoveringPhotoPromise ? 0.06 : 0))
-        .contentShape(Rectangle())
-        .onDrop(of: [UTType.fileURL, UTType.image], isTargeted: $hoveringPhotoDrop) { providers in
-            acceptPhotoDrop(onDropPhotos(providers, { importedPhotoToReveal = $0 }))
-        }
-        .overlay {
-            if hoveringPhotoDrop || hoveringPhotoPromise {
-                RoundedRectangle(cornerRadius: 7)
-                    .strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                    .padding(5)
-                    .overlay {
-                        Label(tr("Rilascia per aggiungere", "Drop to Add"), systemImage: "photo.badge.plus")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(pine)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(paper, in: RoundedRectangle(cornerRadius: 6))
-                    }
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-            }
-        }
-        .onDisappear { hoveringPhotoPromise = false }
-    }
-
     private var photoDropZone: some View {
         Label(tr("Trascina foto qui", "Drop Photos Here"), systemImage: "photo.badge.plus")
             .font(.caption.weight(.medium))
             .foregroundStyle(pine)
-            .frame(maxWidth: .infinity, minHeight: 27)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, minHeight: 24)
             .background(pine.opacity(0.045), in: RoundedRectangle(cornerRadius: 5))
             .overlay {
                 RoundedRectangle(cornerRadius: 5)
@@ -1935,15 +2340,15 @@ struct EditorView: View {
         guard accepted else { return false }
         search = ""
         concept = nil
-        photoPanelMode = .library
+        trayFilter = .all
+        showsTray = true
         return true
     }
 
     @ViewBuilder private var photoAdjustmentsInspector: some View {
         if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
             VStack(alignment: .leading, spacing: 10) {
-                caption(tr("Regolazioni foto", "Photo Adjustments"))
-                Text(photo.name).font(.system(size: 13, weight: .semibold)).lineLimit(2)
+                Text(photo.name).font(.callout.weight(.semibold)).lineLimit(2)
                 intro(tr("Le regolazioni seguono la foto in tutto il libro.",
                          "Adjustments follow this photo throughout the book."))
                 if let message = adjustmentErrors[photo.id] {
@@ -1973,77 +2378,125 @@ struct EditorView: View {
                 .id(photo.id)
             }
         } else {
-            intro(tr("Seleziona una foto nella pagina o nella libreria.",
-                     "Select a photo on the page or in the library."))
+            intro(tr("Seleziona una foto nella pagina o nella fototeca.",
+                     "Select a photo on the page or in the photo library."))
         }
     }
 
-    private var photoLibrary: some View {
+    private var photoTray: some View {
         let results = photoLibraryCache.results(photos: book.photos, language: language, search: search, concept: concept)
         let photoLocations = photoUsageIndex.locations(in: book)
+        let assigned = Set(coverSide.map { [coverPhotoID($0)].compactMap { $0 } } ?? page?.photoIDs ?? [])
+        let filtered: [BookPhoto] = switch trayFilter {
+        case .all: results.photos
+        case .unused: results.photos.filter { photoLocations[$0.id]?.isEmpty ?? true }
+        case .onPage: results.photos.filter { assigned.contains($0.id) }
+        }
         let sections = libraryOrdering.groups(
-            for: results.photos, order: photoOrder, locale: Locale(identifier: language),
+            for: filtered, order: photoOrder, locale: Locale(identifier: language),
             places: placesRead, used: photoOrder == .usage ? Set(photoLocations.keys) : []
         )
+        let unused = book.photos.filter { photoLocations[$0.id]?.isEmpty ?? true }.count
         let pendingPlaces = placeAssetsToRead
         let needsAnalysis = book.photos.contains { ($0.analysis?.revision ?? 0) < PhotoAnalysis.currentRevision }
         let hasOlderAnalysis = book.photos.contains { $0.analysis.map { $0.revision < PhotoAnalysis.currentRevision } == true }
-        return VStack(alignment: .leading, spacing: 13) {
-            VStack(alignment: .leading, spacing: 11) {
-                HStack {
-                    caption(tr("Foto disponibili", "Available photos"))
-                    Spacer()
-                    Text(String(book.photos.count))
-                        .font(.system(size: 10, design: .monospaced))
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(tr("Fototeca", "Photo Library")).font(.headline)
+                    Text(tr("\(book.photos.count) foto · \(unused) non usate",
+                            "\(book.photos.count) photos · \(unused) unused"))
+                        .font(.caption)
                         .foregroundStyle(muted)
+                        .monospacedDigit()
                 }
-                if !analysisStatus.isEmpty { intro(analysisStatus) }
-                HStack(spacing: 6) {
-                    if isAnalyzing { ProgressView().controlSize(.small) }
-                    Button(action: onAnalyze) {
-                        Label(hasOlderAnalysis ? tr("Aggiorna analisi", "Update analysis") : tr("Analizza foto", "Analyze photos"),
-                              systemImage: "viewfinder")
-                    }
-                    .disabled(isAnalyzing || !needsAnalysis)
+                .fixedSize()
+                if isAnalyzing || !pendingPlaces.isEmpty {
+                    ProgressView().controlSize(.small)
+                        .help(analysisStatus)
+                        .accessibilityLabel(analysisStatus)
                 }
+                Spacer(minLength: 8)
                 if !book.photos.isEmpty {
+                    Picker(tr("Mostra", "Show"), selection: $trayFilter) {
+                        Text(tr("Tutte", "All")).tag(TrayFilter.all)
+                        Text(tr("Non usate", "Unused")).tag(TrayFilter.unused)
+                        Text(coverSide == nil ? tr("In pagina", "On Page") : tr("In copertina", "On Cover")).tag(TrayFilter.onPage)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
+                        ForEach(PhotoLibraryOrder.allCases) { order in
+                            Text(photoOrderLabel(order)).tag(order)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .fixedSize()
+                    .help(libraryLabel("sort", "Ordina per", "Sort by"))
+                    conceptFilter(results.concepts)
+                        .fixedSize()
                     TextField(tr("Cerca foto", "Search photos"), text: $search)
                         .textFieldStyle(.roundedBorder)
                         .focused($searchingPhotos)
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .foregroundStyle(muted)
-                            .accessibilityHidden(true)
-                        Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
-                            ForEach(PhotoLibraryOrder.allCases) { order in
-                                Text(photoOrderLabel(order)).tag(order)
+                        .frame(minWidth: 90, maxWidth: 180)
+                }
+                photoDropZone
+                    .frame(width: 140)
+                Menu {
+                    Button(hasOlderAnalysis ? tr("Aggiorna analisi", "Update Analysis") : tr("Analizza foto", "Analyze Photos"),
+                           systemImage: "viewfinder", action: onAnalyze)
+                        .disabled(isAnalyzing || !needsAnalysis)
+                    Button(tr("Importa file…", "Import Files…"), systemImage: "folder", action: actions.importFiles)
+                    if !analysisStatus.isEmpty {
+                        Divider()
+                        Text(analysisStatus)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(tr("Altre azioni della fototeca", "More photo library actions"))
+                .accessibilityLabel(tr("Altre azioni della fototeca", "More photo library actions"))
+            }
+            if book.photos.isEmpty {
+                Text(tr("Trascina qui foto dal Finder o da Foto, oppure importa dei file.",
+                        "Drag photos here from the Finder or Photos, or import files."))
+                    .font(.callout)
+                    .foregroundStyle(muted)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { scroll in
+                    ScrollView(.horizontal) {
+                        LazyHStack(alignment: .top, spacing: 18) {
+                            Color.clear.frame(width: 0, height: 0).id("photoLibraryTop").accessibilityHidden(true)
+                            if sections.isEmpty {
+                                intro(tr("Nessuna foto corrispondente.", "No matching photos."))
+                                    .padding(.top, 20)
+                            }
+                            ForEach(sections) { section in
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(photoSectionTitle(section.id))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(muted)
+                                        .lineLimit(1)
+                                        .accessibilityAddTraits(.isHeader)
+                                    LazyHStack(spacing: 8) {
+                                        ForEach(section.photos) { photo in
+                                            photoLibraryTile(photo, used: assigned.contains(photo.id),
+                                                             locations: photoLocations[photo.id] ?? [])
+                                        }
+                                    }
+                                }
                             }
                         }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .help(libraryLabel("sort", "Ordina per", "Sort by"))
-                        if !pendingPlaces.isEmpty {
-                            ProgressView()
-                                .controlSize(.small)
-                                .accessibilityLabel(libraryLabel("reading_places", "Lettura dei luoghi", "Reading locations"))
-                        }
+                        .padding(.bottom, 4)
                     }
-                    conceptFilter(results.concepts)
-                }
-            }
-            .padding(.horizontal, 15)
-            .padding(.top, 15)
-            if !book.photos.isEmpty {
-                ScrollViewReader { scroll in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Color.clear.frame(height: 0).id("photoLibraryTop").accessibilityHidden(true)
-                            photoGrid(sections, locations: photoLocations)
-                        }
-                        .padding(.horizontal, 15)
-                        .padding(.bottom, 8)
-                    }
-                    .onChange(of: photoOrder) { _, _ in scroll.scrollTo("photoLibraryTop", anchor: .top) }
+                    .scrollIndicators(.automatic)
+                    .onChange(of: photoOrder) { _, _ in scroll.scrollTo("photoLibraryTop", anchor: .leading) }
                     .task(id: importedPhotoToReveal) {
                         guard let id = importedPhotoToReveal else { return }
                         await Task.yield()
@@ -2052,28 +2505,47 @@ struct EditorView: View {
                         importedPhotoToReveal = nil
                     }
                 }
-                .frame(maxHeight: .infinity)
                 // Native photo hit testing reads these frames without updating the editor.
                 .libraryPhotoFrame()
                 .onPreferenceChange(LibraryPhotoFrames.self) { libraryHitFrames.frames = $0 }
                 .onDisappear { libraryHitFrames.frames = .init() }
-                if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
-                    ViewThatFits(in: .vertical) {
-                        selectedPhotoDetails(photo)
-                        ScrollView { selectedPhotoDetails(photo) }
-                    }
-                    .frame(maxHeight: 230)
-                    .padding(.horizontal, 15)
-                    .padding(.bottom, 15)
-                }
-            } else {
-                intro(tr("Il libro non contiene ancora foto.", "This book doesn’t have any photos yet."))
-                    .padding(.horizontal, 15)
-                Spacer(minLength: 0)
             }
         }
-        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .frame(height: 188)
+        .frame(maxWidth: .infinity)
+        .background(pine.opacity(hoveringPhotoDrop || hoveringPhotoPromise ? 0.08 : 0),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .floatingPanel(cornerRadius: 18)
+        .overlay {
+            if hoveringPhotoDrop || hoveringPhotoPromise {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    .padding(3)
+                    .overlay {
+                        Label(tr("Rilascia per aggiungere al libro", "Drop to Add to the Book"), systemImage: "photo.badge.plus")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(pine)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(.regularMaterial, in: Capsule())
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .contentShape(Rectangle())
+        .onDrop(of: [UTType.fileURL, UTType.image], isTargeted: $hoveringPhotoDrop) { providers in
+            acceptPhotoDrop(onDropPhotos(providers, { importedPhotoToReveal = $0 }))
+        }
+        .onDisappear { hoveringPhotoPromise = false }
+        .padding(.horizontal, 8)
+        .padding(.bottom, 8)
         .task(id: pendingPlaces) { await readPhotoPlaces(pendingPlaces) }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(tr("Fototeca", "Photo Library"))
     }
 
     private var placeAssetsToRead: [PlaceAsset] {
@@ -2167,7 +2639,6 @@ struct EditorView: View {
     private func selectedPhotoDetails(_ photo: BookPhoto) -> some View {
         let assigned = isOnCurrentPage(photo.id)
         return VStack(alignment: .leading, spacing: 6) {
-            Text(photo.name).font(.system(size: 12, weight: .semibold)).lineLimit(2)
             if let analysis = photo.analysis {
                 let labels = (!analysis.labels.isEmpty ? analysis.labels : analysis.concepts).prefix(4)
                 if !labels.isEmpty { intro(labels.map(conceptName).joined(separator: " · ")) }
@@ -2180,7 +2651,7 @@ struct EditorView: View {
                     .disabled(page == nil && coverSide == nil)
             }
             HStack(spacing: 7) {
-                Button(tr("Regola foto", "Adjust Photo")) { photoPanelMode = .adjust }
+                Button(tr("Regola foto", "Adjust Photo")) { inspector = .adjust }
                 if enhancingPhotos[photo.id] != nil {
                     ProgressView().controlSize(.small)
                 } else {
@@ -2259,7 +2730,7 @@ struct EditorView: View {
         let orientation = photoOrientation(photo)
         let details = ([orientation.label] + locations.map(usageDescription)).joined(separator: " · ")
         return preview(photo, small: true, fills: false)
-            .frame(height: 56)
+            .frame(width: 104, height: 76)
             .background(pine.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay(alignment: .topLeading) {
@@ -2357,16 +2828,14 @@ struct EditorView: View {
     }
 
     private func browsePhotos() {
-        showsInspector = true
-        photoPanelMode = .library
-        inspector = .photos
+        showsTray = true
+        trayFilter = .all
     }
 
     private func selectObject(at point: CGPoint) {
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
         guard insideCanvas else {
-            if inspector == .photos, photoPanelMode == .library,
-               let id = libraryHitFrames.frames.photo(at: point) {
+            if showsTray, let id = libraryHitFrames.frames.photo(at: point) {
                 selectLibraryPhoto(id)
             }
             return
@@ -2961,14 +3430,14 @@ struct EditorView: View {
     }
 
     private func caption(_ value: String) -> some View {
-        Text(value.uppercased(with: Locale(identifier: language)))
-            .font(.system(size: 10, weight: .semibold, design: .monospaced))
-            .tracking(1.1)
-            .foregroundStyle(pine)
+        Text(value)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(ink)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func intro(_ value: String) -> some View {
-        Text(value).font(.system(size: 11)).foregroundStyle(muted)
+        Text(value).font(.caption).foregroundStyle(muted)
             .fixedSize(horizontal: false, vertical: true)
     }
 

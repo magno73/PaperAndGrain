@@ -8,10 +8,10 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.9.7/Paper & Grain.app'
+open 'dist/0.10.0-redesign/Paper & Grain Redesign.app'
 ```
 
-Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
+Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Sul branch `redesign/mac-ui` l’app si chiama «Paper & Grain Redesign» e tiene le bozze in una cartella propria. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
 
 Un agente può comporre, analizzare e modificare un libro dal terminale, poi esportare un PDF. La [guida della CLI](docs/cli.md) contiene i comandi e le specifiche JSON.
 
@@ -19,9 +19,19 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 
 1. Apri **Scegli un album da Foto** e, al primo accesso, autorizza l’app nelle finestre di macOS. Scegli **Namibia**, seleziona le immagini, imposta il formato e premi **Impagina**. **Importa file** accetta immagini dal Finder. Il libro dimostrativo si apre senza accedere alla libreria.
 2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Il **+** inserisce una pagina nel punto indicato, anche tra due pagine affiancate. Una panoramica rimane un solo elemento. Seleziona una miniatura e premi **Canc** o **⌫** per eliminare la pagina. **⌘Z** la ripristina. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
-3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. Nella scheda **Foto → Libreria**, usa **Ordina per** per sfogliare gli scatti per **Data** (dalle prime giornate alle ultime), **Luogo**, **Argomento** o **Non usate prima**. La ricerca e il filtro per tema si combinano con l’ordinamento. Per i luoghi si usano i nomi nei metadati o le zone GPS, con **Senza luogo** in fondo. Rilascia immagini dal Finder o da Foto su **Trascina foto qui** per aggiungerle alla libreria del libro.
-   Su un libro già analizzato usa **Aggiorna analisi** in **Foto** per aggiungere etichette con confidenza, rilevamenti, testo letto nell’immagine e dati visivi. Seleziona una foto e apri **Dettagli analisi**.
-4. **Salva progetto** chiede la posizione al primo salvataggio e aggiorna il pacchetto `.papergrain` già aperto nelle volte successive. **Salva con nome…** crea una copia. **Esporta PDF** apre il selettore di profilo. Il globo sceglie lingua di sistema, italiano o inglese.
+3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. Nella **Fototeca**, usa il menu di ordinamento per sfogliare gli scatti per **Data** (dalle prime giornate alle ultime), **Luogo**, **Argomento** o **Non usate prima**. La ricerca e il filtro per tema si combinano con l’ordinamento. Per i luoghi si usano i nomi nei metadati o le zone GPS, con **Senza luogo** in fondo. Rilascia immagini dal Finder o da Foto su **Trascina foto qui** per aggiungerle alla libreria del libro.
+   Su un libro già analizzato usa **Aggiorna analisi** dal menu **…** della fototeca per aggiungere etichette con confidenza, rilevamenti, testo letto nell’immagine e dati visivi. Seleziona una foto e apri **Dettagli analisi** nella scheda **Foto** dell’ispettore.
+4. **Salva progetto** chiede la posizione al primo salvataggio e aggiorna il pacchetto `.papergrain` già aperto nelle volte successive. **Salva con nome…** crea una copia. **Esporta PDF** apre il selettore di profilo con la verifica di prestampa. La lingua (sistema, italiano o inglese) si sceglie in **Paper & Grain › Impostazioni** (⌘,).
+
+## La finestra
+
+- A sinistra le **Pagine**: trascina il bordo per allargare il navigatore e ingrandire le miniature. Il **+** fra due pagine compare al passaggio del puntatore. Il menu contestuale inserisce, sposta o elimina una pagina. **⌃⌘S** mostra o nasconde il pannello.
+- In alto la barra di sistema: titolo e numero di pagine, **Inserisci**, **Modello**, **Pellicola**, **Esporta**, **Fototeca** e **Ispettore**. Un clic sul titolo apre **Libro e stampa**, **Modelli del libro**, i salvataggi e le esportazioni.
+- In fondo la **Fototeca** (⌥⌘L): filtri **Tutte**, **Non usate**, **In pagina**, ordinamento, temi e ricerca. Trascina uno scatto sulla pagina o rilascia file dal Finder o da Foto nel cassetto.
+- A destra l’**Ispettore** (⌥⌘I). Le schede seguono la selezione: **Pagina** o **Copertina**, **Foto** e **Regola** con una foto selezionata, **Pellicola**.
+- Sotto una foto selezionata compaiono **Ritaglia**, **Regola**, **Pellicola** e **Togli dalla pagina**. Gli stessi comandi sono nel menu **Foto** e nel menu contestuale.
+- **Vista** contiene pagina singola o doppia (⌘1, ⌘2), lo zoom (⌘+, ⌘−, ⌘0), la guida della piega e **Sfoglia il libro** (⌥⌘↩). In Sfoglia, le frecce cambiano doppia ed **Esc** chiude.
+- La cornice dell’app segue la modalità chiara o scura del Mac. Le pagine mantengono i colori del modello.
 
 ## Montare le pagine
 
@@ -47,13 +57,13 @@ In **Libro e stampa → Tipografia del libro** imposti font, dimensione in punti
 
 ## Pellicole e stampa
 
-Seleziona una foto e apri **Foto → Regola**. La bacchetta **Migliora in automatico** analizza la foto sul Mac e propone valori modificabili di luce e colore. I controlli comprendono luce, colore e bilanciamento del bianco, bianco e nero, dettagli e nitidezza, riduzione del rumore, vignettatura, curve, livelli e colore selettivo. Il confronto mostra il file di partenza. Le modifiche seguono lo scatto in ogni pagina e nel PDF.
+Seleziona una foto e apri la scheda **Regola**. La bacchetta **Migliora in automatico** analizza la foto sul Mac e propone valori modificabili di luce e colore. I controlli comprendono luce, colore e bilanciamento del bianco, bianco e nero, dettagli e nitidezza, riduzione del rumore, vignettatura, curve, livelli e colore selettivo. Il confronto mostra il file di partenza. Le modifiche seguono lo scatto in ogni pagina e nel PDF.
 
 La scheda **Pellicola** applica un look al libro o alla foto selezionata, con intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro. Ogni scelta di look o trascinamento di un cursore forma una singola azione per **⌘Z**. Anche **Applica** in **Libro e stampa** o in **Modelli del libro** si annulla con una sola azione.
 
 Il menu **Scegli LUT** mostra il nome della LUT attiva e contiene le 14 LUT sRGB di abpy. Da qui puoi anche importare una LUT personale. Le undici LUT in **Base a contrasto lineare** richiedono uno sviluppo con contrasto lineare. Le tre in **Da Provia** sono pensate per immagini già sviluppate con Provia. Il file che scegli viene copiato nel progetto. [Crediti e licenza delle LUT](Resources/FujifilmFilmLooks/CREDITS.md).
 
-In **Libro e stampa** si possono cambiare formato, bleed, margine, risoluzione desiderata, tipo di PDF e lato della prima pagina. Imposta la copertina con foto di fronte e retro e la larghezza del dorso. **Esporta per la stampa** produce `Interior.pdf` e, se attivata, `Cover.pdf`. L’esportazione segnala foto sotto la risoluzione obiettivo e pagine di compensazione necessarie per i panorami. Usa le misure del prodotto scelto presso la tipografia.
+In **Libro e stampa** si possono cambiare formato (scegliendo fra 21 misure tipiche di fotolibro o una misura personalizzata), bleed, margine, risoluzione desiderata, tipo di PDF e lato della prima pagina. Imposta la copertina con foto di fronte e retro e la larghezza del dorso. **Esporta per la stampa** produce `Interior.pdf` e, se attivata, `Cover.pdf`. L’esportazione segnala foto sotto la risoluzione obiettivo e pagine di compensazione necessarie per i panorami. Usa le misure del prodotto scelto presso la tipografia.
 
 Da **Esporta PDF** puoi scegliere **PDF da sfogliare**, **Stampa generica** o **Pixartprinting · 21 × 21 cm**. Il profilo Pixartprinting richiede un libro di quel formato con copertina e il dorso in millimetri dal preventivo. Produce un PDF unico in scala 1:1 con copertina rigida stesa e facciate interne singole da 216 × 216 mm, inclusi 3 mm di abbondanza per lato. La foliazione segue il libro e le eventuali pagine di compensazione. Il profilo del PDF è sRGB. I requisiti colore del prodotto si verificano nelle istruzioni del preventivo. [Pixartprinting · Fotolibri](https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/fotolibri/)
 

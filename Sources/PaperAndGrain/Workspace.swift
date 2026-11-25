@@ -12,6 +12,7 @@ final class Workspace: ObservableObject {
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
     @Published private(set) var exporting = false
     @Published var problem: String?
+    @Published private(set) var recentBooks: [RecentBook] = []
 
     private var analysisTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
@@ -27,6 +28,45 @@ final class Workspace: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        recentBooks = RecentBook.load(from: defaults)
+    }
+
+    /// Books shown in the welcome window and in File › Open Recent.
+    struct RecentBook: Codable, Identifiable, Equatable {
+        var path: String
+        var title: String
+        var opened: Date
+        var pageCount: Int
+        var coverFile: String?
+        var isDraft: Bool
+
+        var id: String { path }
+        var url: URL { URL(fileURLWithPath: path) }
+        var coverURL: URL? { coverFile.map { BookStorage.assetURL(filename: $0, in: url) } }
+
+        static func load(from defaults: UserDefaults) -> [RecentBook] {
+            guard let data = defaults.data(forKey: "recentBooks"),
+                  let books = try? JSONDecoder().decode([RecentBook].self, from: data) else { return [] }
+            return books.filter { FileManager.default.fileExists(atPath: $0.path) }
+        }
+    }
+
+    private func noteRecentBook() {
+        guard let directory else { return }
+        let coverID = book.cover?.frontPhotoID ?? book.pages.lazy.flatMap(\.photoIDs).first
+        let cover = coverID.flatMap { id in book.photos.first { $0.id == id }?.filename }
+        let entry = RecentBook(path: directory.standardizedFileURL.path, title: book.title, opened: Date(),
+                               pageCount: book.pages.count, coverFile: cover,
+                               isDraft: BookStorage.isManagedDraft(directory))
+        var books = recentBooks.filter { $0.path != entry.path }
+        books.insert(entry, at: 0)
+        recentBooks = Array(books.prefix(12))
+        if let data = try? JSONEncoder().encode(recentBooks) { defaults.set(data, forKey: "recentBooks") }
+    }
+
+    func forgetRecentBook(_ recent: RecentBook) {
+        recentBooks.removeAll { $0.path == recent.path }
+        if let data = try? JSONEncoder().encode(recentBooks) { defaults.set(data, forKey: "recentBooks") }
     }
 
     private struct DocumentLocation: Equatable {
@@ -381,6 +421,7 @@ final class Workspace: ObservableObject {
         directory = folder
         if let folder {
             defaults.set(folder.path, forKey: "lastBook")
+            noteRecentBook()
         } else {
             defaults.removeObject(forKey: "lastBook")
         }
@@ -440,6 +481,7 @@ final class Workspace: ObservableObject {
 
     func closeBook() {
         guard flushSave() else { return }
+        noteRecentBook()
         settingsUndoManager?.removeAllActions(withTarget: self)
         analysisTask?.cancel()
         analysisTask = nil

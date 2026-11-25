@@ -7,15 +7,12 @@ struct PageArrangementPicker: View {
     let onSelect: (PageArrangement?) -> Void
 
     @State private var isPresented = false
-    @State private var fullBleedGroup = false
 
-    private let pine = Color(red: 0.14, green: 0.31, blue: 0.23)
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
+    private let pine = Theme.accent
 
     var body: some View {
         let current = Self.name(selection, language: language)
         return Button {
-            fullBleedGroup = selection?.isFullBleed == true
             isPresented = true
         } label: {
             HStack(spacing: 9) {
@@ -46,62 +43,11 @@ struct PageArrangementPicker: View {
         .accessibilityValue(current)
         .help(tr("Scegli un modello per la pagina", "Choose a page template"))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            choices
-        }
-    }
-
-    private var choices: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            Text(tr("Modelli di pagina", "Page Templates"))
-                .font(.system(size: 13, weight: .semibold))
-                .accessibilityAddTraits(.isHeader)
-            Picker(tr("Tipo di modello", "Template group"), selection: $fullBleedGroup) {
-                Text(tr("Con margini", "With margins")).tag(false)
-                Text(tr("Al vivo", "Full bleed")).tag(true)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            LazyVGrid(columns: columns, spacing: 7) {
-                if !fullBleedGroup {
-                    tile(nil)
-                    tile(.fullSpread)
-                }
-                ForEach(PageArrangement.allCases.filter { $0.isFullBleed == fullBleedGroup }) { tile($0) }
+            PageArrangementChoices(selection: selection, language: language, pageSize: pageSize) { arrangement in
+                isPresented = false
+                onSelect(arrangement)
             }
         }
-        .padding(12)
-        .frame(width: 350)
-    }
-
-    private func tile(_ arrangement: PageArrangement?) -> some View {
-        let active = selection == arrangement
-        let name = Self.name(arrangement, language: language)
-        return Button {
-            isPresented = false
-            if !active { onSelect(arrangement) }
-        } label: {
-            VStack(spacing: 3) {
-                PageArrangementDiagram(arrangement: arrangement, pageSize: pageSize)
-                    .frame(height: 44)
-                Text(name)
-                    .font(.system(size: 10, weight: active ? .semibold : .medium))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(height: 26)
-            }
-            .padding(5)
-            .frame(maxWidth: .infinity)
-            .background(active ? pine.opacity(0.10) : Color.secondary.opacity(0.035),
-                        in: RoundedRectangle(cornerRadius: 6))
-            .overlay {
-                RoundedRectangle(cornerRadius: 6).strokeBorder(active ? pine : .secondary.opacity(0.2),
-                                                               lineWidth: active ? 1.5 : 0.65)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(name)
-        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     static func name(_ arrangement: PageArrangement?, language: String) -> String {
@@ -126,6 +72,85 @@ struct PageArrangementPicker: View {
         case .bleedHeroAboveTwo: ("Grande sopra, due sotto al vivo", "Large above two, full bleed")
         }
         return language.hasPrefix("it") ? title.italian : title.english
+    }
+
+    private func tr(_ italian: String, _ english: String) -> String {
+        language.hasPrefix("it") ? italian : english
+    }
+}
+
+/// The grid of page layouts, shown from the inspector and from the toolbar.
+struct PageArrangementChoices: View {
+    let selection: PageArrangement?
+    let language: String
+    var pageSize = CGSize(width: 4, height: 3)
+    let onSelect: (PageArrangement?) -> Void
+
+    @State private var fullBleedGroup: Bool
+
+    private let pine = Theme.accent
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
+
+    init(selection: PageArrangement?, language: String, pageSize: CGSize = CGSize(width: 4, height: 3),
+         onSelect: @escaping (PageArrangement?) -> Void) {
+        self.selection = selection
+        self.language = language
+        self.pageSize = pageSize
+        self.onSelect = onSelect
+        _fullBleedGroup = State(initialValue: selection?.isFullBleed == true)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(tr("Modelli di pagina", "Page Layouts"))
+                .font(.system(size: 13, weight: .semibold))
+                .accessibilityAddTraits(.isHeader)
+            Picker(tr("Tipo di modello", "Template group"), selection: $fullBleedGroup) {
+                Text(tr("Con margini", "With margins")).tag(false)
+                Text(tr("Al vivo", "Full bleed")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            LazyVGrid(columns: columns, spacing: 7) {
+                if !fullBleedGroup {
+                    tile(nil)
+                    tile(.fullSpread)
+                }
+                ForEach(PageArrangement.allCases.filter { $0.isFullBleed == fullBleedGroup }) { tile($0) }
+            }
+        }
+        .padding(12)
+        .frame(width: 350)
+    }
+
+    private func tile(_ arrangement: PageArrangement?) -> some View {
+        let active = selection == arrangement
+        let name = PageArrangementPicker.name(arrangement, language: language)
+        return Button {
+            if !active { onSelect(arrangement) }
+        } label: {
+            VStack(spacing: 3) {
+                PageArrangementDiagram(arrangement: arrangement, pageSize: pageSize)
+                    .frame(height: 44)
+                Text(name)
+                    .font(.system(size: 10, weight: active ? .semibold : .medium))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .frame(height: 26)
+            }
+            .padding(5)
+            .frame(maxWidth: .infinity)
+            .background(active ? pine.opacity(0.10) : Color.secondary.opacity(0.035),
+                        in: RoundedRectangle(cornerRadius: 6))
+            .overlay {
+                RoundedRectangle(cornerRadius: 6).strokeBorder(active ? pine : .secondary.opacity(0.2),
+                                                               lineWidth: active ? 1.5 : 0.65)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private func tr(_ italian: String, _ english: String) -> String {
