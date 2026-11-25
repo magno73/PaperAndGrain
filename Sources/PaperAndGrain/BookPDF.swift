@@ -14,12 +14,14 @@ enum BookPDF {
         case textOverflow(Int)
         case coverTextOverflow
 
+        /// In the interface language (English in the CLI).
         var errorDescription: String? {
-            switch self {
-            case .invalidBook: "Impossibile creare il PDF · Could not create the PDF"
-            case let .missingImage(name): "Foto non disponibile · Photo unavailable — \(name)"
-            case let .textOverflow(number): "Il testo eccede lo spazio a pagina \(number) · Text overflows on page \(number)"
-            case .coverTextOverflow: "Il testo eccede lo spazio in copertina · Text overflows on the cover"
+            let language = L10n.interfaceLanguage
+            return switch self {
+            case .invalidBook: L10n.string("Could not create the PDF", language: language)
+            case let .missingImage(name): L10n.format("Photo unavailable — %@", language: language, [name])
+            case let .textOverflow(number): L10n.format("Text overflows on page %lld", language: language, [number])
+            case .coverTextOverflow: L10n.string("Text overflows on the cover", language: language)
             }
         }
     }
@@ -114,16 +116,63 @@ enum BookPDF {
     }
 
     /// Problems found before an export. Blockers make the export fail and must be fixed first;
-    /// warnings describe a weaker print. Messages read "location · Italiano / English".
+    /// warnings describe a weaker print. Each issue is localized when it is shown.
     struct Preflight: Equatable, Sendable {
-        var blockers: [String] = []
-        var warnings: [String] = []
+        var blockers: [PreflightIssue] = []
+        var warnings: [PreflightIssue] = []
+    }
+
+    /// One problem of the preflight: where it is, and what it is.
+    struct PreflightIssue: Equatable, Sendable {
+        enum Location: Equatable, Sendable {
+            /// The page number shown in the editor.
+            case page(Int)
+            case cover
+        }
+
+        enum Problem: Equatable, Sendable {
+            case invalidDimensions
+            case missingPhoto
+            /// The photo's file is not in the book package; the name is the photo's.
+            case missingFile(String)
+            /// The LUT cannot be read; the name is the LUT file's, or the photo's when the LUT has none.
+            case unreadableLUT(String)
+            case lowResolution(photo: String, ppi: Double, target: Double)
+            case textOverflows
+            /// Blank pages added so the imposition lines up, by sheet position.
+            case blankPages([Int])
+        }
+
+        var location: Location?
+        var problem: Problem
+
+        /// "location · subject · problem", in `language`. The CLI reads it in English.
+        func message(language: String) -> String {
+            let place: String? = switch location {
+            case let .page(number): "p. " + String(number)
+            case .cover: L10n.string("Cover", language: language)
+            case nil: nil
+            }
+            let parts: [String?] = switch problem {
+            case .invalidDimensions: [place, L10n.string("Invalid print dimensions", language: language)]
+            case .missingPhoto: [place, L10n.string("Missing photo", language: language)]
+            case let .missingFile(name): [place, name, L10n.string("Photo file missing", language: language)]
+            case let .unreadableLUT(name): [place, name, L10n.string("Unreadable LUT", language: language)]
+            case let .lowResolution(photo, ppi, target):
+                [place, photo, String(format: "%.0f ppi < %.0f ppi", ppi, target)]
+            case .textOverflows: [place, L10n.string("Text overflows", language: language)]
+            case let .blankPages(pages):
+                [place, L10n.string("Blank pages for alignment", language: language),
+                 pages.map(String.init).joined(separator: ", ")]
+            }
+            return parts.compactMap { $0 }.joined(separator: " · ")
+        }
     }
 
     /// Every problem in one list, blockers first, for callers that show a single list.
-    static func printWarnings(_ book: Book, pixart: Bool = false) -> [String] {
+    static func printWarnings(_ book: Book, pixart: Bool = false, language: String = "en") -> [String] {
         let report = preflight(book, directory: nil, profile: pixart ? .pixart : .print)
-        return report.blockers + report.warnings
+        return (report.blockers + report.warnings).map { $0.message(language: language) }
     }
 
     /// A cheap pass over the book that lists everything that would stop the export (text that
@@ -142,48 +191,52 @@ enum BookPDF {
         let safe = book.contentInsetPoints
         guard w.isFinite, h.isFinite, min(w,h) > 50, safe >= 0, 2*safe < min(w,h),
               bleed.isFinite, bleed >= 0, ppi.isFinite, ppi > 0 else {
-            return Preflight(blockers: ["Dimensioni non valide · Invalid print dimensions"])
+            return Preflight(blockers: [PreflightIssue(problem: .invalidDimensions)])
         }
         var report = Preflight()
         var checkedFiles = Set<String>()
         var checkedLooks = Set<String>()
         let fm = FileManager.default
-        func checkFiles(_ photo: BookPhoto, location: String) {
+        func checkFiles(_ photo: BookPhoto, location: PreflightIssue.Location) {
             guard let directory else { return }
             if checkedFiles.insert(photo.filename).inserted,
                !fm.fileExists(atPath: BookStorage.assetURL(filename: photo.filename, in: directory).path) {
-                report.blockers.append("\(location) · \(photo.name) · File della foto mancante / Photo file missing")
+                report.blockers.append(PreflightIssue(location: location, problem: .missingFile(photo.name)))
             }
             let film = book.effectiveFilm(for: photo)
             guard film.preset == .custom, film.strength > 0 else { return }
             let name = film.lutFilename ?? ""
             guard checkedLooks.insert(name).inserted else { return }
             if film.lutFilename.map({ (try? FilmRenderer.validateLUT(at: BookStorage.lutURL(filename: $0, in: directory))) == nil }) ?? true {
-                report.blockers.append("\(location) · \(name.isEmpty ? photo.name : name) · LUT illeggibile / Unreadable LUT")
+                report.blockers.append(PreflightIssue(location: location, problem: .unreadableLUT(name.isEmpty ? photo.name : name)))
             }
         }
-        func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, location: String) {
+        func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop,
+                             location: PreflightIssue.Location) {
             guard settings != nil else { return }
             // The same measure as the canvas badge; rounded like the message, so "300 ppi < 300 ppi" cannot appear.
             guard let measured = PhotoResolution.ppi(of: photo, in: frame, fills: fills, crop: crop) else { return }
             let actual = measured.rounded()
             if PhotoResolution.level(measured, target: ppi) != .good {
-                report.warnings.append(String(format: "%@ · %@ · %.0f ppi < %.0f ppi", location, photo.name, actual, ppi))
+                report.warnings.append(PreflightIssue(location: location,
+                                                      problem: .lowResolution(photo: photo.name, ppi: actual, target: ppi)))
             }
         }
-        func overflow(_ location: String) { report.blockers.append(location + " · Il testo eccede lo spazio / Text overflows") }
+        func overflow(_ location: PreflightIssue.Location) {
+            report.blockers.append(PreflightIssue(location: location, problem: .textOverflows))
+        }
 
         let slots = leaves(book.pages, settings: settings, pixart: profile == .pixart)
-        let blanks = slots.indices.filter { slots[$0] == nil }.map { String($0 + 1) }
+        let blanks = slots.indices.filter { slots[$0] == nil }.map { $0 + 1 }
         if !blanks.isEmpty, settings != nil {
-            report.warnings.append("Pagine bianche di compensazione / Blank pages for alignment · " + blanks.joined(separator: ", "))
+            report.warnings.append(PreflightIssue(problem: .blankPages(blanks)))
         }
         let style = book.editorialStyle
         for leaf in slots.compactMap({ $0 }) where leaf.half == 0 {
             let page = leaf.page
-            let loc = "p. "+String(leaf.number)
+            let loc = PreflightIssue.Location.page(leaf.number)
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
-                report.blockers.append(loc + " · Foto mancante / Missing photo")
+                report.blockers.append(PreflightIssue(location: loc, problem: .missingPhoto))
             }
             let composition = PageComposition(page: page, book: book)
             for slot in composition.photos {
@@ -200,7 +253,7 @@ enum BookPDF {
             if !fits { overflow(loc) }
         }
         if let cover = book.cover, profile != .proof {
-            let location = "Copertina / Cover"
+            let location = PreflightIssue.Location.cover
             var coverFits = true
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
                 let face = profile == .pixart
@@ -214,7 +267,7 @@ enum BookPDF {
                     checkFiles(photo, location: location)
                     checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, location: location)
                 } else {
-                    report.blockers.append(location + " · Foto mancante / Missing photo")
+                    report.blockers.append(PreflightIssue(location: location, problem: .missingPhoto))
                 }
             }
             if !coverFits { overflow(location) }

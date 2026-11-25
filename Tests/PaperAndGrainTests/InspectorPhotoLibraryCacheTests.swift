@@ -21,7 +21,8 @@ final class InspectorPhotoLibraryCacheTests: XCTestCase {
         XCTAssertTrue(cleared.concepts.isEmpty)
     }
 
-    func testSearchRefreshesForLanguageAndPhotoOrder() {
+    func testSearchRefreshesForLanguageAndPhotoOrder() throws {
+        try CompiledCatalog.install()
         var first = BookPhoto(name: "Town", filename: "town.jpg", pixelWidth: 100, pixelHeight: 100)
         first.analysis = PhotoAnalysis(labels: ["Street"], concepts: ["town"])
         var second = BookPhoto(name: "Città", filename: "citta.jpg", pixelWidth: 100, pixelHeight: 100)

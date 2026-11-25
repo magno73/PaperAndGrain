@@ -13,21 +13,18 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
         case classic, studio, photobook
 
         func title(language: String) -> String {
-            let italian = language.hasPrefix("it")
             switch self {
-            case .classic: return italian ? "Classici" : "Classics"
-            case .studio: return italian ? "Studio" : "Studio"
-            case .photobook: return italian ? "Fotolibro d’autore" : "Photobook"
+            case .classic: return L10n.string("Classics", language: language)
+            case .studio: return L10n.string("Studio", language: language)
+            case .photobook: return L10n.string("Photobook", language: language)
             }
         }
 
         func subtitle(language: String) -> String {
-            let italian = language.hasPrefix("it")
             switch self {
-            case .classic: return italian ? "Racconto e foto in equilibrio." : "Story and photographs in balance."
-            case .studio: return italian ? "Griglie e caratteri da rivista." : "Magazine grids and type."
-            case .photobook: return italian ? "Ispirati ai fotolibri premiati: ritmo, margini, sequenza."
-                : "Inspired by award-winning photobooks: pacing, margins, sequence."
+            case .classic: return L10n.string("Story and photographs in balance.", language: language)
+            case .studio: return L10n.string("Magazine grids and type.", language: language)
+            case .photobook: return L10n.string("Inspired by award-winning photobooks: pacing, margins, sequence.", language: language)
             }
         }
 
@@ -42,55 +39,50 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    func name(language: String) -> String {
+    /// The template's name in the interface language.
+    func name(language: String) -> String { L10n.string(englishName, language: language) }
+
+    /// The English name, which is also the catalog key. The CLI prints it without reading the catalog.
+    var englishName: String {
         switch self {
-        case .diary: language.hasPrefix("it") ? "Diario" : "Journal"
-        case .atlas: language.hasPrefix("it") ? "Atlante" : "Atlas"
-        case .gallery: language.hasPrefix("it") ? "Galleria" : "Gallery"
-        case .swissGrid: language.hasPrefix("it") ? "Griglia svizzera" : "Swiss Grid"
-        case .berlinQuarter: language.hasPrefix("it") ? "Quaderno berlinese" : "Berlin Notebook"
-        case .japaneseInterval: language.hasPrefix("it") ? "Intervallo giapponese" : "Japanese Interval"
-        case .essential: language.hasPrefix("it") ? "Essenziale" : "Essential"
-        case .monograph: language.hasPrefix("it") ? "Monografia" : "Monograph"
-        case .postcard: language.hasPrefix("it") ? "Cartolina" : "Postcard"
-        case .nocturne: language.hasPrefix("it") ? "Notturno" : "Nocturne"
+        case .diary: "Journal"
+        case .atlas: "Atlas"
+        case .gallery: "Gallery"
+        case .swissGrid: "Swiss Grid"
+        case .berlinQuarter: "Berlin Notebook"
+        case .japaneseInterval: "Japanese Interval"
+        case .essential: "Essential"
+        case .monograph: "Monograph"
+        case .postcard: "Postcard"
+        case .nocturne: "Nocturne"
         case .kodachrome: "Kodachrome"
-        case .roadLog: language.hasPrefix("it") ? "Diario di bordo" : "Road Log"
+        case .roadLog: "Road Log"
         }
     }
 
     func description(language: String) -> String {
         switch self {
         case .diary:
-            language.hasPrefix("it") ? "Carta avorio e titoli in grande. Per alternare il racconto alle fotografie."
-                : "Ivory paper and generous headlines. For alternating stories with photographs."
+            L10n.string("Ivory paper and generous headlines. For alternating stories with photographs.", language: language)
         case .atlas:
-            language.hasPrefix("it") ? "Griglia, carta chiara e folio. Per paesaggi, tappe e sequenze."
-                : "A grid, light paper and page numbers. For landscapes, stops and sequences."
+            L10n.string("A grid, light paper and page numbers. For landscapes, stops and sequences.", language: language)
         case .gallery:
-            language.hasPrefix("it") ? "Fondo carbone e margini larghi. Una foto alla volta."
-                : "Charcoal paper and generous margins. One image at a time."
-        case .swissGrid: language.hasPrefix("it") ? "Griglia a sei colonne, neretto compatto e cartiglio segnato in rosso." : "Six-column grid, compact bold type and a caption panel marked in red."
-        case .berlinQuarter: language.hasPrefix("it") ? "Blu notte, titoli cedro e una fascia fotografica sopra la testata." : "Midnight blue, citron headlines and a strip of photography above the masthead."
-        case .japaneseInterval: language.hasPrefix("it") ? "Piccola stampa decentrata, titoli Mincho e una didascalia su carta calda." : "An off-centre print, Mincho headings and a caption on warm paper."
+            L10n.string("Charcoal paper and generous margins. One image at a time.", language: language)
+        case .swissGrid: L10n.string("Six-column grid, compact bold type and a caption panel marked in red.", language: language)
+        case .berlinQuarter: L10n.string("Midnight blue, citron headlines and a strip of photography above the masthead.", language: language)
+        case .japaneseInterval: L10n.string("An off-centre print, Mincho headings and a caption on warm paper.", language: language)
         case .essential:
-            language.hasPrefix("it") ? "Bianco netto, titoli leggeri e fotografia a piena pagina."
-                : "Pure white, light typography and edge-to-edge photography."
+            L10n.string("Pure white, light typography and edge-to-edge photography.", language: language)
         case .monograph:
-            language.hasPrefix("it") ? "Una foto per pagina con margini larghi, come le monografie d’autore. Carta calda e serif classico."
-                : "One photograph per page with wide margins, like an artist’s monograph. Warm paper and a classic serif."
+            L10n.string("One photograph per page with wide margins, like an artist’s monograph. Warm paper and a classic serif.", language: language)
         case .postcard:
-            language.hasPrefix("it") ? "Riquadro fisso, titoli Futura rossi e copertina da manifesto di viaggio."
-                : "A fixed picture box, red Futura headlines and a travel-poster cover."
+            L10n.string("A fixed picture box, red Futura headlines and a travel-poster cover.", language: language)
         case .nocturne:
-            language.hasPrefix("it") ? "Pagine nere e foto sospese, per notti, città e luci basse."
-                : "Black pages and floating prints, for nights, cities and low light."
+            L10n.string("Black pages and floating prints, for nights, cities and low light.", language: language)
         case .kodachrome:
-            language.hasPrefix("it") ? "Stampe incorniciate in coppia su carta avorio, con Gill Sans e un azzurro cielo."
-                : "Framed prints in pairs on ivory paper, with Gill Sans and a sky blue."
+            L10n.string("Framed prints in pairs on ivory paper, with Gill Sans and a sky blue.", language: language)
         case .roadLog:
-            language.hasPrefix("it") ? "Carta manila, macchina da scrivere e provini fitti, in ordine di viaggio."
-                : "Manila paper, typewriter headings and dense contact sheets in travel order."
+            L10n.string("Manila paper, typewriter headings and dense contact sheets in travel order.", language: language)
         }
     }
 

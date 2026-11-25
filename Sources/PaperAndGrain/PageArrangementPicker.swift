@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PageArrangementPicker: View {
+struct PageArrangementPicker: View, Localizing {
     let selection: PageArrangement?
     let language: String
     var pageSize = CGSize(width: 4, height: 3)
@@ -23,7 +23,7 @@ struct PageArrangementPicker: View {
                 PageArrangementDiagram(arrangement: selection, pageSize: pageSize)
                     .frame(width: 35, height: 28)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tr("Modello di pagina", "Page Template"))
+                    Text(tr("Page Template"))
                         .font(.system(size: 11, weight: .semibold))
                     Text(current)
                         .font(.system(size: 10))
@@ -43,9 +43,9 @@ struct PageArrangementPicker: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tr("Modello di pagina", "Page Template"))
+        .accessibilityLabel(tr("Page Template"))
         .accessibilityValue(current)
-        .help(tr("Scegli un modello per la pagina", "Choose a page template"))
+        .help(tr("Choose a page template"))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             PageArrangementChoices(selection: selection, language: language, pageSize: pageSize, layout: layout) { arrangement in
                 isPresented = false
@@ -55,47 +55,43 @@ struct PageArrangementPicker: View {
     }
 
     static func name(_ arrangement: PageArrangement?, language: String) -> String {
-        let title: (italian: String, english: String) = switch arrangement {
-        case nil: ("Galleria automatica", "Automatic gallery")
-        case .fullBleed: ("Foto al vivo", "Full bleed")
-        case .fullSpread: ("Due pagine", "Full Spread")
-        case .twoAcross: ("Due affiancate", "Two across")
-        case .twoStacked: ("Due in verticale", "Two stacked")
-        case .fourGrid: ("Griglia a quattro", "Four-photo grid")
-        case .heroAboveTwo: ("Grande sopra, due sotto", "Large above two")
-        case .twoAboveHero: ("Due sopra, grande sotto", "Two above large")
-        case .textAbovePhoto: ("Testo sopra la foto", "Text above photo")
-        case .photoAboveText: ("Foto sopra il testo", "Photo above text")
-        case .textBesidePhoto: ("Testo accanto alla foto", "Text beside photo")
-        case .textOverPhoto: ("Testo sulla foto", "Text over photo")
-        case .textOnly: ("Solo testo", "Text only")
-        case .bleedTwoAcross: ("Due affiancate al vivo", "Two across, full bleed")
-        case .bleedTwoStacked: ("Due in verticale al vivo", "Two stacked, full bleed")
-        case .bleedThreeAcross: ("Tre affiancate al vivo", "Three across, full bleed")
-        case .bleedFourGrid: ("Griglia di quattro al vivo", "Four-photo grid, full bleed")
-        case .bleedHeroAboveTwo: ("Grande sopra, due sotto al vivo", "Large above two, full bleed")
+        let title = switch arrangement {
+        case nil: "Automatic gallery"
+        case .fullBleed: "Full bleed"
+        case .fullSpread: "Full Spread"
+        case .twoAcross: "Two across"
+        case .twoStacked: "Two stacked"
+        case .fourGrid: "Four-photo grid"
+        case .heroAboveTwo: "Large above two"
+        case .twoAboveHero: "Two above large"
+        case .textAbovePhoto: "Text above photo"
+        case .photoAboveText: "Photo above text"
+        case .textBesidePhoto: "Text beside photo"
+        case .textOverPhoto: "Text over photo"
+        case .textOnly: "Text only"
+        case .bleedTwoAcross: "Two across, full bleed"
+        case .bleedTwoStacked: "Two stacked, full bleed"
+        case .bleedThreeAcross: "Three across, full bleed"
+        case .bleedFourGrid: "Four-photo grid, full bleed"
+        case .bleedHeroAboveTwo: "Large above two, full bleed"
         }
-        return language.hasPrefix("it") ? title.italian : title.english
+        return L10n.string(title, language: language)
     }
 
     static func automaticName(_ layout: PageLayout, language: String) -> String {
-        let title: (italian: String, english: String) = switch layout {
-        case .gallery: ("Galleria automatica", "Automatic gallery")
-        case .text: ("Solo testo", "Text only")
-        case .mixed: ("Foto e testo", "Photo and text")
-        case .fullPage: ("Foto al vivo", "Full bleed")
-        case .fullSpread: ("Due pagine", "Full Spread")
+        let title = switch layout {
+        case .gallery: "Automatic gallery"
+        case .text: "Text only"
+        case .mixed: "Photo and text"
+        case .fullPage: "Full bleed"
+        case .fullSpread: "Full Spread"
         }
-        return language.hasPrefix("it") ? title.italian : title.english
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
+        return L10n.string(title, language: language)
     }
 }
 
 /// The grid of page layouts, shown from the inspector and from the toolbar.
-struct PageArrangementChoices: View {
+struct PageArrangementChoices: View, Localizing {
     let selection: PageArrangement?
     let language: String
     var pageSize = CGSize(width: 4, height: 3)
@@ -119,12 +115,12 @@ struct PageArrangementChoices: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(tr("Modelli di pagina", "Page Layouts"))
+            Text(tr("Page Layouts"))
                 .font(.system(size: 13, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
-            Picker(tr("Tipo di modello", "Template group"), selection: $fullBleedGroup) {
-                Text(tr("Con margini", "With margins")).tag(false)
-                Text(tr("Al vivo", "Full bleed")).tag(true)
+            Picker(tr("Template group"), selection: $fullBleedGroup) {
+                Text(tr("With margins")).tag(false)
+                Text(tr("Full bleed", key: "arrangement.bleed_group")).tag(true)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -168,10 +164,6 @@ struct PageArrangementChoices: View {
         .buttonStyle(.plain)
         .accessibilityLabel(name)
         .accessibilityAddTraits(active ? .isSelected : [])
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
     }
 }
 

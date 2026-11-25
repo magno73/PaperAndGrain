@@ -7,11 +7,10 @@ struct BookFormatPreset: Identifiable, Hashable, Sendable {
         case square, landscape, portrait
 
         func title(_ language: String) -> String {
-            let italian = language.hasPrefix("it")
             switch self {
-            case .square: return italian ? "Quadrati" : "Square"
-            case .landscape: return italian ? "Orizzontali" : "Landscape"
-            case .portrait: return italian ? "Verticali" : "Portrait"
+            case .square: L10n.string("format.shape.square", language: language, default: "Square")
+            case .landscape: L10n.string("format.shape.landscape", language: language, default: "Landscape")
+            case .portrait: L10n.string("format.shape.portrait", language: language, default: "Portrait")
             }
         }
     }
@@ -20,13 +19,12 @@ struct BookFormatPreset: Identifiable, Hashable, Sendable {
     let shape: Shape
     let format: BookFormat
     let inches: String?
-    let italian: String
-    let english: String
+    /// What the size is for, in English; it is the catalog key.
+    let note: String
 
     func name(_ language: String) -> String {
-        let italian = language.hasPrefix("it")
         let size = Self.centimetres(format, language: language)
-        let note = italian ? self.italian : english
+        let note = L10n.string(self.note, language: language)
         if let inches { return "\(inches) · \(size) · \(note)" }
         return "\(size) · \(note)"
     }
@@ -45,48 +43,48 @@ struct BookFormatPreset: Identifiable, Hashable, Sendable {
 
     static let all: [Self] = [
         Self(id: "square-15", shape: .square, format: BookFormat(widthMM: 150, heightMM: 150), inches: nil,
-             italian: "piccolo, da regalo", english: "small, gift size"),
+             note: "small, gift size"),
         Self(id: "square-8in", shape: .square, format: BookFormat(widthMM: 203, heightMM: 203), inches: "8 × 8″",
-             italian: "standard americano", english: "US standard"),
+             note: "US standard"),
         Self(id: "square-20", shape: .square, format: BookFormat(widthMM: 200, heightMM: 200), inches: nil,
-             italian: "medio", english: "medium"),
+             note: "medium"),
         Self(id: "square-21", shape: .square, format: .square, inches: nil,
-             italian: "medio, profilo Pixartprinting", english: "medium, Pixartprinting profile"),
+             note: "medium, Pixartprinting profile"),
         Self(id: "square-25", shape: .square, format: BookFormat(widthMM: 250, heightMM: 250), inches: nil,
-             italian: "grande", english: "large"),
+             note: "large"),
         Self(id: "square-30", shape: .square, format: BookFormat(widthMM: 300, heightMM: 300), inches: nil,
-             italian: "molto grande, da tavolo", english: "extra large, coffee table"),
+             note: "extra large, coffee table"),
         Self(id: "square-12in", shape: .square, format: BookFormat(widthMM: 305, heightMM: 305), inches: "12 × 12″",
-             italian: "album americano", english: "US album"),
+             note: "US album"),
 
         Self(id: "landscape-20x15", shape: .landscape, format: BookFormat(widthMM: 200, heightMM: 150), inches: nil,
-             italian: "piccolo", english: "small"),
+             note: "small"),
         Self(id: "landscape-10x8in", shape: .landscape, format: BookFormat(widthMM: 254, heightMM: 203), inches: "10 × 8″",
-             italian: "standard americano", english: "US standard"),
+             note: "US standard"),
         Self(id: "landscape-28x21", shape: .landscape, format: BookFormat(widthMM: 280, heightMM: 210), inches: nil,
-             italian: "medio", english: "medium"),
+             note: "medium"),
         Self(id: "landscape-a4", shape: .landscape, format: BookFormat(widthMM: 297, heightMM: 210), inches: nil,
-             italian: "A4", english: "A4"),
+             note: "A4"),
         Self(id: "landscape-30x20", shape: .landscape, format: .landscape, inches: nil,
-             italian: "panoramico", english: "panoramic"),
+             note: "panoramic"),
         Self(id: "landscape-33x23", shape: .landscape, format: BookFormat(widthMM: 330, heightMM: 230), inches: nil,
-             italian: "grande", english: "large"),
+             note: "large"),
         Self(id: "landscape-13x11in", shape: .landscape, format: BookFormat(widthMM: 330, heightMM: 279), inches: "13 × 11″",
-             italian: "grande americano", english: "US large"),
+             note: "US large"),
         Self(id: "landscape-40x30", shape: .landscape, format: BookFormat(widthMM: 400, heightMM: 300), inches: nil,
-             italian: "molto grande", english: "extra large"),
+             note: "extra large"),
 
         Self(id: "portrait-15x20", shape: .portrait, format: BookFormat(widthMM: 150, heightMM: 200), inches: nil,
-             italian: "piccolo", english: "small"),
+             note: "small"),
         Self(id: "portrait-8x10in", shape: .portrait, format: BookFormat(widthMM: 203, heightMM: 254), inches: "8 × 10″",
-             italian: "standard americano", english: "US standard"),
+             note: "US standard"),
         Self(id: "portrait-a4", shape: .portrait, format: BookFormat(widthMM: 210, heightMM: 297), inches: nil,
-             italian: "A4, rivista", english: "A4, magazine"),
+             note: "A4, magazine"),
         Self(id: "portrait-21x28", shape: .portrait, format: BookFormat(widthMM: 210, heightMM: 280), inches: nil,
-             italian: "medio", english: "medium"),
+             note: "medium"),
         Self(id: "portrait-20x30", shape: .portrait, format: .portrait, inches: nil,
-             italian: "alto", english: "tall"),
+             note: "tall"),
         Self(id: "portrait-23x30", shape: .portrait, format: BookFormat(widthMM: 230, heightMM: 300), inches: nil,
-             italian: "grande", english: "large"),
+             note: "large"),
     ]
 }
