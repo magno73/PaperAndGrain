@@ -98,7 +98,51 @@ enum BookCLIEditing {
         }
     }
 
+    /// Page rules shared by `build` and `patch`. A layout that contradicts the arrangement or a photo listed twice
+    /// is an error. Photos beyond the capacity and story text on a layout without a story stay stored, as in the
+    /// app, but are not shown; they come back as warnings.
+    static func checkPage(_ page: BookPage, at index: Int) throws -> [String] {
+        let name = "Page \(index + 1) (pages[\(index)])"
+        if let arrangement = page.arrangement, arrangement.layout != page.layout {
+            throw Failure("\(name) has layout \"\(page.layout.rawValue)\", but arrangement \"\(arrangement.rawValue)\" "
+                + "needs layout \"\(arrangement.layout.rawValue)\"")
+        }
+        if let duplicate = page.photoIDs.first(where: { id in page.photoIDs.filter { $0 == id }.count > 1 }) {
+            throw Failure("\(name) lists photo \(duplicate.uuidString) more than once")
+        }
+        var warnings: [String] = []
+        let capacity: Int
+        let shape: String
+        if let arrangement = page.arrangement {
+            capacity = arrangement.photoCapacity
+            shape = "arrangement \"\(arrangement.rawValue)\""
+        } else {
+            switch page.layout {
+            case .text: capacity = 0
+            case .fullPage, .fullSpread: capacity = 1
+            case .mixed, .gallery: capacity = Int.max
+            }
+            shape = "layout \"\(page.layout.rawValue)\""
+        }
+        if page.photoIDs.count > capacity {
+            warnings.append("\(name) has \(page.photoIDs.count) photos; \(shape) shows \(capacity). "
+                + "The others stay stored but are not shown")
+        }
+        if page.hasStoryText, page.layout != .mixed, page.layout != .text {
+            warnings.append("\(name) has a heading or text that \(shape) does not show. Use layout \"mixed\" or \"text\"")
+        }
+        return warnings
+    }
+
     static func patch(source: URL, patchURL: URL, output: URL) throws -> Book {
+        var warnings: [String] = []
+        return try patch(source: source, patchURL: patchURL, output: output, warnings: &warnings)
+    }
+
+    /// Applies the patch; `warnings` lists the page states the app keeps but does not show, for changed pages only.
+    static func patch(source: URL, patchURL: URL, output: URL, warnings: inout [String]) throws -> Book {
+        var found: [String] = []
+        defer { warnings = found }
         guard let edits = try JSONSerialization.jsonObject(with: Data(contentsOf: patchURL)) as? [[String: Any]] else {
             throw Failure("Expected an array of JSON Patch operations")
         }
@@ -121,6 +165,11 @@ enum BookCLIEditing {
                       photo.sourceID == old.sourceID, photo.capturedAt == old.capturedAt else {
                     throw Failure("Use media import to change the asset inventory")
                 }
+            }
+            guard !result.pages.isEmpty else { throw Failure("The book must keep at least one page") }
+            let original = Dictionary(book.pages.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            for (index, page) in result.pages.enumerated() where original[page.id] != page {
+                found += try checkPage(page, at: index)
             }
             book = result
         }

@@ -257,4 +257,49 @@ final class CLIReleaseTests: XCTestCase {
         try Data().write(to: empty)
         XCTAssertTrue(message(try BookStorage.importLUT(empty, in: root)).contains("1 byte to 50 MB"))
     }
+
+    // MARK: C5
+
+    func testPatchAppliesTheBuildPageRules() async throws {
+        let root = try temporaryDirectory()
+        let source = try build(baseSpec(pages: [["arrangement": "twoAcross", "photos": ["a"]], ["layout": "text", "text": "Ciao"]]),
+                               in: root, name: "Source.papergrain")
+        var patch = try writePatch(#"[{"op":"replace","path":"/pages/0/layout","value":"mixed"}]"#, in: root)
+        var text = message(try BookCLIEditing.patch(source: source, patchURL: patch, output: root.appendingPathComponent("A.papergrain")))
+        XCTAssertTrue(text.contains("Page 1 (pages[0])") && text.contains("twoAcross") && text.contains("gallery"), text)
+        patch = try writePatch(#"[{"op":"remove","path":"/pages/1"},{"op":"remove","path":"/pages/0"}]"#, in: root)
+        text = message(try BookCLIEditing.patch(source: source, patchURL: patch, output: root.appendingPathComponent("B.papergrain")))
+        XCTAssertTrue(text.contains("at least one page"), text)
+
+        // Photos beyond the capacity stay stored, as in the app, and are reported as warnings.
+        let more = try build(["version": 1, "title": "T", "assets": [["id": "a", "path": "pixel.png"], ["id": "b", "path": "pixel.png"],
+                                                                     ["id": "c", "path": "pixel.png"]],
+                              "pages": [["arrangement": "twoAcross", "photos": ["a", "b"]], ["layout": "gallery"]]],
+                             in: root, name: "More.papergrain")
+        let ids = try BookStorage.read(from: more).photos.map(\.id.uuidString)
+        patch = try writePatch(#"[{"op":"add","path":"/pages/0/photoIDs/-","value":"\#(ids[2])"},"# +
+                               #"{"op":"replace","path":"/pages/1/text","value":"Hidden"}]"#, in: root)
+        let output = try await BookCLI.executeExtended(["patch", more.path, patch.path, root.appendingPathComponent("C.papergrain").path])
+        let report = try XCTUnwrap(JSONSerialization.jsonObject(with: output) as? [String: Any])
+        let warnings = try XCTUnwrap(report["warnings"] as? [String])
+        XCTAssertEqual(warnings.count, 2, "\(warnings)")
+        XCTAssertTrue(warnings[0].contains("Page 1 (pages[0])") && warnings[0].contains("3 photos"), warnings[0])
+        XCTAssertTrue(warnings[1].contains("Page 2 (pages[1])") && warnings[1].contains("gallery"), warnings[1])
+        XCTAssertEqual(try BookStorage.read(from: root.appendingPathComponent("C.papergrain")).pages[0].photoIDs.count, 3)
+
+        // A patch that leaves the pages alone reports no warnings for them.
+        patch = try writePatch(#"[{"op":"replace","path":"/title","value":"Again"}]"#, in: root)
+        let again = try await BookCLI.executeExtended(["patch", root.appendingPathComponent("C.papergrain").path, patch.path,
+                                                       root.appendingPathComponent("D.papergrain").path])
+        XCTAssertEqual((try JSONSerialization.jsonObject(with: again) as? [String: Any])?["warnings"] as? [String], [])
+    }
+
+    func testBuildReportsPageRuleFailuresWithThePageIndex() throws {
+        let root = try temporaryDirectory()
+        var text = message(try build(baseSpec(pages: [["layout": "fullPage", "photos": ["a"]],
+                                                      ["layout": "mixed", "arrangement": "twoAcross"]]), in: root))
+        XCTAssertTrue(text.contains("Page 2 (pages[1])") && text.contains("twoAcross"), text)
+        text = message(try build(baseSpec(pages: [["layout": "gallery", "text": "Lost"]]), in: root))
+        XCTAssertTrue(text.contains("Page 1 (pages[0])") && text.contains("gallery"), text)
+    }
 }

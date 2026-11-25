@@ -61,9 +61,12 @@ enum BookCLI {
         case "patch":
             guard arguments.count == 3 else { throw Failure("Usage: patch SOURCE.papergrain PATCH.json OUTPUT.papergrain") }
             let output = url(arguments[2], relativeTo: currentDirectory)
+            var warnings: [String] = []
             let book = try BookCLIEditing.patch(source: url(arguments[0], relativeTo: currentDirectory),
-                                                patchURL: url(arguments[1], relativeTo: currentDirectory), output: output)
-            return try encode(["project": output.path, "id": book.id.uuidString])
+                                                patchURL: url(arguments[1], relativeTo: currentDirectory), output: output,
+                                                warnings: &warnings)
+            struct PatchResult: Encodable { let project: String; let id: UUID; let warnings: [String] }
+            return try encode(PatchResult(project: output.path, id: book.id, warnings: warnings))
         case "auto-layout":
             guard arguments.count == 2 else { throw Failure("Usage: auto-layout SOURCE.papergrain OUTPUT.papergrain") }
             let output = url(arguments[1], relativeTo: currentDirectory)
@@ -215,22 +218,12 @@ enum BookCLI {
             return id
         }
         for (index, page) in spec.pages.enumerated() {
-            let layout = page.arrangement?.layout ?? page.layout ?? .gallery
-            let photos = try (page.photos ?? []).map(photoID)
-            let limit = page.arrangement?.photoCapacity ?? {
-                switch layout {
-                case .text: return 0
-                case .fullPage, .fullSpread: return 1
-                case .mixed, .gallery: return Int.max
-                }
-            }()
-            let hasText = !(page.heading ?? "").isEmpty || !(page.text ?? "").isEmpty
-            guard page.layout == nil || page.layout == layout, photos.count <= limit,
-                  Set(photos).count == photos.count, !hasText || layout == .mixed || layout == .text else {
-                throw Failure("Page \(index + 1): incompatible layout, text or photo slots")
-            }
-            book.pages.append(BookPage(layout: layout, photoIDs: photos, text: page.text ?? "",
-                                       heading: page.heading, arrangement: page.arrangement))
+            let built = BookPage(layout: page.layout ?? page.arrangement?.layout ?? .gallery,
+                                 photoIDs: try (page.photos ?? []).map(photoID), text: page.text ?? "",
+                                 heading: page.heading, arrangement: page.arrangement)
+            // A new book has no reason to store what it would not show: build treats warnings as errors.
+            if let problem = try BookCLIEditing.checkPage(built, at: index).first { throw Failure(problem) }
+            book.pages.append(built)
         }
         if let cover = spec.cover {
             guard (cover.spineMM ?? 0) >= 0 else { throw Failure("Expected a nonnegative spineMM") }

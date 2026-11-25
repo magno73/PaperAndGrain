@@ -32,6 +32,12 @@ Questa patch richiede una prima pagina con testo «Partenza», modifica il racco
 ]
 ```
 
+## Regole delle pagine ed esito
+
+`patch` e `build` condividono le regole delle pagine. Sono errori un `layout` diverso da quello richiesto da `arrangement` (per esempio `gallery` per `twoAcross`), una foto ripetuta nella stessa pagina e una patch che lascia il libro senza pagine. Come nell’app, le foto oltre la capacità della composizione e il testo su un layout che non lo mostra (`gallery`, `fullPage`, `fullSpread`) restano salvati ma non compaiono: `build` li rifiuta, `patch` li accetta e li segnala.
+
+In caso di successo `patch` restituisce `project`, `id` e `warnings`, un array di messaggi in inglese che riguardano solo le pagine nuove o modificate dalla patch, per esempio `Page 1 (pages[0]) has 3 photos; arrangement "twoAcross" shows 2. The others stay stored but are not shown`.
+
 Prima delle modifiche posizionali, usare `test` su `/pages/0/id` o `/photos/0/id` con il corrispondente UUID ottenuto da `inspect`. Eseguire nuovamente `inspect` sulla variante prima di generare una patch successiva.
 
 ## Percorsi del modello
