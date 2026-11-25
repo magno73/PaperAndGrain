@@ -2,7 +2,7 @@ import AppKit
 import CoreText
 import SwiftUI
 
-struct EditorialFontBrowser: View {
+struct EditorialFontBrowser: View, Localizing {
     let selected: String?
     let inherited: String?
     let sampleText: String
@@ -32,10 +32,10 @@ struct EditorialFontBrowser: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 searchField(options, family: family, face: face)
-                Picker(tr("Raccolta caratteri", "Font Collection"), selection: $scope) {
-                    Text(tr("Tutti", "All")).tag(Scope.all)
-                    Text(tr("Preferiti", "Favorites")).tag(Scope.favorites)
-                    Text(tr("Recenti", "Recent")).tag(Scope.recent)
+                Picker(tr("Font Collection"), selection: $scope) {
+                    Text(tr("All", key: "fonts.all")).tag(Scope.all)
+                    Text(tr("Favorites")).tag(Scope.favorites)
+                    Text(tr("Recent")).tag(Scope.recent)
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
@@ -44,7 +44,7 @@ struct EditorialFontBrowser: View {
             listing(options, family: family, face: face)
             specimen(family: family, face: face)
             HStack(spacing: 8) {
-                let label = tr("Usa carattere ereditato", "Use Inherited Font")
+                let label = tr("Use Inherited Font")
                 let name = Self.displayName(inherited, language: language)
                 Button(label) { onSelect(nil) }
                     .buttonStyle(.link)
@@ -52,7 +52,7 @@ struct EditorialFontBrowser: View {
                     .accessibilityValue(name)
                     .help(name)
                 Spacer(minLength: 3)
-                Button(tr("Applica carattere", "Apply Font")) { if let face { apply(face) } }
+                Button(tr("Apply Font")) { if let face { apply(face) } }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(face == nil)
@@ -74,9 +74,8 @@ struct EditorialFontBrowser: View {
     }
 
     private func searchField(_ options: [Family], family: Family?, face: Face?) -> some View {
-        let label = tr("Cerca famiglia o stile", "Search Families or Styles")
-        let hint = tr("Usa le frecce per scegliere la famiglia, Opzione con le frecce per scegliere lo stile e Invio per applicare.",
-                      "Use the arrow keys to choose a family, Option with the arrow keys to choose a style, and Return to apply.")
+        let label = tr("Search Families or Styles")
+        let hint = tr("Use the arrow keys to choose a family, Option with the arrow keys to choose a style, and Return to apply.")
         return HStack(spacing: 5) {
             Button { searchFocused = true } label: {
                 Image(systemName: "magnifyingglass")
@@ -116,21 +115,21 @@ struct EditorialFontBrowser: View {
             if catalog == nil {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityLabel(tr("Caricamento caratteri", "Loading Fonts"))
+                    .accessibilityLabel(tr("Loading Fonts"))
             } else if let family {
                 HStack(spacing: 0) {
-                    optionList(tr("Famiglia", "Family"), options: options, selectedID: family.id) { option in
+                    optionList(tr("Family"), options: options, selectedID: family.id) { option in
                         row(option.id, active: option.id == family.id) { selectFamily(option) }
                     }
                     .frame(width: 179)
                     Divider()
-                    optionList(tr("Stile", "Style"), options: family.faces, selectedID: face?.id) { option in
+                    optionList(tr("Style"), options: family.faces, selectedID: face?.id) { option in
                         row(option.style, active: option.id == face?.id, accessory: option.id == selected ? "checkmark" : nil) {
                             familyID = family.id
                             faceID = option.id
                         }
                         .help(option.name)
-                        .accessibilityValue(option.id == selected ? tr("Applicato", "Applied") : "")
+                        .accessibilityValue(option.id == selected ? tr("Applied") : "")
                     }
                 }
             } else {
@@ -203,7 +202,7 @@ struct EditorialFontBrowser: View {
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                Text(sample.isEmpty ? tr("Il viaggio continua", "The journey continues") : sample)
+                Text(sample.isEmpty ? tr("The journey continues") : sample)
                     .font(previewFont)
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
@@ -212,8 +211,8 @@ struct EditorialFontBrowser: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             if let face {
                 let favorite = favorites.contains(face.id)
-                let label = favorite ? tr("Rimuovi dai preferiti", "Remove from Favorites")
-                    : tr("Aggiungi ai preferiti", "Add to Favorites")
+                let label = favorite ? tr("Remove from Favorites")
+                    : tr("Add to Favorites")
                 Button {
                     var updated = favorites
                     if favorite { updated.remove(face.id) } else { updated.insert(face.id) }
@@ -235,7 +234,7 @@ struct EditorialFontBrowser: View {
         .frame(height: 84, alignment: .topLeading)
         .background(pine.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(tr("Anteprima carattere", "Font Preview"))
+        .accessibilityLabel(tr("Font Preview"))
     }
 
     private var matchingFamilies: [Family] {
@@ -267,12 +266,12 @@ struct EditorialFontBrowser: View {
 
     private var emptyMessage: String {
         if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return tr("Nessun carattere trovato", "No Fonts Found")
+            return tr("No Fonts Found")
         }
         switch scope {
-        case .all: return tr("Nessun carattere disponibile", "No Fonts Available")
-        case .favorites: return tr("Nessun carattere preferito", "No Favorite Fonts")
-        case .recent: return tr("Nessun carattere recente", "No Recent Fonts")
+        case .all: return tr("No Fonts Available")
+        case .favorites: return tr("No Favorite Fonts")
+        case .recent: return tr("No Recent Fonts")
         }
     }
 
@@ -294,12 +293,8 @@ struct EditorialFontBrowser: View {
     }
 
     static func displayName(_ fontName: String?, language: String) -> String {
-        guard let fontName else { return language.hasPrefix("it") ? "Carattere di sistema" : "System Font" }
+        guard let fontName else { return L10n.string("System Font", language: language) }
         return NSFont(name: fontName, size: 12)?.displayName ?? fontName
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
     }
 
     private struct Face: Identifiable, Sendable {

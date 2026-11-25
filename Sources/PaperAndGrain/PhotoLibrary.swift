@@ -47,8 +47,8 @@ enum PhotoLibrary {
     static func pickerAlbums(language: String) async -> [Album] {
         await Task.detached(priority: .userInitiated) {
             let smart: [(PHAssetCollectionSubtype, String)] = [
-                (.smartAlbumUserLibrary, language == "it" ? "Recenti" : "Recents"),
-                (.smartAlbumFavorites, language == "it" ? "Preferiti" : "Favorites"),
+                (.smartAlbumUserLibrary, L10n.string("Recents", language: language)),
+                (.smartAlbumFavorites, L10n.string("Favorites", language: language)),
             ]
             var result: [Album] = []
             for (subtype, title) in smart {

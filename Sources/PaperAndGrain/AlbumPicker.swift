@@ -2,7 +2,7 @@ import AppKit
 import Photos
 import SwiftUI
 
-struct AlbumPicker: View {
+struct AlbumPicker: View, Localizing {
     let language: String
     let close: () -> Void
     let onImport: ([LibraryPhoto], String, BookFormat) -> Void
@@ -39,23 +39,22 @@ struct AlbumPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(s("Scegli un album", "Choose an Album"))
+                Text(tr("Choose an Album"))
                     .font(.system(.largeTitle, design: .serif))
-                Text(s("Seleziona gli scatti da impaginare.", "Select the photos to lay out."))
+                Text(tr("Select the photos to lay out."))
                     .foregroundStyle(.secondary)
             }
 
             if loading {
-                ProgressView(s("Carico gli album…", "Loading albums…"))
+                ProgressView(tr("Loading albums…"))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if status == .denied || status == .restricted {
                 ContentUnavailableView {
-                    Label(s("Accesso a Foto", "Access to Photos"), systemImage: "photo.badge.exclamationmark")
+                    Label(tr("Access to Photos"), systemImage: "photo.badge.exclamationmark")
                 } description: {
-                    Text(s("Consenti l’accesso in Impostazioni di Sistema oppure importa i file dal Finder.",
-                           "Allow access in System Settings or import files from Finder."))
+                    Text(tr("Allow access in System Settings or import files from Finder."))
                 } actions: {
-                    Button(s("Apri Impostazioni", "Open Settings")) {
+                    Button(tr("Open Settings")) {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Photos") {
                             NSWorkspace.shared.open(url)
                         }
@@ -63,10 +62,9 @@ struct AlbumPicker: View {
                 }
             } else if albums.isEmpty {
                 ContentUnavailableView {
-                    Label(s("Nessun album", "No Albums"), systemImage: "photo.on.rectangle.angled")
+                    Label(tr("No Albums"), systemImage: "photo.on.rectangle.angled")
                 } description: {
-                    Text(s("La libreria di Foto non contiene album da impaginare. Puoi creare un libro dai file del Finder.",
-                           "Your Photos library has no albums to lay out. You can start a book from Finder files instead."))
+                    Text(tr("Your Photos library has no albums to lay out. You can start a book from Finder files instead."))
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -74,7 +72,7 @@ struct AlbumPicker: View {
             }
 
             HStack {
-                Button(s("Annulla", "Cancel"), action: close).keyboardShortcut(.cancelAction)
+                Button(tr("Cancel"), action: close).keyboardShortcut(.cancelAction)
                 Spacer()
                 if let format {
                     let style = FloatingPointFormatStyle<Double>.number.locale(Locale(identifier: language))
@@ -83,10 +81,10 @@ struct AlbumPicker: View {
                     let h = format.heightMM.formatted(style)
                     Text("\(w) × \(h) mm").foregroundStyle(.secondary)
                 }
-                Button(s("Impagina", "Auto-Layout")) {
+                Button(tr("Auto-Layout")) {
                     guard let album, let format else { return }
                     lastAlbumID = album.id
-                    let title = album.isSmart ? s("Nuovo libro", "New Book") : album.title
+                    let title = album.isSmart ? tr("New Book") : album.title
                     onImport(entries.filter { selected.contains($0.id) }, title, format)
                 }
                 .buttonStyle(.borderedProminent)
@@ -120,26 +118,26 @@ struct AlbumPicker: View {
                 .tag(candidate.id)
             }
             .frame(width: 195)
-            .accessibilityLabel(s("Album di Foto", "Photos Albums"))
+            .accessibilityLabel(tr("Photos Albums"))
 
             VStack(alignment: .leading, spacing: 10) {
                 if status == .limited {
-                    Text(s("Vedi soltanto le foto che hai autorizzato.", "Only the photos you allowed are shown."))
+                    Text(tr("Only the photos you allowed are shown."))
                         .font(.callout).foregroundStyle(.secondary)
                 }
                 HStack {
-                    Button(s("Seleziona tutte", "Select All")) { selected = Set(entries.map(\.id)) }
+                    Button(tr("Select All")) { selected = Set(entries.map(\.id)) }
                         .keyboardShortcut("a", modifiers: [.command])
-                    Button(s("Deseleziona tutte", "Deselect All")) { selected.removeAll() }
+                    Button(tr("Deselect All")) { selected.removeAll() }
                     Spacer()
-                    Text(language == "it" ? "\(selected.count) selezionate" : "\(selected.count) selected")
+                    Text(tr("%lld selected", selected.count))
                         .monospacedDigit().foregroundStyle(.secondary)
                 }
                 if loadingPhotos {
-                    ProgressView(s("Carico le foto…", "Loading photos…"))
+                    ProgressView(tr("Loading photos…"))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if entries.isEmpty {
-                    ContentUnavailableView(s("Nessuna foto nell’album", "No Photos in This Album"), systemImage: "photo.on.rectangle.angled")
+                    ContentUnavailableView(tr("No Photos in This Album"), systemImage: "photo.on.rectangle.angled")
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 95), spacing: 8)], spacing: 8) {
@@ -151,14 +149,14 @@ struct AlbumPicker: View {
                                     LibraryThumbnail(photo: entry, selected: marked)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(entry.capturedAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? s("Foto", "Photo"))
+                                .accessibilityLabel(entry.capturedAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? tr("Photo"))
                                 .accessibilityAddTraits(marked ? .isSelected : [])
                             }
                         }
                         .padding(3)
                     }
                 }
-                Picker(s("Formato del libro", "Book Size"), selection: $formatChoice) {
+                Picker(tr("Book Size"), selection: $formatChoice) {
                     ForEach(BookFormatPreset.Shape.allCases, id: \.self) { shape in
                         Section(shape.title(language)) {
                             ForEach(BookFormatPreset.presets(shape)) { preset in
@@ -167,14 +165,14 @@ struct AlbumPicker: View {
                         }
                     }
                     Divider()
-                    Text(s("Personalizzato…", "Custom…")).tag(Self.customChoice)
+                    Text(tr("Custom…")).tag(Self.customChoice)
                 }
                 .pickerStyle(.menu)
                 .frame(maxWidth: 460, alignment: .leading)
                 if formatChoice == Self.customChoice {
                     HStack {
-                        TextField(s("Larghezza in mm", "Width in mm"), text: $width)
-                        TextField(s("Altezza in mm", "Height in mm"), text: $height)
+                        TextField(tr("Width in mm"), text: $width)
+                        TextField(tr("Height in mm"), text: $height)
                         if format == nil {
                             Text("80–600 mm").foregroundStyle(.secondary)
                         }
@@ -202,8 +200,6 @@ struct AlbumPicker: View {
         entries = loaded
         loadingPhotos = false
     }
-
-    private func s(_ italian: String, _ english: String) -> String { language == "it" ? italian : english }
 }
 
 private struct LibraryThumbnail: View {

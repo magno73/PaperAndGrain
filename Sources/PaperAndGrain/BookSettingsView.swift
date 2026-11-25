@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct BookSettingsView: View {
+struct BookSettingsView: View, Localizing {
     let book: Book
     let language: String
     let close: () -> Void
@@ -45,8 +45,8 @@ struct BookSettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(s("Libro e stampa", "Book & Print")).font(.system(.largeTitle, design: .serif))
-                    Text(s("Formato, impostazioni del PDF e copertina.", "Book size, PDF settings and cover."))
+                    Text(tr("Book & Print")).font(.system(.largeTitle, design: .serif))
+                    Text(tr("Book size, PDF settings and cover."))
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -54,9 +54,9 @@ struct BookSettingsView: View {
             }
 
             Form {
-                Section(s("Libro", "Book")) {
-                    TextField(s("Titolo", "Title"), text: $title)
-                    Picker(s("Formato", "Size"), selection: Binding(
+                Section(tr("Book")) {
+                    TextField(tr("Title"), text: $title)
+                    Picker(tr("Size"), selection: Binding(
                         get: { BookFormatPreset.matching(format)?.id ?? "custom" },
                         set: { id in
                             if let preset = BookFormatPreset.all.first(where: { $0.id == id }) { format = preset.format }
@@ -70,20 +70,20 @@ struct BookSettingsView: View {
                             }
                         }
                         Divider()
-                        Text(s("Personalizzato", "Custom")).tag("custom")
+                        Text(tr("Custom")).tag("custom")
                     }
-                    TextField(s("Larghezza (mm)", "Width (mm)"), value: $format.widthMM, format: number)
-                    TextField(s("Altezza (mm)", "Height (mm)"), value: $format.heightMM, format: number)
+                    TextField(tr("Width (mm)"), value: $format.widthMM, format: number)
+                    TextField(tr("Height (mm)"), value: $format.heightMM, format: number)
                 }
-                Section(s("Tipografia del libro", "Book Typography")) {
-                    DisclosureGroup(s("Titoli", "Headings")) {
+                Section(tr("Book Typography")) {
+                    DisclosureGroup(tr("Headings")) {
                         EditorialTypographyControls(style: $typography.title,
                                                    inherited: book.editorialStyle.defaultTitleStyle(mixed: false),
                                                    language: language, updatesSizeWhileTyping: true)
                             .frame(maxWidth: 320, alignment: .leading)
                             .padding(.top, 6)
                     }
-                    DisclosureGroup(s("Testi", "Body Text")) {
+                    DisclosureGroup(tr("Body Text")) {
                         EditorialTypographyControls(style: $typography.body,
                                                    inherited: book.editorialStyle.defaultBodyStyle,
                                                    language: language, updatesSizeWhileTyping: true)
@@ -91,21 +91,21 @@ struct BookSettingsView: View {
                             .padding(.top, 6)
                     }
                 }
-                Section(s("Interni", "Interior")) {
-                    TextField(s("Abbondanza (mm)", "Bleed (mm)"), value: $printProfile.bleedMM, format: number)
-                    TextField(s("Margine sicuro (mm)", "Safe margin (mm)"), value: $printProfile.safeMM, format: number)
-                    TextField(s("Risoluzione desiderata (ppi)", "Target resolution (ppi)"),
+                Section(tr("Interior")) {
+                    TextField(tr("Bleed (mm)"), value: $printProfile.bleedMM, format: number)
+                    TextField(tr("Safe margin (mm)"), value: $printProfile.safeMM, format: number)
+                    TextField(tr("Target resolution (ppi)"),
                               value: $printProfile.targetPPI, format: number)
-                    Toggle(s("PDF a doppie pagine", "Export facing-page spreads"), isOn: $printProfile.spreads)
-                    Toggle(s("Prima pagina interna a destra", "First interior page on the right"), isOn: firstPageOnRight)
+                    Toggle(tr("Export facing-page spreads"), isOn: $printProfile.spreads)
+                    Toggle(tr("First interior page on the right"), isOn: firstPageOnRight)
                 }
-                Section(s("Copertina", "Cover")) {
-                    Toggle(s("Esporta una copertina separata", "Export a separate cover"), isOn: $hasCover)
+                Section(tr("Cover")) {
+                    Toggle(tr("Export a separate cover"), isOn: $hasCover)
                     if hasCover {
-                        TextField(s("Titolo in copertina", "Cover title"), text: $cover.title)
-                        photoPicker(s("Fronte", "Front"), selection: $cover.frontPhotoID)
-                        photoPicker(s("Retro", "Back"), selection: $cover.backPhotoID)
-                        TextField(s("Larghezza del dorso (mm)", "Spine width (mm)"), value: $cover.spineMM, format: number)
+                        TextField(tr("Cover title"), text: $cover.title)
+                        photoPicker(tr("Front"), selection: $cover.frontPhotoID)
+                        photoPicker(tr("Back"), selection: $cover.backPhotoID)
+                        TextField(tr("Spine width (mm)"), value: $cover.spineMM, format: number)
                     }
                 }
             }
@@ -113,12 +113,12 @@ struct BookSettingsView: View {
 
             HStack {
                 if !valid {
-                    Text(s("Controlla titolo e misure.", "Check the title and dimensions."))
+                    Text(tr("Check the title and dimensions."))
                         .foregroundStyle(.secondary).font(.callout)
                 }
                 Spacer()
-                Button(s("Annulla", "Cancel"), action: close).keyboardShortcut(.cancelAction)
-                Button(s("Applica", "Apply")) {
+                Button(tr("Cancel"), action: close).keyboardShortcut(.cancelAction)
+                Button(tr("Apply")) {
                     let type = typography.title == nil && typography.body == nil ? nil : typography
                     var updatedCover = cover
                     if cover.frontPhotoID != book.cover?.frontPhotoID { updatedCover.frontPhotoPlacement = nil }
@@ -163,10 +163,8 @@ struct BookSettingsView: View {
 
     private func photoPicker(_ label: String, selection: Binding<UUID?>) -> some View {
         Picker(label, selection: selection) {
-            Text(s("Nessuna foto", "No photo")).tag(Optional<UUID>.none)
+            Text(tr("No photo")).tag(Optional<UUID>.none)
             ForEach(book.photos) { photo in Text(photo.name).tag(Optional(photo.id)) }
         }
     }
-
-    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 }
