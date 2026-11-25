@@ -10,7 +10,8 @@ struct EditorAppActions {
     var saveTitle = ""
     var saveAs: () -> Void = {}
     var exportPrint: () -> Void = {}
-    var importFiles: () -> Void = {}
+    /// Adds Finder images to the open book; the closure reveals the first imported photo.
+    var addPhotoFiles: (@escaping (UUID) -> Void) -> Void = { _ in }
 }
 
 /// Commands of the focused editor, published to the menu bar with `focusedSceneValue`.

@@ -173,7 +173,7 @@ enum BookStorage {
             sameLocation(resolved.deletingLastPathComponent(), draftsRoot)
     }
 
-    private static func draftsDirectory(create: Bool) throws -> URL {
+    static func draftsDirectory(create: Bool) throws -> URL {
         let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                     appropriateFor: nil, create: create)
         return support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)

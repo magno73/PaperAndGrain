@@ -6,15 +6,31 @@ import AppKit
 enum EditorFilePanels {
     private static var presenting = false
 
+    /// The book window. The Help and Settings windows can be key too (⌘S while reading Help),
+    /// but a document sheet never belongs there.
+    static let bookWindowID = "book"
+
     private static var parentWindow: NSWindow? {
+        // The app has a single book window; prefer it even when Help or Settings is key.
+        if let book = NSApp.windows.first(where: {
+            $0.sheetParent == nil && $0.identifier?.rawValue.hasPrefix(bookWindowID) == true && isBookWindow($0)
+        }) {
+            return book
+        }
         for candidate in [NSApp.keyWindow, NSApp.mainWindow].compactMap({ $0 }) {
             let window = candidate.sheetParent ?? candidate
-            if !(window is NSPanel), window.canBecomeMain { return window }
+            if isBookWindow(window) { return window }
         }
         // The key window may temporarily be nil as an alert sheet finishes.
         return NSApp.windows.first { window in
-            window.isVisible && window.canBecomeMain && !(window is NSPanel) && window.sheetParent == nil
+            window.isVisible && window.sheetParent == nil && isBookWindow(window)
         }
+    }
+
+    static func isBookWindow(_ window: NSWindow) -> Bool {
+        guard !(window is NSPanel), window.canBecomeMain else { return false }
+        let identifier = window.identifier?.rawValue ?? ""
+        return !identifier.hasPrefix(HelpView.windowID) && !identifier.localizedCaseInsensitiveContains("settings")
     }
 
     static func present(_ panel: NSSavePanel, completion: @escaping (NSApplication.ModalResponse) -> Void) {

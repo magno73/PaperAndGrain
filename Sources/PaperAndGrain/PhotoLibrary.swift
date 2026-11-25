@@ -5,10 +5,12 @@ import ImageIO
 import Photos
 import UniformTypeIdentifiers
 
-struct Album: Identifiable, Hashable {
+struct Album: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let count: Int
+    /// Recents or Favorites: a new book from it starts with a generic title.
+    var isSmart = false
 }
 
 struct LibraryPhoto: Identifiable, Hashable, Sendable {
@@ -18,16 +20,11 @@ struct LibraryPhoto: Identifiable, Hashable, Sendable {
     let height: Int
 }
 
+/// Kept for the command line; the app reports `AppError.imageUnavailable` with the file name.
 enum PhotoImportError: LocalizedError {
     case unreadableImage
-    case cancelled
 
-    var errorDescription: String? {
-        switch self {
-        case .unreadableImage: "Immagine non disponibile · Image unavailable"
-        case .cancelled: "Operazione annullata · Operation cancelled"
-        }
-    }
+    var errorDescription: String? { AppError.imageUnavailable(name: nil).errorDescription }
 }
 
 enum PhotoLibrary {
@@ -43,6 +40,31 @@ enum PhotoLibrary {
             result.append(Album(id: collection.localIdentifier, title: collection.localizedTitle ?? "Album", count: count))
         }
         return result.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    /// Albums offered when a book starts from Photos: Recents and Favorites, then the author's albums.
+    /// Runs the PhotoKit fetches off the main thread.
+    static func pickerAlbums(language: String) async -> [Album] {
+        await Task.detached(priority: .userInitiated) {
+            let smart: [(PHAssetCollectionSubtype, String)] = [
+                (.smartAlbumUserLibrary, language == "it" ? "Recenti" : "Recents"),
+                (.smartAlbumFavorites, language == "it" ? "Preferiti" : "Favorites"),
+            ]
+            var result: [Album] = []
+            for (subtype, title) in smart {
+                PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: subtype, options: nil)
+                    .enumerateObjects { collection, _, stop in
+                        let count = PHAsset.fetchAssets(in: collection, options: imageOptions()).count
+                        result.append(Album(id: collection.localIdentifier, title: title, count: count, isSmart: true))
+                        stop.pointee = true
+                    }
+            }
+            return result + albums()
+        }.value
+    }
+
+    static func loadPhotos(in album: Album) async -> [LibraryPhoto] {
+        await Task.detached(priority: .userInitiated) { photos(in: album) }.value
     }
 
     static func photos(in album: Album) -> [LibraryPhoto] {
@@ -102,7 +124,7 @@ enum PhotoLibrary {
 
     static func importPhoto(_ photo: LibraryPhoto, into directory: URL) async throws -> BookPhoto {
         guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [photo.id], options: nil).firstObject else {
-            throw PhotoImportError.unreadableImage
+            throw AppError.imageUnavailable(name: nil)
         }
         let options = PHImageRequestOptions()
         options.version = .current
@@ -114,7 +136,7 @@ enum PhotoLibrary {
                 if let error = info?[PHImageErrorKey] as? Error {
                     complete(.failure(error))
                 } else if info?[PHImageResultIsDegradedKey] as? Bool != true {
-                    complete(data.map { .success(($0, type)) } ?? .failure(PhotoImportError.unreadableImage))
+                    complete(data.map { .success(($0, type)) } ?? .failure(AppError.imageUnavailable(name: nil)))
                 }
             }
         }
@@ -178,8 +200,7 @@ private final class PhotoRequest<Value>: @unchecked Sendable {
 enum LocalImages {
     static func importFile(_ url: URL, into directory: URL) async throws -> BookPhoto {
         try await Task.detached(priority: .userInitiated) {
-            try store(Data(contentsOf: url), preferredExtension: nil, name: url.lastPathComponent,
-                      sourceID: nil, date: nil, in: directory)
+            try storeFile(url, name: url.lastPathComponent, in: directory)
         }.value
     }
 
@@ -187,19 +208,53 @@ enum LocalImages {
         _ data: Data, preferredExtension: String?, name: String, sourceID: String?, date: Date?, in directory: URL
     ) throws -> BookPhoto {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = props[kCGImagePropertyPixelWidth] as? Int,
-              let height = props[kCGImagePropertyPixelHeight] as? Int, width > 0, height > 0
-        else { throw PhotoImportError.unreadableImage }
-        let orientation = props[kCGImagePropertyOrientation] as? Int ?? 1
-        let rotated = (5...8).contains(orientation)
-        let type = CGImageSourceGetType(source).flatMap { UTType($0 as String)?.preferredFilenameExtension }
-        let suffix = type ?? preferredExtension ?? "image"
-        let filename = UUID().uuidString + "." + suffix
+              let image = ImageHeader(source, preferredExtension: preferredExtension)
+        else { throw AppError.imageUnavailable(name: name) }
+        let filename = UUID().uuidString + "." + image.suffix
         try data.write(to: BookStorage.assetURL(filename: filename, in: directory), options: .atomic)
-        return BookPhoto(name: name, sourceID: sourceID, capturedAt: date ?? exifDate(from: props),
-                         filename: filename, pixelWidth: rotated ? height : width, pixelHeight: rotated ? width : height,
-                         location: location(from: props))
+        return image.photo(name: name, sourceID: sourceID, date: date, filename: filename)
+    }
+
+    /// Checks the image from its header, then copies the file into the book without reading it whole.
+    static func storeFile(_ url: URL, name: String, in directory: URL) throws -> BookPhoto {
+        let suffix = url.pathExtension.isEmpty ? nil : url.pathExtension.lowercased()
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = ImageHeader(source, preferredExtension: suffix)
+        else { throw AppError.imageUnavailable(name: name) }
+        let filename = UUID().uuidString + "." + image.suffix
+        let destination = BookStorage.assetURL(filename: filename, in: directory)
+        try FileManager.default.copyItem(at: url, to: destination)
+        // A copy keeps the source's permissions; the book must be able to manage its own files.
+        try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: destination.path)
+        return image.photo(name: name, sourceID: nil, date: nil, filename: filename)
+    }
+
+    private struct ImageHeader {
+        let properties: [CFString: Any]
+        let width: Int
+        let height: Int
+        let suffix: String
+
+        init?(_ source: CGImageSource, preferredExtension: String?) {
+            guard CGImageSourceGetType(source) != nil,
+                  let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                  let width = props[kCGImagePropertyPixelWidth] as? Int,
+                  let height = props[kCGImagePropertyPixelHeight] as? Int, width > 0, height > 0
+            else { return nil }
+            let orientation = props[kCGImagePropertyOrientation] as? Int ?? 1
+            let rotated = (5...8).contains(orientation)
+            let type = CGImageSourceGetType(source).flatMap { UTType($0 as String)?.preferredFilenameExtension }
+            properties = props
+            self.width = rotated ? height : width
+            self.height = rotated ? width : height
+            suffix = type ?? preferredExtension ?? "image"
+        }
+
+        func photo(name: String, sourceID: String?, date: Date?, filename: String) -> BookPhoto {
+            BookPhoto(name: name, sourceID: sourceID, capturedAt: date ?? LocalImages.exifDate(from: properties),
+                      filename: filename, pixelWidth: width, pixelHeight: height,
+                      location: LocalImages.location(from: properties))
+        }
     }
 
     static func location(at url: URL) -> PhotoLocation? {
@@ -208,7 +263,7 @@ enum LocalImages {
         return location(from: props)
     }
 
-    private static func location(from props: [CFString: Any]) -> PhotoLocation? {
+    fileprivate static func location(from props: [CFString: Any]) -> PhotoLocation? {
         let iptc = props[kCGImagePropertyIPTCDictionary] as? [CFString: Any]
         func placeName(_ fields: [CFString]) -> String? {
             fields.compactMap { (iptc?[$0] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -245,7 +300,7 @@ enum LocalImages {
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options)
     }
 
-    private static func exifDate(from props: [CFString: Any]) -> Date? {
+    fileprivate static func exifDate(from props: [CFString: Any]) -> Date? {
         guard let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any],
               let value = exif[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }
         let formatter = DateFormatter()

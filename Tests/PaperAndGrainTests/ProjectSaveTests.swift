@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import PaperAndGrain
 
+@MainActor
 final class ProjectSaveTests: XCTestCase {
     func testWorkspaceSavesAndReattachesTheOpenPackageWithoutRestoringStaleEdits() async throws {
         let folder = try scratchFolder()
@@ -11,17 +12,18 @@ final class ProjectSaveTests: XCTestCase {
         let book = Book(title: "Original")
         try BookStorage.write(book, to: original)
 
-        try await MainActor.run {
+        do {
             let defaults = MemoryDefaults()
             let workspace = Workspace(defaults: defaults)
-            workspace.openProject(at: original)
+            await workspace.openProject(at: original).value
             guard !workspace.needsSaveLocation else { return XCTFail("An opened package already has a save location") }
             workspace.book.title = "Saved by shortcut"
-            workspace.saveProject()
+            let saved = await workspace.save()
+            XCTAssertTrue(saved)
             XCTAssertEqual(try BookStorage.read(from: original).title, "Saved by shortcut")
 
             workspace.book.title = "Current edits"
-            workspace.openProject(at: original)
+            await workspace.openProject(at: original).value
             XCTAssertEqual(workspace.book.title, "Current edits")
             XCTAssertEqual(try BookStorage.read(from: original).title, "Current edits")
 
@@ -29,12 +31,14 @@ final class ProjectSaveTests: XCTestCase {
             let replacement = Book(title: "Different project")
             try BookStorage.write(replacement, to: original)
             workspace.book.title = "Continue after move"
-            XCTAssertFalse(workspace.flushSave())
+            // The open package is found again by its file identity; the new book at the old path is untouched.
+            XCTAssertTrue(workspace.flushSave())
             XCTAssertEqual(try BookStorage.read(from: original), replacement)
-
-            workspace.openProject(at: moved)
             XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), moved))
-            XCTAssertEqual(defaults.string(forKey: "lastBook"), moved.path)
+
+            await workspace.openProject(at: moved).value
+            XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), moved))
+            XCTAssertTrue(BookStorage.sameLocation(URL(fileURLWithPath: try XCTUnwrap(defaults.string(forKey: "lastBook"))), moved))
             XCTAssertEqual(try BookStorage.read(from: moved).title, "Continue after move")
         }
     }
@@ -46,9 +50,9 @@ final class ProjectSaveTests: XCTestCase {
         let original = Book(title: "Before", pages: [BookPage(text: "Before")])
         try BookStorage.write(original, to: project)
 
-        try await MainActor.run {
+        do {
             let workspace = Workspace(defaults: MemoryDefaults())
-            workspace.openProject(at: project)
+            await workspace.openProject(at: project).value
             let undoManager = UndoManager()
             undoManager.groupsByEvent = false
 
@@ -75,6 +79,8 @@ final class ProjectSaveTests: XCTestCase {
             XCTAssertNil(workspace.book.cover)
             XCTAssertNil(workspace.book.printSettings)
             XCTAssertEqual(workspace.book.pages[0].text, "Later edit")
+            let saved = await workspace.save()
+            XCTAssertTrue(saved)
             XCTAssertEqual(try BookStorage.read(from: project), workspace.book)
 
             undoManager.redo()
@@ -85,9 +91,11 @@ final class ProjectSaveTests: XCTestCase {
             XCTAssertEqual(workspace.book.template, .atlas)
             XCTAssertEqual(workspace.book.showPageNumbers, false)
             XCTAssertEqual(workspace.book.pages[0].text, "Later edit")
+            let savedAgain = await workspace.save()
+            XCTAssertTrue(savedAgain)
             XCTAssertEqual(try BookStorage.read(from: project), workspace.book)
 
-            workspace.closeBook()
+            await workspace.closeBook().value
             XCTAssertFalse(undoManager.canUndo)
         }
     }

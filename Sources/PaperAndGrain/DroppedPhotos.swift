@@ -7,6 +7,8 @@ struct DroppedPhotos {
     struct Outcome {
         let index: Int
         let photo: BookPhoto?
+        /// The file name, when known, so a failure can name the image.
+        var name: String? = nil
     }
 
     let directory: URL
@@ -29,17 +31,16 @@ struct DroppedPhotos {
             let (provider, representation) = item
             let suggestedName = provider.suggestedName
             group.enter()
-            let finish: (BookPhoto?) -> Void = { photo in
-                continuation.yield(Outcome(index: index, photo: photo))
+            let finish: (BookPhoto?, String?) -> Void = { photo, name in
+                continuation.yield(Outcome(index: index, photo: photo, name: name))
                 group.leave()
             }
             switch representation {
             case .fileURL:
                 let request = provider.loadDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
-                    let photo = data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) }.flatMap { url in
-                        try? importFile(url, named: url.lastPathComponent, into: directory)
-                    }
-                    finish(photo)
+                    let url = data.flatMap { URL(dataRepresentation: $0, relativeTo: nil) }
+                    let photo = url.flatMap { try? importFile($0, named: $0.lastPathComponent, into: directory) }
+                    finish(photo, url?.lastPathComponent ?? suggestedName)
                 }
                 requests.append(request)
             case let .image(type):
@@ -47,7 +48,7 @@ struct DroppedPhotos {
                 let request = provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
                     // The provider may remove its temporary file as soon as this closure returns.
                     let photo = url.flatMap { try? importFile($0, named: name, into: directory) }
-                    finish(photo)
+                    finish(photo, name)
                 }
                 requests.append(request)
             }
@@ -81,7 +82,7 @@ struct DroppedPhotos {
             promise.receivePromisedFiles(atDestination: payloads, options: [:], operationQueue: queue) { url, error in
                 guard let position = positions.next(for: receiverIndex) else { return }
                 let photo = error == nil ? try? importFile(url, named: url.lastPathComponent, into: directory) : nil
-                continuation.yield(Outcome(index: position.index, photo: photo))
+                continuation.yield(Outcome(index: position.index, photo: photo, name: url.lastPathComponent))
                 if position.isLast { continuation.finish() }
             }
             // AppKit populates names when it accepts the promise. Some legacy sources only publish types.
@@ -91,6 +92,27 @@ struct DroppedPhotos {
         let count = positions.count
         queue.isSuspended = false
         return Self(directory: directory, count: count, outcomes: outcomes) {
+            continuation.finish()
+            queue.cancelAllOperations()
+        }
+    }
+
+    /// Finder files chosen in an open panel, imported into the open book's library.
+    static func start(files: [URL]) throws -> Self? {
+        guard !files.isEmpty else { return nil }
+        let directory = try stagingDirectory()
+        let (outcomes, continuation) = AsyncStream<Outcome>.makeStream()
+        let queue = OperationQueue()
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 2
+        for (index, url) in files.enumerated() {
+            queue.addOperation {
+                let photo = try? importFile(url, named: url.lastPathComponent, into: directory)
+                continuation.yield(Outcome(index: index, photo: photo, name: url.lastPathComponent))
+            }
+        }
+        queue.addBarrierBlock { continuation.finish() }
+        return Self(directory: directory, count: files.count, outcomes: outcomes) {
             continuation.finish()
             queue.cancelAllOperations()
         }
@@ -128,11 +150,10 @@ struct DroppedPhotos {
     }
 
     private static func importFile(_ url: URL, named name: String, into directory: URL) throws -> BookPhoto {
-        guard url.isFileURL else { throw PhotoImportError.unreadableImage }
+        guard url.isFileURL else { throw AppError.imageUnavailable(name: name) }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        return try LocalImages.store(Data(contentsOf: url), preferredExtension: nil, name: name,
-                                     sourceID: nil, date: nil, in: directory)
+        return try LocalImages.storeFile(url, name: name, in: directory)
     }
 
     private final class PromisePositions: @unchecked Sendable {

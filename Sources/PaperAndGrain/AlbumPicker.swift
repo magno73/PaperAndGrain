@@ -16,6 +16,9 @@ struct AlbumPicker: View {
     @State private var width = "210"
     @State private var height = "210"
     @State private var loading = true
+    @State private var loadingPhotos = false
+    /// The album used last time, selected again when the picker opens.
+    @AppStorage("lastPhotosAlbumID") private var lastAlbumID = ""
 
     private static let customChoice = "custom"
 
@@ -58,6 +61,14 @@ struct AlbumPicker: View {
                         }
                     }
                 }
+            } else if albums.isEmpty {
+                ContentUnavailableView {
+                    Label(s("Nessun album", "No Albums"), systemImage: "photo.on.rectangle.angled")
+                } description: {
+                    Text(s("La libreria di Foto non contiene album da impaginare. Puoi creare un libro dai file del Finder.",
+                           "Your Photos library has no albums to lay out. You can start a book from Finder files instead."))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 albumSelection
             }
@@ -74,7 +85,9 @@ struct AlbumPicker: View {
                 }
                 Button(s("Impagina", "Auto-Layout")) {
                     guard let album, let format else { return }
-                    onImport(entries.filter { selected.contains($0.id) }, album.title, format)
+                    lastAlbumID = album.id
+                    let title = album.isSmart ? s("Nuovo libro", "New Book") : album.title
+                    onImport(entries.filter { selected.contains($0.id) }, title, format)
                 }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -86,14 +99,13 @@ struct AlbumPicker: View {
         .task {
             status = await PhotoLibrary.authorize()
             if status == .authorized || status == .limited {
-                albums = PhotoLibrary.albums()
-                albumID = albums.first { $0.title.localizedCaseInsensitiveCompare("Namibia") == .orderedSame }?.id
-                    ?? albums.first?.id
-                loadAlbum()
+                albums = await PhotoLibrary.pickerAlbums(language: language)
+                albumID = Self.initialAlbum(in: albums, last: lastAlbumID)
             }
             loading = false
         }
-        .onChange(of: albumID) { _, _ in loadAlbum() }
+        // Runs once for the first album and again for each new choice.
+        .task(id: albumID) { await loadAlbum() }
     }
 
     private var albumSelection: some View {
@@ -123,7 +135,10 @@ struct AlbumPicker: View {
                     Text(language == "it" ? "\(selected.count) selezionate" : "\(selected.count) selected")
                         .monospacedDigit().foregroundStyle(.secondary)
                 }
-                if entries.isEmpty {
+                if loadingPhotos {
+                    ProgressView(s("Carico le foto…", "Loading photos…"))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if entries.isEmpty {
                     ContentUnavailableView(s("Nessuna foto nell’album", "No Photos in This Album"), systemImage: "photo.on.rectangle.angled")
                 } else {
                     ScrollView {
@@ -170,9 +185,22 @@ struct AlbumPicker: View {
         }
     }
 
-    private func loadAlbum() {
-        entries = album.map(PhotoLibrary.photos(in:)) ?? []
+    /// The album used last time if it still exists, otherwise the first one (Recents).
+    static func initialAlbum(in albums: [Album], last: String) -> Album.ID? {
+        albums.first { $0.id == last }?.id ?? albums.first?.id
+    }
+
+    private func loadAlbum() async {
         selected.removeAll()
+        guard let album else {
+            entries = []
+            return
+        }
+        loadingPhotos = true
+        let loaded = await PhotoLibrary.loadPhotos(in: album)
+        guard !Task.isCancelled, albumID == album.id else { return }
+        entries = loaded
+        loadingPhotos = false
     }
 
     private func s(_ italian: String, _ english: String) -> String { language == "it" ? italian : english }

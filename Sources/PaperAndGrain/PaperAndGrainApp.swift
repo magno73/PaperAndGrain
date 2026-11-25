@@ -40,18 +40,18 @@ struct PaperAndGrainApp: App {
     }
 
     private var editorActions: EditorAppActions {
-        EditorAppActions(closeBook: workspace.closeBook,
+        EditorAppActions(closeBook: { workspace.closeBook() },
                          showTemplates: { showBookTemplates = true },
                          showBookSettings: { showBookSettings = true },
                          save: workspace.saveProject,
                          saveTitle: saveProjectTitle,
                          saveAs: workspace.saveProjectAs,
                          exportPrint: { workspace.exportPrint(language: language) },
-                         importFiles: { workspace.importFiles(language: language) })
+                         addPhotoFiles: { reveal in workspace.addPhotoFiles(language: language, onImported: reveal) })
     }
 
     var body: some Scene {
-        Window("Paper & Grain", id: "book") {
+        Window("Paper & Grain", id: EditorFilePanels.bookWindowID) {
             Group {
                 if let directory = workspace.directory {
                     EditorView(book: $workspace.book, directory: directory, language: language,
@@ -65,15 +65,18 @@ struct PaperAndGrainApp: App {
                                },
                                onExport: { showPDFExport = true },
                                actions: editorActions)
-                        .id(workspace.book.id)
+                        // A Save As copy and its original share the book id: key on the session instead.
+                        .id(workspace.editorSession)
                 } else {
-                    WelcomeView(language: language, recents: workspace.recentBooks,
+                    WelcomeView(language: language, recents: workspace.libraryBooks,
                                 onAlbums: { showAlbums = true },
                                 onFiles: { workspace.importFiles(language: language) },
                                 onOpen: workspace.openProject,
                                 onOpenRecent: { workspace.openProject(at: $0.url) },
                                 onForget: workspace.forgetRecentBook,
+                                onDeleteDraft: workspace.deleteDraft,
                                 onDemo: { workspace.loadDemo(language: language) })
+                        .onAppear { workspace.refreshDrafts() }
                 }
             }
             .frame(minWidth: 1020, minHeight: 680)
@@ -104,16 +107,14 @@ struct PaperAndGrainApp: App {
                 if workspace.importing {
                     progressCard(label: s("Importo le immagini", "Importing photos"), value: workspace.importProgress,
                                  cancel: workspace.cancelImport)
+                } else if workspace.savingCopy {
+                    progressCard(label: s("Salvo una copia del libro", "Saving a copy of the book"), value: "", cancel: nil)
                 } else if workspace.exporting {
                     progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: workspace.cancelExport)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if let problem = workspace.problem { errorBanner(problem) }
-            }
-            .onChange(of: workspace.book) { _, _ in workspace.scheduleSave() }
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                workspace.flushSave()
             }
             .onOpenURL { workspace.openProject(at: $0) }
             .onAppear {
@@ -140,7 +141,7 @@ struct PaperAndGrainApp: App {
                 }
                 .disabled(workspace.recentBooks.isEmpty)
                 Divider()
-                Button(s("Torna alla libreria", "Back to Library"), action: workspace.closeBook)
+                Button(s("Torna alla libreria", "Back to Library")) { workspace.closeBook() }
                     .keyboardShortcut("l", modifiers: [.command, .shift])
                     .disabled(workspace.directory == nil)
             }
@@ -150,7 +151,7 @@ struct PaperAndGrainApp: App {
                     .disabled(workspace.directory == nil)
                 Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .disabled(workspace.directory == nil)
+                    .disabled(!workspace.canSaveAs)
             }
             CommandGroup(after: .saveItem) {
                 Divider()
@@ -303,7 +304,9 @@ private struct WelcomeView: View {
     let onOpen: () -> Void
     let onOpenRecent: (Workspace.RecentBook) -> Void
     let onForget: (Workspace.RecentBook) -> Void
+    let onDeleteDraft: (Workspace.RecentBook) -> Void
     let onDemo: () -> Void
+    @State private var draftToDelete: Workspace.RecentBook?
 
     private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
@@ -345,22 +348,19 @@ private struct WelcomeView: View {
                     Button(s("Apri altro…", "Open Other…"), action: onOpen)
                 }
                 if recents.isEmpty {
-                    if #available(macOS 14.0, *) {
-                        ContentUnavailableView {
-                            Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
-                        } description: {
-                            Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
-                                   "Choose a Photos album to lay out your first book, or open the sample."))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ContentUnavailableView {
+                        Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
+                    } description: {
+                        Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
+                               "Choose a Photos album to lay out your first book, or open the sample."))
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 24, alignment: .top)],
                                   alignment: .leading, spacing: 28) {
                             ForEach(recents) { recent in
                                 RecentBookCard(recent: recent, language: language)
-                                    .onTapGesture(count: 2) { onOpenRecent(recent) }
                                     .onTapGesture { onOpenRecent(recent) }
                                     .contextMenu {
                                         Button(s("Apri", "Open")) { onOpenRecent(recent) }
@@ -369,7 +369,11 @@ private struct WelcomeView: View {
                                         }
                                         .disabled(recent.isDraft)
                                         Divider()
-                                        Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                        if recent.isDraft {
+                                            Button(s("Elimina bozza…", "Delete Draft…")) { draftToDelete = recent }
+                                        } else {
+                                            Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                        }
                                     }
                                     .accessibilityElement(children: .combine)
                                     .accessibilityAddTraits(.isButton)
@@ -384,6 +388,16 @@ private struct WelcomeView: View {
             .padding(.vertical, 32)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.background)
+        }
+        .alert(s("Eliminare la bozza?", "Delete This Draft?"),
+               isPresented: Binding(get: { draftToDelete != nil }, set: { if !$0 { draftToDelete = nil } }),
+               presenting: draftToDelete) { draft in
+            Button(s("Sposta nel Cestino", "Move to Trash"), role: .destructive) { onDeleteDraft(draft) }
+            Button(s("Annulla", "Cancel"), role: .cancel) {}
+        } message: { draft in
+            let title = draft.title.isEmpty ? s("Senza titolo", "Untitled") : draft.title
+            Text(s("«\(title)» non è mai stato salvato in un file. La bozza verrà spostata nel Cestino.",
+                   "“\(title)” was never saved to a file. The draft will be moved to the Trash."))
         }
     }
 
