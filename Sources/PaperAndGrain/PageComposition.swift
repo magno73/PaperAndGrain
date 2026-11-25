@@ -600,3 +600,25 @@ struct BookCoverGeometry {
         titleFrame = manual ?? automaticTitleFrame
     }
 }
+
+extension Book {
+    /// The first page number of each entry in `pages`, as the editor shows it and the PDF prints it.
+    /// A panorama counts as two pages; blanks added by the print imposition are not counted.
+    static func pageNumbers(of pages: [BookPage]) -> [Int] {
+        var next = 1
+        return pages.map { page in
+            defer { next += page.effectiveLayout == .fullSpread ? 2 : 1 }
+            return next
+        }
+    }
+
+    /// The page number of `page`, or the number after the last page when it is not in the book.
+    func pageNumber(of page: BookPage) -> Int {
+        var next = 1
+        for candidate in pages {
+            if candidate.id == page.id { return next }
+            next += candidate.effectiveLayout == .fullSpread ? 2 : 1
+        }
+        return next
+    }
+}

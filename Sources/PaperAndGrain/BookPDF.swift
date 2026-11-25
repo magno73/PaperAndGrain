@@ -121,13 +121,14 @@ enum BookPDF {
     private static func leaves(_ pages: [BookPage], settings: PrintSettings?, pixart: Bool = false) -> [Leaf?] {
         var leaves = [Leaf?]()
         if settings?.firstPageOnRight == true { leaves.append(nil) }
-        for page in pages {
+        // Folios follow the editor's numbering, so blanks added for the imposition are not counted.
+        for (page, number) in zip(pages, Book.pageNumbers(of: pages)) {
             if page.effectiveLayout == .fullSpread && settings != nil && !leaves.count.isMultiple(of: 2) {
                 leaves.append(nil)
             }
-            leaves.append(Leaf(page: page, half: 0, number: leaves.count + 1))
+            leaves.append(Leaf(page: page, half: 0, number: number))
             if page.effectiveLayout == .fullSpread {
-                leaves.append(Leaf(page: page, half: 1, number: leaves.count + 1))
+                leaves.append(Leaf(page: page, half: 1, number: number + 1))
             }
         }
         if settings?.spreads == true && !leaves.count.isMultiple(of: 2) { leaves.append(nil) }
