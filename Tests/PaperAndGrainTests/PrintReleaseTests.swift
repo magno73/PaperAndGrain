@@ -63,6 +63,55 @@ final class PrintReleaseTests: XCTestCase {
         let warnings = BookPDF.printWarnings(book)
         XCTAssertTrue(warnings.contains { $0.hasPrefix("p. 2 ·") && $0.contains(photo.name) }, "\(warnings)")
     }
+
+    // MARK: B2 Pixart cover title
+
+    static let coverTitles = [
+        "Namibia", "Giappone 2024", "Sulle strade del Damaraland", "A Journey Through the Skeleton Coast",
+        "Tra dune, canyon e oceano: diario di tre settimane", "Kolmanskop", "Fish River Canyon at Dawn",
+        "Etosha", "Il lungo viaggio verso il mare di Swakopmund", "Wildlife and Wide Horizons",
+        "Spitzkoppe", "Deserto del Namib", "Three Weeks in the Kalahari and Beyond", "Sossusvlei",
+    ]
+
+    func testPixartCoverFitsTheTitleInThePanelItDrawsIn() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let output = folder.appendingPathComponent("pixart.pdf")
+        var failures: [String] = []
+        for template in [nil] + BookTemplate.allCases.map(Optional.some) {
+            for title in Self.coverTitles {
+                var book = Book(title: title, pages: [BookPage(layout: .text)], template: template)
+                book.cover = BookCover(title: title)
+                // Only titles that fit in the editor's cover are expected to fit in the Pixart panel.
+                let editor = BookCoverGeometry(book: book, front: true)
+                guard editor.titleFrame.map({ EditorialTypesetter.fits(editor.title, in: $0) }) ?? true else { continue }
+                do {
+                    try BookPDF.writePixart(book, directory: folder, spineMM: 8, to: output)
+                } catch {
+                    failures.append("\(template?.rawValue ?? "classic") · \(title) · \(error.localizedDescription)")
+                }
+                let panel = CGSize(width: PixartPrintProfile.panelWidth * 72 / 25.4,
+                                   height: PixartPrintProfile.panelHeight * 72 / 25.4)
+                let face = BookCoverGeometry(book: book, front: true, size: panel)
+                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
+                    failures.append("\(template?.rawValue ?? "classic") · \(title) · panel geometry overflows")
+                }
+            }
+        }
+        XCTAssertEqual(failures, [])
+    }
+
+    func testCoverOverflowIsReportedAsCover() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var book = Book(title: "Overflow", pages: [BookPage(layout: .text)])
+        book.cover = BookCover(title: "Overflow", backText: String(repeating: "Troppo testo sul retro. ", count: 400))
+        XCTAssertThrowsError(try BookPDF.writePrint(book, directory: folder, to: folder.appendingPathComponent("print"))) {
+            guard case BookPDF.ExportError.coverTextOverflow = $0 else { return XCTFail("Expected a cover overflow, got \($0)") }
+            XCTAssertTrue($0.localizedDescription.contains("copertina"))
+            XCTAssertTrue($0.localizedDescription.contains("cover"))
+        }
+    }
 }
 
 enum PrintFixtures {

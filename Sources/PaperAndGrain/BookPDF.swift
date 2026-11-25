@@ -10,12 +10,14 @@ enum BookPDF {
         case invalidBook
         case missingImage(String)
         case textOverflow(Int)
+        case coverTextOverflow
 
         var errorDescription: String? {
             switch self {
             case .invalidBook: "Impossibile creare il PDF · Could not create the PDF"
             case let .missingImage(name): "Foto non disponibile · Photo unavailable — \(name)"
             case let .textOverflow(number): "Il testo eccede lo spazio a pagina \(number) · Text overflows on page \(number)"
+            case .coverTextOverflow: "Il testo eccede lo spazio in copertina · Text overflows on the cover"
             }
         }
     }
@@ -100,12 +102,12 @@ enum BookPDF {
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
                 guard let id else { continue }
                 if let photo = book.photo(id) {
-                    let face = BookCoverGeometry(book: book, front: front, bleed: pixart ? 0 : bleed)
-                    let frame = pixart ? face.photoFrame.applying(CGAffineTransform(
-                        scaleX: PixartPrintProfile.panelWidth / book.format.widthMM,
-                        y: PixartPrintProfile.panelHeight / book.format.heightMM
-                    )) : face.photoFrame
-                    check(photo, frame: frame, fills: face.fills, crop: face.photoCrop, location: "Copertina / Cover")
+                    let face = pixart
+                        ? BookCoverGeometry(book: book, front: front, size: CGSize(
+                            width: PixartPrintProfile.panelWidth * pointsPerMM,
+                            height: PixartPrintProfile.panelHeight * pointsPerMM))
+                        : BookCoverGeometry(book: book, front: front, bleed: bleed)
+                    check(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, location: "Copertina / Cover")
                 } else { warnings.append("Copertina / Cover · Foto mancante / Missing photo") }
             }
         }
@@ -197,15 +199,15 @@ enum BookPDF {
             ctx.fill(CGRect(x: -wrap, y: -wrap, width: width + 2*wrap, height: panelH + 2*wrap))
             drawSpine(book, in: CGRect(x: panelW + hinge, y: 0, width: spineMM * pointsPerMM, height: panelH), context: ctx)
             for front in [false, true] {
-                let face = BookCoverGeometry(book: book, front: front)
-                let map = CGAffineTransform(scaleX: panelW / w, y: panelH / h)
+                // The faces are laid out on the real Pixart panel, so the title is fitted where it is drawn.
+                let face = BookCoverGeometry(book: book, front: front, size: CGSize(width: panelW, height: panelH))
                 let panel = CGRect(x: 0, y: 0, width: panelW, height: panelH)
                 let outer = CGRect(x: front ? -hinge : -wrap, y: -wrap,
                                    width: panelW + hinge + wrap, height: panelH + 2*wrap)
                 ctx.saveGState()
                 if front { ctx.translateBy(x: width - panelW, y: 0) }
                 try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
-                             ppi: ppi, book: book, directory: directory, context: ctx, map: map,
+                             ppi: ppi, book: book, directory: directory, context: ctx,
                              trim: panel, outer: outer)
                 ctx.restoreGState()
             }
@@ -294,7 +296,7 @@ enum BookPDF {
                     context.fillPath()
                 }
                 for block in storyBlocks where block.text.length > 0 {
-                    try drawText(block.text, in: block.frame, pageNumber: pageNumber, context: context)
+                    try drawText(block.text, in: block.frame, overflow: .textOverflow(pageNumber), context: context)
                 }
             case let .textBox(id):
                 guard let box = composition.textBoxes.first(where: { $0.id == id }),
@@ -312,7 +314,7 @@ enum BookPDF {
                 }
                 let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
                 try drawText(PageComposition.boxText(box: box, book: book),
-                             in: textFrame, pageNumber: pageNumber, context: context)
+                             in: textFrame, overflow: .textOverflow(pageNumber), context: context)
             }
         }
         if let folio = composition.folio {
@@ -418,26 +420,26 @@ enum BookPDF {
     }
 
     private static func drawFace(_ face: BookCoverGeometry, photoID: UUID?, ppi: Double, book: Book,
-                                 directory: URL, context: CGContext, map: CGAffineTransform = .identity,
+                                 directory: URL, context: CGContext,
                                  trim: CGRect? = nil, outer: CGRect? = nil) throws {
         if let id = photoID {
             guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
             context.saveGState()
             defer { context.restoreGState() }
             if let outer { context.clip(to: outer) }
-            try paint(photo, rect: face.photoFrame.applying(map), fills: face.fills, crop: face.photoCrop, ppi: ppi,
+            try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop, ppi: ppi,
                       book: book, directory: directory, context: context, trim: trim, outer: outer)
         }
         if let band = face.band {
             context.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
-            context.fill(band.applying(map))
+            context.fill(band)
         }
         if let rule = face.rule {
             context.setFillColor(EditorialStyle.color(book.editorialStyle.accent))
-            context.fill(rule.applying(map))
+            context.fill(rule)
         }
         if let rect = face.titleFrame {
-            try drawText(face.title, in: rect.applying(map), pageNumber: 0, context: context)
+            try drawText(face.title, in: rect, overflow: .coverTextOverflow, context: context)
         }
     }
 
@@ -470,7 +472,8 @@ enum BookPDF {
         context.restoreGState()
     }
 
-    private static func drawText(_ text: NSAttributedString, in rect: CGRect, pageNumber: Int, context: CGContext) throws {
-        if !EditorialTypesetter.draw(text, in: rect, context: context) { throw ExportError.textOverflow(pageNumber) }
+    private static func drawText(_ text: NSAttributedString, in rect: CGRect, overflow: ExportError,
+                                 context: CGContext) throws {
+        if !EditorialTypesetter.draw(text, in: rect, context: context) { throw overflow }
     }
 }

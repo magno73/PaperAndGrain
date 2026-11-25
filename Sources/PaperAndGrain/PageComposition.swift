@@ -512,8 +512,10 @@ struct BookCoverGeometry {
     let titleFrame: CGRect?
     let title: NSAttributedString
 
-    init(book: Book, front: Bool, bleed: Double = 0) {
-        let size = book.format.pageSize
+    /// `size` is the trimmed face; nil uses the book format. Pixart passes its own panel, so the title
+    /// is fitted in the same width it is drawn in.
+    init(book: Book, front: Bool, bleed: Double = 0, size: CGSize? = nil) {
+        let size = size ?? book.format.pageSize
         bounds = CGRect(origin: .zero, size: size)
         let w = size.width
         let h = size.height
