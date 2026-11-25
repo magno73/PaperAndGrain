@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-remote="${PAPERGRAIN_GITHUB_REPO:-git@github.com:magno73/PaperAndGrain.git}"
+remote="${PAPERGRAIN_GITHUB_REPO:-https://github.com/magno73/PaperAndGrain.git}"
 private_email="${PAPERGRAIN_PRIVATE_EMAIL:-$(git config user.email)}"
 public_email="${PAPERGRAIN_PUBLIC_EMAIL:-175606015+magno73@users.noreply.github.com}"
 branch="$(git rev-parse --abbrev-ref HEAD)"
@@ -33,5 +33,6 @@ if git log --format='%ae%n%ce%n%B' | grep -qiF "$private_email"; then
     exit 1
 fi
 
-git push "$remote" "$branch:main"
+# HTTPS with the GitHub CLI login, so an unrelated SSH deploy key is never offered.
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$remote" "$branch:main"
 echo "Published $branch as main to $remote"
