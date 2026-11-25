@@ -33,7 +33,7 @@ final class DocumentReleaseTests: XCTestCase {
         }
 
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         var revealed: UUID?
         XCTAssertTrue(workspace.addPhotoFiles(files, language: "en") { revealed = $0 })
         try await waitUntil { !workspace.importing }
@@ -53,14 +53,14 @@ final class DocumentReleaseTests: XCTestCase {
     }
 
     // A2
-    func testRenamedOpenPackageKeepsItsEditsAfterQuitAndReopen() throws {
+    func testRenamedOpenPackageKeepsItsEditsAfterQuitAndReopen() async throws {
         let package = scratch.appendingPathComponent("Trip.papergrain", isDirectory: true)
         let renamed = scratch.appendingPathComponent("Trip renamed.papergrain", isDirectory: true)
         try BookStorage.write(Book(title: "Trip"), to: package)
         let defaults = MemoryDefaults()
 
         let workspace = Workspace(defaults: defaults)
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         try FileManager.default.moveItem(at: package, to: renamed)
         workspace.book.title = "Edited after the rename"
         // Quitting flushes the open book.
@@ -71,18 +71,18 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertFalse(workspace.recentBooks.contains { $0.path == package.standardizedFileURL.path })
 
         let relaunched = Workspace(defaults: defaults)
-        relaunched.reopenLastBook()
+        await relaunched.reopenLastBook().value
         XCTAssertEqual(relaunched.book.title, "Edited after the rename")
         XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(relaunched.directory), renamed))
     }
 
-    func testMissingPackageReportsTheMoveAndCanStillBeSavedElsewhere() throws {
+    func testMissingPackageReportsTheMoveAndCanStillBeSavedElsewhere() async throws {
         let package = scratch.appendingPathComponent("Ejected.papergrain", isDirectory: true)
         let rescue = scratch.appendingPathComponent("Rescued.papergrain", isDirectory: true)
         try BookStorage.write(Book(title: "Ejected", pages: [BookPage(text: "Kept")]), to: package)
 
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         try FileManager.default.removeItem(at: package)
         workspace.book.pages[0].text = "Written after the eject"
 
@@ -90,7 +90,7 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertTrue(workspace.locationLost)
         XCTAssertEqual(workspace.problem, AppError.bookMoved(title: "Ejected").errorDescription)
 
-        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: rescue)
+        await workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: rescue).value
         XCTAssertFalse(workspace.locationLost)
         XCTAssertNil(workspace.problem)
         XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), rescue))
@@ -107,12 +107,12 @@ final class DocumentReleaseTests: XCTestCase {
         let modified = try FileManager.default.attributesOfItem(atPath: manifest.path)[.modificationDate] as? Date
 
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         XCTAssertFalse(workspace.isReadOnly)
         // Let any autosave scheduled by opening run.
         try await Task.sleep(for: .milliseconds(400))
         workspace.saveProject()
-        workspace.closeBook()
+        await workspace.closeBook().value
 
         XCTAssertNil(workspace.directory)
         XCTAssertEqual(try Data(contentsOf: manifest), before)
@@ -123,7 +123,7 @@ final class DocumentReleaseTests: XCTestCase {
         let package = scratch.appendingPathComponent("Edited.papergrain", isDirectory: true)
         try BookStorage.write(Book(title: "Before"), to: package)
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         workspace.book.title = "After"
         try await waitUntil { (try? BookStorage.read(from: package).title) == "After" }
         XCTAssertEqual(try BookStorage.read(from: package).writerVersion, Workspace.writerVersion)
@@ -139,7 +139,7 @@ final class DocumentReleaseTests: XCTestCase {
         let before = try Data(contentsOf: manifest)
 
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         XCTAssertEqual(workspace.readOnlyReason, .newerFormat(title: "Future"))
         XCTAssertEqual(workspace.problem, AppError.newerFormat(title: "Future").errorDescription)
         XCTAssertFalse(workspace.canSaveAs)
@@ -148,7 +148,7 @@ final class DocumentReleaseTests: XCTestCase {
         workspace.book.title = "Changed in an older build"
         try await Task.sleep(for: .milliseconds(400))
         XCTAssertTrue(workspace.flushSave())
-        workspace.closeBook()
+        await workspace.closeBook().value
         XCTAssertEqual(try Data(contentsOf: manifest), before)
     }
 
@@ -166,7 +166,7 @@ final class DocumentReleaseTests: XCTestCase {
         }
 
         let workspace = Workspace(defaults: MemoryDefaults())
-        workspace.openProject(at: package)
+        await workspace.openProject(at: package).value
         XCTAssertEqual(workspace.readOnlyReason, .readOnlyLocation(title: "Locked"))
         XCTAssertTrue(workspace.canSaveAs)
         workspace.book.title = "Kept in memory"
@@ -174,7 +174,7 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertTrue(workspace.flushSave())
         XCTAssertEqual(workspace.problem, AppError.readOnlyLocation(title: "Locked").errorDescription)
 
-        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: copy)
+        await workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: copy).value
         XCTAssertNil(workspace.readOnlyReason)
         XCTAssertNil(workspace.problem)
         XCTAssertEqual(try BookStorage.read(from: copy).title, "Kept in memory")
@@ -208,17 +208,17 @@ final class DocumentReleaseTests: XCTestCase {
             try FileManager.default.moveItem(at: url, to: trash.appendingPathComponent(url.lastPathComponent))
         }
 
-        workspace.openProject(at: draft)
+        await workspace.openProject(at: draft).value
         XCTAssertTrue(workspace.needsSaveLocation)
         workspace.book.title = "Holiday, edited"
-        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: saved)
+        await workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: saved).value
         try await waitUntil { workspace.directory.map { BookStorage.sameLocation($0, saved) } ?? false }
 
         XCTAssertFalse(workspace.needsSaveLocation)
         XCTAssertEqual(try BookStorage.read(from: saved).title, "Holiday, edited")
         XCTAssertFalse(FileManager.default.fileExists(atPath: draft.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: trash.appendingPathComponent(draft.lastPathComponent).path))
-        workspace.closeBook()
+        await workspace.closeBook().value
         await workspace.refreshDrafts().value
         XCTAssertEqual(workspace.libraryBooks.map(\.title), ["Holiday, edited"])
         XCTAssertFalse(workspace.libraryBooks[0].isDraft)
@@ -242,7 +242,7 @@ final class DocumentReleaseTests: XCTestCase {
     }
 
     // A5
-    func testEditorSessionChangesForAnotherPackageWithTheSameBookIDButNotOnSaveAs() throws {
+    func testEditorSessionChangesForAnotherPackageWithTheSameBookIDButNotOnSaveAs() async throws {
         let original = scratch.appendingPathComponent("Trip.papergrain", isDirectory: true)
         let copy = scratch.appendingPathComponent("Trip v2.papergrain", isDirectory: true)
         let book = Book(title: "Trip", pages: [BookPage(text: "Original")])
@@ -251,9 +251,9 @@ final class DocumentReleaseTests: XCTestCase {
         let undoManager = UndoManager()
         undoManager.groupsByEvent = false
 
-        workspace.openProject(at: original)
+        await workspace.openProject(at: original).value
         let first = workspace.editorSession
-        workspace.saveProjectCopy(from: original, to: copy)
+        await workspace.saveProjectCopy(from: original, to: copy).value
         XCTAssertEqual(workspace.editorSession, first, "Save As keeps editing the same document")
 
         undoManager.beginUndoGrouping()
@@ -261,11 +261,52 @@ final class DocumentReleaseTests: XCTestCase {
         undoManager.endUndoGrouping()
         XCTAssertTrue(undoManager.canUndo)
 
-        workspace.openProject(at: original)
+        await workspace.openProject(at: original).value
         XCTAssertEqual(workspace.book.id, book.id)
         XCTAssertNotEqual(workspace.editorSession, first, "The original is another document")
         XCTAssertFalse(undoManager.canUndo)
         XCTAssertNil(try BookStorage.read(from: original).template)
+    }
+
+    // A6
+    func testSaveAsCopiesOffTheMainThreadAndKeepsEditsMadeMeanwhile() async throws {
+        let package = scratch.appendingPathComponent("Source.papergrain", isDirectory: true)
+        let copy = scratch.appendingPathComponent("Copy.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Source"), to: package)
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+
+        let saving = workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: copy)
+        XCTAssertTrue(workspace.savingCopy)
+        XCTAssertFalse(workspace.canSaveAs)
+        workspace.book.title = "Edited during the copy"
+        await saving.value
+
+        XCTAssertFalse(workspace.savingCopy)
+        XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), copy))
+        try await waitUntil { (try? BookStorage.read(from: copy).title) == "Edited during the copy" }
+        XCTAssertEqual(try BookStorage.read(from: package).title, "Source")
+    }
+
+    func testImportedFilesAreCheckedByTypeAndCopiedWritable() throws {
+        let assets = scratch.appendingPathComponent("Book/assets", isDirectory: true)
+        try FileManager.default.createDirectory(at: assets, withIntermediateDirectories: true)
+        let book = assets.deletingLastPathComponent()
+        let fake = scratch.appendingPathComponent("Not an image.png")
+        try Data("plain text".utf8).write(to: fake)
+        XCTAssertThrowsError(try LocalImages.storeFile(fake, name: "Not an image.png", in: book))
+
+        let image = scratch.appendingPathComponent("Locked.png")
+        let pixels = try Self.png(width: 64, height: 48)
+        try pixels.write(to: image)
+        try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: image.path)
+        let photo = try LocalImages.storeFile(image, name: "Locked.png", in: book)
+        let stored = BookStorage.assetURL(filename: photo.filename, in: book)
+        XCTAssertEqual(try Data(contentsOf: stored), pixels)
+        XCTAssertEqual([photo.pixelWidth, photo.pixelHeight], [64, 48])
+        XCTAssertTrue(photo.filename.hasSuffix(".png"))
+        XCTAssertTrue(FileManager.default.isWritableFile(atPath: stored.path))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: assets.path).count, 1)
     }
 
     // MARK: - Helpers

@@ -152,8 +152,7 @@ struct DroppedPhotos {
         guard url.isFileURL else { throw PhotoImportError.unreadableImage }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        return try LocalImages.store(Data(contentsOf: url), preferredExtension: nil, name: name,
-                                     sourceID: nil, date: nil, in: directory)
+        return try LocalImages.storeFile(url, name: name, in: directory)
     }
 
     private final class PromisePositions: @unchecked Sendable {

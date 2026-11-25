@@ -40,7 +40,7 @@ struct PaperAndGrainApp: App {
     }
 
     private var editorActions: EditorAppActions {
-        EditorAppActions(closeBook: workspace.closeBook,
+        EditorAppActions(closeBook: { workspace.closeBook() },
                          showTemplates: { showBookTemplates = true },
                          showBookSettings: { showBookSettings = true },
                          save: workspace.saveProject,
@@ -107,6 +107,8 @@ struct PaperAndGrainApp: App {
                 if workspace.importing {
                     progressCard(label: s("Importo le immagini", "Importing photos"), value: workspace.importProgress,
                                  cancel: workspace.cancelImport)
+                } else if workspace.savingCopy {
+                    progressCard(label: s("Salvo una copia del libro", "Saving a copy of the book"), value: "", cancel: nil)
                 } else if workspace.exporting {
                     progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: workspace.cancelExport)
                 }
@@ -142,7 +144,7 @@ struct PaperAndGrainApp: App {
                 }
                 .disabled(workspace.recentBooks.isEmpty)
                 Divider()
-                Button(s("Torna alla libreria", "Back to Library"), action: workspace.closeBook)
+                Button(s("Torna alla libreria", "Back to Library")) { workspace.closeBook() }
                     .keyboardShortcut("l", modifiers: [.command, .shift])
                     .disabled(workspace.directory == nil)
             }

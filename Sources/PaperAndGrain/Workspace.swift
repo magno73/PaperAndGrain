@@ -22,6 +22,10 @@ final class Workspace: ObservableObject {
     @Published private(set) var importProgress = ""
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
     @Published private(set) var exporting = false
+    /// Save As copies the package off the main thread behind the progress overlay.
+    @Published private(set) var savingCopy = false
+    /// The open book is an unsaved draft: Save Project asks for a place. Cached when the location changes.
+    @Published private(set) var needsSaveLocation = false
     @Published var problem: String?
     /// The open package was moved or removed and could not be found again. Edits stay in memory until Save As.
     @Published private(set) var locationLost = false
@@ -39,6 +43,8 @@ final class Workspace: ObservableObject {
     private var importTask: Task<Void, Never>?
     private var exportTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    private var copyTask: Task<Void, Never>?
+    private var openRequest: UUID?
     // Order autosaves before durable writes and package copies.
     private let saveQueue = DispatchQueue(label: "local.paperandgrain.manifest", qos: .utility)
     private weak var settingsUndoManager: UndoManager?
@@ -167,10 +173,6 @@ final class Workspace: ObservableObject {
         DocumentLocation(id: book.id, directory: directory?.standardizedFileURL, session: documentSession)
     }
 
-    var needsSaveLocation: Bool {
-        directory.map(isDraft) ?? false
-    }
-
     func scheduleSave() {
         guard let directory, !isReadOnly else { return }
         let origin = documentLocation
@@ -229,6 +231,46 @@ final class Workspace: ObservableObject {
         } catch {
             reportSaveFailure(error)
             return false
+        }
+    }
+
+    /// Writes the book off the main thread when it differs from the saved manifest.
+    /// Returns false when it could not be saved.
+    @discardableResult
+    func save() async -> Bool {
+        saveTask?.cancel()
+        saveTask = nil
+        for attempt in 0..<2 {
+            guard let directory, !isReadOnly, book != lastSaved else { return true }
+            let snapshot = book
+            let identity = directoryIdentity
+            do {
+                try await onSaveQueue { try Self.writeManifest(snapshot, in: directory, identity: identity) }
+                if self.directory == directory { lastSaved = snapshot }
+                return true
+            } catch AppError.bookMoved where attempt == 0 && relocate() {
+                continue
+            } catch {
+                if self.directory == directory { reportSaveFailure(error) }
+                return false
+            }
+        }
+        return false
+    }
+
+    /// Saves until the book matches its package, so edits made while a write was running are kept
+    /// before the workspace leaves this book.
+    private func saveBeforeLeaving() async -> Bool {
+        for _ in 0..<3 {
+            guard await save() else { return false }
+            if isReadOnly || directory == nil || book == lastSaved { return true }
+        }
+        return book == lastSaved
+    }
+
+    private func onSaveQueue<Value>(_ work: @escaping @Sendable () throws -> Value) async throws -> Value {
+        try await withCheckedThrowingContinuation { continuation in
+            saveQueue.async { continuation.resume(with: Result { try work() }) }
         }
     }
 
@@ -291,7 +333,6 @@ final class Workspace: ObservableObject {
             }
             undoManager.setActionName(actionName)
         }
-        flushSave()
     }
 
     func start(_ imported: [LibraryPhoto], title: String, format: BookFormat, language: String) {
@@ -391,7 +432,7 @@ final class Workspace: ObservableObject {
                 guard documentLocation == origin else { return }
                 let photos = results.sorted { $0.index < $1.index }.compactMap(\.photo)
                 guard let first = photos.first else { throw PhotoImportError.unreadableImage }
-                try appendDroppedPhotos(photos, from: drop.directory, to: directory)
+                try await appendDroppedPhotos(photos, from: drop.directory, to: directory)
                 onImported(first.id)
                 analyze(language: language, photos: photos)
                 let failures = drop.count - photos.count
@@ -409,33 +450,38 @@ final class Workspace: ObservableObject {
         return true
     }
 
-    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, to directory: URL) throws {
-        try validateLocation(directory)
-        let files = FileManager.default
-        let assets = directory.appendingPathComponent("assets", isDirectory: true)
-        if !files.fileExists(atPath: assets.path) {
-            try files.createDirectory(at: assets, withIntermediateDirectories: false)
-        }
-        var installed: [URL] = []
-        do {
-            for photo in photos {
-                let source = BookStorage.assetURL(filename: photo.filename, in: scratch)
-                let destination = BookStorage.assetURL(filename: photo.filename, in: directory)
-                try files.moveItem(at: source, to: destination)
-                installed.append(destination)
+    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, to directory: URL) async throws {
+        var updated = book
+        updated.photos.append(contentsOf: photos)
+        let snapshot = updated
+        let identity = directoryIdentity
+        let session = editorSession
+        try await onSaveQueue {
+            try Self.validateLocation(directory, identity: identity, title: snapshot.title)
+            let files = FileManager.default
+            let assets = directory.appendingPathComponent("assets", isDirectory: true)
+            if !files.fileExists(atPath: assets.path) {
+                try files.createDirectory(at: assets, withIntermediateDirectories: false)
             }
-            var updated = book
-            updated.photos.append(contentsOf: photos)
-            let snapshot = updated
-            let identity = directoryIdentity
-            try saveQueue.sync {
+            var installed: [URL] = []
+            do {
+                for photo in photos {
+                    let source = BookStorage.assetURL(filename: photo.filename, in: scratch)
+                    let destination = BookStorage.assetURL(filename: photo.filename, in: directory)
+                    try files.moveItem(at: source, to: destination)
+                    installed.append(destination)
+                }
                 try Self.writeManifest(snapshot, in: directory, identity: identity)
+            } catch {
+                for destination in installed { try? files.removeItem(at: destination) }
+                throw error
             }
-            book = updated
-        } catch {
-            for destination in installed { try? files.removeItem(at: destination) }
-            throw error
         }
+        // The package already holds the photos; another book opened meanwhile must not receive them.
+        guard editorSession == session else { throw CancellationError() }
+        // Edits made while the files moved stay: add the photos to the current book.
+        if self.directory == directory { lastSaved = snapshot }
+        book.photos.append(contentsOf: photos)
     }
 
     func cancelImport() { importTask?.cancel() }
@@ -475,8 +521,9 @@ final class Workspace: ObservableObject {
                 try Task.checkCancellation()
                 guard !newBook.photos.isEmpty else { throw PhotoImportError.unreadableImage }
                 newBook.autoLayout()
-                try BookStorage.write(Self.stamped(newBook), to: folder)
-                guard flushSave() else { return }
+                let firstManifest = Self.stamped(newBook)
+                try await Task.detached(priority: .userInitiated) { try BookStorage.write(firstManifest, to: folder) }.value
+                guard await saveBeforeLeaving() else { return }
                 keepFolder = true
                 open(newBook, in: folder)
                 newBookNeedsTemplate = true
@@ -537,7 +584,7 @@ final class Workspace: ObservableObject {
             analysisProgress = nil
             analysisTask = nil
             analysisRun = nil
-            flushSave()
+            await save()
             if failures > 0 {
                 problem = language == "it" ? "Analisi non riuscita per \(failures) foto. Puoi riprovare dall’editor."
                     : "Analysis failed for \(failures) photos. You can retry from the editor."
@@ -601,6 +648,7 @@ final class Workspace: ObservableObject {
         readOnlyReason = nil
         directoryIdentity = folder.flatMap { BookStorage.identity(of: $0) }
         directory = folder
+        needsSaveLocation = folder.map(isDraft) ?? false
         if let folder {
             defaults.set(folder.path, forKey: "lastBook")
             noteRecentBook()
@@ -620,6 +668,7 @@ final class Workspace: ObservableObject {
         locationLost = false
         directoryIdentity = BookStorage.identity(of: folder) ?? directoryIdentity
         directory = folder
+        needsSaveLocation = isDraft(folder)
         defaults.set(folder.path, forKey: "lastBook")
         noteRecentBook()
     }
@@ -686,11 +735,20 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func reopenLastBook() {
-        guard directory == nil,
-              let path = defaults.string(forKey: "lastBook"),
-              let restored = try? BookStorage.read(from: URL(fileURLWithPath: path)) else { return }
-        open(restored, in: URL(fileURLWithPath: path))
+    @discardableResult
+    func reopenLastBook() -> Task<Void, Never> {
+        guard directory == nil, let path = defaults.string(forKey: "lastBook") else { return Task {} }
+        let url = URL(fileURLWithPath: path)
+        let request = UUID()
+        openRequest = request
+        return Task {
+            guard let restored = try? await Self.readBook(at: url), openRequest == request, directory == nil else { return }
+            open(restored, in: url)
+        }
+    }
+
+    private nonisolated static func readBook(at url: URL) async throws -> Book {
+        try await Task.detached(priority: .userInitiated) { try BookStorage.read(from: url) }.value
     }
 
     func openProject() {
@@ -704,36 +762,52 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func openProject(at url: URL) {
+    /// Reads the package and saves the open book off the main thread, then switches to it.
+    @discardableResult
+    func openProject(at url: URL) -> Task<Void, Never> {
         if let directory, BookStorage.sameLocation(directory, url) {
-            flushSave()
-            return
+            return Task { await save() }
         }
         if let directoryIdentity, BookStorage.identity(of: url) == directoryIdentity {
             // The same package was moved while open. Continue saving in its new location.
             adoptMovedPackage(url)
-            flushSave()
-            return
+            return Task { await save() }
         }
-        do {
-            let restored = try BookStorage.read(from: url)
-            guard flushSave() else {
+        let request = UUID()
+        openRequest = request
+        return Task {
+            let restored: Book
+            do {
+                restored = try await Self.readBook(at: url)
+            } catch {
+                if openRequest == request { problem = error.localizedDescription }
+                return
+            }
+            guard openRequest == request else { return }
+            guard await saveBeforeLeaving() else {
                 if locationLost { confirmLeavingLostBook { [weak self] in self?.open(restored, in: url) } }
                 return
             }
+            guard openRequest == request else { return }
             open(restored, in: url)
-        } catch { problem = error.localizedDescription }
+        }
     }
 
-    func closeBook() {
-        guard flushSave() else {
-            if locationLost { confirmLeavingLostBook { [weak self] in self?.finishClosing() } }
-            return
+    @discardableResult
+    func closeBook() -> Task<Void, Never> {
+        let session = editorSession
+        return Task {
+            guard await saveBeforeLeaving() else {
+                if locationLost { confirmLeavingLostBook { [weak self] in self?.finishClosing() } }
+                return
+            }
+            guard editorSession == session, directory != nil else { return }
+            finishClosing()
         }
-        finishClosing()
     }
 
     private func finishClosing() {
+        openRequest = nil
         noteRecentBook()
         editorSession = UUID()
         settingsUndoManager?.removeAllActions(withTarget: self)
@@ -750,13 +824,13 @@ final class Workspace: ObservableObject {
         } else if needsSaveLocation {
             saveProjectAs()
         } else {
-            flushSave()
+            Task { await save() }
         }
     }
 
     /// A book from a newer Paper & Grain cannot be copied: this build would drop the data it does not know.
     var canSaveAs: Bool {
-        guard directory != nil else { return false }
+        guard directory != nil, !savingCopy else { return false }
         if case .newerFormat? = readOnlyReason { return false }
         return true
     }
@@ -776,39 +850,60 @@ final class Workspace: ObservableObject {
         }
     }
 
-    func saveProjectCopy(from directory: URL, to destination: URL) {
+    /// Copies the package to `destination` off the main thread and continues editing there.
+    @discardableResult
+    func saveProjectCopy(from directory: URL, to destination: URL) -> Task<Void, Never> {
+        guard !savingCopy else { return Task {} }
         guard !BookStorage.sameLocation(directory, destination) else {
-            flushSave()
-            return
+            return Task { await save() }
         }
-        var directory = directory
-        if let identity = directoryIdentity, BookStorage.identity(of: directory) != identity {
-            guard relocate(), let found = self.directory else {
-                saveDetachedCopy(to: destination)
-                return
+        savingCopy = true
+        let session = editorSession
+        let task = Task {
+            defer {
+                savingCopy = false
+                copyTask = nil
             }
-            directory = found
-        }
-        do {
+            var source = directory
+            if let identity = directoryIdentity, BookStorage.identity(of: source) != identity {
+                guard relocate(), let found = self.directory else {
+                    await saveDetachedCopy(to: destination, session: session)
+                    return
+                }
+                source = found
+            }
             let snapshot = book
             let identity = directoryIdentity
-            let title = book.title
-            var locked = false
-            if case .readOnlyLocation? = readOnlyReason { locked = true }
-            try saveQueue.sync {
-                try Self.validateLocation(directory, identity: identity, title: title)
-                if locked {
-                    try Self.copyLockedPackage(Self.stamped(snapshot), from: directory, to: destination)
-                } else {
-                    try BookStorage.copy(Self.stamped(snapshot), from: directory, to: destination)
+            let from = source
+            let locked: Bool
+            if case .readOnlyLocation? = readOnlyReason { locked = true } else { locked = false }
+            do {
+                try await onSaveQueue {
+                    try Self.validateLocation(from, identity: identity, title: snapshot.title)
+                    if locked {
+                        try Self.copyLockedPackage(Self.stamped(snapshot), from: from, to: destination)
+                    } else {
+                        try BookStorage.copy(Self.stamped(snapshot), from: from, to: destination)
+                    }
                 }
+            } catch {
+                if editorSession == session { problem = error.localizedDescription }
+                return
             }
-            let wasDraft = isDraft(directory)
-            rememberLocation(destination)
-            lastSaved = snapshot
-            // The analysis follows the new location, so nothing reads from the draft any more.
-            if wasDraft { retireDraft(directory) }
-        } catch { problem = error.localizedDescription }
+            guard editorSession == session else { return }
+            adoptCopy(at: destination, snapshot: snapshot, retiring: isDraft(source) ? source : nil)
+        }
+        copyTask = task
+        return task
+    }
+
+    private func adoptCopy(at destination: URL, snapshot: Book, retiring draft: URL?) {
+        rememberLocation(destination)
+        lastSaved = snapshot
+        // Edits made while the package was copied are saved in the new place.
+        if book != snapshot { scheduleSave() }
+        // The analysis follows the new location, so nothing reads from the draft any more.
+        if let draft { retireDraft(draft) }
     }
 
     /// A package without write permission keeps them when copied. Stage a writable copy next to the
@@ -832,10 +927,10 @@ final class Workspace: ObservableObject {
 
     /// Save As for a book whose package is gone, for example on an ejected disk: writes the current
     /// manifest so no edit is lost. Photos that were only in the old package stay missing until it returns.
-    private func saveDetachedCopy(to destination: URL) {
+    private func saveDetachedCopy(to destination: URL, session: UUID) async {
+        let snapshot = book
         do {
-            let snapshot = book
-            try saveQueue.sync {
+            try await onSaveQueue {
                 let files = FileManager.default
                 let staging = destination.deletingLastPathComponent()
                     .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
@@ -847,9 +942,12 @@ final class Workspace: ObservableObject {
                     try files.moveItem(at: staging, to: destination)
                 }
             }
-            rememberLocation(destination)
-            lastSaved = snapshot
-        } catch { problem = error.localizedDescription }
+        } catch {
+            if editorSession == session { problem = error.localizedDescription }
+            return
+        }
+        guard editorSession == session else { return }
+        adoptCopy(at: destination, snapshot: snapshot, retiring: nil)
     }
 
     func loadDemo(language: String) {
