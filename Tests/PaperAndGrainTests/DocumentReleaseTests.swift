@@ -98,6 +98,89 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertTrue(workspace.flushSave())
     }
 
+    // A3
+    func testOpeningAndClosingLeavesTheManifestByteIdentical() async throws {
+        let package = scratch.appendingPathComponent("Untouched.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Untouched", pages: [BookPage(text: "Same")]), to: package)
+        let manifest = package.appendingPathComponent("manifest.json")
+        let before = try Data(contentsOf: manifest)
+        let modified = try FileManager.default.attributesOfItem(atPath: manifest.path)[.modificationDate] as? Date
+
+        let workspace = Workspace(defaults: MemoryDefaults())
+        workspace.openProject(at: package)
+        XCTAssertFalse(workspace.isReadOnly)
+        // Let any autosave scheduled by opening run.
+        try await Task.sleep(for: .milliseconds(400))
+        workspace.saveProject()
+        workspace.closeBook()
+
+        XCTAssertNil(workspace.directory)
+        XCTAssertEqual(try Data(contentsOf: manifest), before)
+        XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: manifest.path)[.modificationDate] as? Date, modified)
+    }
+
+    func testEditsAreSavedWithTheWriterVersion() async throws {
+        let package = scratch.appendingPathComponent("Edited.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Before"), to: package)
+        let workspace = Workspace(defaults: MemoryDefaults())
+        workspace.openProject(at: package)
+        workspace.book.title = "After"
+        try await waitUntil { (try? BookStorage.read(from: package).title) == "After" }
+        XCTAssertEqual(try BookStorage.read(from: package).writerVersion, Workspace.writerVersion)
+        XCTAssertEqual(try BookStorage.read(from: package), workspace.book)
+    }
+
+    func testBookFromANewerWriterOpensReadOnlyAndIsNeverRewritten() async throws {
+        let package = scratch.appendingPathComponent("Future.papergrain", isDirectory: true)
+        var future = Book(title: "Future")
+        future.writerVersion = Workspace.writerVersion + 1
+        try BookStorage.write(future, to: package)
+        let manifest = package.appendingPathComponent("manifest.json")
+        let before = try Data(contentsOf: manifest)
+
+        let workspace = Workspace(defaults: MemoryDefaults())
+        workspace.openProject(at: package)
+        XCTAssertEqual(workspace.readOnlyReason, .newerFormat(title: "Future"))
+        XCTAssertEqual(workspace.problem, AppError.newerFormat(title: "Future").errorDescription)
+        XCTAssertFalse(workspace.canSaveAs)
+        XCTAssertFalse(workspace.addPhotoFiles([scratch.appendingPathComponent("none.png")], language: "en"))
+
+        workspace.book.title = "Changed in an older build"
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertTrue(workspace.flushSave())
+        workspace.closeBook()
+        XCTAssertEqual(try Data(contentsOf: manifest), before)
+    }
+
+    func testReadOnlyLocationOpensWithoutErrorsAndSaveAsMakesItEditable() async throws {
+        let package = scratch.appendingPathComponent("Locked.papergrain", isDirectory: true)
+        let copy = scratch.appendingPathComponent("Unlocked.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Locked"), to: package)
+        let manifest = package.appendingPathComponent("manifest.json")
+        let files = FileManager.default
+        try files.setAttributes([.posixPermissions: 0o444], ofItemAtPath: manifest.path)
+        try files.setAttributes([.posixPermissions: 0o555], ofItemAtPath: package.path)
+        defer {
+            try? files.setAttributes([.posixPermissions: 0o755], ofItemAtPath: package.path)
+            try? files.setAttributes([.posixPermissions: 0o644], ofItemAtPath: manifest.path)
+        }
+
+        let workspace = Workspace(defaults: MemoryDefaults())
+        workspace.openProject(at: package)
+        XCTAssertEqual(workspace.readOnlyReason, .readOnlyLocation(title: "Locked"))
+        XCTAssertTrue(workspace.canSaveAs)
+        workspace.book.title = "Kept in memory"
+        try await Task.sleep(for: .milliseconds(400))
+        XCTAssertTrue(workspace.flushSave())
+        XCTAssertEqual(workspace.problem, AppError.readOnlyLocation(title: "Locked").errorDescription)
+
+        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: copy)
+        XCTAssertNil(workspace.readOnlyReason)
+        XCTAssertNil(workspace.problem)
+        XCTAssertEqual(try BookStorage.read(from: copy).title, "Kept in memory")
+        XCTAssertEqual(try BookStorage.read(from: package).title, "Locked")
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {

@@ -146,6 +146,8 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var template: BookTemplate? = nil
     var typography: EditorialTypography? = nil
     var showPageNumbers: Bool? = nil
+    /// Manifest revision of the app that last wrote the book (`Workspace.writerVersion`); absent in older books.
+    var writerVersion: Int? = nil
 
     var editorialStyle: EditorialStyle { template?.style ?? .classic }
 

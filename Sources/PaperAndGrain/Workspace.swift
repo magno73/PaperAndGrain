@@ -5,8 +5,19 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class Workspace: ObservableObject {
-    @Published var book = Book(title: "")
+    @Published var book = Book(title: "") {
+        didSet { scheduleSave() }
+    }
     @Published private(set) var directory: URL?
+    /// Set for a book written by a newer Paper & Grain or kept where it cannot be written.
+    /// Nothing is saved to its package; a read-only location can still be copied with Save As.
+    @Published private(set) var readOnlyReason: AppError?
+    var isReadOnly: Bool { readOnlyReason != nil }
+    /// The manifest as it was last read or written, so unchanged books are never rewritten.
+    private var lastSaved: Book?
+    /// Revision of the manifest written by this build. Raise it when a release adds data
+    /// that older builds would drop: they then open the book read-only instead of rewriting it.
+    nonisolated static let writerVersion = 1
     @Published private(set) var importing = false
     @Published private(set) var importProgress = ""
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
@@ -88,13 +99,18 @@ final class Workspace: ObservableObject {
     }
 
     func scheduleSave() {
-        guard let directory else { return }
+        guard let directory, !isReadOnly else { return }
         let origin = documentLocation
         saveTask?.cancel()
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(220))
             guard !Task.isCancelled, documentLocation == origin else { return }
             let snapshot = book
+            // Opening a book, or undoing back to the saved state, leaves the package untouched.
+            guard snapshot != lastSaved else {
+                saveTask = nil
+                return
+            }
             let identity = directoryIdentity
             do {
                 try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -114,7 +130,9 @@ final class Workspace: ObservableObject {
                 }
                 return
             }
-            guard !Task.isCancelled, documentLocation == origin else { return }
+            guard documentLocation == origin else { return }
+            lastSaved = snapshot
+            guard !Task.isCancelled else { return }
             saveTask = nil
         }
     }
@@ -123,7 +141,7 @@ final class Workspace: ObservableObject {
     func flushSave() -> Bool {
         saveTask?.cancel()
         saveTask = nil
-        guard directory != nil else { return true }
+        guard directory != nil, !isReadOnly, book != lastSaved else { return true }
         do {
             try writeNow()
             return true
@@ -148,6 +166,7 @@ final class Workspace: ObservableObject {
         try saveQueue.sync {
             try Self.writeManifest(snapshot, in: directory, identity: identity)
         }
+        lastSaved = snapshot
     }
 
     private func reportSaveFailure(_ error: Error) {
@@ -262,6 +281,10 @@ final class Workspace: ObservableObject {
     private func enqueueDroppedPhotos(language: String, onImported: @escaping (UUID) -> Void,
                                       start: () throws -> DroppedPhotos?) -> Bool {
         guard let directory, !importing else { return false }
+        if let readOnlyReason {
+            problem = readOnlyReason.localizedDescription
+            return false
+        }
         let origin = documentLocation
         let italian = language == "it"
         let drop: DroppedPhotos
@@ -379,7 +402,7 @@ final class Workspace: ObservableObject {
                 try Task.checkCancellation()
                 guard !newBook.photos.isEmpty else { throw PhotoImportError.unreadableImage }
                 newBook.autoLayout()
-                try BookStorage.write(newBook, to: folder)
+                try BookStorage.write(Self.stamped(newBook), to: folder)
                 guard flushSave() else { return }
                 keepFolder = true
                 open(newBook, in: folder)
@@ -403,7 +426,7 @@ final class Workspace: ObservableObject {
     }
 
     private func analyze(language: String, photos pending: [BookPhoto]) {
-        guard let directory, analysisTask == nil, !pending.isEmpty else { return }
+        guard let directory, !isReadOnly, analysisTask == nil, !pending.isEmpty else { return }
         let documentID = book.id
         let runID = UUID()
         analysisRun = runID
@@ -459,16 +482,42 @@ final class Workspace: ObservableObject {
         analysisTask = nil
         analysisRun = nil
         analysisProgress = nil
-        book = incoming
+        let reason = Self.readOnlyReason(for: incoming, in: folder)
+        // The writer version is stamped in memory too, so the open book equals what the next save writes.
+        // `lastSaved` is the same value: opening alone never rewrites the manifest.
+        let opened = reason == nil ? Self.stamped(incoming) : incoming
+        lastSaved = opened
+        book = opened
         rememberLocation(folder)
+        readOnlyReason = reason
+        if let reason { problem = reason.localizedDescription }
+    }
+
+    nonisolated static func readOnlyReason(for book: Book, in folder: URL) -> AppError? {
+        if (book.writerVersion ?? 0) > writerVersion { return .newerFormat(title: book.title) }
+        let files = FileManager.default
+        let manifest = folder.appendingPathComponent("manifest.json")
+        let volumeReadOnly = (try? folder.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly ?? false
+        if volumeReadOnly || !files.isWritableFile(atPath: folder.path) || !files.isWritableFile(atPath: manifest.path) {
+            return .readOnlyLocation(title: book.title)
+        }
+        return nil
+    }
+
+    /// The book as this build writes it, with its writer version.
+    nonisolated static func stamped(_ book: Book) -> Book {
+        var stamped = book
+        stamped.writerVersion = writerVersion
+        return stamped
     }
 
     private func rememberLocation(_ folder: URL?) {
         saveTask?.cancel()
         saveTask = nil
         documentSession = UUID()
-        if locationLost { problem = nil }
+        if locationLost || readOnlyReason != nil { problem = nil }
         locationLost = false
+        readOnlyReason = nil
         directoryIdentity = folder.flatMap { BookStorage.identity(of: $0) }
         directory = folder
         if let folder {
@@ -522,7 +571,7 @@ final class Workspace: ObservableObject {
     private nonisolated static func writeManifest(_ snapshot: Book, in folder: URL,
                                                   identity: BookStorage.DirectoryIdentity?) throws {
         try validateLocation(folder, identity: identity, title: snapshot.title)
-        try BookStorage.writeExisting(snapshot, to: folder)
+        try BookStorage.writeExisting(stamped(snapshot), to: folder)
     }
 
     private nonisolated static func validateLocation(_ folder: URL, identity: BookStorage.DirectoryIdentity?,
@@ -614,15 +663,27 @@ final class Workspace: ObservableObject {
     }
 
     func saveProject() {
-        if needsSaveLocation {
+        if let readOnlyReason {
+            problem = readOnlyReason.localizedDescription
+        } else if needsSaveLocation {
             saveProjectAs()
         } else {
             flushSave()
         }
     }
 
+    /// A book from a newer Paper & Grain cannot be copied: this build would drop the data it does not know.
+    var canSaveAs: Bool {
+        guard directory != nil else { return false }
+        if case .newerFormat? = readOnlyReason { return false }
+        return true
+    }
+
     func saveProjectAs() {
-        guard let directory else { return }
+        guard let directory, canSaveAs else {
+            if let readOnlyReason { problem = readOnlyReason.localizedDescription }
+            return
+        }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [Self.bookType]
         panel.nameFieldStringValue = safeFilename(book.title)
@@ -650,14 +711,40 @@ final class Workspace: ObservableObject {
             let snapshot = book
             let identity = directoryIdentity
             let title = book.title
+            var locked = false
+            if case .readOnlyLocation? = readOnlyReason { locked = true }
             try saveQueue.sync {
                 try Self.validateLocation(directory, identity: identity, title: title)
-                try BookStorage.copy(snapshot, from: directory, to: destination)
+                if locked {
+                    try Self.copyLockedPackage(Self.stamped(snapshot), from: directory, to: destination)
+                } else {
+                    try BookStorage.copy(Self.stamped(snapshot), from: directory, to: destination)
+                }
             }
             // An in-flight classifier keeps reading the old asset directory.
             // Its results still update this document and are saved to the new location.
             rememberLocation(destination)
+            lastSaved = snapshot
         } catch { problem = error.localizedDescription }
+    }
+
+    /// A package without write permission keeps them when copied. Stage a writable copy next to the
+    /// destination first, then copy it as usual.
+    private nonisolated static func copyLockedPackage(_ book: Book, from source: URL, to destination: URL) throws {
+        let files = FileManager.default
+        let staging = destination.deletingLastPathComponent()
+            .appendingPathComponent(".\(UUID().uuidString)-source.papergrain", isDirectory: true)
+        defer { try? files.removeItem(at: staging) }
+        try files.copyItem(at: source, to: staging)
+        var items = [staging]
+        if let contents = files.enumerator(at: staging, includingPropertiesForKeys: nil) {
+            items += contents.compactMap { $0 as? URL }
+        }
+        for item in items {
+            let permissions = (try? files.attributesOfItem(atPath: item.path)[.posixPermissions] as? NSNumber)?.intValue ?? 0o644
+            try files.setAttributes([.posixPermissions: permissions | 0o200], ofItemAtPath: item.path)
+        }
+        try BookStorage.copy(book, from: staging, to: destination)
     }
 
     /// Save As for a book whose package is gone, for example on an ejected disk: writes the current
@@ -670,7 +757,7 @@ final class Workspace: ObservableObject {
                 let staging = destination.deletingLastPathComponent()
                     .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
                 defer { try? files.removeItem(at: staging) }
-                try BookStorage.write(snapshot, to: staging)
+                try BookStorage.write(Self.stamped(snapshot), to: staging)
                 if files.fileExists(atPath: destination.path) {
                     _ = try files.replaceItemAt(destination, withItemAt: staging)
                 } else {
@@ -678,6 +765,7 @@ final class Workspace: ObservableObject {
                 }
             }
             rememberLocation(destination)
+            lastSaved = snapshot
         } catch { problem = error.localizedDescription }
     }
 

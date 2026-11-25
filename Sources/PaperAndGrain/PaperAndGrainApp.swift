@@ -111,7 +111,6 @@ struct PaperAndGrainApp: App {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if let problem = workspace.problem { errorBanner(problem) }
             }
-            .onChange(of: workspace.book) { _, _ in workspace.scheduleSave() }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                 workspace.flushSave()
             }
@@ -150,7 +149,7 @@ struct PaperAndGrainApp: App {
                     .disabled(workspace.directory == nil)
                 Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
-                    .disabled(workspace.directory == nil)
+                    .disabled(!workspace.canSaveAs)
             }
             CommandGroup(after: .saveItem) {
                 Divider()
