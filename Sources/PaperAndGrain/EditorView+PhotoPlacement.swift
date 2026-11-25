@@ -162,7 +162,7 @@ extension EditorView {
         let proposed = existing == nil ? normalized.rect(in: bounds) : normalized.photoRect(in: bounds)
         let limit = existing == nil ? bounds : CanvasPhotoGeometry.movementBounds(for: proposed.size, in: bounds)
         let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(photo.id))
-        return CanvasAlignment.duringDrag(proposed, to: targets, within: limit)
+        return CanvasAlignment.duringDrag(proposed, to: targets, edges: bounds, within: limit)
     }
 
     func dropPhoto(_ id: UUID, on leaf: BookPage, at location: CGPoint, in bounds: CGRect) {

@@ -107,4 +107,6 @@ Il rilascio di una foto della fototeca su una pagina passa per `EditorView.photo
 
 `PageComposition.emptySlots` considera vuoto uno spazio che nessuna foto copre per almeno metà. Lo usano i segnaposto del canvas e il rilascio. Gli oggetti del canvas sono `focusable` ma senza anello di sistema (`focusEffectDisabled`): la selezione la disegna l’app, e l’anello restava visibile dopo un clic sulla carta.
 
+`CanvasAlignment` aggancia gli oggetti agli altri elementi con una portata di 6 punti a schermo e ai bordi e al centro della pagina (`edges`) con una portata maggiorata di `edgeToleranceFactor`. A parità di posizione vince il riferimento più vicino in proporzione alla sua portata. Ogni controllo del canvas passa come `edges` i propri limiti: la pagina o la faccia di copertina.
+
 `EditorPreviewLoader` esegue fino a quattro anteprime del canvas in parallelo, dalla richiesta più recente. `EditorPreview` chiede la dimensione adatta alla cornice a schermo (480, 720, 1080, 1440 o 2048 px, tenendo conto di schermo Retina e ritaglio) e mostra subito la miniatura del navigatore già in memoria mentre arriva quella nitida.

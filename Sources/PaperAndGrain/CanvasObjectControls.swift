@@ -92,14 +92,16 @@ struct CanvasObjectControl<Content: View>: View {
                 frame, by: widthOnly ? CGSize(width: value.translation.width, height: 0) : value.translation,
                 in: bounds, minimumSize: minimumSize,
                 preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
-                alignmentTargets: preservesAspectRatio ? targets : []
+                alignmentTargets: preservesAspectRatio ? targets : [],
+                snapsToEdges: preservesAspectRatio
             ))
         }
         let proposed = adjustedFrame(by: value.translation)
         if let target = swapTargetAt?(value.location) {
             return DragPreview(placement: CanvasAlignment.Result(frame: proposed, guides: []), swapTarget: target)
         }
-        return DragPreview(placement: CanvasAlignment.duringDrag(proposed, to: targets, within: movementBounds))
+        // The page edges are always magnetic, with a longer reach than other objects.
+        return DragPreview(placement: CanvasAlignment.duringDrag(proposed, to: targets, edges: bounds, within: movementBounds))
     }
 
     private func adjustedFrame(by translation: CGSize) -> CGRect {
@@ -187,7 +189,7 @@ enum CanvasCorner: CaseIterable {
 
     func resizeResult(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
                       preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false,
-                      alignmentTargets: [CGRect], tolerance: CGFloat = 6) -> CanvasAlignment.Result {
+                      alignmentTargets: [CGRect], edges: CGRect? = nil, tolerance: CGFloat = 6) -> CanvasAlignment.Result {
         let anchor = CGPoint(x: isLeft ? frame.maxX : frame.minX, y: isTop ? frame.maxY : frame.minY)
         let horizontalSign: CGFloat = isLeft ? -1 : 1
         let verticalSign: CGFloat = isTop ? -1 : 1
@@ -215,7 +217,7 @@ enum CanvasCorner: CaseIterable {
 
         return CanvasAlignment.snapResize(proposed, anchoredAt: anchor, moving: self,
                                           aspectRatio: proportional ? frame.width / frame.height : nil,
-                                          to: alignmentTargets, tolerance: tolerance) { request in
+                                          to: alignmentTargets, edges: edges, tolerance: tolerance) { request in
             let size: CGSize
             if proportional {
                 let minScale = max(widthLimits.0 / frame.width, heightLimits.0 / frame.height)

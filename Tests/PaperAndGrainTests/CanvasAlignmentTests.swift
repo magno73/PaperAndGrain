@@ -129,3 +129,46 @@ final class CanvasAlignmentTests: XCTestCase {
         XCTAssertTrue(bounded.guides.isEmpty)
     }
 }
+
+final class PageEdgeSnappingTests: XCTestCase {
+    private let page = CGRect(x: 0, y: 0, width: 400, height: 400)
+
+    func testAPhotoMovedNearTheTrimLandsExactlyOnIt() {
+        let nearLeft = CGRect(x: 4.5, y: 120, width: 180, height: 120)
+        let moved = CanvasAlignment.snap(nearLeft, to: [page], within: page.insetBy(dx: -200, dy: -200))
+        XCTAssertEqual(moved.frame.minX, 0)
+        XCTAssertEqual(moved.guides.first, .vertical(x: 0, span: 0...400))
+
+        let nearBottomRight = CGRect(x: 216, y: 277, width: 180, height: 120)
+        let corner = CanvasAlignment.snap(nearBottomRight, to: [page], within: page.insetBy(dx: -200, dy: -200))
+        XCTAssertEqual(corner.frame.maxX, 400)
+        XCTAssertEqual(corner.frame.maxY, 400)
+    }
+
+    func testThePageEdgeReachesFurtherThanOtherObjects() {
+        let nine = CGRect(x: 9, y: 150, width: 120, height: 80)
+        let neighbour = CGRect(x: 0, y: 0, width: 50, height: 50)
+        XCTAssertEqual(CanvasAlignment.snap(nine, to: [neighbour], within: page).frame.minX, 9, "6 pt reach for objects")
+        XCTAssertEqual(CanvasAlignment.snap(nine, to: [], edges: page, within: page).frame.minX, 0, "10.5 pt reach for the page")
+        let far = CGRect(x: 14, y: 150, width: 120, height: 80)
+        XCTAssertEqual(CanvasAlignment.snap(far, to: [], edges: page, within: page).frame.minX, 14)
+
+        let photo = CGRect(x: 100, y: 100, width: 150, height: 100)
+        let result = CanvasCorner.bottomRight.resizeResult(photo, by: CGSize(width: 142, height: 95), in: page,
+                                                           minimumSize: CGSize(width: 20, height: 20),
+                                                           preservesAspectRatio: true, allowsPhotoOverflow: true,
+                                                           alignmentTargets: [], edges: page)
+        XCTAssertEqual(result.frame.maxX, 400, accuracy: 0.0001, "8 pt short of the trim still reaches it")
+    }
+
+    func testResizingTowardTheTrimReachesItWithoutAGap() {
+        let photo = CGRect(x: 100, y: 100, width: 150, height: 100)
+        // Dragging the bottom-right handle to 3 pt short of the right edge.
+        let result = CanvasCorner.bottomRight.resizeResult(photo, by: CGSize(width: 147, height: 98), in: page,
+                                                           minimumSize: CGSize(width: 20, height: 20),
+                                                           preservesAspectRatio: true, allowsPhotoOverflow: true,
+                                                           alignmentTargets: [page])
+        XCTAssertEqual(result.frame.maxX, 400, accuracy: 0.0001)
+        XCTAssertEqual(result.frame.width / result.frame.height, 1.5, accuracy: 0.0001)
+    }
+}

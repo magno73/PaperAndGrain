@@ -72,7 +72,7 @@ struct CanvasStoryGroup<Content: View>: View {
     }
 
     private func destination(_ offset: CGSize) -> CanvasAlignment.Result {
-        CanvasAlignment.duringDrag(movedFrame(by: offset), to: alignmentTargets, within: bounds)
+        CanvasAlignment.duringDrag(movedFrame(by: offset), to: alignmentTargets, edges: bounds, within: bounds)
     }
 
     private func movedFrame(by offset: CGSize) -> CGRect {

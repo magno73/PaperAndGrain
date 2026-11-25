@@ -386,6 +386,7 @@ extension EditorView {
         let editorial = blocks.compactMap { block in
             element == .editorial(block.role) || block.text.length == 0 ? nil : scaled(block.frame, by: scale)
         }
+        // The page edges are added by each control with a longer reach (CanvasAlignment.edgeToleranceFactor).
         return photos + textBoxes + editorial
     }
 

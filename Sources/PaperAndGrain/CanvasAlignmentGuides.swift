@@ -2,21 +2,22 @@ import AppKit
 import SwiftUI
 
 extension CanvasAlignment {
-    static func duringDrag(_ frame: CGRect, to targets: [CGRect], within bounds: CGRect) -> Result {
+    static func duringDrag(_ frame: CGRect, to targets: [CGRect], edges: CGRect? = nil, within bounds: CGRect) -> Result {
         if NSEvent.modifierFlags.contains(.option) {
             return Result(frame: frame, guides: [])
         }
-        return snap(frame, to: targets, within: bounds)
+        return snap(frame, to: targets, edges: edges, within: bounds)
     }
 }
 
 extension CanvasCorner {
     func resizeDuringDrag(_ frame: CGRect, by translation: CGSize, in bounds: CGRect, minimumSize: CGSize,
                           preservesAspectRatio: Bool = false, allowsPhotoOverflow: Bool = false,
-                          alignmentTargets: [CGRect]) -> CanvasAlignment.Result {
-        resizeResult(frame, by: translation, in: bounds, minimumSize: minimumSize,
-                     preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
-                     alignmentTargets: NSEvent.modifierFlags.contains(.option) ? [] : alignmentTargets)
+                          alignmentTargets: [CGRect], snapsToEdges: Bool = true) -> CanvasAlignment.Result {
+        let free = NSEvent.modifierFlags.contains(.option)
+        return resizeResult(frame, by: translation, in: bounds, minimumSize: minimumSize,
+                            preservesAspectRatio: preservesAspectRatio, allowsPhotoOverflow: allowsPhotoOverflow,
+                            alignmentTargets: free ? [] : alignmentTargets, edges: free || !snapsToEdges ? nil : bounds)
     }
 }
 

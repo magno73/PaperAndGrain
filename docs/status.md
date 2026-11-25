@@ -1,5 +1,17 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · bordi della pagina magnetici · 25 novembre 2026
+
+Spostando o ridimensionando, foto, box, testi e foto di copertina si agganciano ai bordi e al centro della pagina, con guida visibile. Il bordo ha una portata più ampia degli altri oggetti: 10,5 punti a schermo invece di 6 (`CanvasAlignment.edgeToleranceFactor`). Così una foto rilasciata a pochi punti dal taglio arriva esattamente al bordo, e il PDF la estende in abbondanza. Vale anche per il ritaglio, il trascinamento dalla fototeca e il blocco del racconto. **⌥** disattiva ogni aggancio.
+
+**Verificato nell’app:**
+- una foto spostata a circa 5 punti dal bordo sinistro si aggancia al bordo;
+- ridimensionata dalla maniglia fino a 4 punti dal bordo destro, arriva al bordo.
+
+`swift test` esegue 134 test, fra cui la portata del bordo pagina rispetto agli altri oggetti.
+
+**Resta da provare:** l’aggancio al bordo esterno di una doppia.
+
 ## 0.10.0-redesign · sostituzioni, box, copertina, aiuto · 25 novembre 2026
 
 - **Selezione nell’album di Foto.** `scaledToFill().clipped()` nasconde la parte in eccesso dell’immagine, ma SwiftUI la considera ancora per i clic. Una foto verticale prendeva i clic delle celle vicine finché lo scorrimento non cambiava l’ordine di disegno. Le miniature ora ricevono clic solo nel riquadro visibile; lo stesso vale per le anteprime dell’editor e le copertine dei recenti.
