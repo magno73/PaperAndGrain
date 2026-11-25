@@ -82,7 +82,7 @@ extension EditorView {
                                    onSelect: { activateCanvas { selectCoverPhoto(photo.id) } },
                                    onNudge: { nudgeFromKeyboard($0) { selectCoverPhoto(photo.id) } },
                                    onChange: { frame in
-            changeCoverPhotoPlacement(side, name: tr("Sposta o ridimensiona foto", "Move or Resize Photo")) {
+            changeCoverPhotoPlacement(side, name: tr("Move or Resize Photo")) {
                 $0.frame = PageRect(frame, in: bounds).photoClamped
             }
         }) { _ in
@@ -92,7 +92,7 @@ extension EditorView {
                                     shown: scaled(geometry.photoFrame, by: scale), bounds: bounds)
                 }
         }
-        .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCoverCrop(side) }
+        .accessibilityAction(named: Text(tr("Crop Photo"))) { beginCoverCrop(side) }
     }
 
     func coverEditorialText(_ side: CoverSide, geometry: BookCoverGeometry, frame: CGRect,
@@ -106,7 +106,7 @@ extension EditorView {
             ? style.fittedTitleStyle(value.wrappedValue, width: frame.width / scale, mixed: false, override: override)
             : override)
         return editableEditorialObject(.cover(side), content: geometry.title, value: value,
-                                       type: type, label: front ? tr("Titolo", "Title") : tr("Testo del retro", "Back Cover Text"),
+                                       type: type, label: front ? tr("Title") : tr("Back Cover Text"),
                                        frame: frame, bounds: bounds, scale: scale,
                                        targets: [scaled(geometry.photoFrame.intersection(geometry.bounds), by: scale)],
                                        textInk: front ? style.titleInk : style.ink,
@@ -118,7 +118,7 @@ extension EditorView {
         VStack(alignment: .leading, spacing: 12) {
             caption(coverName(side))
             if side == .front {
-                TextField(tr("Titolo in copertina", "Cover Title"), text: Binding(
+                TextField(tr("Cover Title"), text: Binding(
                     get: { book.cover?.title ?? book.title },
                     set: { value in changeCover { $0.title = value } }
                 ))
@@ -135,20 +135,20 @@ extension EditorView {
                 .padding(5)
                 .frame(minHeight: 100)
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))
-                .accessibilityLabel(tr("Testo del retro", "Back Cover Text"))
+                .accessibilityLabel(tr("Back Cover Text"))
             }
             // Font, size and color live in the Text tab, as for every other text in the book.
             Button {
                 selectEditorial(.cover(side))
                 showInspectorTab(.text)
             } label: {
-                Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
+                Label(tr("Font and Paragraph"), systemImage: "textformat")
             }
             if (side == .front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame) != nil {
-                Button(tr("Ripristina posizione del testo", "Reset Text Placement")) { moveCoverText(side, to: nil) }
+                Button(tr("Reset Text Placement")) { moveCoverText(side, to: nil) }
             }
             Divider()
-            caption(tr("Foto", "Photo"))
+            caption(tr("Photo"))
             if let photo = coverPhotoID(side).flatMap(indexedPhoto) {
                 // Selecting the photo opens the Photo tab with adjustments and film look.
                 Button {
@@ -163,18 +163,18 @@ extension EditorView {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(tr("Seleziona la foto per regolarla", "Select the photo to adjust it"))
+                .help(tr("Select the photo to adjust it"))
                 if coverPhotoPlacement(side) != nil {
-                    Button(localized("editor.cover.reset_photo", fallback: "Reset Photo Placement and Crop")) {
-                        changeCoverPhotoPlacement(side, name: tr("Ripristina foto di copertina", "Reset Cover Photo")) {
+                    Button(tr("Reset Photo Placement and Crop")) {
+                        changeCoverPhotoPlacement(side, name: tr("Reset Cover Photo")) {
                             $0 = PhotoPlacement()
                         }
                     }
                 }
             }
-            Button(tr("Scegli foto", "Choose Photo"), systemImage: "photo.on.rectangle", action: browsePhotos)
+            Button(tr("Choose Photo"), systemImage: "photo.on.rectangle", action: browsePhotos)
             if book.cover == nil {
-                Button(tr("Aggiungi copertina al libro", "Add Cover to Book")) { changeCover { _ in } }
+                Button(tr("Add Cover to Book")) { changeCover { _ in } }
             }
         }
     }
@@ -191,7 +191,7 @@ extension EditorView {
                 changeCover { $0.typography = type.title == nil && type.body == nil ? nil : type }
                 if let undoManager {
                     undoTarget.registerCoverValue(undoManager, binding: $book, bookID: book.id, key: \.typography,
-                                                  previous: previous, name: tr("Modifica tipografia", "Change Typography"))
+                                                  previous: previous, name: tr("Change Typography"))
                 }
             }
         )
@@ -266,8 +266,8 @@ extension EditorView {
             if let undoManager {
                 undoTarget.registerCoverImage(undoManager, binding: $book, bookID: book.id,
                                              idKey: key, placementKey: placement, previous: previous,
-                                             name: id == nil ? tr("Rimuovi foto di copertina", "Remove Cover Photo")
-                                                 : tr("Imposta foto di copertina", "Set Cover Photo"))
+                                             name: id == nil ? tr("Remove Cover Photo")
+                                                 : tr("Set Cover Photo"))
             }
         }
         if let id { selectCoverPhoto(id) }
@@ -294,7 +294,7 @@ extension EditorView {
         changeCover { $0[keyPath: key] = next }
         if let undoManager {
         undoTarget.registerCoverValue(undoManager, binding: $book, bookID: book.id, key: key, previous: previous,
-                                          name: tr("Sposta o ridimensiona testo", "Move or Resize Text"))
+                                          name: tr("Move or Resize Text"))
         }
     }
 

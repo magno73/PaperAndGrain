@@ -6,8 +6,7 @@ extension EditorView {
     @ViewBuilder var photoAdjustmentsInspector: some View {
         if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
             VStack(alignment: .leading, spacing: 10) {
-                intro(tr("Le regolazioni seguono la foto in tutto il libro.",
-                         "Adjustments follow this photo throughout the book."))
+                intro(tr("Adjustments follow this photo throughout the book."))
                 if let message = adjustmentErrors[photo.id] {
                     Text(message).font(.callout).foregroundStyle(.secondary)
                 }
@@ -35,8 +34,7 @@ extension EditorView {
                 .id(photo.id)
             }
         } else {
-            intro(tr("Seleziona una foto nella pagina o nella fototeca.",
-                     "Select a photo on the page or in the photo library."))
+            intro(tr("Select a photo on the page or in the photo library."))
         }
     }
 
@@ -51,7 +49,7 @@ extension EditorView {
         guard previous != normalized else { return }
         book.photos[index].adjustments = normalized
         if let undoManager {
-            let name = actionName ?? tr("Regola foto", "Adjust Photo")
+            let name = actionName ?? tr("Adjust Photo")
             undoTarget.registerPhotoValue(undoManager, binding: $book, bookID: book.id,
                                          photoID: id, key: \.adjustments, previous: previous, name: name)
         }
@@ -114,12 +112,12 @@ extension EditorView {
                   let current = indexedPhoto(photoID) else { return }
             enhancingPhotos.removeValue(forKey: photoID)
             guard let suggested else {
-                adjustmentErrors[photoID] = tr("Impossibile analizzare questa foto.", "Couldn’t analyze this photo.")
+                adjustmentErrors[photoID] = tr("Couldn’t analyze this photo.")
                 return
             }
             let adjustments = (current.adjustments ?? PhotoAdjustments()).applyingAutomatic(suggested)
             setPhotoAdjustments(adjustments, for: photoID,
-                                actionName: tr("Migliora in automatico", "Auto Enhance"))
+                                actionName: tr("Auto Enhance"))
         }
     }
 }

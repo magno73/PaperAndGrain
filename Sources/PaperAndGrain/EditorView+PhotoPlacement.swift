@@ -82,7 +82,7 @@ extension EditorView {
         guard let index else { return }
         let leaf = book.pages[index]
         guard !leaf.photoIDs.contains(id) else { return }
-        editPages(tr("Aggiungi foto", "Add Photo")) { pages in
+        editPages(tr("Add Photo")) { pages in
             Self.placePhoto(id, on: &pages[index])
         }
         selectedPhoto = id
@@ -169,7 +169,7 @@ extension EditorView {
         guard let photo = indexedPhoto(id), let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
         let current = book.pages[index]
         if current.effectiveLayout == .fullSpread {
-            editPages(tr("Posiziona foto su due pagine", "Place Photo Across Both Pages")) {
+            editPages(tr("Place Photo Across Both Pages")) {
                 $0[index].placePhotoAcrossSpread(id)
             }
             selectCanvasPhoto(id, in: leaf)
@@ -185,15 +185,13 @@ extension EditorView {
         case let .replace(target):
             var updated = current
             guard let outcome = updated.replacePhoto(target.id, with: photo, in: composition) else { return }
-            editPages(tr("Sostituisci foto", "Replace Photo")) { $0[index] = updated }
+            editPages(tr("Replace Photo")) { $0[index] = updated }
             selectCanvasPhoto(id, in: updated)
             switch outcome {
             case .fitted:
-                showCanvasNotice(tr("Proporzioni diverse: la cornice si è adattata alla foto intera.",
-                                    "Different proportions: the frame now fits the whole photo."))
+                showCanvasNotice(tr("Different proportions: the frame now fits the whole photo."))
             case .croppedToBleed:
-                showCanvasNotice(tr("Foto ritagliata per riempire lo spazio al vivo. Doppio clic per regolare il ritaglio.",
-                                    "Photo cropped to fill the full-bleed space. Double-click to adjust the crop."))
+                showCanvasNotice(tr("Photo cropped to fill the full-bleed space. Double-click to adjust the crop."))
             case .sameFrame, .reflowed:
                 break
             }
@@ -201,11 +199,11 @@ extension EditorView {
         case let .fillSlot(slot, _):
             var updated = current
             guard updated.fillSlot(slot, with: id, in: composition) else { return }
-            editPages(tr("Posiziona foto", "Place Photo")) { $0[index] = updated }
+            editPages(tr("Place Photo")) { $0[index] = updated }
             selectCanvasPhoto(id, in: updated)
             return
         case .join:
-            editPages(tr("Aggiungi foto", "Add Photo")) { Self.placePhoto(id, on: &$0[index]) }
+            editPages(tr("Add Photo")) { Self.placePhoto(id, on: &$0[index]) }
             selectCanvasPhoto(id, in: book.pages[index])
             return
         case .free:
@@ -216,7 +214,7 @@ extension EditorView {
         if current.photoIDs.contains(id) {
             updatePhotoFrame(id, in: leaf, to: normalized)
         } else {
-            editPages(tr("Posiziona foto", "Place Photo")) { pages in
+            editPages(tr("Place Photo")) { pages in
                 pages[index].photoIDs.append(id)
                 var placements = pages[index].photoPlacements ?? [:]
                 placements[id] = PhotoPlacement(frame: normalized)
@@ -230,7 +228,7 @@ extension EditorView {
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
         var leaf = book.pages[index]
         guard leaf.swapPhotos(id, target, in: pageComposition(leaf)) else { return }
-        editPages(tr("Scambia foto", "Swap Photos")) { $0[index] = leaf }
+        editPages(tr("Swap Photos")) { $0[index] = leaf }
         selectCanvasPhoto(id, in: leaf)
     }
 
@@ -238,7 +236,7 @@ extension EditorView {
         guard let index = book.pages.firstIndex(where: { $0.id == leaf.id }),
               book.pages[index].photoIDs.contains(id) else { return }
         let current = book.pages[index]
-        editPages(tr("Sposta o ridimensiona foto", "Move or Resize Photo")) { pages in
+        editPages(tr("Move or Resize Photo")) { pages in
             var placements = current.photoPlacements ?? [:]
             freezeAutomaticFrames(of: current, moving: id, placements: &placements)
             placements[id, default: PhotoPlacement()].frame = frame.photoClamped
@@ -249,7 +247,7 @@ extension EditorView {
     func resetPhotoFrames(_ pageID: UUID) {
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }),
               let placements = book.pages[index].photoPlacements else { return }
-        editPages(tr("Ripristina posizioni foto", "Reset Photo Placement")) { pages in
+        editPages(tr("Reset Photo Placement")) { pages in
             pages[index].photoPlacements = Self.photoCrops(from: placements)
             if pages[index].arrangement == nil, pages[index].layout == .text, !pages[index].photoIDs.isEmpty {
                 pages[index].layout = .mixed
@@ -288,7 +286,7 @@ extension EditorView {
         if case let .cover(front) = session.surface {
             let side: CoverSide = front ? .front : .back
             guard coverPhotoID(side) == session.photoID else { return }
-            changeCoverPhotoPlacement(side, name: tr("Ritaglia foto", "Crop Photo")) {
+            changeCoverPhotoPlacement(side, name: tr("Crop Photo")) {
                 if changedFrame { $0.frame = session.frame }
                 $0.crop = session.crop
             }
@@ -298,7 +296,7 @@ extension EditorView {
               let index = book.pages.firstIndex(where: { $0.id == pageID }),
               book.pages[index].photoIDs.contains(session.photoID) else { return }
         let current = book.pages[index]
-        editPages(tr("Ritaglia foto", "Crop Photo")) { pages in
+        editPages(tr("Crop Photo")) { pages in
             var placements = current.photoPlacements ?? [:]
             if changedFrame {
                 freezeAutomaticFrames(of: current, moving: session.photoID, placements: &placements)
@@ -325,7 +323,7 @@ extension EditorView {
               let destination = book.pages.firstIndex(where: { $0.id == destinationID }),
               book.pages[source].photoIDs.contains(id),
               !book.pages[destination].photoIDs.contains(id) else { return }
-        let name = moving ? tr("Sposta foto", "Move Photo") : tr("Copia foto", "Copy Photo")
+        let name = moving ? tr("Move Photo") : tr("Copy Photo")
         editPages(name) { pages in
             let placement = pages[source].photoPlacements?[id]
             Self.placePhoto(id, on: &pages[destination])
@@ -362,7 +360,7 @@ extension EditorView {
         guard let target = pageID ?? page?.id,
               let index = book.pages.firstIndex(where: { $0.id == target }),
               book.pages[index].photoIDs.contains(id) else { return false }
-        editPages(tr("Rimuovi foto", "Remove Photo")) { pages in
+        editPages(tr("Remove Photo")) { pages in
             Self.removePhoto(id, from: &pages[index])
         }
         return true
@@ -386,7 +384,7 @@ extension EditorView {
     func reorderPhoto(_ id: UUID, by offset: Int) {
         guard let index, let current = book.pages[index].photoIDs.firstIndex(of: id),
               book.pages[index].photoIDs.indices.contains(current + offset) else { return }
-        editPages(tr("Sposta foto", "Move Photo")) { pages in
+        editPages(tr("Move Photo")) { pages in
             pages[index].photoIDs.swapAt(current, current + offset)
         }
     }

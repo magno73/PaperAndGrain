@@ -64,7 +64,7 @@ extension EditorView {
             VStack {
                 HStack {
                     Spacer()
-                    Button(tr("Fine", "Done")) { browsingSpread = nil }
+                    Button(tr("Done")) { browsingSpread = nil }
                         .keyboardShortcut(.cancelAction)
                         .controlSize(.large)
                 }
@@ -77,7 +77,7 @@ extension EditorView {
                     }
                     .keyboardShortcut(.leftArrow, modifiers: [])
                     .disabled(position == 0)
-                    .accessibilityLabel(tr("Doppia precedente", "Previous Spread"))
+                    .accessibilityLabel(tr("Previous Spread"))
                     Text(label)
                         .font(.callout.weight(.medium))
                         .monospacedDigit()
@@ -90,7 +90,7 @@ extension EditorView {
                     }
                     .keyboardShortcut(.rightArrow, modifiers: [])
                     .disabled(position == last)
-                    .accessibilityLabel(tr("Doppia successiva", "Next Spread"))
+                    .accessibilityLabel(tr("Next Spread"))
                 }
                 .controlSize(.large)
                 .padding(.horizontal, 14)
@@ -102,6 +102,6 @@ extension EditorView {
         }
         .animation(.easeInOut(duration: 0.2), value: position)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(tr("Sfoglia il libro", "Browse the Book"))
+        .accessibilityLabel(tr("Browse the Book"))
     }
 }

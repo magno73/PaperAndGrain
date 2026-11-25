@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PhotoAdjustmentsPanel: View {
+struct PhotoAdjustmentsPanel: View, Localizing {
     @Binding var adjustments: PhotoAdjustments
     let language: String
     let isEnhancing: Bool
@@ -17,15 +17,16 @@ struct PhotoAdjustmentsPanel: View {
     private enum Group: CaseIterable {
         case light, color, monochrome, detail, curves, levels, selectiveColor
 
-        var title: (italian: String, english: String) {
+        /// The English title, which is also the catalog key.
+        var title: String {
             switch self {
-            case .light: ("Luce", "Light")
-            case .color: ("Colore", "Color")
-            case .monochrome: ("Bianco e nero", "Black & White")
-            case .detail: ("Dettagli", "Detail")
-            case .curves: ("Curve", "Curves")
-            case .levels: ("Livelli", "Levels")
-            case .selectiveColor: ("Colore selettivo", "Selective Color")
+            case .light: "Light"
+            case .color: "Color"
+            case .monochrome: "Black & White"
+            case .detail: "Detail"
+            case .curves: "Curves"
+            case .levels: "Levels"
+            case .selectiveColor: "Selective Color"
             }
         }
     }
@@ -43,18 +44,17 @@ struct PhotoAdjustmentsPanel: View {
             }
         }
 
-        let italian: String
-        let english: String
+        /// The English name, which is also the catalog key.
+        let title: String
         let keyPath: WritableKeyPath<PhotoAdjustments, Double>
         let range: ClosedRange<Double>
         let format: Format
 
         var id: WritableKeyPath<PhotoAdjustments, Double> { keyPath }
 
-        init(_ italian: String, _ english: String, _ keyPath: WritableKeyPath<PhotoAdjustments, Double>,
+        init(_ title: String, _ keyPath: WritableKeyPath<PhotoAdjustments, Double>,
              _ range: ClosedRange<Double> = -1...1, format: Format = .percent) {
-            self.italian = italian
-            self.english = english
+            self.title = title
             self.keyPath = keyPath
             self.range = range
             self.format = format
@@ -64,7 +64,7 @@ struct PhotoAdjustmentsPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             toolbar
-            Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $comparingOriginal)
+            Toggle(tr("Compare with original"), isOn: $comparingOriginal)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
 
@@ -83,7 +83,7 @@ struct PhotoAdjustmentsPanel: View {
         HStack(spacing: 7) {
             Button(action: onAutomatic) {
                 Label {
-                    Text(tr("Migliora in automatico", "Auto Enhance"))
+                    Text(tr("Auto Enhance"))
                 } icon: {
                     if isEnhancing {
                         ProgressView()
@@ -97,16 +97,16 @@ struct PhotoAdjustmentsPanel: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(isEnhancing)
-            .accessibilityValue(isEnhancing ? tr("In corso", "In progress") : "")
-            .help(tr("Regola automaticamente luce e colore", "Automatically adjust light and color"))
+            .accessibilityValue(isEnhancing ? tr("In progress") : "")
+            .help(tr("Automatically adjust light and color"))
 
             Button(action: onReset) {
                 Image(systemName: "arrow.counterclockwise")
             }
             .buttonStyle(.bordered)
             .disabled(adjustments == PhotoAdjustments() && !isEnhancing)
-            .accessibilityLabel(tr("Ripristina regolazioni", "Reset adjustments"))
-            .help(tr("Ripristina regolazioni", "Reset adjustments"))
+            .accessibilityLabel(tr("Reset adjustments"))
+            .help(tr("Reset adjustments"))
         }
     }
 
@@ -132,7 +132,7 @@ struct PhotoAdjustmentsPanel: View {
                 .padding(.bottom, 3)
             }
         } label: {
-            Text(tr(group.title.italian, group.title.english))
+            Text(tr(group.title))
                 .font(.system(size: 11, weight: .semibold))
         }
         .padding(.vertical, 4)
@@ -141,45 +141,45 @@ struct PhotoAdjustmentsPanel: View {
     private func controls(in group: Group) -> [Control] {
         switch group {
         case .light:
-            [Control("Brillantezza", "Brilliance", \.brilliance),
-             Control("Esposizione", "Exposure", \.exposure, -2...2, format: .exposure),
-             Control("Luci", "Highlights", \.highlights),
-             Control("Ombre", "Shadows", \.shadows),
-             Control("Luminosità", "Brightness", \.brightness),
-             Control("Contrasto", "Contrast", \.contrast),
-             Control("Punto di nero", "Black Point", \.blackPoint)]
+            [Control("Brilliance", \.brilliance),
+             Control("Exposure", \.exposure, -2...2, format: .exposure),
+             Control("Highlights", \.highlights),
+             Control("Shadows", \.shadows),
+             Control("Brightness", \.brightness),
+             Control("Contrast", \.contrast),
+             Control("Black Point", \.blackPoint)]
         case .color:
-            [Control("Saturazione", "Saturation", \.saturation),
-             Control("Vividezza", "Vibrance", \.vibrance),
-             Control("Temperatura", "Warmth", \.warmth),
-             Control("Tinta", "Tint", \.tint)]
+            [Control("Saturation", \.saturation),
+             Control("Vibrance", \.vibrance),
+             Control("Warmth", \.warmth),
+             Control("Tint", \.tint)]
         case .monochrome:
-            [Control("Intensità", "Intensity", \.monochrome, 0...1),
-             Control("Toni neutri", "Neutrals", \.monochromeNeutrals),
-             Control("Tonalità", "Tone", \.monochromeTone),
-             Control("Grana", "Grain", \.monochromeGrain, 0...1)]
+            [Control("Intensity", \.monochrome, 0...1),
+             Control("Neutrals", \.monochromeNeutrals),
+             Control("Tone", \.monochromeTone),
+             Control("Grain", \.monochromeGrain, 0...1)]
         case .detail:
-            [Control("Definizione", "Definition", \.definition, 0...1),
-             Control("Nitidezza", "Sharpness", \.sharpness, 0...1),
-             Control("Riduzione disturbo", "Noise Reduction", \.noiseReduction, 0...1),
-             Control("Vignettatura", "Vignette", \.vignette, 0...1)]
+            [Control("Definition", \.definition, 0...1),
+             Control("Sharpness", \.sharpness, 0...1),
+             Control("Noise Reduction", \.noiseReduction, 0...1),
+             Control("Vignette", \.vignette, 0...1)]
         case .curves:
-            [Control("Ombre", "Shadows", \.curveShadows),
-             Control("Mezzitoni", "Midtones", \.curveMidtones),
-             Control("Luci", "Highlights", \.curveHighlights)]
+            [Control("Shadows", \.curveShadows),
+             Control("Midtones", \.curveMidtones),
+             Control("Highlights", \.curveHighlights)]
         case .levels:
-            [Control("Nero", "Black", \.levelsBlack, 0...0.45),
-             Control("Bianco", "White", \.levelsWhite, 0.55...1),
-             Control("Gamma", "Gamma", \.levelsGamma, 0.4...2.5, format: .gamma)]
+            [Control("Black", \.levelsBlack, 0...0.45),
+             Control("White", \.levelsWhite, 0.55...1),
+             Control("Gamma", \.levelsGamma, 0.4...2.5, format: .gamma)]
         case .selectiveColor:
-            [Control("Tonalità", "Hue", \.selectiveHue, format: .hue),
-             Control("Saturazione", "Saturation", \.selectiveSaturation),
-             Control("Luminosità", "Lightness", \.selectiveLightness)]
+            [Control("Hue", \.selectiveHue, format: .hue),
+             Control("Saturation", \.selectiveSaturation),
+             Control("Lightness", \.selectiveLightness)]
         }
     }
 
     private func slider(_ control: Control) -> some View {
-        let title = tr(control.italian, control.english)
+        let title = tr(control.title)
         let value = display(adjustments[keyPath: control.keyPath], format: control.format)
         return HStack(spacing: 5) {
             Text(title)
@@ -265,18 +265,18 @@ struct PhotoAdjustmentsPanel: View {
         }
         .padding(.bottom, 3)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(tr("Intervallo di colore", "Color range"))
+        .accessibilityLabel(tr("Color range"))
     }
 
     private func colorName(_ choice: PhotoAdjustments.SelectiveColor) -> String {
         switch choice {
-        case .red: tr("Rosso", "Red")
-        case .orange: tr("Arancione", "Orange")
-        case .yellow: tr("Giallo", "Yellow")
-        case .green: tr("Verde", "Green")
-        case .cyan: tr("Ciano", "Cyan")
-        case .blue: tr("Blu", "Blue")
-        case .magenta: tr("Magenta", "Magenta")
+        case .red: tr("Red")
+        case .orange: tr("Orange")
+        case .yellow: tr("Yellow")
+        case .green: tr("Green")
+        case .cyan: tr("Cyan")
+        case .blue: tr("Blue")
+        case .magenta: tr("Magenta")
         }
     }
 
@@ -304,9 +304,5 @@ struct PhotoAdjustmentsPanel: View {
         case .hue:
             return (value * 45).formatted(style.precision(.fractionLength(0))) + "°"
         }
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
     }
 }

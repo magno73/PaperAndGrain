@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 extension EditorView {
     var photoDropZone: some View {
-        Label(tr("Trascina foto qui", "Drop Photos Here"), systemImage: "photo.badge.plus")
+        Label(tr("Drop Photos Here"), systemImage: "photo.badge.plus")
             .font(.caption.weight(.medium))
             .foregroundStyle(pine)
             .lineLimit(1)
@@ -27,15 +27,15 @@ extension EditorView {
                                    needsAnalysis: Bool, hasOlderAnalysis: Bool, compact: Bool) -> some View {
         HStack(spacing: 10) {
             if !book.photos.isEmpty {
-                Picker(tr("Mostra", "Show"), selection: $trayFilter) {
-                    Text(tr("Tutte", "All")).tag(TrayFilter.all)
-                    Text(tr("Non usate", "Unused")).tag(TrayFilter.unused)
-                    Text(coverSide == nil ? tr("In pagina", "On Page") : tr("In copertina", "On Cover")).tag(TrayFilter.onPage)
+                Picker(tr("Show"), selection: $trayFilter) {
+                    Text(tr("All")).tag(TrayFilter.all)
+                    Text(tr("Unused")).tag(TrayFilter.unused)
+                    Text(coverSide == nil ? tr("On Page") : tr("On Cover")).tag(TrayFilter.onPage)
                 }
                 .labelsHidden()
                 .fixedSize()
                 .modifier(TrayFilterStyle(compact: compact))
-                Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
+                Picker(tr("Sort by"), selection: $photoOrder) {
                     ForEach(PhotoLibraryOrder.allCases) { order in
                         Text(photoOrderLabel(order)).tag(order)
                     }
@@ -43,12 +43,12 @@ extension EditorView {
                 .pickerStyle(.menu)
                 .labelsHidden()
                 .fixedSize()
-                .help(libraryLabel("sort", "Ordina per", "Sort by"))
+                .help(tr("Sort by"))
                 if !compact {
                     conceptFilter(results.concepts)
                         .fixedSize()
                 }
-                TextField(tr("Cerca foto", "Search photos"), text: $search)
+                TextField(tr("Search photos"), text: $search)
                     .textFieldStyle(.roundedBorder)
                     .focused($searchingPhotos)
                     .frame(width: compact ? 110 : 160)
@@ -58,10 +58,10 @@ extension EditorView {
                     .frame(width: 140)
             }
             Menu {
-                Button(hasOlderAnalysis ? tr("Aggiorna analisi", "Update Analysis") : tr("Analizza foto", "Analyze Photos"),
+                Button(hasOlderAnalysis ? tr("Update Analysis") : tr("Analyze Photos"),
                        systemImage: "viewfinder", action: onAnalyze)
                     .disabled(isAnalyzing || !needsAnalysis)
-                Button(tr("Importa file…", "Import Files…"), systemImage: "folder") {
+                Button(tr("Import Files…"), systemImage: "folder") {
                     actions.addPhotoFiles { id in
                         _ = acceptPhotoDrop(true)
                         importedPhotoToReveal = id
@@ -77,8 +77,8 @@ extension EditorView {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
-            .help(tr("Altre azioni della fototeca", "More photo library actions"))
-            .accessibilityLabel(tr("Altre azioni della fototeca", "More photo library actions"))
+            .help(tr("More photo library actions"))
+            .accessibilityLabel(tr("More photo library actions"))
         }
     }
 
@@ -111,9 +111,8 @@ extension EditorView {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(tr("Fototeca", "Photo Library")).font(.headline)
-                    Text(tr("\(book.photos.count) foto · \(unused) non usate",
-                            "\(book.photos.count) photos · \(unused) unused"))
+                    Text(tr("Photo Library")).font(.headline)
+                    Text(tr("%1$lld photos · %2$lld unused", book.photos.count, unused))
                         .font(.caption)
                         .foregroundStyle(muted)
                         .monospacedDigit()
@@ -132,8 +131,7 @@ extension EditorView {
                 }
             }
             if book.photos.isEmpty {
-                Text(tr("Trascina qui foto dal Finder o da Foto, oppure importa dei file.",
-                        "Drag photos here from the Finder or Photos, or import files."))
+                Text(tr("Drag photos here from the Finder or Photos, or import files."))
                     .font(.callout)
                     .foregroundStyle(muted)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -143,7 +141,7 @@ extension EditorView {
                         LazyHStack(alignment: .top, spacing: 18) {
                             Color.clear.frame(width: 0, height: 0).id("photoLibraryTop").accessibilityHidden(true)
                             if sections.isEmpty {
-                                intro(tr("Nessuna foto corrispondente.", "No matching photos."))
+                                intro(tr("No matching photos."))
                                     .padding(.top, 20)
                             }
                             ForEach(sections) { section in
@@ -194,7 +192,7 @@ extension EditorView {
                     .strokeBorder(pine, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                     .padding(3)
                     .overlay {
-                        Label(tr("Rilascia per aggiungere al libro", "Drop to Add to the Book"), systemImage: "photo.badge.plus")
+                        Label(tr("Drop to Add to the Book"), systemImage: "photo.badge.plus")
                             .font(.callout.weight(.semibold))
                             .foregroundStyle(pine)
                             .padding(.horizontal, 12)
@@ -214,7 +212,7 @@ extension EditorView {
         .padding(.bottom, 8)
         .task(id: pendingPlaces) { await readPhotoPlaces(pendingPlaces) }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(tr("Fototeca", "Photo Library"))
+        .accessibilityLabel(tr("Photo Library"))
     }
 
     var placeAssetsToRead: [PlaceAsset] {
@@ -254,16 +252,12 @@ extension EditorView {
         scannedPlaceAssets.formUnion(pending)
     }
 
-    func libraryLabel(_ key: String, _ italian: String, _ english: String) -> String {
-        localized("editor.photo_library." + key, fallback: tr(italian, english))
-    }
-
     func photoOrderLabel(_ order: PhotoLibraryOrder) -> String {
         switch order {
-        case .date: libraryLabel("date", "Data", "Date")
-        case .place: libraryLabel("place", "Luogo", "Place")
-        case .subject: libraryLabel("subject", "Argomento", "Subject")
-        case .usage: libraryLabel("usage", "Non usate prima", "Unused First")
+        case .date: tr("Date")
+        case .place: tr("Place")
+        case .subject: tr("Subject")
+        case .usage: tr("Unused First")
         }
     }
 
@@ -277,26 +271,26 @@ extension EditorView {
         case let .area(lat, lon):
             let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(2)).locale(locale)
             let latitude = (Double(abs(lat)) / 20).formatted(format) + (lat < 0 ? "° S" : "° N")
-            let longitude = (Double(abs(lon)) / 20).formatted(format) + (lon < 0 ? "° " + tr("O", "W") : "° E")
+            let longitude = (Double(abs(lon)) / 20).formatted(format) + (lon < 0 ? "° " + tr("W") : "° E")
             return latitude + " · " + longitude
         case let .subject(topic):
             return conceptName(topic)
         case .unused:
-            return libraryLabel("unused", "Non usate", "Unused")
+            return tr("Unused")
         case .used:
-            return libraryLabel("used", "Già usate", "Already Used")
+            return tr("Already Used")
         case .unknown:
             switch photoOrder {
-            case .date: return libraryLabel("unknown_date", "Senza data", "No Date")
-            case .place: return libraryLabel("unknown_place", "Senza luogo", "No Location")
-            case .subject, .usage: return libraryLabel("unknown_subject", "Senza argomento", "No Subject")
+            case .date: return tr("No Date")
+            case .place: return tr("No Location")
+            case .subject, .usage: return tr("No Subject")
             }
         }
     }
 
     func conceptFilter(_ concepts: [InspectorPhotoLibraryCache.Concept]) -> some View {
-        Picker(tr("Concetto", "Concept"), selection: $concept) {
-            Text(tr("Tutti i concetti", "All concepts")).tag(nil as String?)
+        Picker(tr("Concept"), selection: $concept) {
+            Text(tr("All concepts")).tag(nil as String?)
             ForEach(concepts) { item in
                 Text(item.name + " · " + String(item.count)).tag(Optional(item.id))
             }
@@ -355,13 +349,13 @@ extension EditorView {
             .accessibilityAddTraits(.isButton)
             .accessibilityAddTraits(active ? .isSelected : [])
             .accessibilityAction { selectLibraryPhoto(photo.id) }
-            .accessibilityAction(named: Text(used ? tr("Rimuovi dalla pagina", "Remove from page")
-                                                 : tr("Aggiungi alla pagina", "Add to page"))) {
+            .accessibilityAction(named: Text(used ? tr("Remove from page")
+                                                 : tr("Add to page"))) {
                 togglePhoto(photo.id)
             }
             .contextMenu {
-                Button(used ? tr("Rimuovi dalla pagina", "Remove from page")
-                            : tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
+                Button(used ? tr("Remove from page")
+                            : tr("Add to page")) { togglePhoto(photo.id) }
                 .disabled(page == nil && coverSide == nil)
             }
             .libraryPhotoFrame(photo.id)
@@ -370,12 +364,12 @@ extension EditorView {
 
     func photoOrientation(_ photo: BookPhoto) -> (symbol: String, label: String) {
         if photo.pixelWidth > photo.pixelHeight {
-            return ("rectangle", localized("editor.photo_orientation.landscape", fallback: tr("Orizzontale", "Landscape")))
+            return ("rectangle", tr("Landscape"))
         }
         if photo.pixelWidth < photo.pixelHeight {
-            return ("rectangle.portrait", localized("editor.photo_orientation.portrait", fallback: tr("Verticale", "Portrait")))
+            return ("rectangle.portrait", tr("Portrait"))
         }
-        return ("square", localized("editor.photo_orientation.square", fallback: tr("Quadrata", "Square")))
+        return ("square", tr("Square", key: "photo.orientation.square"))
     }
 
     func usageBadge(_ location: PhotoUsageIndex.Location) -> String {
@@ -383,16 +377,16 @@ extension EditorView {
         case let .page(numbers):
             numbers.lowerBound == numbers.upperBound ? "\(numbers.lowerBound)" : "\(numbers.lowerBound)–\(numbers.upperBound)"
         case .frontCover:
-            tr("C", "F")
+            tr("F")
         case .backCover:
-            tr("R", "B")
+            tr("B")
         }
     }
 
     func usageDescription(_ location: PhotoUsageIndex.Location) -> String {
         switch location {
         case let .page(numbers):
-            (numbers.lowerBound == numbers.upperBound ? tr("Pagina", "Page") : tr("Pagine", "Pages"))
+            (numbers.lowerBound == numbers.upperBound ? tr("Page") : tr("Pages"))
                 + " " + usageBadge(location)
         case .frontCover:
             coverName(.front)

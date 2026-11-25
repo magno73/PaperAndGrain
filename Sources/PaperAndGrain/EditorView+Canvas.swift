@@ -11,8 +11,8 @@ extension EditorView {
                         Text(coverName(coverSide))
                     } else if let page {
                         Text(page.id == book.pages.first?.id
-                             ? tr("Prima pagina", "First Page")
-                             : tr("Pagina", "Page") + " " + spreadNumber([page]))
+                             ? tr("First Page")
+                             : tr("Page") + " " + spreadNumber([page]))
                     }
                 }
                 .font(.callout.weight(.medium))
@@ -20,10 +20,10 @@ extension EditorView {
                 .monospacedDigit()
                 Spacer()
                 if compareOriginal {
-                    Button(tr("Torna alle regolazioni", "Return to Edits")) { compareOriginal = false }
+                    Button(tr("Return to Edits")) { compareOriginal = false }
                         .controlSize(.small)
                 } else if comparePhotoOriginal != nil {
-                    Button(tr("Torna alle regolazioni", "Return to Edits")) { comparePhotoOriginal = nil }
+                    Button(tr("Return to Edits")) { comparePhotoOriginal = nil }
                         .controlSize(.small)
                 }
                 canvasViewControls
@@ -39,9 +39,9 @@ extension EditorView {
                 } else {
                     VStack(spacing: 14) {
                         Image(systemName: "book").font(.system(size: 33, weight: .ultraLight)).foregroundStyle(pine)
-                        Text(tr("Il libro comincia qui", "Your book starts here"))
+                        Text(tr("Your book starts here"))
                             .font(.system(size: 28, design: .serif))
-                        Button(tr("Aggiungi una pagina", "Add a page")) { insert(.gallery) }
+                        Button(tr("Add a page")) { insert(.gallery) }
                             .buttonStyle(.borderedProminent)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -79,33 +79,33 @@ extension EditorView {
     /// Page view and zoom: a small floating control in the corner of the canvas.
     var canvasViewControls: some View {
         HStack(spacing: 2) {
-            Picker(tr("Vista", "View"), selection: $showSpread) {
+            Picker(tr("View"), selection: $showSpread) {
                 Image(systemName: "rectangle.portrait").tag(false)
-                    .accessibilityLabel(tr("Pagina singola", "Single Page"))
+                    .accessibilityLabel(tr("Single Page"))
                 Image(systemName: "book").tag(true)
-                    .accessibilityLabel(tr("Doppia pagina", "Two-Page View"))
+                    .accessibilityLabel(tr("Two-Page View"))
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
             .disabled(coverSide != nil)
-            .help(tr("Pagina singola o doppia", "Single or two-page view"))
+            .help(tr("Single or two-page view"))
             Menu {
-                Picker(tr("Zoom della pagina", "Page Zoom"), selection: $zoom) {
+                Picker(tr("Page Zoom"), selection: $zoom) {
                     ForEach(CanvasZoom.all, id: \.self) { level in
                         Text(zoomName(level)).tag(level)
                     }
                 }
                 .pickerStyle(.inline)
                 Divider()
-                Toggle(tr("Guida della piega", "Gutter Guide"), isOn: $gutterGuide)
+                Toggle(tr("Gutter Guide"), isOn: $gutterGuide)
             } label: {
                 Text(zoomName(zoom)).monospacedDigit()
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
             .padding(.horizontal, 8)
-            .help(tr("Zoom della pagina", "Page Zoom"))
+            .help(tr("Page Zoom"))
         }
         .controlSize(.small)
         .padding(4)
@@ -115,8 +115,8 @@ extension EditorView {
 
     func zoomName(_ level: CanvasZoom) -> String {
         switch level {
-        case .fitPage: tr("Riempi pagina", "Fit Page")
-        case .fitWidth: tr("Adatta alla larghezza", "Fit Width")
+        case .fitPage: tr("Fit Page")
+        case .fitWidth: tr("Fit Width")
         case let .percent(value): "\(value)%"
         }
     }
@@ -175,11 +175,11 @@ extension EditorView {
     @ViewBuilder func canvasTools(_ page: BookPage) -> some View {
         if let photo = canvasPhotoSelection, photo.pageID == page.id {
             HStack(spacing: 2) {
-                hudButton(tr("Ritaglia", "Crop"), "crop") { beginCrop(photo.photoID, in: page) }
-                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
-                hudButton(tr("Pellicola", "Film"), "camera.filters") { showPhotoSection(film: true) }
+                hudButton(tr("Crop"), "crop") { beginCrop(photo.photoID, in: page) }
+                hudButton(tr("Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
+                hudButton(tr("Film"), "camera.filters") { showPhotoSection(film: true) }
                 Divider().frame(height: 16).padding(.horizontal, 3)
-                hudButton(tr("Togli dalla pagina", "Remove from Page"), "trash", role: .destructive, iconOnly: true) {
+                hudButton(tr("Remove from Page"), "trash", role: .destructive, iconOnly: true) {
                     _ = deleteSelectedCanvasObject()
                 }
             }
@@ -215,11 +215,11 @@ extension EditorView {
         if photoSelected || coverEditorialValue(side).wrappedValue.isEmpty {
         HStack(spacing: 2) {
             if photoSelected {
-                hudButton(tr("Ritaglia", "Crop"), "crop") { beginCoverCrop(side) }
-                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
+                hudButton(tr("Crop"), "crop") { beginCoverCrop(side) }
+                hudButton(tr("Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
             }
             if coverEditorialValue(side).wrappedValue.isEmpty {
-                hudButton(localized("editor.cover.add_text", fallback: "Add Text"), "textformat") {
+                hudButton(tr("Add Text"), "textformat") {
                     showsInspector = true
                     inspector = .page
                     Task { @MainActor in
@@ -236,20 +236,20 @@ extension EditorView {
 
     func cropToolbar(_ session: CropSession) -> some View {
         HStack(spacing: 8) {
-            Label(tr("Ritaglia", "Crop"), systemImage: "crop")
+            Label(tr("Crop"), systemImage: "crop")
                 .font(.system(size: 11, weight: .semibold))
             Divider().frame(height: 17)
-            action("minus", tr("Riduci immagine", "Zoom Out Photo")) { magnifyCrop(1 / 1.15) }
+            action("minus", tr("Zoom Out Photo")) { magnifyCrop(1 / 1.15) }
                 .disabled(session.crop.zoom <= 1)
             Text(session.crop.zoom.formatted(.percent.precision(.fractionLength(0))))
                 .font(.system(size: 11).monospacedDigit())
                 .frame(minWidth: 43)
-            action("plus", tr("Ingrandisci immagine", "Zoom In Photo")) { magnifyCrop(1.15) }
+            action("plus", tr("Zoom In Photo")) { magnifyCrop(1.15) }
                 .disabled(session.crop.zoom >= 12)
             Divider().frame(height: 17)
-            Button(tr("Annulla", "Cancel")) { cropSession = nil }
+            Button(tr("Cancel")) { cropSession = nil }
                 .keyboardShortcut(.cancelAction)
-            Button(tr("Fine", "Done")) { finishCrop() }
+            Button(tr("Done")) { finishCrop() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
         }
@@ -400,7 +400,7 @@ extension EditorView {
                              alignmentTargets: composition.photos.map { scaled($0.frame.intersection(composition.bounds), by: scale) }
                                 + composition.textBoxes.map { scaled($0.frame.rect(in: composition.bounds), by: scale) },
                              selected: selectedEditorial == object,
-                             moveLabel: tr("Sposta blocco", "Move Story Group"),
+                             moveLabel: tr("Move Story Group"),
                              onSelect: { activateCanvas { selectEditorial(object, on: leaf) } },
                              onNudge: { nudgeFromKeyboard($0) { selectEditorial(object, on: leaf) } },
                              onMove: { delta in moveStoryGroup(on: leaf.id, by: CGSize(width: delta.width / scale,
@@ -488,7 +488,7 @@ extension EditorView {
                 Image(systemName: "photo")
                     .font(.system(size: 25, weight: .ultraLight))
                     .foregroundStyle(pine.opacity(0.65))
-                    .accessibilityLabel(tr("Nessuna foto", "No photo"))
+                    .accessibilityLabel(tr("No photo"))
             }
     }
 
@@ -518,8 +518,8 @@ extension EditorView {
                                     shown: frame, bounds: bounds)
                 }
         }
-        .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCrop(item.id, in: leaf) }
-        .accessibilityAction(named: Text(tr("Rimuovi dalla pagina", "Remove from Page"))) {
+        .accessibilityAction(named: Text(tr("Crop Photo"))) { beginCrop(item.id, in: leaf) }
+        .accessibilityAction(named: Text(tr("Remove from Page", key: "canvas.remove_box_from_page"))) {
             deleteCanvasPhoto(item.id, from: leaf.id)
         }
     }
@@ -553,7 +553,7 @@ extension EditorView {
             : style.defaultBodyStyle.applying(book.bodyStyle(for: leaf))
         let object = EditorialObject.page(leaf.id, block.role)
         return editableEditorialObject(object, content: block.text, value: pageEditorialText(block.role, on: leaf.id),
-                                       type: type, label: title ? tr("Titolo", "Heading") : tr("Racconto", "Story"),
+                                       type: type, label: title ? tr("Heading") : tr("Story"),
                                        frame: scaled(block.frame, by: scale), bounds: bounds, scale: scale, targets: targets,
                                        textInk: title ? (overPhoto ? style.overlayTitleInk : style.titleInk)
                                            : (overPhoto ? style.overlayInk : style.ink),
@@ -607,7 +607,7 @@ extension EditorView {
                     editorialText(content, scale: scale)
                 }
             }
-            .accessibilityAction(named: Text(tr("Modifica il testo", "Edit Text")), beginEditing)
+            .accessibilityAction(named: Text(tr("Edit Text")), beginEditing)
         }
     }
 
@@ -616,7 +616,7 @@ extension EditorView {
         let active = selectedBox == box.id && leaf.id == page?.id
         let style = book.editorialStyle
         let empty = box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let label = tr("Box di testo", "Text Box")
+        let label = tr("Text Box")
         let frame = box.frame.rect(in: bounds)
         if inlineEditingBox == box.id && leaf.id == page?.id {
             positioned(inlineBoxEditor(box, leaf: leaf, scale: scale), in: frame)
@@ -656,7 +656,7 @@ extension EditorView {
                     }
                 }
             }
-            .accessibilityAction(named: Text(tr("Modifica il testo", "Edit Text"))) {
+            .accessibilityAction(named: Text(tr("Edit Text"))) {
                 beginInlineBoxEditing(box.id, in: leaf)
             }
         }
@@ -677,7 +677,7 @@ extension EditorView {
             .background(Color(cgColor: EditorialStyle.color(box.fill(paper: style.paper) ?? style.paper)).opacity(box.hidesBackground == true ? 0.7 : 1))
             .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
             .onExitCommand(perform: endInlineTextEditing)
-            .accessibilityLabel(tr("Testo del box in pagina", "Text Box on Page"))
+            .accessibilityLabel(tr("Text Box on Page"))
             .task(id: box.id) {
                 await Task.yield()
                 if NSApp.isActive && inlineEditingBox == box.id { inlineBoxFocus = box.id }

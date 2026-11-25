@@ -16,14 +16,13 @@ extension EditorView {
     var filmInspector: some View {
         VStack(alignment: .leading, spacing: 15) {
             VStack(alignment: .leading, spacing: 4) {
-                caption(tr("Look di tutto il libro", "Look for the Whole Book"))
-                intro(tr("Vale per tutte le foto che seguono il libro. Per cambiare una sola foto, selezionala.",
-                         "Applies to every photo that follows the book. To change one photo, select it."))
+                caption(tr("Look for the Whole Book"))
+                intro(tr("Applies to every photo that follows the book. To change one photo, select it."))
             }
             filmControls
             ownLooksNote(excluding: nil)
             Divider()
-            Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
+            Toggle(tr("Compare with original"), isOn: $compareOriginal)
                 .disabled(book.photos.isEmpty)
         }
     }
@@ -31,20 +30,19 @@ extension EditorView {
     /// The Film section of the Photo tab: this photo only, unless the author ticks the whole book.
     func photoFilmSection(_ photo: BookPhoto) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle(tr("Cambia in tutto il libro", "Change the whole book"), isOn: $filmAppliesToBook)
+            Toggle(tr("Change the whole book"), isOn: $filmAppliesToBook)
                 .toggleStyle(.checkbox)
             Group {
                 if filmAppliesToBook {
-                    intro(tr("Le modifiche cambiano il look del libro. Questa foto torna a seguirlo.",
-                             "Changes set the book look. This photo goes back to following it."))
+                    intro(tr("Changes set the book look. This photo goes back to following it."))
                 } else if photo.film == nil {
-                    intro(tr("Segue il look del libro (\(filmName((book.film ?? FilmSettings()).preset))). Una scelta qui vale solo per questa foto.",
-                             "Follows the book look (\(filmName((book.film ?? FilmSettings()).preset))). A choice here applies to this photo only."))
+                    intro(tr("Follows the book look (%@). A choice here applies to this photo only.",
+                             filmName((book.film ?? FilmSettings()).preset)))
                 } else {
                     HStack(alignment: .firstTextBaseline) {
-                        intro(tr("Questa foto ha un look proprio.", "This photo has its own look."))
+                        intro(tr("This photo has its own look."))
                         Spacer(minLength: 4)
-                        Button(tr("Segui il libro", "Follow Book")) {
+                        Button(tr("Follow Book")) {
                             finishFilmEdit()
                             setPhotoFilm(nil, for: photo.id)
                         }
@@ -62,15 +60,14 @@ extension EditorView {
         let own = book.photos.filter { $0.film != nil && $0.id != id }
         if !own.isEmpty {
             HStack(alignment: .firstTextBaseline) {
-                intro(tr("\(own.count) foto hanno un look proprio e non cambiano.",
-                         "\(own.count) photos have their own look and won’t change."))
+                intro(tr("%lld photos have their own look and won’t change.", own.count))
                 Spacer(minLength: 4)
-                Button(tr("Uniforma", "Match Book")) {
+                Button(tr("Match Book")) {
                     finishFilmEdit()
                     for photo in own { setPhotoFilm(nil, for: photo.id) }
                 }
                 .controlSize(.small)
-                .help(tr("Tutte le foto seguono il look del libro", "Every photo follows the book look"))
+                .help(tr("Every photo follows the book look"))
             }
         }
     }
@@ -82,7 +79,7 @@ extension EditorView {
                 filmLUTMenu
                 if let lutImportError {
                     Text(lutImportError).font(.callout).foregroundStyle(.secondary)
-                    Button(tr("Chiudi avviso", "Dismiss Message")) { self.lutImportError = nil }
+                    Button(tr("Dismiss Message")) { self.lutImportError = nil }
                         .buttonStyle(.link)
                 }
                 if currentFilm.preset == .custom,
@@ -91,10 +88,10 @@ extension EditorView {
                 }
             }
             VStack(alignment: .leading, spacing: 10) {
-                filmSlider(tr("Intensità", "Intensity"), value: \.strength)
+                filmSlider(tr("Intensity"), value: \.strength)
                     .disabled(currentFilm.preset == .original)
-                filmSlider(tr("Grana", "Grain"), value: \.grain)
-                filmSlider(tr("Dimensione grana", "Grain size"), value: \.grainSize)
+                filmSlider(tr("Grain"), value: \.grain)
+                filmSlider(tr("Grain size"), value: \.grainSize)
                     .disabled(currentFilm.grain == 0)
             }
         }
@@ -106,7 +103,7 @@ extension EditorView {
         let builtIn = filename.flatMap(BundledFilmLook.importedLook)
         let name = builtIn?.name(language: language) ?? filename.map(filmLUTName)
         let active = currentFilm.preset == .custom
-        let prompt = localized("editor.lut.choose", fallback: "Choose LUT")
+        let prompt = tr("Choose LUT")
         let title = active ? name ?? prompt : prompt
         return Menu {
             if let filename, builtIn == nil {
@@ -126,18 +123,18 @@ extension EditorView {
             }
             if let resources = Bundle.main.resourceURL, let sample = BundledFilmLook.all.first,
                (try? sample.url(in: resources).checkResourceIsReachable()) == true {
-                Section(tr("Da diapositiva standard", "From Standard Slide Film")) {
+                Section(tr("From Standard Slide Film")) {
                     bundledLooks(.slide, selected: active ? builtIn : nil, resources: resources)
                 }
-                Section(tr("Base a contrasto lineare", "Linear-Contrast Input")) {
+                Section(tr("Linear-Contrast Input")) {
                     bundledLooks(.linear, selected: active ? builtIn : nil, resources: resources)
                 }
-                Link(tr("Fonte e licenza", "Source and License"),
+                Link(tr("Source and License"),
                      destination: URL(string: "https://github.com/abpy/FujifilmCameraProfiles#licensing")!)
                 Divider()
             }
             Button(action: importFilmLUT) {
-                Label(tr("Importa LUT…", "Import LUT…"), systemImage: "square.and.arrow.down")
+                Label(tr("Import LUT…"), systemImage: "square.and.arrow.down")
             }
         } label: {
             Label {
@@ -168,10 +165,9 @@ extension EditorView {
     func bundledLookInputDescription(_ input: BundledFilmLook.Input) -> String {
         switch input {
         case .linear:
-            tr("Per immagini sviluppate con contrasto lineare.", "For images developed with linear contrast.")
+            tr("For images developed with linear contrast.")
         case .slide:
-            tr("Per immagini già sviluppate con un aspetto da diapositiva standard, come i JPEG della fotocamera.",
-               "For images already rendered with a standard slide-film look, such as in-camera JPEGs.")
+            tr("For images already rendered with a standard slide-film look, such as in-camera JPEGs.")
         }
     }
 
@@ -184,8 +180,7 @@ extension EditorView {
             }
             lutImportError = nil
         } catch {
-            lutImportError = tr("Impossibile aggiungere questa LUT al progetto.",
-                                "Couldn’t add this LUT to the project.")
+            lutImportError = tr("Couldn’t add this LUT to the project.")
         }
     }
 
@@ -233,11 +228,11 @@ extension EditorView {
 
     func filmName(_ preset: FilmPreset) -> String {
         switch preset {
-        case .original: tr("Originale", "Original")
-        case .documentary: tr("Documentario", "Documentary")
-        case .warmNegative: tr("Negativo caldo", "Warm Negative")
-        case .monochrome: tr("Monocromatico", "Monochrome")
-        case .custom: tr("LUT personalizzata", "Custom LUT")
+        case .original: tr("Original")
+        case .documentary: tr("Documentary")
+        case .warmNegative: tr("Warm Negative")
+        case .monochrome: tr("Monochrome")
+        case .custom: tr("Custom LUT")
         }
     }
 
@@ -300,7 +295,7 @@ extension EditorView {
             book.film = settings
             if let undoManager {
                 undoTarget.registerBookFilm(undoManager, binding: $book, bookID: book.id, previous: previous,
-                                            name: tr("Modifica pellicola", "Change Film Look"))
+                                            name: tr("Change Film Look"))
             }
         case let .photo(id):
             setPhotoFilm(settings, for: id)
@@ -314,15 +309,14 @@ extension EditorView {
         book.photos[index].film = settings
         if let undoManager {
             undoTarget.registerPhotoValue(undoManager, binding: $book, bookID: book.id, photoID: id,
-                                         key: \.film, previous: previous, name: tr("Modifica pellicola", "Change Film Look"))
+                                         key: \.film, previous: previous, name: tr("Change Film Look"))
         }
     }
 
     func importFilmLUT() {
         let panel = NSOpenPanel()
-        panel.title = tr("Importa LUT", "Import LUT")
-        panel.message = tr("Scegli un file .cube 3D o un PNG Hald CLUT.",
-                           "Choose a 3D .cube file or a Hald CLUT PNG.")
+        panel.title = tr("Import LUT")
+        panel.message = tr("Choose a 3D .cube file or a Hald CLUT PNG.")
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [UTType(filenameExtension: "cube"), .png].compactMap { $0 }
@@ -339,8 +333,7 @@ extension EditorView {
                     $0.lutFilename = filename
                 }
             } catch {
-                lutImportError = tr("Verifica che il file sia una LUT .cube 3D o un PNG Hald CLUT valido.",
-                                    "Check that the file is a valid 3D .cube LUT or Hald CLUT PNG.")
+                lutImportError = tr("Check that the file is a valid 3D .cube LUT or Hald CLUT PNG.")
             }
         }
     }
