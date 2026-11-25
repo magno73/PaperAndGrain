@@ -420,7 +420,10 @@ enum BookPDF {
             case let .photo(id):
                 guard let index = composition.photos.firstIndex(where: { $0.id == id }) else { continue }
                 let slot = composition.photos[index]
-                let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
+                // A photo slips under the neighbors painted after it, whatever the slot order.
+                let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) {
+                    composition.rank(.photo(composition.photos[$0].id)) > composition.rank(layer)
+                } : Underlap()
                 try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, images: images,
                           book: book, directory: directory, context: context, underlap: underlap,
                           trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
@@ -463,22 +466,32 @@ enum BookPDF {
         }
     }
 
-    private static func tileUnderlap(at index: Int, in slots: [CGRect]) -> CGSize {
+    /// How far a photo extends under each neighbor painted after it.
+    private struct Underlap: Equatable {
+        var top: CGFloat = 0, left: CGFloat = 0, bottom: CGFloat = 0, right: CGFloat = 0
+    }
+
+    private static func tileUnderlap(at index: Int, in slots: [CGRect], paintedLater: (Int) -> Bool) -> Underlap {
         let frame = slots[index]
-        let following = slots.dropFirst(index + 1)
+        let later = slots.indices.filter { $0 != index && paintedLater($0) }.map { slots[$0] }
         let tolerance: CGFloat = 0.000001
-        let right = following.contains {
-            abs($0.minX - frame.maxX) < tolerance && $0.maxY > frame.minY + tolerance && $0.minY < frame.maxY - tolerance
+        func overlapsVertically(_ other: CGRect) -> Bool {
+            other.maxY > frame.minY + tolerance && other.minY < frame.maxY - tolerance
         }
-        let below = following.contains {
-            abs($0.minY - frame.maxY) < tolerance && $0.maxX > frame.minX + tolerance && $0.minX < frame.maxX - tolerance
+        func overlapsHorizontally(_ other: CGRect) -> Bool {
+            other.maxX > frame.minX + tolerance && other.minX < frame.maxX - tolerance
         }
         // Cover the reader's independently antialiased photo edges, including at thumbnail scale.
-        return CGSize(width: right ? 7 : 0, height: below ? 7 : 0)
+        let reach: CGFloat = 7
+        return Underlap(
+            top: later.contains { abs($0.maxY - frame.minY) < tolerance && overlapsHorizontally($0) } ? reach : 0,
+            left: later.contains { abs($0.maxX - frame.minX) < tolerance && overlapsVertically($0) } ? reach : 0,
+            bottom: later.contains { abs($0.minY - frame.maxY) < tolerance && overlapsHorizontally($0) } ? reach : 0,
+            right: later.contains { abs($0.minX - frame.maxX) < tolerance && overlapsVertically($0) } ? reach : 0)
     }
 
     private static func paint(_ photo: BookPhoto, rect: CGRect, fills: Bool, crop: PhotoCrop, images: ImageOutput,
-                              book: Book, directory: URL, context: CGContext, underlap: CGSize = .zero,
+                              book: Book, directory: URL, context: CGContext, underlap: Underlap = Underlap(),
                               trim: CGRect, outer: CGRect) throws {
         guard !rect.isEmpty else { return }
         let source = BookStorage.assetURL(filename: photo.filename, in: directory)
@@ -494,21 +507,27 @@ enum BookPDF {
         let area = fills ? bleedArea(of: rect, trim: trim, outer: outer) : rect
         let (padded, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
         let image = jpegBacked(padded, quality: images.quality)
-        if underlap != .zero {
-            let seams = CGMutablePath()
+        if underlap != Underlap() {
             // The seams run through the bleed too, where the neighbors are also carried out.
-            if underlap.width > 0 {
-                seams.addRect(CGRect(x: area.maxX - underlap.width, y: area.minY, width: 2 * underlap.width,
-                                     height: area.height + underlap.height))
+            let reach = CGRect(x: area.minX - underlap.left, y: area.minY - underlap.top,
+                               width: area.width + underlap.left + underlap.right,
+                               height: area.height + underlap.top + underlap.bottom)
+            let seams = CGMutablePath()
+            if underlap.left > 0 {
+                seams.addRect(CGRect(x: reach.minX, y: reach.minY, width: 2 * underlap.left, height: reach.height))
             }
-            if underlap.height > 0 {
-                seams.addRect(CGRect(x: area.minX, y: area.maxY - underlap.height, width: area.width,
-                                     height: 2 * underlap.height))
+            if underlap.right > 0 {
+                seams.addRect(CGRect(x: reach.maxX - 2 * underlap.right, y: reach.minY, width: 2 * underlap.right,
+                                     height: reach.height))
             }
-            let low = CGPoint(x: min(placement.minX, area.minX), y: min(placement.minY, area.minY))
-            let extended = CGRect(x: low.x, y: low.y,
-                                  width: max(placement.maxX, area.maxX + underlap.width) - low.x,
-                                  height: max(placement.maxY, area.maxY + underlap.height) - low.y)
+            if underlap.top > 0 {
+                seams.addRect(CGRect(x: reach.minX, y: reach.minY, width: reach.width, height: 2 * underlap.top))
+            }
+            if underlap.bottom > 0 {
+                seams.addRect(CGRect(x: reach.minX, y: reach.maxY - 2 * underlap.bottom, width: reach.width,
+                                     height: 2 * underlap.bottom))
+            }
+            let extended = placement.union(reach)
             context.saveGState()
             context.addPath(seams)
             context.clip()

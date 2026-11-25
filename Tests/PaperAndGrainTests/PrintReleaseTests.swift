@@ -318,6 +318,37 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted(), ["assets", "other", "print"])
     }
 
+    // MARK: B7 seams follow the paint order
+
+    func testSeamUnderlapFollowsTheLayerOrder() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let red = try PrintFixtures.solid(in: folder, name: "red", red: 220, green: 20, blue: 20)
+        let blue = try PrintFixtures.solid(in: folder, name: "blue", red: 20, green: 20, blue: 220)
+        var page = BookPage(photoIDs: [red.id, blue.id], arrangement: .bleedTwoAcross)
+        var book = Book(title: "Seams", photos: [red, blue], pages: [page])
+        book.printSettings = PrintSettings(bleedMM: 0)
+        let mid = book.format.pageSize.width / 2
+        func colors() throws -> (left: UInt8, right: UInt8) {
+            let package = folder.appendingPathComponent(UUID().uuidString)
+            try BookPDF.writePrint(book, directory: folder, to: package)
+            let raster = try PrintFixtures.raster(package.appendingPathComponent("Interior.pdf"), page: 1, scale: 2)
+            let row = raster.height / 2
+            // Red channel 4 pt either side of the shared edge.
+            return (raster.bytes[(row * raster.width + Int((mid - 4) * 2)) * 4],
+                    raster.bytes[(row * raster.width + Int((mid + 4) * 2)) * 4])
+        }
+        var sides = try colors()
+        XCTAssertGreaterThan(sides.left, 180)
+        XCTAssertLessThan(sides.right, 60)
+        // The left photo brought to the front must not spread over the right one.
+        page.layerOrder = [.photo(blue.id), .story, .photo(red.id)]
+        book.pages = [page]
+        sides = try colors()
+        XCTAssertGreaterThan(sides.left, 180)
+        XCTAssertLessThan(sides.right, 60, "the front photo covers its neighbor")
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -428,6 +459,17 @@ enum PrintFixtures {
         let photo = BookPhoto(name: name + ".png", filename: name + ".png", pixelWidth: width, pixelHeight: height)
         let image = try gradient(width: width, height: height)
         try writePNG(image, to: BookStorage.assetURL(filename: photo.filename, in: folder))
+        return photo
+    }
+
+    static func solid(in folder: URL, name: String, red: UInt8, green: UInt8, blue: UInt8) throws -> BookPhoto {
+        let photo = BookPhoto(name: name + ".png", filename: name + ".png", pixelWidth: 40, pixelHeight: 60)
+        let context = try XCTUnwrap(CGContext(data: nil, width: 40, height: 60, bitsPerComponent: 8, bytesPerRow: 160,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.setFillColor(CGColor(srgbRed: CGFloat(red) / 255, green: CGFloat(green) / 255, blue: CGFloat(blue) / 255, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 40, height: 60))
+        try writePNG(try XCTUnwrap(context.makeImage()), to: BookStorage.assetURL(filename: photo.filename, in: folder))
         return photo
     }
 
