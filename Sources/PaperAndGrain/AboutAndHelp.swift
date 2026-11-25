@@ -50,7 +50,7 @@ enum AboutPanel {
             .link: URL(string: repository) as Any
         ]) { $1 }))
         credits.append(NSAttributedString(
-            string: italian ? "LUT in stile Fujifilm di abpy, CC BY-NC-SA 4.0." : "Fujifilm-style LUTs by abpy, CC BY-NC-SA 4.0.",
+            string: italian ? "LUT di emulazione pellicola di abpy, CC BY-NC-SA 4.0." : "Film-emulation LUTs by abpy, CC BY-NC-SA 4.0.",
             attributes: base.merging([.foregroundColor: NSColor.secondaryLabelColor]) { $1 }))
         NSApp.activate()
         NSApp.orderFrontStandardAboutPanel(options: [

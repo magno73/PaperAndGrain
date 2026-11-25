@@ -86,8 +86,8 @@ extension EditorView {
                         .buttonStyle(.link)
                 }
                 if currentFilm.preset == .custom,
-                   let selected = currentFilm.lutFilename.flatMap(FujifilmFilmLook.importedLook) {
-                    intro(fujifilmInputDescription(selected.input))
+                   let selected = currentFilm.lutFilename.flatMap(BundledFilmLook.importedLook) {
+                    intro(bundledLookInputDescription(selected.input))
                 }
             }
             VStack(alignment: .leading, spacing: 10) {
@@ -103,8 +103,8 @@ extension EditorView {
 
     var filmLUTMenu: some View {
         let filename = currentFilm.lutFilename
-        let builtIn = filename.flatMap(FujifilmFilmLook.importedLook)
-        let name = builtIn?.name ?? filename.map(filmLUTName)
+        let builtIn = filename.flatMap(BundledFilmLook.importedLook)
+        let name = builtIn?.name(language: language) ?? filename.map(filmLUTName)
         let active = currentFilm.preset == .custom
         let prompt = localized("editor.lut.choose", fallback: "Choose LUT")
         let title = active ? name ?? prompt : prompt
@@ -124,13 +124,13 @@ extension EditorView {
                 }
                 Divider()
             }
-            if let resources = Bundle.main.resourceURL, let sample = FujifilmFilmLook.all.first,
+            if let resources = Bundle.main.resourceURL, let sample = BundledFilmLook.all.first,
                (try? sample.url(in: resources).checkResourceIsReachable()) == true {
-                Section(tr("Da Provia", "From Provia")) {
-                    fujifilmLooks(.provia, selected: active ? builtIn : nil, resources: resources)
+                Section(tr("Da diapositiva standard", "From Standard Slide Film")) {
+                    bundledLooks(.slide, selected: active ? builtIn : nil, resources: resources)
                 }
                 Section(tr("Base a contrasto lineare", "Linear-Contrast Input")) {
-                    fujifilmLooks(.linear, selected: active ? builtIn : nil, resources: resources)
+                    bundledLooks(.linear, selected: active ? builtIn : nil, resources: resources)
                 }
                 Link(tr("Fonte e licenza", "Source and License"),
                      destination: URL(string: "https://github.com/abpy/FujifilmCameraProfiles#licensing")!)
@@ -153,28 +153,29 @@ extension EditorView {
         .accessibilityValue(active ? name ?? "" : "")
     }
 
-    func fujifilmLooks(_ input: FujifilmFilmLook.Input, selected: FujifilmFilmLook?,
+    func bundledLooks(_ input: BundledFilmLook.Input, selected: BundledFilmLook?,
                                resources: URL) -> some View {
-        ForEach(FujifilmFilmLook.all.filter { $0.input == input }) { look in
+        ForEach(BundledFilmLook.all.filter { $0.input == input }) { look in
             Button {
                 applyBuiltInLUT(look, resources: resources)
             } label: {
-                if look == selected { Label(look.name, systemImage: "checkmark") }
-                else { Text(look.name) }
+                if look == selected { Label(look.name(language: language), systemImage: "checkmark") }
+                else { Text(look.name(language: language)) }
             }
         }
     }
 
-    func fujifilmInputDescription(_ input: FujifilmFilmLook.Input) -> String {
+    func bundledLookInputDescription(_ input: BundledFilmLook.Input) -> String {
         switch input {
         case .linear:
             tr("Per immagini sviluppate con contrasto lineare.", "For images developed with linear contrast.")
-        case .provia:
-            tr("Per immagini già sviluppate con Provia.", "For images already developed with Provia.")
+        case .slide:
+            tr("Per immagini già sviluppate con un aspetto da diapositiva standard, come i JPEG della fotocamera.",
+               "For images already rendered with a standard slide-film look, such as in-camera JPEGs.")
         }
     }
 
-    func applyBuiltInLUT(_ look: FujifilmFilmLook, resources: URL) {
+    func applyBuiltInLUT(_ look: BundledFilmLook, resources: URL) {
         do {
             let filename = try BookStorage.importBuiltInLUT(look, resources: resources, in: directory)
             setFilm {

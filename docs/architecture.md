@@ -58,7 +58,7 @@ Lo scambio usa la posizione del puntatore nel canvas e si attiva all’interno d
 
 Il ridimensionamento conserva l’angolo opposto. Le foto mantengono le proporzioni e le maniglie del ritaglio possono agganciare un asse indipendentemente dall’altro. Il monitor della finestra inoltra il clic dopo il rilascio del pulsante. La mappa di selezione usa le cornici già calcolate dal canvas, nell’ordine di disegno. Le scorciatoie rispettano i campi di testo attivi. Il clic nella libreria risolve le coordinate della miniatura e mantiene la modalità aperta dell’ispettore.
 
-Le LUT Fujifilm incluse sono risorse sRGB. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini sviluppate con Provia. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
+Le LUT di emulazione pellicola incluse (`Resources/FilmLooks`) sono risorse sRGB con nomi descrittivi. Il catalogo distingue le LUT per contrasto lineare da quelle per immagini già sviluppate con un aspetto da diapositiva standard. Alla selezione, il pacchetto riceve la copia CUBE con lo stesso meccanismo di denominazione delle LUT importate. Il render condiviso dell’editor e del PDF continua a leggere la LUT dal pacchetto.
 
 Le miniature usano `PageComposition` per disegnare ogni foto nella cornice e con il ritaglio effettivi. Il navigatore mantiene le pagine affiancate anche in vista singola. Il trascinamento è associato al singolo `BookPage`, compresi i panorami che occupano due pagine fisiche.
 

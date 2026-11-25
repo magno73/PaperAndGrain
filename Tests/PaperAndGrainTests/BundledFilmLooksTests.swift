@@ -3,17 +3,25 @@ import Foundation
 import XCTest
 @testable import PaperAndGrain
 
-final class FujifilmFilmLooksTests: XCTestCase {
+final class BundledFilmLooksTests: XCTestCase {
     private let resources = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         .appendingPathComponent("Resources", isDirectory: true)
 
     func testCatalogCoversTheBundledSRGBCubesAndLoadsEachOne() throws {
-        let catalog = FujifilmFilmLook.all
+        let catalog = BundledFilmLook.all
         XCTAssertEqual(catalog.filter { $0.input == .linear }.count, 11)
-        XCTAssertEqual(catalog.filter { $0.input == .provia }.count, 3)
+        XCTAssertEqual(catalog.filter { $0.input == .slide }.count, 3)
         XCTAssertEqual(Set(catalog.map(\.id)).count, catalog.count)
-        let assets = try FileManager.default.contentsOfDirectory(at: resources.appendingPathComponent("FujifilmFilmLooks"),
+        // Display names describe the look and never name a film stock.
+        for look in catalog {
+            for name in [look.english, look.italian, look.filename] {
+                for mark in ["provia", "velvia", "astia", "chrome classic", "classic neg", "pro neg", "eterna", "reala", "nostalgic", "fuji"] {
+                    XCTAssertFalse(name.lowercased().contains(mark), name)
+                }
+            }
+        }
+        let assets = try FileManager.default.contentsOfDirectory(at: resources.appendingPathComponent("FilmLooks"),
                                                                  includingPropertiesForKeys: nil)
         XCTAssertEqual(Set(assets.filter { $0.pathExtension == "cube" }.map(\.lastPathComponent)),
                        Set(catalog.map(\.filename)))
@@ -24,12 +32,12 @@ final class FujifilmFilmLooksTests: XCTestCase {
             let bytes = try Data(contentsOf: url)
             let digest = SHA256.hash(data: bytes).prefix(8).map { String(format: "%02x", $0) }.joined()
             let imported = "\(url.deletingPathExtension().lastPathComponent)-\(digest).cube"
-            XCTAssertEqual(FujifilmFilmLook.importedLook(filename: imported), look, look.filename)
+            XCTAssertEqual(BundledFilmLook.importedLook(filename: imported), look, look.filename)
         }
     }
 
     func testProjectImportRetainsLookIdentityAndOriginalBytes() throws {
-        let look = try XCTUnwrap(FujifilmFilmLook.all.first { $0.input == .provia })
+        let look = try XCTUnwrap(BundledFilmLook.all.first { $0.input == .slide })
         let source = look.url(in: resources)
         let project = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: project) }
@@ -39,10 +47,10 @@ final class FujifilmFilmLooksTests: XCTestCase {
         try BookStorage.write(book, to: project)
         let reopened = try BookStorage.read(from: project)
         let filename = try XCTUnwrap(reopened.film?.lutFilename)
-        XCTAssertEqual(FujifilmFilmLook.importedLook(filename: filename), look)
+        XCTAssertEqual(BundledFilmLook.importedLook(filename: filename), look)
         XCTAssertEqual(try Data(contentsOf: BookStorage.lutURL(filename: filename, in: project)),
                        try Data(contentsOf: source))
-        XCTAssertNil(FujifilmFilmLook.importedLook(filename: "\(source.deletingPathExtension().lastPathComponent)-0000000000000000.cube"))
-        XCTAssertNil(FujifilmFilmLook.importedLook(filename: "personal-look.cube"))
+        XCTAssertNil(BundledFilmLook.importedLook(filename: "\(source.deletingPathExtension().lastPathComponent)-0000000000000000.cube"))
+        XCTAssertNil(BundledFilmLook.importedLook(filename: "personal-look.cube"))
     }
 }

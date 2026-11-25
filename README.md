@@ -14,7 +14,7 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 - **Twelve book templates in three families.** **Classics**, **Studio** and **Photobook**, the last drawn from award-winning photobooks. A template sets paper, type, margins, page rhythm, cover and spine.
 - **Page layouts.** An automatic gallery, fixed layouts with margins or full bleed, full spreads and text-over-photo pages. Photos, text boxes and stories can be moved, resized, cropped, aligned with guides and stacked in front of or behind each other.
 - **Stories.** Write next to your photos. **Suggested photos** finds pictures that match the text, using on-device labels in English and Italian.
-- **Photo editing.** Auto enhance, light, color, black & white, detail, curves, levels and selective color. Film looks: built-in presets, 14 Fujifilm-style LUTs and your own `.cube` or HaldCLUT files, for the whole book or a single photo.
+- **Photo editing.** Auto enhance, light, color, black & white, detail, curves, levels and selective color. Film looks: built-in presets, 14 film-emulation LUTs and your own `.cube` or HaldCLUT files, for the whole book or a single photo.
 - **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and a Pixartprinting 21 × 21 cm profile. A preflight check flags photos below the target resolution.
 - **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
 
@@ -122,7 +122,7 @@ Select a photo. The **Photo** tab groups **Adjust**, **Film** and **Analysis** i
 - **Adjust:** **Auto Enhance** analyses the photo on your Mac and proposes values you can edit. Then come light, color and white balance, black & white, detail and sharpness, noise reduction, vignette, curves, levels and selective color. **Compare with original** shows the untouched file. Adjustments follow the photo everywhere it is used, and into the PDF.
 - **Film for one photo:** with a photo selected, a film choice changes **only that photo**. Tick **Change the whole book** to change the book look instead; the photo then follows the book again. **Follow Book** removes a photo's own look.
 - **Film for the whole book:** with nothing selected, the **Film** tab sets the look for every photo that follows the book. It also tells you how many photos have their own look, and **Match Book** brings them back.
-- **LUTs:** **Choose LUT** lists 14 sRGB Fujifilm-style LUTs by abpy and imports your own 3D `.cube` or HaldCLUT `.png`. Imported LUTs are copied into the project.
+- **LUTs:** **Choose LUT** lists 14 sRGB film-emulation LUTs by abpy, with descriptive names such as Natural Slide or Street Negative, and imports your own 3D `.cube` or HaldCLUT `.png`. Imported LUTs are copied into the project.
 
 Every look choice or slider drag is a single ⌘Z step.
 
@@ -169,6 +169,6 @@ The developer documentation is written in Italian:
 
 ## Licensing
 
-The Fujifilm-style LUTs in `Resources/FujifilmFilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FujifilmFilmLooks/CREDITS.md). The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
+The film-emulation LUTs in `Resources/FilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FilmLooks/CREDITS.md) for the original file of each look. The app names the looks descriptively and uses no film or camera trademark. The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
 
 The source code is available under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may use, study, modify and share it for any noncommercial purpose: personal projects, research, education, nonprofits. Selling the app or using the code in a commercial product is not allowed. For commercial licensing, write to [marco@magno.me](mailto:marco@magno.me). The bundled LUTs keep their own license, described above.

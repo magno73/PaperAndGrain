@@ -14,7 +14,7 @@ enum BookCLIMedia {
         "photo-preview SOURCE.papergrain --photo UUID --output FILE.png [--max-pixels N] [--original]",
         "auto-enhance SOURCE.papergrain --photo UUID --output OUTPUT.papergrain",
         "film-looks",
-        "import-lut SOURCE.papergrain (--file PATH | --fujifilm LOOK_ID) [--photo UUID] --output OUTPUT.papergrain",
+        "import-lut SOURCE.papergrain (--file PATH | --builtin LOOK_ID) [--photo UUID] --output OUTPUT.papergrain",
         "export-pdf SOURCE.papergrain --profile proof|print|pixart --output PATH [--spine-mm MM]",
     ]
 
@@ -56,11 +56,11 @@ enum BookCLIMedia {
             return try enhance(options, currentDirectory: currentDirectory)
         case "film-looks":
             _ = try Options(arguments)
-            return try BookCLI.encode(FilmCatalog(presets: FilmPreset.allCases, fujifilm: FujifilmFilmLook.all.map {
-                .init(id: $0.id, name: $0.name, input: $0.input == .linear ? "linear" : "provia")
+            return try BookCLI.encode(FilmCatalog(presets: FilmPreset.allCases, builtIn: BundledFilmLook.all.map {
+                .init(id: $0.id, name: $0.english, input: $0.input == .linear ? "linear" : "slide")
             }))
         case "import-lut":
-            options = try Options(arguments, positional: true, values: ["--file", "--fujifilm", "--photo", "--output"])
+            options = try Options(arguments, positional: true, values: ["--file", "--builtin", "--photo", "--output"])
             return try importLUT(options, currentDirectory: currentDirectory)
         case "export-pdf":
             options = try Options(arguments, positional: true, values: ["--profile", "--output", "--spine-mm"])
@@ -129,7 +129,7 @@ enum BookCLIMedia {
         }
 
         let presets: [FilmPreset]
-        let fujifilm: [Look]
+        let builtIn: [Look]
     }
 
     private struct ImageResult: Encodable {
@@ -287,9 +287,9 @@ enum BookCLIMedia {
         let output = try options.url("--output", relativeTo: currentDirectory)
         let photoID = try options["--photo"].map { _ in try options.uuid("--photo") }
         let file = options["--file"].map { BookCLI.url($0, relativeTo: currentDirectory) }
-        let lookID = options["--fujifilm"]
+        let lookID = options["--builtin"]
         guard (file != nil) != (lookID != nil) else {
-            throw BookCLI.Failure("Specify exactly one of --file and --fujifilm")
+            throw BookCLI.Failure("Specify exactly one of --file and --builtin")
         }
         var imported: String?
         let book = try BookCLIEditing.derive(source: source, output: output) { book, staging in
@@ -297,10 +297,10 @@ enum BookCLIMedia {
             if let file {
                 filename = try BookStorage.importLUT(file, in: staging)
             } else {
-                guard let look = FujifilmFilmLook.all.first(where: { $0.id == lookID }),
+                guard let look = BundledFilmLook.all.first(where: { $0.id == lookID }),
                       let resources = Bundle.main.resourceURL,
                       FileManager.default.fileExists(atPath: look.url(in: resources).path) else {
-                    throw BookCLI.Failure("Fujifilm LUT unavailable. Use an ID from film-looks and the application bundle")
+                    throw BookCLI.Failure("Built-in LUT unavailable. Use an ID from film-looks and the application bundle")
                 }
                 filename = try BookStorage.importBuiltInLUT(look, resources: resources, in: staging)
             }

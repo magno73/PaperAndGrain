@@ -20,7 +20,7 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `BookTemplate.swift` definisce carta, geometria editoriale e tipi condivisi tra anteprima ed esportazione. `EditorialTypography.swift` risolve gli stili del libro e le modifiche locali. `PageArrangement.swift` definisce le composizioni della singola pagina. [Modelli](docs/templates.md) documenta le scelte visive.
 - `FilmPipeline.swift` condivide sviluppo colore, LUT e grana tra editor e stampa.
 - `PhotoAdjustments.swift` analizza la foto e applica le regolazioni prima del look pellicola. `PhotoAdjustmentsPanel.swift` espone gli stessi valori nell’ispettore.
-- `FujifilmFilmLooks.swift` identifica le LUT Fujifilm incluse. Aggiorna catalogo, verifiche di integrità e [attribuzione](Resources/FujifilmFilmLooks/CREDITS.md) insieme alle risorse.
+- `BundledFilmLooks.swift` elenca le LUT di emulazione pellicola incluse in `Resources/FilmLooks`, con nomi descrittivi senza marchi di pellicole o fotocamere. Aggiorna catalogo, verifiche di integrità e [attribuzione](Resources/FilmLooks/CREDITS.md) insieme alle risorse.
 - `BookSettingsView.swift`, `PDFExportChooser.swift`, `PixartPrintProfile.swift` e `BookPDF.swift` gestiscono impostazioni, selezione del profilo, formato e stampa. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
 
 I sorgenti Swift sono in `Sources/PaperAndGrain/`. `scripts/build-app.sh` compila e prepara il bundle da collaudare e lo copia sempre in `~/Applications/Paper & Grain.app`. Indica all’utente quel percorso dopo ogni build.

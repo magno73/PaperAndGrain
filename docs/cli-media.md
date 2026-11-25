@@ -33,8 +33,8 @@ La specifica accetta solo `version`, `files` e `photos`, e `photos` solo `albumI
 
 - `photo-preview SOURCE.papergrain --photo UUID --output FILE.png [--max-pixels N] [--original]` esporta un PNG del contenuto della foto con le regolazioni e il look effettivi. Il limite del lato lungo è 1600 pixel per impostazione predefinita e accetta valori da 1 a 8192. Usa `--original` per vedere la foto senza le regolazioni e il look. Il risultato comprende il percorso e le dimensioni effettive.
 - `auto-enhance SOURCE.papergrain --photo UUID --output OUTPUT.papergrain` applica la regolazione automatica dell’app alla foto indicata. Restituisce percorso, ID del progetto e i dati della foto aggiornata.
-- `film-looks` elenca i preset e le LUT Fujifilm, compreso lo sviluppo di partenza previsto (`linear` o `provia`).
-- `import-lut SOURCE.papergrain (--file PATH | --fujifilm LOOK_ID) [--photo UUID] --output OUTPUT.papergrain` installa e applica una LUT 3D `.cube`, Hald CLUT `.png` o Fujifilm inclusa nel bundle. Se ometti `--photo`, la applica al libro. Restituisce percorso, ID del progetto e il nome del nuovo file LUT nel pacchetto.
+- `film-looks` elenca i preset e le LUT incluse (campo `builtIn`: `id`, nome inglese e sviluppo di partenza previsto, `linear` o `slide`).
+- `import-lut SOURCE.papergrain (--file PATH | --builtin LOOK_ID) [--photo UUID] --output OUTPUT.papergrain` installa e applica una LUT 3D `.cube`, Hald CLUT `.png` o una LUT inclusa nel bundle (`LOOK_ID` da `film-looks`, per esempio `natural-slide`). Se ometti `--photo`, la applica al libro. Restituisce percorso, ID del progetto e il nome del nuovo file LUT nel pacchetto.
 
 ## PDF
 

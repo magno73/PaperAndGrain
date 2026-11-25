@@ -137,18 +137,18 @@ enum BookStorage {
         return try installLUT(Data(contentsOf: source), named: source.lastPathComponent, in: directory)
     }
 
-    static func importBuiltInLUT(_ look: FujifilmFilmLook, resources: URL, in directory: URL) throws -> String {
+    static func importBuiltInLUT(_ look: BundledFilmLook, resources: URL, in directory: URL) throws -> String {
         let data = try Data(contentsOf: look.url(in: resources))
         return try installLUT(data, named: look.filename, in: directory, matching: look)
     }
 
     private static func installLUT(_ data: Data, named name: String, in directory: URL,
-                                   matching builtIn: FujifilmFilmLook? = nil) throws -> String {
+                                   matching builtIn: BundledFilmLook? = nil) throws -> String {
         let hash = SHA256.hash(data: data).prefix(8).map { String(format: "%02x", $0) }.joined()
         let suffix = (name as NSString).pathExtension.lowercased()
         let title = (name as NSString).deletingPathExtension.replacingOccurrences(of: ":", with: "_")
         let filename = "\(title.prefix(72))-\(hash).\(suffix)"
-        if let builtIn, FujifilmFilmLook.importedLook(filename: filename) != builtIn {
+        if let builtIn, BundledFilmLook.importedLook(filename: filename) != builtIn {
             throw CocoaError(.fileReadCorruptFile)
         }
         let destination = lutURL(filename: filename, in: directory)
@@ -176,9 +176,7 @@ enum BookStorage {
     private static func draftsDirectory(create: Bool) throws -> URL {
         let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                     appropriateFor: nil, create: create)
-        // Redesign builds keep their own drafts so the main app's books are never touched.
-        let folder = Bundle.main.bundleIdentifier?.hasSuffix(".redesign") == true ? "PaperAndGrain-Redesign" : "PaperAndGrain"
-        return support.appendingPathComponent("\(folder)/Drafts", isDirectory: true)
+        return support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)
     }
 
     private static func validFilename(_ name: String) -> Bool {
