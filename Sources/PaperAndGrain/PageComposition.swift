@@ -297,12 +297,16 @@ private extension BookTemplate {
             let columns = count > 4 ? 3 : 2
             let rows = (count + columns - 1) / columns
             let area = place(0, 0.06, 1, 0.88)
+            let cellWidth = area.width / CGFloat(columns)
+            let cellHeight = area.height / CGFloat(rows)
+            // The first photo spans the cells a partial grid would leave empty, so no hole remains.
+            let span = rows * columns - count + 1
             return (0..<count).map { index in
-                let cellWidth = area.width / CGFloat(columns)
-                let cellHeight = area.height / CGFloat(rows)
-                return CGRect(x: area.minX + CGFloat(index % columns) * cellWidth,
-                              y: area.minY + CGFloat(index / columns) * cellHeight,
-                              width: cellWidth - min(gap, cellWidth * 0.12),
+                let cell = index == 0 ? 0 : index + span - 1
+                let width = CGFloat(index == 0 ? span : 1) * cellWidth
+                return CGRect(x: area.minX + CGFloat(cell % columns) * cellWidth,
+                              y: area.minY + CGFloat(cell / columns) * cellHeight,
+                              width: width - min(gap, cellWidth * 0.12),
                               height: cellHeight - min(gap, cellHeight * 0.12))
             }
         case .berlinQuarter:
@@ -319,6 +323,56 @@ private extension BookTemplate {
                             place(0.54, 0.58, 0.34, 0.25)]
             default: return nil
             }
+        case .monograph:
+            // One print per page in a constant box, as in a gallery monograph.
+            switch count {
+            case 1: return [place(0.04, 0.10, 0.92, 0.74)]
+            case 2: return [place(0.10, 0.02, 0.80, 0.45), place(0.10, 0.53, 0.80, 0.45)]
+            default: return nil
+            }
+        case .postcard:
+            // The same picture box on every page; more photos stack inside it.
+            let box = place(0.06, 0.05, 0.88, 0.66)
+            switch count {
+            case 1: return [box]
+            case 2:
+                let height = (box.height - gap) / 2
+                return [CGRect(x: box.minX, y: box.minY, width: box.width, height: height),
+                        CGRect(x: box.minX, y: box.minY + height + gap, width: box.width, height: height)]
+            case 3:
+                let top = box.height * 0.58
+                let half = (box.width - gap) / 2
+                let lower = box.height - top - gap
+                return [CGRect(x: box.minX, y: box.minY, width: box.width, height: top),
+                        CGRect(x: box.minX, y: box.minY + top + gap, width: half, height: lower),
+                        CGRect(x: box.minX + half + gap, y: box.minY + top + gap, width: half, height: lower)]
+            default: return nil
+            }
+        case .nocturne:
+            switch count {
+            case 1: return [place(0.08, 0.14, 0.84, 0.62)]
+            case 2: return [place(0.02, 0.24, 0.47, 0.44), place(0.51, 0.24, 0.47, 0.44)]
+            default: return nil
+            }
+        case .kodachrome:
+            // Framed prints that rhyme in pairs, never cropped to the trim.
+            switch count {
+            case 1: return [place(0.07, 0.16, 0.86, 0.64)]
+            case 2: return [place(0.03, 0.06, 0.94, 0.42), place(0.03, 0.54, 0.94, 0.42)]
+            case 3: return [place(0.03, 0.04, 0.94, 0.44), place(0.03, 0.54, 0.45, 0.40), place(0.52, 0.54, 0.45, 0.40)]
+            default: return nil
+            }
+        case .roadLog:
+            // A contact sheet: tight, regular cells in travel order.
+            let columns = count <= 4 ? 2 : 3
+            let rows = (count + columns - 1) / columns
+            let area = place(0, 0.02, 1, 0.94)
+            let width = (area.width - gap * CGFloat(columns - 1)) / CGFloat(columns)
+            let height = min(width * 0.75, (area.height - gap * CGFloat(rows - 1)) / CGFloat(rows))
+            return (0..<count).map { index in
+                CGRect(x: area.minX + CGFloat(index % columns) * (width + gap),
+                       y: area.minY + CGFloat(index / columns) * (height + gap), width: width, height: height)
+            }
         default: return nil
         }
     }
@@ -329,6 +383,11 @@ private extension BookTemplate {
         case .swissGrid: panel = CGRect(x: 0, y: 0.70, width: 0.90, height: 0.30)
         case .berlinQuarter: panel = CGRect(x: 0.12, y: 0.035, width: 0.88, height: 0.31)
         case .japaneseInterval: panel = CGRect(x: 0.33, y: 0.66, width: 0.67, height: 0.34)
+        case .monograph: panel = CGRect(x: 0, y: 0.74, width: 0.62, height: 0.26)
+        case .postcard: panel = CGRect(x: 0, y: 0, width: 0.78, height: 0.28)
+        case .nocturne: panel = CGRect(x: 0.20, y: 0.70, width: 0.60, height: 0.30)
+        case .kodachrome: panel = CGRect(x: 0.40, y: 0.72, width: 0.60, height: 0.28)
+        case .roadLog: panel = CGRect(x: 0, y: 0.72, width: 0.70, height: 0.28)
         default: return nil
         }
         guard !safe.isEmpty else { return nil }
@@ -362,7 +421,7 @@ struct BookCoverGeometry {
         let h = size.height
         let inset = book.contentInsetPoints
         let panel = bounds.insetBy(dx: inset, dy: inset)
-        let style = book.editorialStyle
+        let style = front && book.template != nil ? book.editorialStyle.coverStyle : book.editorialStyle
         let titleText = front ? book.cover?.title ?? book.title : book.cover?.backText ?? ""
         let override = book.coverTextStyle(front: front)
         let manual = (front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame)?.rect(in: bounds)
@@ -391,11 +450,20 @@ struct BookCoverGeometry {
             band = nil
             rule = front ? style.coverRule(in: panel) : nil
             if front {
+                let defaultHeight = panel.height * (style.coverTitleBelow ? 0.28 : 0.25)
                 let adapted = style.fittedTitleStyle(titleText, width: manual?.width ?? panel.width,
                                                      mixed: false, override: override)
-                title = style.typography("", heading: titleText, mixed: false, titleStyle: adapted)
+                let large = style.typography("", heading: titleText, mixed: false, titleStyle: adapted)
+                if custom || EditorialTypesetter.requiredHeight(large, width: manual?.width ?? panel.width) <= defaultHeight {
+                    title = large
+                } else {
+                    // A long title keeps the page heading size instead of overflowing the cover band.
+                    let base = book.editorialStyle
+                    let fitted = base.fittedTitleStyle(titleText, width: manual?.width ?? panel.width,
+                                                       mixed: false, override: override)
+                    title = base.typography("", heading: titleText, mixed: false, titleStyle: fitted)
+                }
                 var picture = style.coverPicture(in: panel, bleed: photoBleed)
-                let defaultHeight = panel.height * (style.coverTitleBelow ? 0.28 : 0.25)
                 let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0
                 if style.coverTitleBelow {
                     if needed > defaultHeight {

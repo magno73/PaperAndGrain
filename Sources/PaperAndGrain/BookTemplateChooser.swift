@@ -32,14 +32,28 @@ struct BookTemplateChooser: View {
                     .foregroundStyle(.secondary)
             }
             ScrollView {
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 15), GridItem(.flexible())], spacing: 15) {
-                    ForEach(BookTemplate.allCases) { option in
-                        card(option)
+                VStack(alignment: .leading, spacing: 22) {
+                    ForEach(BookTemplate.Family.allCases, id: \.self) { family in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                Text(family.title(language: language))
+                                    .font(.title3.weight(.semibold))
+                                    .accessibilityAddTraits(.isHeader)
+                                Text(family.subtitle(language: language))
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 14) {
+                                ForEach(family.templates) { option in
+                                    card(option)
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(4)
             }
-            .frame(height: min(455, (NSScreen.main?.visibleFrame.height ?? 800) * 0.54))
+            .frame(height: min(560, (NSScreen.main?.visibleFrame.height ?? 800) * 0.62))
             HStack(spacing: 16) {
                 Toggle(pageNumbersLabel, isOn: Binding(
                     get: { showPageNumbers ?? selected?.style.folio ?? false },
@@ -59,7 +73,7 @@ struct BookTemplateChooser: View {
             }
         }
         .padding(28)
-        .frame(width: 835)
+        .frame(width: 980)
         .task {
             let photo = book.cover?.frontPhotoID.flatMap(book.photo) ?? book.photos.first
             let source = photo.map { BookStorage.assetURL(filename: $0.filename, in: directory) }
@@ -77,12 +91,12 @@ struct BookTemplateChooser: View {
         return Button { selected = option } label: {
             VStack(alignment: .leading, spacing: 13) {
                 templatePreview(option)
-                .frame(height: 113)
+                .frame(height: 104)
                 .clipped()
                 .shadow(color: .black.opacity(0.17), radius: 4, y: 2)
                 .accessibilityHidden(true)
                 HStack {
-                    Text(option.name(language: language)).font(.system(size: 19, design: .serif))
+                    Text(option.name(language: language)).font(.system(size: 17, design: .serif))
                     Spacer()
                     if active { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
                 }
@@ -92,8 +106,9 @@ struct BookTemplateChooser: View {
                     .frame(minHeight: 45, alignment: .topLeading)
             }
             .padding(12)
-            .background(active ? Color.accentColor.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
-            .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(active ? Color.accentColor : Color.secondary.opacity(0.25)) }
+            .background(active ? Theme.accent.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+            .overlay { RoundedRectangle(cornerRadius: 11).strokeBorder(active ? Theme.accent : Color.secondary.opacity(0.25),
+                                                                     lineWidth: active ? 1.5 : 1) }
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .buttonStyle(.plain)

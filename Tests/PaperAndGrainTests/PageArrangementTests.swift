@@ -18,7 +18,10 @@ final class PageArrangementTests: XCTestCase {
         for format in [BookFormat.square, .portrait, .landscape] {
             let books = templates.map { Book(title: "Example", format: format, photos: photos, template: $0) }
             let galleries = books.map { PageComposition(page: gallery, book: $0) }
-            XCTAssertEqual(galleries[0].photos[0].frame.width, galleries[0].photos[1].frame.width, accuracy: 0.001)
+            // Three photos on the Swiss grid: the first spans the cell a partial grid would leave empty.
+            XCTAssertEqual(galleries[0].photos[1].frame.width, galleries[0].photos[2].frame.width, accuracy: 0.001)
+            XCTAssertGreaterThan(galleries[0].photos[0].frame.width, galleries[0].photos[1].frame.width * 1.9)
+            XCTAssertEqual(galleries[0].photos[0].frame.minX, galleries[0].photos[1].frame.minX, accuracy: 0.001)
             XCTAssertGreaterThan(galleries[1].photos[0].frame.width, galleries[1].photos[1].frame.width * 2)
             XCTAssertGreaterThan(galleries[2].photos[0].frame.minX, galleries[2].photos[1].frame.minX)
             XCTAssertGreaterThan(galleries[2].photos[1].frame.minY, galleries[2].photos[0].frame.maxY)
@@ -306,5 +309,36 @@ final class PageArrangementTests: XCTestCase {
         try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 4 * width,
                                 space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                 bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue))
+    }
+
+    func testNewTemplateGalleriesStayOnThePageWithoutOverlaps() {
+        let photos = (1...5).map { index in
+            BookPhoto(name: "Photo \(index)", filename: "photo-\(index).jpg", pixelWidth: 600, pixelHeight: 400)
+        }
+        let templates: [BookTemplate] = [.monograph, .postcard, .nocturne, .kodachrome, .roadLog, .swissGrid]
+        for template in templates {
+            for format in [BookFormat.square, .portrait, .landscape] {
+                for count in 1...5 {
+                    let book = Book(title: "Example", format: format, photos: photos, template: template)
+                    let page = BookPage(photoIDs: photos.prefix(count).map(\.id))
+                    let composition = PageComposition(page: page, book: book)
+                    XCTAssertEqual(composition.photos.count, count, "\(template) \(count)")
+                    for (index, photo) in composition.photos.enumerated() {
+                        XCTAssertTrue(composition.bounds.contains(photo.frame), "\(template) \(count)")
+                        for other in composition.photos[(index + 1)...] {
+                            XCTAssertLessThan(photo.frame.intersection(other.frame).width, 0.5, "\(template) \(count)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func testSpineTitleNeedsFiveMillimetres() {
+        var book = Book(title: "Viaggio", template: .postcard)
+        book.cover = BookCover(title: "Sardegna")
+        let mm = 72.0 / 25.4
+        XCTAssertNil(BookPDF.spineTitle(book, spineWidth: 4 * mm))
+        XCTAssertEqual(BookPDF.spineTitle(book, spineWidth: 6 * mm)?.string, "Sardegna")
     }
 }

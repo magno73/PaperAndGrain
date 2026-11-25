@@ -49,7 +49,7 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 
 ## Modelli del libro
 
-Da **Libro e stampa → Modelli del libro** scegli **Diario**, **Atlante**, **Galleria** o **Essenziale**. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Nella stessa finestra, **Mostra numeri di pagina** controlla la numerazione stampata sulle pagine con margini. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
+Da **File › Modelli del libro…** scegli fra dodici modelli in tre famiglie: **Classici** (Diario, Atlante, Galleria, Essenziale), **Studio** (Griglia svizzera, Quaderno berlinese, Intervallo giapponese) e **Fotolibro d’autore** (Monografia, Cartolina, Notturno, Kodachrome, Diario di bordo), ispirati ai fotolibri premiati. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Nella stessa finestra, **Mostra numeri di pagina** controlla la numerazione stampata sulle pagine con margini. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
 
 ## Formattare titoli e testi
 

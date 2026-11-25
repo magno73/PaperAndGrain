@@ -4,38 +4,93 @@ import CoreText
 
 enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
     case diary, atlas, gallery, essential, swissGrid, berlinQuarter, japaneseInterval
+    case monograph, postcard, nocturne, kodachrome, roadLog
 
     var id: Self { self }
 
+    /// Families shown as sections in the template chooser.
+    enum Family: CaseIterable {
+        case classic, studio, photobook
+
+        func title(language: String) -> String {
+            let italian = language.hasPrefix("it")
+            switch self {
+            case .classic: return italian ? "Classici" : "Classics"
+            case .studio: return italian ? "Studio" : "Studio"
+            case .photobook: return italian ? "Fotolibro d’autore" : "Photobook"
+            }
+        }
+
+        func subtitle(language: String) -> String {
+            let italian = language.hasPrefix("it")
+            switch self {
+            case .classic: return italian ? "Racconto e foto in equilibrio." : "Story and photographs in balance."
+            case .studio: return italian ? "Griglie e caratteri da rivista." : "Magazine grids and type."
+            case .photobook: return italian ? "Ispirati ai fotolibri premiati: ritmo, margini, sequenza."
+                : "Inspired by award-winning photobooks: pacing, margins, sequence."
+            }
+        }
+
+        var templates: [BookTemplate] { BookTemplate.allCases.filter { $0.family == self } }
+    }
+
+    var family: Family {
+        switch self {
+        case .diary, .atlas, .gallery, .essential: .classic
+        case .swissGrid, .berlinQuarter, .japaneseInterval: .studio
+        case .monograph, .postcard, .nocturne, .kodachrome, .roadLog: .photobook
+        }
+    }
+
     func name(language: String) -> String {
         switch self {
-        case .diary: language == "it" ? "Diario" : "Journal"
-        case .atlas: language == "it" ? "Atlante" : "Atlas"
-        case .gallery: language == "it" ? "Galleria" : "Gallery"
-        case .swissGrid: language == "it" ? "Griglia svizzera" : "Swiss Grid"
-        case .berlinQuarter: language == "it" ? "Quaderno berlinese" : "Berlin Notebook"
-        case .japaneseInterval: language == "it" ? "Intervallo giapponese" : "Japanese Interval"
-        case .essential: language == "it" ? "Essenziale" : "Essential"
+        case .diary: language.hasPrefix("it") ? "Diario" : "Journal"
+        case .atlas: language.hasPrefix("it") ? "Atlante" : "Atlas"
+        case .gallery: language.hasPrefix("it") ? "Galleria" : "Gallery"
+        case .swissGrid: language.hasPrefix("it") ? "Griglia svizzera" : "Swiss Grid"
+        case .berlinQuarter: language.hasPrefix("it") ? "Quaderno berlinese" : "Berlin Notebook"
+        case .japaneseInterval: language.hasPrefix("it") ? "Intervallo giapponese" : "Japanese Interval"
+        case .essential: language.hasPrefix("it") ? "Essenziale" : "Essential"
+        case .monograph: language.hasPrefix("it") ? "Monografia" : "Monograph"
+        case .postcard: language.hasPrefix("it") ? "Cartolina" : "Postcard"
+        case .nocturne: language.hasPrefix("it") ? "Notturno" : "Nocturne"
+        case .kodachrome: "Kodachrome"
+        case .roadLog: language.hasPrefix("it") ? "Diario di bordo" : "Road Log"
         }
     }
 
     func description(language: String) -> String {
         switch self {
         case .diary:
-            language == "it" ? "Carta avorio e titoli in grande. Per alternare il racconto alle fotografie."
+            language.hasPrefix("it") ? "Carta avorio e titoli in grande. Per alternare il racconto alle fotografie."
                 : "Ivory paper and generous headlines. For alternating stories with photographs."
         case .atlas:
-            language == "it" ? "Griglia, carta chiara e folio. Per paesaggi, tappe e sequenze."
+            language.hasPrefix("it") ? "Griglia, carta chiara e folio. Per paesaggi, tappe e sequenze."
                 : "A grid, light paper and page numbers. For landscapes, stops and sequences."
         case .gallery:
-            language == "it" ? "Fondo carbone e margini larghi. Una foto alla volta."
+            language.hasPrefix("it") ? "Fondo carbone e margini larghi. Una foto alla volta."
                 : "Charcoal paper and generous margins. One image at a time."
-        case .swissGrid: language == "it" ? "Griglia a sei colonne, neretto compatto e cartiglio segnato in rosso." : "Six-column grid, compact bold type and a caption panel marked in red."
-        case .berlinQuarter: language == "it" ? "Blu notte, titoli cedro e una fascia fotografica sopra la testata." : "Midnight blue, citron headlines and a strip of photography above the masthead."
-        case .japaneseInterval: language == "it" ? "Piccola stampa decentrata, titoli Mincho e una didascalia su carta calda." : "An off-centre print, Mincho headings and a caption on warm paper."
+        case .swissGrid: language.hasPrefix("it") ? "Griglia a sei colonne, neretto compatto e cartiglio segnato in rosso." : "Six-column grid, compact bold type and a caption panel marked in red."
+        case .berlinQuarter: language.hasPrefix("it") ? "Blu notte, titoli cedro e una fascia fotografica sopra la testata." : "Midnight blue, citron headlines and a strip of photography above the masthead."
+        case .japaneseInterval: language.hasPrefix("it") ? "Piccola stampa decentrata, titoli Mincho e una didascalia su carta calda." : "An off-centre print, Mincho headings and a caption on warm paper."
         case .essential:
-            language == "it" ? "Bianco netto, titoli leggeri e fotografia a piena pagina."
+            language.hasPrefix("it") ? "Bianco netto, titoli leggeri e fotografia a piena pagina."
                 : "Pure white, light typography and edge-to-edge photography."
+        case .monograph:
+            language.hasPrefix("it") ? "Una foto per pagina con margini larghi, come le monografie d’autore. Carta calda e serif classico."
+                : "One photograph per page with wide margins, like an artist’s monograph. Warm paper and a classic serif."
+        case .postcard:
+            language.hasPrefix("it") ? "Riquadro fisso, titoli Futura rossi e copertina da manifesto di viaggio."
+                : "A fixed picture box, red Futura headlines and a travel-poster cover."
+        case .nocturne:
+            language.hasPrefix("it") ? "Pagine nere e foto sospese, per notti, città e luci basse."
+                : "Black pages and floating prints, for nights, cities and low light."
+        case .kodachrome:
+            language.hasPrefix("it") ? "Stampe incorniciate in coppia su carta avorio, con Gill Sans e un azzurro cielo."
+                : "Framed prints in pairs on ivory paper, with Gill Sans and a sky blue."
+        case .roadLog:
+            language.hasPrefix("it") ? "Carta manila, macchina da scrivere e provini fitti, in ordine di viaggio."
+                : "Manila paper, typewriter headings and dense contact sheets in travel order."
         }
     }
 
@@ -48,29 +103,62 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
         case .atlas:
             EditorialStyle(paper: 0xF4F2E9, ink: 0x252D26, accent: 0x53634F, titleFont: "AvenirNext-DemiBold",
                            bodyFont: "AvenirNext-Regular", titleSize: 33, bodySize: 12.3, insetFraction: 0.063,
-                           columnFraction: 0.96, imageGap: 14, rule: true, folio: true, titleTracking: -0.6)
+                           columnFraction: 0.96, imageGap: 14, rule: true, folio: true, titleTracking: -0.6,
+                           coverTitleScale: 1.35)
         case .gallery:
             EditorialStyle(paper: 0x232422, ink: 0xF3ECDE, accent: 0xC4A083, titleFont: "Baskerville-Italic",
                            bodyFont: "Optima-Regular", titleSize: 41, bodySize: 12.5, insetFraction: 0.115,
                            columnFraction: 0.78, imageGap: 12, rule: false, folio: false,
-                           coverTitleBelow: true, titleTracking: -0.55)
+                           coverTitleBelow: true, titleTracking: -0.55, coverTitleScale: 1.15)
         case .swissGrid:
             EditorialStyle(paper: 0xF8F7F1, ink: 0x171819, accent: 0xC33023, titleFont: "HelveticaNeue-Bold",
                            bodyFont: "HelveticaNeue", titleSize: 28, bodySize: 12, insetFraction: 0.064,
                            columnFraction: 5.0 / 6, imageGap: 8, rule: true, folio: true, titleTracking: -0.65,
-                           coverWindow: CGRect(x: 2.0 / 6, y: 0.32, width: 4.0 / 6, height: 0.68), identity: self)
+                           coverWindow: CGRect(x: 2.0 / 6, y: 0.32, width: 4.0 / 6, height: 0.68), identity: self,
+                           coverTitleScale: 1.55)
         case .berlinQuarter:
             EditorialStyle(paper: 0x172439, ink: 0xF5F4E9, accent: 0xD8EC63, titleFont: "AvenirNextCondensed-Heavy",
                            bodyFont: "Georgia", titleSize: 33, bodySize: 13, insetFraction: 0.052,
                            columnFraction: 1, imageGap: 5, rule: false, folio: true, coverTitleBelow: true,
                            titleTracking: -0.55, textTopFraction: 0.32,
-                           coverWindow: CGRect(x: 0, y: 0, width: 1, height: 0.64), identity: self)
+                           coverWindow: CGRect(x: 0, y: 0, width: 1, height: 0.64), identity: self,
+                           coverTitleScale: 1.35)
         case .japaneseInterval:
             EditorialStyle(paper: 0xF4EEE1, ink: 0x373930, accent: 0x737956, titleFont: "HiraMinProN-W3",
                            bodyFont: "Palatino-Roman", titleSize: 20, bodySize: 12.5, insetFraction: 0.115,
                            columnFraction: 0.80, imageGap: 27, rule: false, folio: false, titleTracking: 0.3,
                            textTopFraction: 0.20, coverWindow: CGRect(x: 0.48, y: 0.35, width: 0.52, height: 0.48),
-                           identity: self)
+                           identity: self, coverTitleScale: 1.5)
+        case .monograph:
+            EditorialStyle(paper: 0xF6F3EC, ink: 0x2A2622, accent: 0x6B1E1E, titleFont: "IowanOldStyle-Roman",
+                           bodyFont: "IowanOldStyle-Roman", titleSize: 26, bodySize: 12, insetFraction: 0.13,
+                           columnFraction: 0.70, imageGap: 18, rule: false, folio: false, titleTracking: 0.2,
+                           textTopFraction: 0.30, coverWindow: CGRect(x: 0.16, y: 0.30, width: 0.68, height: 0.50),
+                           identity: self, coverTitleScale: 1.25)
+        case .postcard:
+            EditorialStyle(paper: 0xFAF8F3, ink: 0x1D1D1F, accent: 0xC8102E, titleFont: "Futura-Bold",
+                           bodyFont: "AvenirNext-Regular", titleSize: 34, bodySize: 12, insetFraction: 0.075,
+                           columnFraction: 0.82, imageGap: 10, rule: false, folio: false, titleTracking: -0.8,
+                           textTopFraction: 0.04, coverWindow: CGRect(x: 0, y: 0.27, width: 1, height: 0.73),
+                           identity: self, coverTitleScale: 1.6)
+        case .nocturne:
+            EditorialStyle(paper: 0x141414, ink: 0xEDEAE3, accent: 0xB9A27A, titleFont: "Didot",
+                           bodyFont: "AvenirNext-Regular", titleSize: 34, bodySize: 11.5, insetFraction: 0.10,
+                           columnFraction: 0.66, imageGap: 16, rule: false, folio: false, titleTracking: -0.4,
+                           textTopFraction: 0.55, coverWindow: CGRect(x: 0.20, y: 0.36, width: 0.60, height: 0.42),
+                           identity: self, coverTitleScale: 1.3)
+        case .kodachrome:
+            EditorialStyle(paper: 0xF2EDE3, ink: 0x2C2B28, accent: 0x3E7CB1, titleFont: "GillSans-SemiBold",
+                           bodyFont: "Palatino-Roman", titleSize: 28, bodySize: 12.5, insetFraction: 0.11,
+                           columnFraction: 0.74, imageGap: 20, rule: false, folio: true, titleTracking: 0.4,
+                           textTopFraction: 0.12, coverWindow: CGRect(x: 0.12, y: 0.22, width: 0.76, height: 0.56),
+                           identity: self, coverTitleScale: 1.3)
+        case .roadLog:
+            EditorialStyle(paper: 0xEFE6D2, ink: 0x2B261F, accent: 0xB5651D, titleFont: "AmericanTypewriter-Semibold",
+                           bodyFont: "Georgia", titleSize: 24, bodySize: 12, insetFraction: 0.07,
+                           columnFraction: 0.90, imageGap: 6, rule: true, folio: true, titleTracking: -0.3,
+                           coverWindow: CGRect(x: 0, y: 0.30, width: 1, height: 0.70), identity: self,
+                           coverTitleScale: 1.5)
         case .essential:
             EditorialStyle(paper: 0xFFFFFF, ink: 0x1B1B1D, accent: 0x717174, titleFont: "HelveticaNeue-Light",
                            bodyFont: "HelveticaNeue", titleSize: 50, bodySize: 13.5, insetFraction: 0.096,
@@ -100,11 +188,20 @@ struct EditorialStyle {
 
     var coverWindow: CGRect?
     var identity: BookTemplate?
+    /// Scales the template's title size on the front cover, where a page heading would read too small.
+    var coverTitleScale: Double = 1
+
+    /// The style used on the front cover: the same type with a larger title.
+    var coverStyle: EditorialStyle {
+        var style = self
+        style.titleSize *= coverTitleScale
+        return style
+    }
 
     var overlayOpacity: Double { identity == nil ? 0.90 : 1 }
     var overlayPaper: UInt32 { paper }
     var overlayInk: UInt32 { ink }
-    var titleInk: UInt32 { identity == .berlinQuarter ? accent : ink }
+    var titleInk: UInt32 { identity == .berlinQuarter || identity == .postcard ? accent : ink }
     var overlayTitleInk: UInt32 { titleInk }
     var overlayAccent: UInt32 { accent }
 
@@ -113,6 +210,8 @@ struct EditorialStyle {
         case .swissGrid: CGRect(x: panel.minX, y: panel.minY, width: min(4, panel.width), height: panel.height)
         case .berlinQuarter: CGRect(x: panel.minX, y: panel.minY, width: panel.width, height: min(5, panel.height))
         case .japaneseInterval: CGRect(x: panel.minX, y: panel.minY, width: panel.width * 0.22, height: min(1, panel.height))
+        case .postcard: CGRect(x: panel.minX, y: panel.minY, width: panel.width, height: min(6, panel.height))
+        case .roadLog: CGRect(x: panel.minX, y: panel.minY, width: min(3, panel.width), height: panel.height)
         default: nil
         }
     }
@@ -148,6 +247,8 @@ struct EditorialStyle {
         case .swissGrid: floor = 20
         case .berlinQuarter: floor = 24
         case .japaneseInterval: floor = 16
+        case .postcard, .roadLog: floor = 20
+        case .monograph, .nocturne, .kodachrome: floor = 18
         default: return override
         }
         guard override.pointSize == nil, width > 0, let heading, !heading.isEmpty,
@@ -171,7 +272,11 @@ struct EditorialStyle {
         guard !mixed else { return safe }
         let top = (rule ? 11.0 : 0) + safe.height * textTopFraction
         let width = safe.width * (fullColumn ? 1 : columnFraction)
-        let left = identity == .japaneseInterval ? safe.maxX - width : safe.minX
+        let left: CGFloat = switch identity {
+        case .japaneseInterval: safe.maxX - width
+        case .monograph, .nocturne: safe.midX - width / 2
+        default: safe.minX
+        }
         return CGRect(x: left, y: safe.minY + top, width: width, height: max(0, safe.height - top))
     }
 
@@ -191,7 +296,8 @@ struct EditorialStyle {
             switch identity {
             case .swissGrid: titleParagraph.paragraphSpacing = mixed ? 5 : 9
             case .berlinQuarter: titleParagraph.paragraphSpacing = mixed ? 6 : 12
-            case .japaneseInterval: titleParagraph.paragraphSpacing = mixed ? 9 : 22
+            case .japaneseInterval, .monograph, .nocturne: titleParagraph.paragraphSpacing = mixed ? 9 : 22
+            case .postcard, .roadLog: titleParagraph.paragraphSpacing = mixed ? 5 : 10
             default: titleParagraph.paragraphSpacing = mixed ? 7 : 17
             }
             titleParagraph.lineSpacing = 1

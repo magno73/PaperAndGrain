@@ -23,7 +23,9 @@ final class PixartPrintTests: XCTestCase {
                 let cover = try XCTUnwrap(pdf.page(at: 0))
                 checkBoxes(cover, width: 474 + spine, height: 258, inset: 19)
                 let backText = try XCTUnwrap(pdf.findString("Rear", withOptions: []).first)
-                let frontText = try XCTUnwrap(pdf.findString("Front", withOptions: []).first)
+                // The spine repeats the title; the front cover's title is the rightmost occurrence.
+                let frontText = try XCTUnwrap(pdf.findString("Front", withOptions: [])
+                    .max { $0.bounds(for: cover).minX < $1.bounds(for: cover).minX })
                 let x = (19 + 0.20 * 207) * points
                 XCTAssertEqual(backText.bounds(for: cover).minX, x, accuracy: 2)
                 XCTAssertEqual(frontText.bounds(for: cover).minX, x + (229 + spine)*points, accuracy: 2)

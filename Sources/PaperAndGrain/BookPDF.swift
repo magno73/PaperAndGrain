@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import CoreText
 import Foundation
@@ -193,6 +194,7 @@ enum BookPDF {
             begin(width: width, height: panelH, bleed: wrap)
             ctx.setFillColor(EditorialStyle.color(BookCoverGeometry(book: book, front: false).background))
             ctx.fill(CGRect(x: -wrap, y: -wrap, width: width + 2*wrap, height: panelH + 2*wrap))
+            drawSpine(book, in: CGRect(x: panelW + hinge, y: 0, width: spineMM * pointsPerMM, height: panelH), context: ctx)
             for front in [false, true] {
                 let face = BookCoverGeometry(book: book, front: front)
                 let map = CGAffineTransform(scaleX: panelW / w, y: panelH / h)
@@ -217,6 +219,7 @@ enum BookPDF {
             let backOuter = CGRect(x: -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
             try drawFace(back, photoID: cover.backPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
                          trim: cover.backPhotoPlacement == nil ? nil : back.bounds, outer: backOuter)
+            drawSpine(book, in: CGRect(x: w, y: 0, width: spine, height: h), context: ctx)
             ctx.translateBy(x: w + spine, y: 0)
             let front = BookCoverGeometry(book: book, front: true, bleed: bleed)
             let frontOuter = CGRect(x: 0, y: -bleed, width: w + bleed, height: h + 2 * bleed)
@@ -420,6 +423,35 @@ enum BookPDF {
         if let rect = face.titleFrame {
             try drawText(face.title, in: rect.applying(map), pageNumber: 0, context: context)
         }
+    }
+
+    /// The title runs top to bottom on spines of at least 5 mm, with its tops toward the front cover.
+    static func spineTitle(_ book: Book, spineWidth: CGFloat) -> NSAttributedString? {
+        let text = (book.cover?.title ?? book.title).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, spineWidth >= 5 * pointsPerMM else { return nil }
+        let style = book.editorialStyle
+        let size = min(spineWidth * 0.48, 13)
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.lineBreakMode = .byTruncatingTail
+        let ink: UInt32 = book.template == nil ? 0xF2F2F2 : style.titleInk
+        return NSAttributedString(string: text, attributes: [
+            NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName(style.titleFont as CFString, size, nil),
+            NSAttributedString.Key(kCTForegroundColorAttributeName as String): EditorialStyle.color(ink),
+            .paragraphStyle: paragraph,
+        ])
+    }
+
+    private static func drawSpine(_ book: Book, in spine: CGRect, context: CGContext) {
+        guard let title = spineTitle(book, spineWidth: spine.width) else { return }
+        let margin = min(spine.height * 0.08, 18 * pointsPerMM)
+        let length = spine.height - 2 * margin
+        let height = min(spine.width, EditorialTypesetter.requiredHeight(title, width: .greatestFiniteMagnitude))
+        context.saveGState()
+        context.translateBy(x: spine.midX, y: spine.minY + margin)
+        context.rotate(by: .pi / 2)
+        EditorialTypesetter.draw(title, in: CGRect(x: 0, y: -height / 2, width: length, height: height), context: context)
+        context.restoreGState()
     }
 
     private static func drawText(_ text: NSAttributedString, in rect: CGRect, pageNumber: Int, context: CGContext) throws {

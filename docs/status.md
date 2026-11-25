@@ -1,5 +1,20 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · modelli · 25 novembre 2026
+
+`EditorView` è diviso in dodici estensioni per area. La vecchia griglia verticale della libreria, non più usata, è stata rimossa.
+
+Ci sono cinque modelli nuovi nella famiglia **Fotolibro d’autore**: Monografia, Cartolina, Notturno, Kodachrome e Diario di bordo. Ogni modello ha una scala per il titolo di copertina e il dorso porta il titolo dai 5 mm in su. Con tre foto la Griglia svizzera non lascia più celle vuote. Il selettore dei modelli è diviso per famiglie su tre colonne.
+
+**Verificato:**
+- PDF di prova e di stampa per tutti i dodici modelli con un libro sintetico di dieci pagine;
+- `swift test` con 113 test, fra cui le gallerie dei nuovi modelli senza sovrapposizioni e il titolo sul dorso.
+
+**Resta da provare:**
+- il selettore nell’app, perché lo schermo era bloccato durante la verifica;
+- la stampa reale di un dorso;
+- la licenza di incorporazione dei caratteri di sistema nei PDF venduti.
+
 ## 0.10.0-redesign · 25 novembre 2026 · branch `redesign/mac-ui`
 
 Nuova struttura della finestra secondo le linee guida di macOS 26 e 27. La barra degli strumenti è quella di sistema, con titolo, sottotitolo e menu del titolo (**Libro e stampa**, **Modelli del libro**, salvataggi ed esportazioni). La testata personalizzata non c’è più. L’ispettore è un `.inspector` nativo e le sue schede seguono la selezione: **Pagina** o **Copertina**, poi **Foto** e **Regola** quando una foto è selezionata, e infine **Pellicola**. La libreria delle foto diventa la **Fototeca**, un cassetto in fondo al canvas con i filtri **Tutte**, **Non usate** e **In pagina**, l’ordinamento, la ricerca e la zona per il trascinamento. Il navigatore è ridimensionabile e le miniature crescono con la sua larghezza. Il **+** fra le pagine compare al passaggio del puntatore. Su macOS 26 e successivi navigatore, fototeca e controlli del canvas usano Liquid Glass. Sui sistemi precedenti usano i materiali.
