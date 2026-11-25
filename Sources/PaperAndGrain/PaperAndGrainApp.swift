@@ -67,13 +67,15 @@ struct PaperAndGrainApp: App {
                                actions: editorActions)
                         .id(workspace.book.id)
                 } else {
-                    WelcomeView(language: language, recents: workspace.recentBooks,
+                    WelcomeView(language: language, recents: workspace.libraryBooks,
                                 onAlbums: { showAlbums = true },
                                 onFiles: { workspace.importFiles(language: language) },
                                 onOpen: workspace.openProject,
                                 onOpenRecent: { workspace.openProject(at: $0.url) },
                                 onForget: workspace.forgetRecentBook,
+                                onDeleteDraft: workspace.deleteDraft,
                                 onDemo: { workspace.loadDemo(language: language) })
+                        .onAppear { workspace.refreshDrafts() }
                 }
             }
             .frame(minWidth: 1020, minHeight: 680)
@@ -302,7 +304,9 @@ private struct WelcomeView: View {
     let onOpen: () -> Void
     let onOpenRecent: (Workspace.RecentBook) -> Void
     let onForget: (Workspace.RecentBook) -> Void
+    let onDeleteDraft: (Workspace.RecentBook) -> Void
     let onDemo: () -> Void
+    @State private var draftToDelete: Workspace.RecentBook?
 
     private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
@@ -368,7 +372,11 @@ private struct WelcomeView: View {
                                         }
                                         .disabled(recent.isDraft)
                                         Divider()
-                                        Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                        if recent.isDraft {
+                                            Button(s("Elimina bozza…", "Delete Draft…")) { draftToDelete = recent }
+                                        } else {
+                                            Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                        }
                                     }
                                     .accessibilityElement(children: .combine)
                                     .accessibilityAddTraits(.isButton)
@@ -383,6 +391,16 @@ private struct WelcomeView: View {
             .padding(.vertical, 32)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.background)
+        }
+        .alert(s("Eliminare la bozza?", "Delete This Draft?"),
+               isPresented: Binding(get: { draftToDelete != nil }, set: { if !$0 { draftToDelete = nil } }),
+               presenting: draftToDelete) { draft in
+            Button(s("Sposta nel Cestino", "Move to Trash"), role: .destructive) { onDeleteDraft(draft) }
+            Button(s("Annulla", "Cancel"), role: .cancel) {}
+        } message: { draft in
+            let title = draft.title.isEmpty ? s("Senza titolo", "Untitled") : draft.title
+            Text(s("«\(title)» non è mai stato salvato in un file. La bozza verrà spostata nel Cestino.",
+                   "“\(title)” was never saved to a file. The draft will be moved to the Trash."))
         }
     }
 

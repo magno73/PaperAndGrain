@@ -181,6 +181,66 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertEqual(try BookStorage.read(from: package).title, "Locked")
     }
 
+    // A4
+    func testEveryDraftIsListedEvenBeyondTheRecentsLimit() async throws {
+        let drafts = scratch.appendingPathComponent("Drafts", isDirectory: true)
+        for index in 1...15 {
+            try BookStorage.write(Book(title: "Draft \(index)"), to: drafts.appendingPathComponent(UUID().uuidString))
+        }
+        try FileManager.default.createDirectory(at: drafts.appendingPathComponent("Not a draft"), withIntermediateDirectories: true)
+
+        let workspace = Workspace(defaults: MemoryDefaults(), draftsRoot: drafts)
+        await workspace.refreshDrafts().value
+
+        XCTAssertEqual(workspace.drafts.count, 15)
+        XCTAssertEqual(Set(workspace.libraryBooks.map(\.title)), Set((1...15).map { "Draft \($0)" }))
+        XCTAssertTrue(workspace.libraryBooks.allSatisfy(\.isDraft))
+    }
+
+    func testSaveAsFromADraftRetiresItToTheTrash() async throws {
+        let drafts = scratch.appendingPathComponent("Drafts", isDirectory: true)
+        let trash = scratch.appendingPathComponent("Trash", isDirectory: true)
+        try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+        let draft = drafts.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try BookStorage.write(Book(title: "Holiday"), to: draft)
+        let saved = scratch.appendingPathComponent("Holiday.papergrain", isDirectory: true)
+        let workspace = Workspace(defaults: MemoryDefaults(), draftsRoot: drafts) { url in
+            try FileManager.default.moveItem(at: url, to: trash.appendingPathComponent(url.lastPathComponent))
+        }
+
+        workspace.openProject(at: draft)
+        XCTAssertTrue(workspace.needsSaveLocation)
+        workspace.book.title = "Holiday, edited"
+        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: saved)
+        try await waitUntil { workspace.directory.map { BookStorage.sameLocation($0, saved) } ?? false }
+
+        XCTAssertFalse(workspace.needsSaveLocation)
+        XCTAssertEqual(try BookStorage.read(from: saved).title, "Holiday, edited")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: draft.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: trash.appendingPathComponent(draft.lastPathComponent).path))
+        workspace.closeBook()
+        await workspace.refreshDrafts().value
+        XCTAssertEqual(workspace.libraryBooks.map(\.title), ["Holiday, edited"])
+        XCTAssertFalse(workspace.libraryBooks[0].isDraft)
+    }
+
+    func testDeleteDraftMovesOnlyADraftToTheTrash() async throws {
+        let drafts = scratch.appendingPathComponent("Drafts", isDirectory: true)
+        let draft = drafts.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let named = scratch.appendingPathComponent("Named.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Scratch"), to: draft)
+        try BookStorage.write(Book(title: "Named"), to: named)
+        var trashed: [URL] = []
+        let workspace = Workspace(defaults: MemoryDefaults(), draftsRoot: drafts) { trashed.append($0) }
+        await workspace.refreshDrafts().value
+
+        workspace.deleteDraft(try XCTUnwrap(workspace.drafts.first))
+        workspace.deleteDraft(Workspace.RecentBook(path: named.path, title: "Named", opened: Date(), pageCount: 0,
+                                                   coverFile: nil, isDraft: true))
+        XCTAssertEqual(trashed.map(\.lastPathComponent), [draft.lastPathComponent])
+        XCTAssertTrue(workspace.drafts.isEmpty)
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {

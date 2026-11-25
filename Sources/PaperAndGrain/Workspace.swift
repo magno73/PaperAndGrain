@@ -28,6 +28,8 @@ final class Workspace: ObservableObject {
     /// Set when a new book opens, so the window can ask for its template first.
     @Published var newBookNeedsTemplate = false
     @Published private(set) var recentBooks: [RecentBook] = []
+    /// Unsaved books found in the Drafts folder, whether or not they are still in the recents list.
+    @Published private(set) var drafts: [RecentBook] = []
 
     private var analysisTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
@@ -39,10 +41,15 @@ final class Workspace: ObservableObject {
     private var documentSession = UUID()
     private var directoryIdentity: BookStorage.DirectoryIdentity?
     private let defaults: UserDefaults
+    private let draftsRoot: URL?
+    private let moveToTrash: (URL) throws -> Void
     static let bookType = UTType(exportedAs: "local.paperandgrain.book", conformingTo: .package)
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, draftsRoot: URL? = nil,
+         moveToTrash: @escaping (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }) {
         self.defaults = defaults
+        self.draftsRoot = draftsRoot ?? (try? BookStorage.draftsDirectory(create: false))
+        self.moveToTrash = moveToTrash
         recentBooks = RecentBook.load(from: defaults)
     }
 
@@ -72,7 +79,7 @@ final class Workspace: ObservableObject {
         let cover = coverID.flatMap { id in book.photos.first { $0.id == id }?.filename }
         let entry = RecentBook(path: directory.standardizedFileURL.path, title: book.title, opened: Date(),
                                pageCount: book.pages.count, coverFile: cover,
-                               isDraft: BookStorage.isManagedDraft(directory))
+                               isDraft: isDraft(directory))
         var books = recentBooks.filter { $0.path != entry.path }
         books.insert(entry, at: 0)
         recentBooks = Array(books.prefix(12))
@@ -82,6 +89,68 @@ final class Workspace: ObservableObject {
     func forgetRecentBook(_ recent: RecentBook) {
         recentBooks.removeAll { $0.path == recent.path }
         if let data = try? JSONEncoder().encode(recentBooks) { defaults.set(data, forKey: "recentBooks") }
+    }
+
+    private func isDraft(_ folder: URL) -> Bool {
+        guard let draftsRoot else { return false }
+        return BookStorage.isManagedDraft(folder, in: draftsRoot)
+    }
+
+    /// The welcome window's books: every draft in the Drafts folder plus the recently opened packages.
+    var libraryBooks: [RecentBook] {
+        let draftPaths = Set(drafts.map(\.path))
+        let recentDrafts = Dictionary(recentBooks.filter { draftPaths.contains($0.path) }.map { ($0.path, $0) },
+                                      uniquingKeysWith: { first, _ in first })
+        let listed = drafts.map { recentDrafts[$0.path] ?? $0 }
+        return (listed + recentBooks.filter { !$0.isDraft && !draftPaths.contains($0.path) })
+            .sorted { $0.opened > $1.opened }
+    }
+
+    /// Lists the Drafts folder off the main thread. Recents alone lose drafts beyond the twelfth,
+    /// after Remove from Recents or when the preferences are reset.
+    @discardableResult
+    func refreshDrafts() -> Task<Void, Never> {
+        let root = draftsRoot
+        return Task {
+            let found = await Task.detached(priority: .utility) { root.map(Self.listDrafts(in:)) ?? [] }.value
+            drafts = found
+        }
+    }
+
+    nonisolated static func listDrafts(in root: URL) -> [RecentBook] {
+        let files = FileManager.default
+        guard let folders = try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil,
+                                                           options: [.skipsHiddenFiles]) else { return [] }
+        return folders.compactMap { folder -> RecentBook? in
+            guard UUID(uuidString: folder.lastPathComponent) != nil,
+                  let book = try? BookStorage.read(from: folder) else { return nil }
+            let manifest = folder.appendingPathComponent("manifest.json")
+            let modified = (try? files.attributesOfItem(atPath: manifest.path)[.modificationDate] as? Date) ?? .distantPast
+            let coverID = book.cover?.frontPhotoID ?? book.pages.lazy.flatMap(\.photoIDs).first
+            let cover = coverID.flatMap { id in book.photos.first { $0.id == id }?.filename }
+            return RecentBook(path: folder.standardizedFileURL.path, title: book.title, opened: modified,
+                              pageCount: book.pages.count, coverFile: cover, isDraft: true)
+        }
+    }
+
+    /// Welcome window › Delete Draft…, after confirmation. The draft goes to the Trash.
+    func deleteDraft(_ draft: RecentBook) {
+        let folder = draft.url
+        guard isDraft(folder), !(directory.map { BookStorage.sameLocation($0, folder) } ?? false) else { return }
+        do {
+            try moveToTrash(folder)
+            forgetRecentBook(draft)
+            drafts.removeAll { $0.path == draft.path }
+        } catch { problem = error.localizedDescription }
+    }
+
+    /// After Save As the draft has been copied and adopted: retire it so its stale card cannot be edited.
+    private func retireDraft(_ folder: URL) {
+        let path = folder.standardizedFileURL.path
+        guard (try? moveToTrash(folder)) != nil else { return }
+        recentBooks.removeAll { $0.path == path }
+        if let data = try? JSONEncoder().encode(recentBooks) { defaults.set(data, forKey: "recentBooks") }
+        drafts.removeAll { $0.path == path }
     }
 
     private struct DocumentLocation: Equatable {
@@ -95,7 +164,7 @@ final class Workspace: ObservableObject {
     }
 
     var needsSaveLocation: Bool {
-        directory.map { BookStorage.isManagedDraft($0) } ?? false
+        directory.map(isDraft) ?? false
     }
 
     func scheduleSave() {
@@ -436,10 +505,17 @@ final class Workspace: ObservableObject {
             var updated: [UUID: PhotoAnalysis] = [:]
             for (offset, photo) in pending.enumerated() {
                 if Task.isCancelled || book.id != documentID { break }
+                // Read from the current package: Save As may adopt a new one and retire a draft mid-run.
+                let folder = self.directory ?? directory
                 do {
-                    let result = try await PhotoAnalyzer.analyze(
-                        url: BookStorage.assetURL(filename: photo.filename, in: directory)
-                    )
+                    let result: PhotoAnalysis
+                    do {
+                        result = try await PhotoAnalyzer.analyze(url: BookStorage.assetURL(filename: photo.filename, in: folder))
+                    } catch where !Task.isCancelled && self.directory != nil && self.directory != folder {
+                        result = try await PhotoAnalyzer.analyze(
+                            url: BookStorage.assetURL(filename: photo.filename, in: self.directory ?? folder)
+                        )
+                    }
                     if Task.isCancelled || book.id != documentID { break }
                     updated[photo.id] = result
                 } catch {
@@ -721,10 +797,11 @@ final class Workspace: ObservableObject {
                     try BookStorage.copy(Self.stamped(snapshot), from: directory, to: destination)
                 }
             }
-            // An in-flight classifier keeps reading the old asset directory.
-            // Its results still update this document and are saved to the new location.
+            let wasDraft = isDraft(directory)
             rememberLocation(destination)
             lastSaved = snapshot
+            // The analysis follows the new location, so nothing reads from the draft any more.
+            if wasDraft { retireDraft(directory) }
         } catch { problem = error.localizedDescription }
     }
 

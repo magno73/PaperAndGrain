@@ -139,7 +139,7 @@ enum BookStorage {
             sameLocation(resolved.deletingLastPathComponent(), draftsRoot)
     }
 
-    private static func draftsDirectory(create: Bool) throws -> URL {
+    static func draftsDirectory(create: Bool) throws -> URL {
         let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                     appropriateFor: nil, create: create)
         // Redesign builds keep their own drafts so the main app's books are never touched.
