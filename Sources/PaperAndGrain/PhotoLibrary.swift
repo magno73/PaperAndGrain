@@ -5,10 +5,12 @@ import ImageIO
 import Photos
 import UniformTypeIdentifiers
 
-struct Album: Identifiable, Hashable {
+struct Album: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let count: Int
+    /// Recents or Favorites: a new book from it starts with a generic title.
+    var isSmart = false
 }
 
 struct LibraryPhoto: Identifiable, Hashable, Sendable {
@@ -43,6 +45,31 @@ enum PhotoLibrary {
             result.append(Album(id: collection.localIdentifier, title: collection.localizedTitle ?? "Album", count: count))
         }
         return result.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    /// Albums offered when a book starts from Photos: Recents and Favorites, then the author's albums.
+    /// Runs the PhotoKit fetches off the main thread.
+    static func pickerAlbums(language: String) async -> [Album] {
+        await Task.detached(priority: .userInitiated) {
+            let smart: [(PHAssetCollectionSubtype, String)] = [
+                (.smartAlbumUserLibrary, language == "it" ? "Recenti" : "Recents"),
+                (.smartAlbumFavorites, language == "it" ? "Preferiti" : "Favorites"),
+            ]
+            var result: [Album] = []
+            for (subtype, title) in smart {
+                PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: subtype, options: nil)
+                    .enumerateObjects { collection, _, stop in
+                        let count = PHAsset.fetchAssets(in: collection, options: imageOptions()).count
+                        result.append(Album(id: collection.localIdentifier, title: title, count: count, isSmart: true))
+                        stop.pointee = true
+                    }
+            }
+            return result + albums()
+        }.value
+    }
+
+    static func loadPhotos(in album: Album) async -> [LibraryPhoto] {
+        await Task.detached(priority: .userInitiated) { photos(in: album) }.value
     }
 
     static func photos(in album: Album) -> [LibraryPhoto] {

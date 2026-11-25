@@ -309,6 +309,17 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: assets.path).count, 1)
     }
 
+    // A7
+    func testAlbumPickerSelectsTheLastUsedAlbumOrTheFirst() async throws {
+        let albums = [Album(id: "recents", title: "Recents", count: 40, isSmart: true),
+                      Album(id: "favorites", title: "Favorites", count: 3, isSmart: true),
+                      Album(id: "trip", title: "Namibia", count: 12)]
+        XCTAssertEqual(AlbumPicker.initialAlbum(in: albums, last: "trip"), "trip")
+        XCTAssertEqual(AlbumPicker.initialAlbum(in: albums, last: "deleted"), "recents")
+        XCTAssertEqual(AlbumPicker.initialAlbum(in: albums, last: ""), "recents")
+        XCTAssertNil(AlbumPicker.initialAlbum(in: [], last: "trip"))
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {
