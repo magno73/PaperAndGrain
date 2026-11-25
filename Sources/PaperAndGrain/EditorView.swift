@@ -668,6 +668,7 @@ struct CoverImage {
     let placement: PhotoPlacement?
 }
 
+@MainActor
 final class EditorUndo {
     func registerCoverImage(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
                             idKey: WritableKeyPath<BookCover, UUID?>,

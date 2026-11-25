@@ -19,6 +19,7 @@ struct AboutHelpCommands: Commands {
     private func s(_ italian: String, _ english: String) -> String { language.hasPrefix("it") ? italian : english }
 }
 
+@MainActor
 enum AboutPanel {
     static let author = "Marco Magnocavallo"
     static let email = "marco@magno.me"
