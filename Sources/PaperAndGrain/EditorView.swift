@@ -539,7 +539,7 @@ struct EditorView: View {
     }
 
     func number(of leaf: BookPage) -> Int {
-        book.pages.prefix { $0.id != leaf.id }.reduce(1) { $0 + ($1.effectiveLayout == .fullSpread ? 2 : 1) }
+        book.pageNumber(of: leaf)
     }
 
     func spreadNumber(_ spread: [BookPage]) -> String {

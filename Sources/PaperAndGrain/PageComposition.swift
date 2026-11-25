@@ -111,6 +111,20 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     /// The fill to paint, or nil for a transparent box.
     func fill(paper: UInt32) -> UInt32? { hidesBackground == true ? nil : backgroundColor ?? paper }
 
+    var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// The fill that prints. An empty box prints only a color the author chose, never the default paper.
+    func printedFill(paper: UInt32) -> UInt32? {
+        guard let fill = fill(paper: paper) else { return nil }
+        return isEmpty && fill == paper ? nil : fill
+    }
+
+    /// Whether the box appears in print and in thumbnails: any text, or an empty box with a chosen
+    /// fill or a border. The canvas still shows empty boxes so they can be edited.
+    func prints(paper: UInt32, ink: UInt32) -> Bool {
+        !isEmpty || printedFill(paper: paper) != nil || border(ink: ink) != nil
+    }
+
     /// Border width and color to stroke, or nil when the box has no border.
     func border(ink: UInt32) -> (width: Double, color: UInt32)? {
         guard let borderWidth, borderWidth > 0 else { return nil }
@@ -512,8 +526,10 @@ struct BookCoverGeometry {
     let titleFrame: CGRect?
     let title: NSAttributedString
 
-    init(book: Book, front: Bool, bleed: Double = 0) {
-        let size = book.format.pageSize
+    /// `size` is the trimmed face; nil uses the book format. Pixart passes its own panel, so the title
+    /// is fitted in the same width it is drawn in.
+    init(book: Book, front: Bool, bleed: Double = 0, size: CGSize? = nil) {
+        let size = size ?? book.format.pageSize
         bounds = CGRect(origin: .zero, size: size)
         let w = size.width
         let h = size.height
@@ -526,14 +542,15 @@ struct BookCoverGeometry {
         let custom = manual == nil && override != EditorialTextStyle()
         let placement = front ? book.cover?.frontPhotoPlacement : book.cover?.backPhotoPlacement
         photoCrop = placement?.crop ?? PhotoCrop()
-        let photoBleed = placement?.frame != nil || placement?.crop != nil ? 0 : bleed
+        // Photos stop at the trim. The exporter carries a photo that reaches it into the bleed
+        // without changing its crop, so print and editor show the same picture inside the trim.
         let automaticPhotoFrame: CGRect
         let automaticTitleFrame: CGRect?
         if book.template == nil {
             title = style.typography(titleText, heading: nil, mixed: false, bodyStyle: override)
             background = 0x292929
             fills = true
-            automaticPhotoFrame = CGRect(x: front ? 0 : -photoBleed, y: -photoBleed, width: w + photoBleed, height: h + 2 * photoBleed)
+            automaticPhotoFrame = CGRect(x: 0, y: 0, width: w, height: h)
             var bandTop = h * 0.63
             if custom {
                 bandTop = max(0, min(bandTop, panel.maxY - EditorialTypesetter.requiredHeight(title, width: panel.width) - inset))
@@ -561,7 +578,7 @@ struct BookCoverGeometry {
                                                        mixed: false, override: override)
                     title = base.typography("", heading: titleText, mixed: false, titleStyle: fitted)
                 }
-                var picture = style.coverPicture(in: panel, bleed: photoBleed)
+                var picture = style.coverPicture(in: panel, bleed: 0)
                 let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0
                 if style.coverTitleBelow {
                     if needed > defaultHeight {
@@ -598,5 +615,27 @@ struct BookCoverGeometry {
         }
         photoFrame = placement?.frame?.photoRect(in: bounds) ?? automaticPhotoFrame
         titleFrame = manual ?? automaticTitleFrame
+    }
+}
+
+extension Book {
+    /// The first page number of each entry in `pages`, as the editor shows it and the PDF prints it.
+    /// A panorama counts as two pages; blanks added by the print imposition are not counted.
+    static func pageNumbers(of pages: [BookPage]) -> [Int] {
+        var next = 1
+        return pages.map { page in
+            defer { next += page.effectiveLayout == .fullSpread ? 2 : 1 }
+            return next
+        }
+    }
+
+    /// The page number of `page`, or the number after the last page when it is not in the book.
+    func pageNumber(of page: BookPage) -> Int {
+        var next = 1
+        for candidate in pages {
+            if candidate.id == page.id { return next }
+            next += candidate.effectiveLayout == .fullSpread ? 2 : 1
+        }
+        return next
     }
 }

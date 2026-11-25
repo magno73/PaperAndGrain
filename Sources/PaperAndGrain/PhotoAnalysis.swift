@@ -44,7 +44,7 @@ enum PhotoAnalyzer {
         Topic("town", "Town", "Città", "town|city|urban|street|cityscape|village|downtown|skyline", "town|city|village|street|urban|città|paese|villaggio|vie|urbano|centro storico"),
         Topic("road", "On the road", "In viaggio", "road|highway|car|truck|vehicle|jeep|automobile|freeway", "road|drive|driving|highway|car|jeep|vehicle|strada|strade|auto|macchina|fuoristrada|guidando|in viaggio"),
         Topic("people", "People", "Persone", "person|people|group of people|human|crowd|portrait|selfie|family", "person|people|together|family|friends|portrait|selfie|persone|persona|insieme|famiglia|amici|ritratto"),
-        Topic("outdoors", "Outdoors", "All’aperto", "outdoor|outdoors|landscape|savanna|savannah|mountain|valley|forest|canyon|grassland|desert|dune", "outdoors|outdoor|landscape|nature|savanna|savannah|all aperto|aperto|natura|paesaggio|paesaggi|savana"),
+        Topic("outdoors", "Outdoors", "All’aperto", "outdoor|outdoors|landscape|savanna|savannah|mountain|valley|forest|canyon|grassland|desert|dune", "outdoors|outdoor|landscape|nature|savanna|savannah|all aperto|natura|paesaggio|paesaggi|savana"),
         Topic("mountains", "Mountains", "Montagne", "mountain|mountains|mountain range|canyon|cliff|valley", "mountain|mountains|canyon|valley|cliff|montagna|montagne|valle|gola|parete"),
         Topic("sunset", "Sunrise or sunset", "Alba o tramonto", "sunset|sunrise|dusk|dawn", "sunset|sunrise|dawn|dusk|alba|tramonto|crepuscolo"),
         Topic("birds", "Birds", "Uccelli", "bird|birds|flamingo|ostrich|eagle|vulture|pelican", "bird|birds|uccello|uccelli|avifauna")
@@ -202,11 +202,11 @@ enum PhotoAnalyzer {
                 matches.append(PhotoMatchEvidence(source: "subject", value: label, score: weight))
             }
         }
-        let queryWords = Set(query.components(separatedBy: " ").filter { $0.count >= 3 })
-        let stopWords: Set<String> = ["the", "and", "with", "for", "was", "that", "con", "per", "del", "della", "una", "nel", "alla", "gli", "che"]
+        // Words read in the photo count only when they are long enough to mean something on their own.
+        let queryWords = Set(query.components(separatedBy: " ").filter { $0.count >= 4 }).subtracting(stopWords)
         var textWeights: [String: Double] = [:]
         for line in analysis.recognizedText ?? [] {
-            let shared = queryWords.intersection(normalize(line.text).components(separatedBy: " ")).subtracting(stopWords)
+            let shared = queryWords.intersection(normalize(line.text).components(separatedBy: " "))
             for word in shared { textWeights[word] = max(textWeights[word] ?? 0, line.confidence) }
         }
         for (word, weight) in textWeights.sorted(by: { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }).prefix(4) {
@@ -219,6 +219,24 @@ enum PhotoAnalyzer {
         }
         return matches.sorted { $0.score > $1.score }
     }
+
+    /// Common Italian and English words of four letters or more, folded like `normalize`. They carry
+    /// no subject, so a sign that reads them does not match every story that uses them.
+    private static let stopWords: Set<String> = Set("""
+        about above after again against also although among another around away back been before being below \
+        both came come could does doing done down during each either else even ever every from further have \
+        having here into just like made make many more most much must near never next none only onto other \
+        ours over same shall should since some such than that their them then there these they this those \
+        though through till under until upon very want were what when where which while whom whose will \
+        with within without would your yours \
+        abbiamo adesso agli alla alle allo allora altra altre altri altro anche ancora avere aveva avevamo \
+        avevano avete come contro cosa cosi dagli dalla dalle dallo degli della delle dello dentro dopo dove \
+        dunque ecco erano essere fino fuori hanno invece loro mentre molta molte molti molto negli nella \
+        nelle nello nessuno niente noi nostra nostre nostri nostro ogni oltre ognuno perche pero piu poco \
+        poiche prima proprio quale quali quando quanto quella quelle quelli quello questa queste questi \
+        questo sara sarebbe secondo sempre senza siamo siete solo sono sopra sotto stata state stati stato \
+        stessa stesso sugli sulla sulle sullo tanto tutta tutte tutti tutto verso vostra vostro
+        """.split(whereSeparator: \.isWhitespace).map(String.init))
 
     static func distance(_ lhs: PhotoAnalysis, _ rhs: PhotoAnalysis) -> Double? {
         guard let l = lhs.visual?.perceptualHash, l.count == 16, let a = UInt64(l, radix: 16),

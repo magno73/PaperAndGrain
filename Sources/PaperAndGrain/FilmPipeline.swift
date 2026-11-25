@@ -16,6 +16,11 @@ struct FilmSettings: Codable, Hashable, Sendable {
     var lutFilename: String? = nil
 }
 
+extension CGColorSpace {
+    /// The sRGB space shared by the film pipeline, the adjustments, the photo analysis and the PDF.
+    static let sRGBSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+}
+
 typealias FilmRGB = SIMD3<Float>
 private typealias RGB = FilmRGB
 
@@ -60,7 +65,6 @@ final class FilmCube {
 enum FilmRenderer {
     // ColorSync converts embedded profiles (including Display P3) to SDR sRGB.
     // Cube coordinates, interpolation, blending and grain use encoded sRGB.
-    private static let space = CGColorSpace(name: CGColorSpace.sRGB)!
     private static let cache: NSCache<NSString, FilmCube> = {
         let cache = NSCache<NSString, FilmCube>()
         cache.totalCostLimit = 80 * 1024 * 1024
@@ -114,7 +118,18 @@ enum FilmRenderer {
                 guard samples.isEmpty, seen.insert(String(head)).inserted else { throw error }
                 let value = try triple(fields.dropFirst())
                 if head == "DOMAIN_MIN" { low = value } else { high = value }
+            case "LUT_3D_INPUT_RANGE":
+                // DaVinci Resolve writes the domain as one range for all three channels.
+                guard samples.isEmpty, seen.insert("DOMAIN_MIN").inserted, seen.insert("DOMAIN_MAX").inserted,
+                      fields.count == 3, let lower = Float(fields[1]), let upper = Float(fields[2]),
+                      abs(lower) <= 65_504, abs(upper) <= 65_504 else { throw error }
+                low = RGB(repeating: lower)
+                high = RGB(repeating: upper)
+            case "LUT_1D_SIZE", "LUT_1D_INPUT_RANGE":
+                throw LUTError(message: "1D LUTs are not supported. Choose a 3D .cube file.")
             default:
+                // Other keywords (written by some tools) carry no table data; table rows start with a number.
+                if head.first?.isLetter == true, Float(head) == nil { continue }
                 guard size > 0, samples.count < size*size*size else { throw error }
                 samples.append(SIMD4(try triple(fields[...]), 1))
             }
@@ -134,17 +149,17 @@ enum FilmRenderer {
               let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
               let w = props[kCGImagePropertyPixelWidth] as? Int,
               let h = props[kCGImagePropertyPixelHeight] as? Int,
-              w == h, let level = (2...11).first(where: { $0*$0*$0 == w }),
+              w == h, let level = (2...12).first(where: { $0*$0*$0 == w }),
               let image = CGImageSourceCreateImageAtIndex(src, 0, nil) else {
-            throw LUTError(message: "A Hald PNG must be square with side length level³ (levels 2–11).")
+            throw LUTError(message: "A Hald PNG must be square with side length level³ (levels 2–12).")
         }
         // Hald values are data. Ignore PNG gamma/ICC transforms when reading them.
-        guard let rgb = image.copy(colorSpace: space) else {
+        guard let rgb = image.copy(colorSpace: .sRGBSpace) else {
             throw LUTError(message: "The Hald PNG must contain RGB samples.")
         }
         let format = CGBitmapInfo.byteOrder16Little.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
         guard let bitmap = CGContext(data: nil, width: w, height: h, bitsPerComponent: 16, bytesPerRow: w*8,
-                                     space: space, bitmapInfo: format), let data = bitmap.data else {
+                                     space: .sRGBSpace, bitmapInfo: format), let data = bitmap.data else {
             throw LUTError(message: "Unable to decode Hald RGB samples.")
         }
         bitmap.draw(rgb, in: CGRect(x: 0, y: 0, width: w, height: h))
@@ -155,8 +170,21 @@ enum FilmRenderer {
             guard buffer[i+3] == .max else { throw LUTError(message: "The Hald PNG must be opaque.") }
             pixels.append(SIMD4(Float(buffer[i])/65535, Float(buffer[i+1])/65535, Float(buffer[i+2])/65535, 1))
         }
-        return FilmCube(size: level*level, samples: pixels)
+        let cube = FilmCube(size: level*level, samples: pixels)
+        guard level*level > maximumHaldCube else { return cube }
+        // Level 12 has 144 steps per channel; 64 keep the look within interpolation error for about
+        // a tenth of the memory per cached table.
+        let n = maximumHaldCube
+        var resampled: [SIMD4<Float>] = []
+        resampled.reserveCapacity(n*n*n)
+        for b in 0..<n { for g in 0..<n { for r in 0..<n {
+            resampled.append(SIMD4(cube.sample(RGB(Float(r), Float(g), Float(b)) / Float(n-1)), 1))
+        }}}
+        return FilmCube(size: n, samples: resampled)
     }
+
+    /// Hald tables above this many steps per channel are resampled to it.
+    static let maximumHaldCube = 64
 
     private static let looks: [FilmPreset: FilmCube] = {
         var result: [FilmPreset: FilmCube] = [:]
@@ -204,12 +232,12 @@ enum FilmRenderer {
         if settings.preset == .custom, strength > 0 {
             guard let lutURL, let loaded = try? cube(at: lutURL) else { return nil }
             table = loaded
-        } else { table = strength > 0 ? looksForPreset(settings.preset) : nil }
+        } else { table = strength > 0 ? looks[settings.preset] : nil }
 
         let w = image.width, h = image.height
         let format = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
         guard let bitmap = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w*4,
-                                     space: space, bitmapInfo: format), let data = bitmap.data else { return nil }
+                                     space: .sRGBSpace, bitmapInfo: format), let data = bitmap.data else { return nil }
         bitmap.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
         if adjusted, let corrections, !PhotoDevelopment.applySpatial(corrections, to: bitmap) { return nil }
         let adjustmentTable = adjusted ? corrections.flatMap { PhotoDevelopment.cube(for: $0) } : nil
@@ -265,10 +293,6 @@ enum FilmRenderer {
         let a = noise(0,0)*(1-fx) + noise(1,0)*fx
         let b = noise(0,1)*(1-fx) + noise(1,1)*fx
         return a*(1-fy)+b*fy
-    }
-
-    private static func looksForPreset(_ preset: FilmPreset) -> FilmCube? {
-        preset == .original ? nil : looks[preset]
     }
 
     private static let noiseTile: [Float] = {
