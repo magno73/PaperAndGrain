@@ -8,10 +8,10 @@ Ci sono cinque modelli nuovi nella famiglia **Fotolibro d’autore**: Monografia
 
 **Verificato:**
 - PDF di prova e di stampa per tutti i dodici modelli con un libro sintetico di dieci pagine;
-- `swift test` con 113 test, fra cui le gallerie dei nuovi modelli senza sovrapposizioni e il titolo sul dorso.
+- `swift test` con 113 test, fra cui le gallerie dei nuovi modelli senza sovrapposizioni e il titolo sul dorso;
+- il selettore nell’app con il libro dimostrativo: tre famiglie su tre colonne, dodici anteprime, selezione con segno di spunta, **Annulla** senza modifiche. Un libro senza modello apre il selettore senza scelta attiva.
 
 **Resta da provare:**
-- il selettore nell’app, perché lo schermo era bloccato durante la verifica;
 - la stampa reale di un dorso;
 - la licenza di incorporazione dei caratteri di sistema nei PDF venduti.
 
