@@ -374,6 +374,28 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertEqual(Array(opening.bytes[i..<(i + 3)]).map(Int.init), expected.map(Int.init), accuracy: 2)
     }
 
+    // MARK: B9 classic cover band
+
+    func testClassicCoverBandRunsIntoTheWrap() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var book = Book(title: "Band", pages: [BookPage(layout: .text, text: "Uno")])
+        book.cover = BookCover(title: "Band", backText: "Retro")
+        let url = folder.appendingPathComponent("pixart.pdf")
+        try BookPDF.writePixart(book, directory: folder, spineMM: 8, to: url)
+        let mm = 72 / 25.4
+        let cover = try PrintFixtures.raster(url, page: 1, scale: 1)
+        // Raster rows run from the top. The band covers the lower part of each face.
+        let y = Int((19 + 220 * 0.85) * mm)
+        for x in [Int(5 * mm), cover.width - Int(5 * mm), Int((19 + 100) * mm)] {
+            let i = (y * cover.width + x) * 4
+            XCTAssertGreaterThan(cover.bytes[i], 200, "x \(x): the band should reach this point")
+        }
+        // Above the band the cover keeps its dark background, in the wrap too.
+        let above = (Int(40 * mm) * cover.width + Int(5 * mm)) * 4
+        XCTAssertLessThan(cover.bytes[above], 80)
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }

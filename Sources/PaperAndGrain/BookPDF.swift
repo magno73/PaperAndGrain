@@ -629,13 +629,14 @@ enum BookPDF {
             try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop, images: images,
                       book: book, directory: directory, context: context, trim: face.bounds, outer: outer)
         }
+        // A band or rule that reaches the trim continues into the bleed, wrap and hinge like the photo.
         if let band = face.band {
             context.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
-            context.fill(band)
+            context.fill(bleedArea(of: band, trim: face.bounds, outer: outer))
         }
         if let rule = face.rule {
             context.setFillColor(EditorialStyle.color(book.editorialStyle.accent))
-            context.fill(rule)
+            context.fill(bleedArea(of: rule, trim: face.bounds, outer: outer))
         }
         if let rect = face.titleFrame {
             try drawText(face.title, in: rect, overflow: .coverTextOverflow, context: context)
