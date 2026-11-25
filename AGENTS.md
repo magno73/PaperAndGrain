@@ -36,8 +36,10 @@ Use themes and labels as suggestions the author can choose from. Analysis must s
 
 - Every new user-visible string goes into the String Catalog `Resources/Localizable.xcstrings` with English and Italian. Accessibility labels count.
 - English is the source language and the English text is the key. When the same English text needs different Italian translations, use an explicit key with a comment in the catalog.
-- Never inline Italian text in Swift. Look strings up through `L10n`.
-- Command-line output stays in English and is not localized.
+- Never inline Italian text in Swift. Views and commands conform to `Localizing` and call `tr("Page")`, `tr("Layout", key: "toolbar.layout")` for an explicit key, or `tr("%lld pages", count)` for counts; model code calls `L10n.string(_:language:)`. Counts use plural variations in the catalog and positional arguments (`%1$@`, `%2$lld`).
+- Test the language only with `L10n.isItalian`.
+- Command-line output stays in English and is not localized (`L10n.useEnglishOnly()`).
+- Run `python3 scripts/l10n-pairs.py check` before committing: it finds inline pairs, missing keys and unused keys.
 - Check every new visible label in English and in Italian.
 
 ## Verification and documentation

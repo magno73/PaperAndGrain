@@ -38,7 +38,7 @@ The spec accepts only `version`, `files` and `photos`, and `photos` only `albumI
 
 ## PDF
 
-`export-pdf SOURCE.papergrain --profile proof|print|pixart --output PATH [--spine-mm MM]` returns the path, the profile and the print warnings found. The profiles share the project settings and resources.
+`export-pdf SOURCE.papergrain --profile proof|print|pixart --output PATH [--spine-mm MM]` returns the path, the profile and the print warnings found, in English (for example `p. 3 · Missing photo`). The profiles share the project settings and resources.
 
 - `proof` saves the interior as a single `.pdf` for viewing.
 - `print` saves `Interior.pdf` and, if the book has a cover, `Cover.pdf` in a new folder.
