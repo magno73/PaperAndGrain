@@ -4,7 +4,7 @@
 
 Paper & Grain is a native Mac app that turns a travel album into a printed photobook. It mixes photos and stories, film looks and editorial page templates. It also exports print-ready PDFs.
 
-It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision and the PDF output uses Core Graphics and Core Text. Everything runs on your Mac: photos are copied into the book and analysed locally, and nothing is uploaded. The interface is available in English and Italian.
+It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision and the PDF output uses Core Graphics and Core Text. Everything runs on your Mac: photos are copied into the book and analysed locally, and nothing is uploaded. The interface is available in English and Italian; choose the language in **Settings** (⌘,).
 
 > **Status:** a working prototype that is used to build real books. It has been run on macOS 27; macOS 14, 15 and 26 are supported but not yet tested. Expect rough edges, and check every PDF with your print shop before ordering.
 
@@ -59,7 +59,7 @@ swift test
 
 ## Make your first book
 
-1. Choose **New Book from a Photos Album** and allow access when macOS asks. Pick an album, select the pictures, set the size and press **Auto-Layout**. **New Book from Finder Files** works without Photos. **Open the Sample Book** needs no permissions at all.
+1. Choose **New Book from a Photos Album** and allow access when macOS asks. Pick **Recents**, **Favorites** or one of your albums, select the pictures, set the size and press **Auto-Layout**. **New Book from Finder Files** works without Photos. **Open the Sample Book** needs no permissions at all.
 2. A new book opens on the **Book Templates** chooser. **Apply** sets paper, type and margins. **Cancel** keeps the basic style. You can change the template later from **Style** in the toolbar.
 3. Arrange the pages. Drag photos from the **Photo Library** tray at the bottom onto a page, drag thumbnails in the **Pages** sidebar to reorder pages, and pick a layout with **Layout** in the toolbar.
 4. Select a heading, story or text box to write and format it. Select a photo to adjust it or give it a film look.
@@ -72,7 +72,7 @@ swift test
 | **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
 | **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
 | **Canvas** | One page or a spread (⌘1, ⌘2), zoom (⌘+, ⌘−, ⌘0). When the whole page fits, scroll or swipe to turn pages. **Browse the Book** (⌥⌘↩) shows the book full screen. |
-| **Photo Library** (bottom, ⌥⌘L) | Thumbnails in each photo's own proportions. Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here to add them. |
+| **Photo Library** (bottom, ⌥⌘L) | Thumbnails in each photo's own proportions. Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here, or choose **Import Files…** from its menu, to add them to the open book. |
 | **Inspector** (right, ⌥⌘I) | Tabs follow the selection. **Page** or **Cover**. **Text** for a heading, story, box or cover text. **Photo** for a selected photo, cover photo included. **Film** for the book look when no photo is selected. |
 
 The app frame follows the Mac's light or dark appearance. Pages always keep their template colors.
@@ -80,7 +80,7 @@ The app frame follows the Mac's light or dark appearance. Pages always keep thei
 ## Laying out pages
 
 - **Select and move.** A click selects the topmost object. Click blank paper, or press Esc or ⇧⌘A, to deselect. Arrow keys nudge the selection by 1 pt, or 10 pt with ⇧. Delete removes it from the page, and ⌘Z brings it back.
-- **Page layouts.** **Page → Page Template**, or **Layout** in the toolbar, is the single control for the page type. **Automatic gallery** arranges the photos for you. Fixed layouts, with margins or full bleed, place frames, and **Full Spread** fills both pages. Photos that do not fit a layout stay listed on the page until there is room.
+- **Page layouts.** **Page › Page Layout…**, or **Layout** in the toolbar, is the single control for the page type. **Automatic gallery** arranges the photos for you. Fixed layouts, with margins or full bleed, place frames, and **Full Spread** fills both pages. Photos that do not fit a layout stay listed on the page until there is room.
 - **Photos.** Drag a photo from the tray onto a photo on the page to replace it. It keeps the same slot and layer and is never cropped without telling you:
   - with similar proportions, it fills the same frame;
   - an automatic gallery lays the page out again for the new proportions;
@@ -90,14 +90,14 @@ The app frame follows the Mac's light or dark appearance. Pages always keep thei
   Drag a photo onto an empty slot to fill that slot, or onto an empty page to start its layout. Anywhere else it gets a free frame where you drop it. Use the corner handles to resize, even past the trim. Double-click to crop, then press **Done**. Drop a photo inside another one to swap them; hold ⌥ to overlap freely instead. Guides show alignment with the edges and centers of other objects and of the page. Snapping happens while you drag: the photo jumps to the guide and stays where you see it when you let go. The page edges pull a little harder, so a photo brought close to the trim lands exactly on it. Keep dragging past the pull to place it freely, or hold ⌥ to ignore all guides.
 - **Resolution.** A photo whose print resolution falls below the book's target (300 ppi unless changed in **Book & Print**) shows a warning badge in its corner: orange below the target, red below two thirds of it. Hover the badge for the value; the **Photo** tab shows the print resolution of the selected photo. The value counts the crop and the zoom, like the export preflight.
 - **Layers.** Right-click, or Control-click, a photo, box or story for its own menu. It includes **Bring to Front**, **Bring Forward**, **Send Backward** and **Send to Back**. The same commands are in the **Arrange** menu (⇧⌘F, ⌥⇧⌘F, ⌥⇧⌘B, ⇧⌘B). The order is saved and used in the PDF.
-- **Text.** **Insert → Text Box** adds a free text frame. **Insert → Page Heading** adds a heading to any page. Drag text to move it; use the side handles for width and the corners for height. Double-click to type on the page. Drag the story's background, or its **Move Story Group** handle, to move heading, story and background together.
-- **Cover.** **Cover**, **First Page** and **Back Cover** open from the Pages sidebar. **Insert → Title Page** adds an opening page with the book title. Both cover faces take a photo and text that you can move, resize and crop.
+- **Text.** **Insert › Text Box** adds a free text frame. **Insert › Page Heading** adds a heading to any page. Drag text to move it; use the side handles for width and the corners for height. Double-click to type on the page. Drag the story's background, or its **Move Story Group** handle, to move heading, story and background together.
+- **Cover.** **Cover**, **First Page** and **Back Cover** open from the Pages sidebar. **Insert › Title Page** adds an opening page with the book title. Both cover faces take a photo and text that you can move, resize and crop.
 
 ## Book templates
 
 Choose **Style** in the toolbar, the **Book Template** row in the Page tab, or **File › Book Templates…**:
 
-- **Classics:** Diary, Atlas, Gallery and Essential.
+- **Classics:** Journal, Atlas, Gallery and Essential.
 - **Studio:** Swiss Grid, Berlin Notebook and Japanese Interval.
 - **Photobook:** Monograph, Postcard, Nocturne, Kodachrome and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's *Kodachrome* and *American Surfaces*.
 
@@ -114,7 +114,7 @@ Select a heading, story or text box and the **Text** tab opens, like Keynote's F
 - **Box:** a text box can have no background, the paper color or any color, and a border from 0.5 to 12 pt in any color.
 - **Reset to Template Style** removes local changes. **Arrange** brings the object to the front or sends it to the back.
 
-Select the cover title or the back cover text to format it in the same tab. Book-wide defaults for headings and body text are in **Book & Print → Book Typography**. The editor, thumbnails and PDF share the same Core Text layout, so what you see is what prints.
+Select the cover title or the back cover text to format it in the same tab. Book-wide defaults for headings and body text are in **Book & Print › Book Typography**. The editor, thumbnails and PDF share the same Core Text layout, so what you see is what prints.
 
 ## Photo adjustments and film looks
 
@@ -132,6 +132,7 @@ Every look choice or slider drag is a single ⌘Z step.
 **Book & Print** sets the format, bleed, safe margin, target resolution, PDF type, the side of the first page and the cover with spine width.
 
 - **Export for Print** writes `Interior.pdf` and, if enabled, `Cover.pdf`. It flags photos below the target resolution and the filler pages that panoramas need.
+- Before an export, a preflight check lists what would stop it, such as text that overflows its frame or a missing photo file, and the warnings, such as low resolution. Problems must be fixed before you can continue; warnings can be ignored.
 - **Export PDF** offers **Viewing PDF**, **Generic Print** and **Pixartprinting · 21 × 21 cm**. The Pixartprinting profile writes one 1:1 PDF: a flat hardcover with the spine width from your quote, then single 216 × 216 mm pages with 3 mm bleed. PDFs are sRGB.
 
 Always use the exact dimensions and color requirements of the product you order.
@@ -155,16 +156,17 @@ See the [CLI guide](docs/cli.md) for every command and the JSON formats.
 
 - **Photos:** selected photos are copied into the book. Photos may download originals from iCloud when they are needed.
 - **Analysis:** Vision runs on the Mac on copies of up to 640 pixels. Labels and themes are stored in the project.
-- **Drafts and packages:** a new book starts as a draft in your user's Application Support folder. A saved `.papergrain` package holds the images, the analysis and the document; share it only as you would share the original album.
+- **Drafts and packages:** a new book starts as a draft in your user's Application Support folder, and the welcome window lists every draft. Right-click a draft and choose **Delete Draft…** to move it to the Trash; after **Save As**, the draft moves to the Trash too. A saved `.papergrain` package holds the images, the analysis and the document; share it only as you would share the original album.
+- **Saving:** a book renamed or moved in Finder while open keeps saving in its new place. If it disappears, use **Save As** to keep your changes. A book saved by a newer version of the app, or stored in a read-only location, opens read-only; **Save As** makes an editable copy of a book in a read-only location.
 - **This repository:** it contains only synthetic or authorised test images. Keep personal albums, local projects and private text out of Git.
 
 ## Documentation
 
-The developer documentation is written in Italian:
-
+- [CHANGELOG.md](CHANGELOG.md): what changed in each version.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to build, test and propose a change.
 - [AGENTS.md](AGENTS.md): instructions for people and coding agents working on the code. Entry points, how to work in increments and how to verify changes.
 - [Architecture and document format](docs/architecture.md)
-- [Testing log and feature status](docs/status.md)
+- [Status](docs/status.md): what has been tested, what has not, and known limitations.
 - [Templates](docs/templates.md)
 - [CLI](docs/cli.md), [editing commands](docs/cli-editing.md) and [media commands](docs/cli-media.md)
 
