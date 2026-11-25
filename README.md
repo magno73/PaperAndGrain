@@ -18,6 +18,10 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 - **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and a Pixartprinting 21 × 21 cm profile. A preflight check flags photos below the target resolution.
 - **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
 
+![Three spreads exported from Paper & Grain with the Monograph, Postcard and Kodachrome templates](docs/images/sample-spreads.jpg)
+
+*Spreads exported by the app with the Monograph, Postcard and Kodachrome templates, using the sample photo and synthetic images.*
+
 ## Download
 
 Get the latest `Paper-and-Grain-<version>.zip` from [Releases](https://github.com/magno73/PaperAndGrain/releases), unzip it and move **Paper & Grain** to your Applications folder. The app runs on Apple silicon and Intel Macs with macOS 14 or later.
