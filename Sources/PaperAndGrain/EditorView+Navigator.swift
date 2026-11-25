@@ -324,7 +324,14 @@ extension EditorView {
                     let text = PageComposition.boxText(box: box, book: book)
                     let inset = box.textInsetPoints
                     ZStack(alignment: .topLeading) {
-                        positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
+                        if let fill = box.fill(paper: style.paper) {
+                            positioned(Color(cgColor: EditorialStyle.color(fill)), in: scaled(frame, by: scale))
+                        }
+                        if let border = box.border(ink: style.ink) {
+                            positioned(Rectangle().strokeBorder(Color(cgColor: EditorialStyle.color(border.color)),
+                                                                lineWidth: max(0.3, border.width * scale)),
+                                       in: scaled(frame, by: scale))
+                        }
                         positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
                     }
                     .zIndex(Double(composition.rank(.textBox(box.id))))

@@ -190,7 +190,6 @@ extension EditorView {
         if editingEditorial != object { endInlineTextEditing() }
         if let leaf { select(leaf) }
         selectedEditorial = object
-        if case .cover = object { coverTypographyExpanded = true }
         selectedBox = nil
         selectedPhoto = nil
         canvasPhotoSelection = nil

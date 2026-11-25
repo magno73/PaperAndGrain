@@ -132,6 +132,15 @@ extension EditorView {
         return .free
     }
 
+    /// A short message over the canvas that explains what an edit did, then fades.
+    func showCanvasNotice(_ message: String) {
+        canvasNotice = message
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(4))
+            if canvasNotice == message { canvasNotice = nil }
+        }
+    }
+
     func photoSwapTarget(_ id: UUID, at point: CGPoint, in bounds: CGRect,
                                  composition: PageComposition, textFrames: [CGRect]) -> CanvasPhotoSwap.Target? {
         guard !NSEvent.modifierFlags.contains(.option) else { return nil }
@@ -175,9 +184,19 @@ extension EditorView {
             return
         case let .replace(target):
             var updated = current
-            guard updated.replacePhoto(target.id, with: id, in: composition) else { return }
+            guard let outcome = updated.replacePhoto(target.id, with: photo, in: composition) else { return }
             editPages(tr("Sostituisci foto", "Replace Photo")) { $0[index] = updated }
             selectCanvasPhoto(id, in: updated)
+            switch outcome {
+            case .fitted:
+                showCanvasNotice(tr("Proporzioni diverse: la cornice si è adattata alla foto intera.",
+                                    "Different proportions: the frame now fits the whole photo."))
+            case .croppedToBleed:
+                showCanvasNotice(tr("Foto ritagliata per riempire lo spazio al vivo. Doppio clic per regolare il ritaglio.",
+                                    "Photo cropped to fill the full-bleed space. Double-click to adjust the crop."))
+            case .sameFrame, .reflowed:
+                break
+            }
             return
         case let .fillSlot(slot, _):
             var updated = current

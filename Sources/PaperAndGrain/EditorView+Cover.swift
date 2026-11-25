@@ -133,38 +133,33 @@ extension EditorView {
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))
                 .accessibilityLabel(tr("Testo del retro", "Back Cover Text"))
             }
-            DisclosureGroup(tr("Tipografia", "Typography"), isExpanded: $coverTypographyExpanded) {
-                let style = book.editorialStyle
-                let front = side == .front
-                let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
-                EditorialTypographyControls(style: coverTextStyle(front ? \.title : \.body),
-                                           inherited: defaultStyle.applying(front ? book.typography?.title : book.typography?.body),
-                                           language: language, sampleText: coverEditorialValue(side).wrappedValue)
-                    .padding(.top, 6)
-                    .id(side)
-                let face = BookCoverGeometry(book: book, front: front)
-                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
-                    typeOverflow(tr("Il testo supera lo spazio della copertina.", "The text exceeds the cover space."))
-                }
+            // Font, size and color live in the Text tab, as for every other text in the book.
+            Button {
+                selectEditorial(.cover(side))
+                showInspectorTab(.text)
+            } label: {
+                Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
             }
             if (side == .front ? book.cover?.frontTitleFrame : book.cover?.backTextFrame) != nil {
                 Button(tr("Ripristina posizione del testo", "Reset Text Placement")) { moveCoverText(side, to: nil) }
             }
+            Divider()
+            caption(tr("Foto", "Photo"))
             if let photo = coverPhotoID(side).flatMap(indexedPhoto) {
-                HStack(spacing: 8) {
-                    preview(photo, small: true).frame(width: 38, height: 30).clipped()
-                    Text(photo.name).font(.callout).lineLimit(1)
-                }
-                HStack {
-                    Button(tr("Regola foto", "Adjust Photo")) {
-                        selectCoverPhoto(photo.id)
-                        showPhotoSection(film: false)
+                // Selecting the photo opens the Photo tab with adjustments and film look.
+                Button {
+                    selectCoverPhoto(photo.id)
+                    showInspectorTab(.photo)
+                } label: {
+                    HStack(spacing: 8) {
+                        preview(photo, small: true).frame(width: 38, height: 30).clipped()
+                        Text(photo.name).font(.callout).lineLimit(1)
+                        Spacer(minLength: 0)
                     }
-                    Button(tr("Pellicola", "Film")) {
-                        selectCoverPhoto(photo.id)
-                        showPhotoSection(film: true)
-                    }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .help(tr("Seleziona la foto per regolarla", "Select the photo to adjust it"))
                 if coverPhotoPlacement(side) != nil {
                     Button(localized("editor.cover.reset_photo", fallback: "Reset Photo Placement and Crop")) {
                         changeCoverPhotoPlacement(side, name: tr("Ripristina foto di copertina", "Reset Cover Photo")) {
@@ -203,7 +198,6 @@ extension EditorView {
         finishCrop()
         endInlineTextEditing()
         coverSide = side
-        coverTypographyExpanded = false
         canvasPhotoSelection = nil
         selectedPhoto = nil
         selectedBox = nil

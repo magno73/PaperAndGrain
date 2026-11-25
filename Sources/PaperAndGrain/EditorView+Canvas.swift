@@ -61,6 +61,19 @@ extension EditorView {
             .editorDropFrame(.canvasHUD)
             .padding(.bottom, 14)
         }
+        .overlay(alignment: .top) {
+            if let canvasNotice {
+                Label(canvasNotice, systemImage: "info.circle")
+                    .font(.callout)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .floatingCapsule()
+                    .padding(.top, 44)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .allowsHitTesting(false)
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
+        }
     }
 
     /// Page view and zoom: a small floating control in the corner of the canvas.
@@ -623,7 +636,15 @@ extension EditorView {
                     }
                 }
                 .padding(box.textInsetPoints * scale)
-                .background(Color(cgColor: EditorialStyle.color(style.paper)).opacity(empty ? 0.82 : 1))
+                .background(box.fill(paper: style.paper).map { Color(cgColor: EditorialStyle.color($0)) }
+                    .opacity(empty ? 0.82 : 1))
+                .overlay {
+                    if let border = box.border(ink: style.ink) {
+                        Rectangle().strokeBorder(Color(cgColor: EditorialStyle.color(border.color)),
+                                                 lineWidth: max(0.5, border.width * scale))
+                            .allowsHitTesting(false)
+                    }
+                }
                 .overlay {
                     if empty && !active {
                         Rectangle().strokeBorder(pine.opacity(0.48), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
@@ -648,7 +669,7 @@ extension EditorView {
             .scrollContentBackground(.hidden)
             .focused($inlineBoxFocus, equals: box.id)
             .padding(max(0, box.textInsetPoints * scale - 4))
-            .background(Color(cgColor: EditorialStyle.color(style.paper)))
+            .background(Color(cgColor: EditorialStyle.color(box.fill(paper: style.paper) ?? style.paper)).opacity(box.hidesBackground == true ? 0.7 : 1))
             .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
             .onExitCommand(perform: endInlineTextEditing)
             .accessibilityLabel(tr("Testo del box in pagina", "Text Box on Page"))

@@ -297,10 +297,18 @@ enum BookPDF {
                 }
             case let .textBox(id):
                 guard let box = composition.textBoxes.first(where: { $0.id == id }),
-                      !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                      !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || box.border(ink: style.ink) != nil else { continue }
                 let frame = box.frame.rect(in: composition.bounds)
-                context.setFillColor(EditorialStyle.color(style.paper))
-                context.fill(frame)
+                if let fill = box.fill(paper: style.paper) {
+                    context.setFillColor(EditorialStyle.color(fill))
+                    context.fill(frame)
+                }
+                if let border = box.border(ink: style.ink) {
+                    context.setStrokeColor(EditorialStyle.color(border.color))
+                    context.setLineWidth(border.width)
+                    context.stroke(frame.insetBy(dx: border.width / 2, dy: border.width / 2))
+                }
                 let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
                 try drawText(PageComposition.boxText(box: box, book: book),
                              in: textFrame, pageNumber: pageNumber, context: context)

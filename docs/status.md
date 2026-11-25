@@ -1,5 +1,34 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · sostituzioni, box, copertina, aiuto · 25 novembre 2026
+
+- **Selezione nell’album di Foto.** `scaledToFill().clipped()` nasconde la parte in eccesso dell’immagine, ma SwiftUI la considera ancora per i clic. Una foto verticale prendeva i clic delle celle vicine finché lo scorrimento non cambiava l’ordine di disegno. Le miniature ora ricevono clic solo nel riquadro visibile; lo stesso vale per le anteprime dell’editor e le copertine dei recenti.
+- **Sostituzione con proporzioni diverse** (`BookPage.replacePhoto`), senza ritagli nascosti:
+  - proporzioni simili: stessa cornice;
+  - galleria che segue le proporzioni: la pagina si ricompone;
+  - modelli fissi, gallerie dei modelli Studio e Fotolibro, cornici manuali: la cornice si riduce alla foto intera, centrata, e le altre foto restano ferme;
+  - al vivo: la foto riempie lo spazio.
+  Negli ultimi due casi un avviso sul canvas spiega cosa è successo.
+- **Copertina.** La tipografia è nella scheda **Testo**. I pulsanti Regola e Pellicola non ci sono più: la foto di copertina si seleziona e si regola nella scheda **Foto**.
+- **Box di testo.** Sfondo nessuno, carta o colore e bordo da 0,5 a 12 pt, in tela, miniature e PDF (`PageTextBox.backgroundColor`, `hidesBackground`, `borderColor`, `borderWidth`, campi facoltativi).
+- **Fototeca.** Le miniature hanno le proporzioni della foto.
+- **Informazioni e Aiuto.** **Informazioni su Paper & Grain** riporta autore, licenza e repository. **Aiuto › Aiuto di Paper & Grain** (⌘?) apre una guida in cinque passi, in italiano e inglese.
+
+**Verificato nell’app** su un libro sintetico con il modello Kodachrome:
+- panorama su una foto verticale di un modello a due: cornice ridotta e avviso;
+- foto verticale nella galleria Kodachrome: adattata, non ritagliata;
+- box con sfondo colorato e bordo da 2 pt;
+- scheda **Testo** del titolo di copertina e pannello **Copertina** senza i vecchi pulsanti;
+- miniature proporzionate;
+- Informazioni e Aiuto.
+
+`swift test` esegue 131 test.
+
+**Resta da provare:**
+- la selezione nell’album di Foto, con un album reale scelto dall’utente;
+- bordo e sfondo dei box nel PDF di stampa;
+- sostituzione su una doppia.
+
 ## 0.10.0-redesign · rilascio delle foto · 25 novembre 2026
 
 - **Bordo che restava dopo un clic sulla carta.** Era l’anello di focus di macOS sull’oggetto cliccato, non la selezione. Ora è disattivato e la selezione la disegna solo l’app.

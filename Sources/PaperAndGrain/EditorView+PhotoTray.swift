@@ -304,8 +304,10 @@ extension EditorView {
         let active = photo.id == selectedPhoto
         let orientation = photoOrientation(photo)
         let details = ([orientation.label] + locations.map(usageDescription)).joined(separator: " · ")
-        return preview(photo, small: true, fills: false)
-            .frame(width: 104, height: 76)
+        // Same height for every tile, width from the photo's own proportions (panoramas capped).
+        let ratio = CGFloat(photo.pixelWidth) / CGFloat(max(1, photo.pixelHeight))
+        return preview(photo, small: true, fills: true)
+            .frame(width: min(190, max(38, 76 * ratio)), height: 76)
             .background(pine.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay(alignment: .topLeading) {

@@ -54,7 +54,6 @@ struct EditorView: View {
 
     @State var coverSide: CoverSide?
 
-    @State var coverTypographyExpanded = false
 
     @State var zoom: CanvasZoom = .fitPage
 
@@ -103,6 +102,8 @@ struct EditorView: View {
     @State var showsAdjustSection = false
 
     @State var showsPhotoFilmSection = false
+
+    @State var canvasNotice: String?
 
     /// Off by default: with a photo selected, the film look changes only that photo.
     @State var filmAppliesToBook = false
@@ -848,6 +849,7 @@ struct EditorPreview<Placeholder: View>: View {
                         .resizable()
                         .frame(width: frame.width, height: frame.height)
                         .position(x: frame.midX, y: frame.midY)
+                        .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 } else {
                     placeholder()

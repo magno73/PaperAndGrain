@@ -376,10 +376,14 @@ extension EditorView {
         case box(page: UUID, box: UUID)
         case heading(page: UUID)
         case story(page: UUID)
+        case cover(CoverSide)
     }
 
     var selectedText: TextSelection? {
-        guard coverSide == nil, let page else { return nil }
+        if let coverSide {
+            return selectedEditorial == .cover(coverSide) ? .cover(coverSide) : nil
+        }
+        guard let page else { return nil }
         if let box = selectedBox, page.textBoxes?.contains(where: { $0.id == box }) == true {
             return .box(page: page.id, box: box)
         }
@@ -422,6 +426,7 @@ extension EditorView {
                     }
                 ))
                 .toggleStyle(.checkbox)
+                boxFrameControls(box, on: pageID, palette: palette)
                 layerButtons(LayerTarget(pageID: pageID, layer: .textBox(boxID)))
             }
         case let .heading(pageID)?:
@@ -446,10 +451,99 @@ extension EditorView {
                 }
                 layerButtons(LayerTarget(pageID: pageID, layer: .story))
             }
+        case let .cover(side)?:
+            let front = side == .front
+            let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
+            caption(front ? tr("Titolo in copertina", "Cover Title") : tr("Testo del retro", "Back Cover Text"))
+            EditorialTypographyControls(style: coverTextStyle(front ? \.title : \.body),
+                                       inherited: defaultStyle.applying(front ? book.typography?.title : book.typography?.body),
+                                       language: language, sampleText: coverEditorialValue(side).wrappedValue,
+                                       defaultInk: front ? style.titleInk : style.ink, palette: palette)
+                .id(side)
+            let face = BookCoverGeometry(book: book, front: front)
+            if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
+                typeOverflow(tr("Il testo supera lo spazio della copertina.", "The text exceeds the cover space."))
+            }
         case nil:
             intro(tr("Seleziona un box, un titolo o un racconto nella pagina.",
                      "Select a text box, heading or story on the page."))
         }
+    }
+
+    enum BoxFillChoice: Hashable { case none, paper, color }
+
+    /// Background and border of a text box, like Keynote's Fill and Border.
+    func boxFrameControls(_ box: PageTextBox, on pageID: UUID, palette: [UInt32]) -> some View {
+        let style = book.editorialStyle
+        let fillChoice: BoxFillChoice = box.hidesBackground == true ? .none : (box.backgroundColor == nil ? .paper : .color)
+        func change(_ name: String, _ update: @escaping (inout PageTextBox) -> Void) {
+            changeTextBoxes(on: pageID, name: name) { boxes in
+                guard let index = boxes.firstIndex(where: { $0.id == box.id }) else { return }
+                update(&boxes[index])
+            }
+        }
+        let fillName = tr("Modifica sfondo del box", "Change Box Background")
+        let borderName = tr("Modifica bordo del box", "Change Box Border")
+        let borderWidth = box.borderWidth ?? 0
+        return VStack(alignment: .leading, spacing: 9) {
+            Divider()
+            caption(tr("Riquadro", "Box"))
+            Text(tr("Sfondo", "Background")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+            Picker(tr("Sfondo", "Background"), selection: Binding(
+                get: { fillChoice },
+                set: { choice in
+                    change(fillName) { item in
+                        switch choice {
+                        case .none: item.hidesBackground = true
+                        case .paper:
+                            item.hidesBackground = nil
+                            item.backgroundColor = nil
+                        case .color:
+                            item.hidesBackground = nil
+                            item.backgroundColor = item.backgroundColor ?? style.accent
+                        }
+                    }
+                }
+            )) {
+                Text(tr("Nessuno", "None")).tag(BoxFillChoice.none)
+                Text(tr("Carta", "Paper")).tag(BoxFillChoice.paper)
+                Text(tr("Colore", "Color")).tag(BoxFillChoice.color)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            if fillChoice == .color {
+                ColorSwatches(colors: [style.paper, 0xFFFFFF, style.accent, style.overlayPaper, style.ink] + palette,
+                              selected: box.backgroundColor ?? style.paper,
+                              label: tr("Colore di sfondo", "Background Color")) { value in
+                    change(fillName) { $0.backgroundColor = value }
+                }
+            }
+            HStack {
+                Text(tr("Bordo", "Border")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Stepper(value: Binding(
+                    get: { borderWidth },
+                    set: { value in
+                        let width = min(PageTextBox.borderWidthRange.upperBound, max(0, (value * 2).rounded() / 2))
+                        change(borderName) { $0.borderWidth = width == 0 ? nil : width }
+                    }
+                ), in: PageTextBox.borderWidthRange, step: 0.5) {
+                    Text(borderWidth == 0 ? tr("Nessuno", "None")
+                         : borderWidth.formatted(.number.precision(.fractionLength(0...1))
+                             .locale(Locale(identifier: language))) + " pt")
+                        .font(.system(size: 11).monospacedDigit())
+                }
+                .accessibilityLabel(tr("Spessore del bordo", "Border Width"))
+            }
+            if borderWidth > 0 {
+                ColorSwatches(colors: [style.ink, style.titleInk, style.accent, 0x000000, 0xFFFFFF] + palette,
+                              selected: box.borderColor ?? style.ink,
+                              label: tr("Colore del bordo", "Border Color")) { value in
+                    change(borderName) { $0.borderColor = value == style.ink ? nil : value }
+                }
+            }
+        }
+        .controlSize(.small)
     }
 
     func headingFormat(_ leaf: BookPage, palette: [UInt32]) -> some View {

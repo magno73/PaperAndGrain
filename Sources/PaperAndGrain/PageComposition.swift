@@ -96,7 +96,26 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     var frame: PageRect
     var typography: EditorialTextStyle? = nil
     var usesFullWidth: Bool? = nil
+    /// Box fill as 0xRRGGBB; nil uses the paper color of the template.
+    var backgroundColor: UInt32? = nil
+    /// True leaves the box transparent, so photos or paper show through.
+    var hidesBackground: Bool? = nil
+    /// Border color as 0xRRGGBB; nil uses the template's ink.
+    var borderColor: UInt32? = nil
+    /// Border width in points; nil or 0 draws no border.
+    var borderWidth: Double? = nil
+
+    static let borderWidthRange = 0.0...12.0
     var textInsetPoints: Double { usesFullWidth == true ? 0 : Self.textInset }
+
+    /// The fill to paint, or nil for a transparent box.
+    func fill(paper: UInt32) -> UInt32? { hidesBackground == true ? nil : backgroundColor ?? paper }
+
+    /// Border width and color to stroke, or nil when the box has no border.
+    func border(ink: UInt32) -> (width: Double, color: UInt32)? {
+        guard let borderWidth, borderWidth > 0 else { return nil }
+        return (min(Self.borderWidthRange.upperBound, borderWidth), borderColor ?? ink)
+    }
 }
 
 struct PageComposition {

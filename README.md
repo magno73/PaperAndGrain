@@ -33,7 +33,7 @@ open ~/Applications/"Paper & Grain Redesign.app"
 
 The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain Redesign.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else.
 
-This branch builds **Paper & Grain Redesign** (`local.paperandgrain.mac.redesign`). It keeps its drafts in its own folder, separate from any other Paper & Grain build. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
+The app is built as **Paper & Grain Redesign** (`local.paperandgrain.mac.redesign`) and keeps its drafts in its own folder, separate from any other Paper & Grain build. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
 
 Run the tests with:
 
@@ -58,8 +58,8 @@ swift test
 | **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
 | **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
 | **Canvas** | One page or a spread (⌘1, ⌘2), zoom (⌘+, ⌘−, ⌘0). When the whole page fits, scroll or swipe to turn pages. **Browse the Book** (⌥⌘↩) shows the book full screen. |
-| **Photo Library** (bottom, ⌥⌘L) | Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here to add them. |
-| **Inspector** (right, ⌥⌘I) | Tabs follow the selection. **Page** or **Cover**. **Text** for a heading, story or box. **Photo** for a selected photo. **Film** for the book look when no photo is selected. |
+| **Photo Library** (bottom, ⌥⌘L) | Thumbnails in each photo's own proportions. Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here to add them. |
+| **Inspector** (right, ⌥⌘I) | Tabs follow the selection. **Page** or **Cover**. **Text** for a heading, story, box or cover text. **Photo** for a selected photo, cover photo included. **Film** for the book look when no photo is selected. |
 
 The app frame follows the Mac's light or dark appearance. Pages always keep their template colors.
 
@@ -67,7 +67,13 @@ The app frame follows the Mac's light or dark appearance. Pages always keep thei
 
 - **Select and move.** A click selects the topmost object. Click blank paper, or press Esc or ⇧⌘A, to deselect. Arrow keys nudge the selection by 1 pt, or 10 pt with ⇧. Delete removes it from the page, and ⌘Z brings it back.
 - **Page layouts.** **Page → Page Template**, or **Layout** in the toolbar, is the single control for the page type. **Automatic gallery** arranges the photos for you. Fixed layouts, with margins or full bleed, place frames, and **Full Spread** fills both pages. Photos that do not fit a layout stay listed on the page until there is room.
-- **Photos.** Drag a photo from the tray onto a photo on the page to replace it: the new one takes the same frame and slot, and the rest of the page stays put. Drag it onto an empty slot to fill that slot, or onto an empty page to start its layout. Anywhere else it gets a free frame where you drop it. Use the corner handles to resize, even past the trim. Double-click to crop, then press **Done**. Drop a photo inside another one to swap them; hold ⌥ to overlap freely instead. Guides show alignment with edges and centers; hold ⌥ to ignore them.
+- **Photos.** Drag a photo from the tray onto a photo on the page to replace it. It keeps the same slot and layer and is never cropped without telling you:
+  - with similar proportions, it fills the same frame;
+  - an automatic gallery lays the page out again for the new proportions;
+  - in a fixed layout, or a frame you placed by hand, the frame shrinks to the whole photo and nothing else moves;
+  - a full-bleed slot is filled, and a note says the photo was cropped.
+
+  Drag a photo onto an empty slot to fill that slot, or onto an empty page to start its layout. Anywhere else it gets a free frame where you drop it. Use the corner handles to resize, even past the trim. Double-click to crop, then press **Done**. Drop a photo inside another one to swap them; hold ⌥ to overlap freely instead. Guides show alignment with edges and centers; hold ⌥ to ignore them.
 - **Layers.** Right-click, or Control-click, a photo, box or story for its own menu. It includes **Bring to Front**, **Bring Forward**, **Send Backward** and **Send to Back**. The same commands are in the **Arrange** menu (⇧⌘F, ⌥⇧⌘F, ⌥⇧⌘B, ⇧⌘B). The order is saved and used in the PDF.
 - **Text.** **Insert → Text Box** adds a free text frame. **Insert → Page Heading** adds a heading to any page. Drag text to move it; use the side handles for width and the corners for height. Double-click to type on the page. Drag the story's background, or its **Move Story Group** handle, to move heading, story and background together.
 - **Cover.** **Cover**, **First Page** and **Back Cover** open from the Pages sidebar. **Insert → Title Page** adds an opening page with the book title. Both cover faces take a photo and text that you can move, resize and crop.
@@ -90,9 +96,10 @@ Select a heading, story or text box and the **Text** tab opens, like Keynote's F
 - **Size:** −, + or type the size in points.
 - **Color:** the template's swatches or any color.
 - **Alignment** and **Line Spacing.**
+- **Box:** a text box can have no background, the paper color or any color, and a border from 0.5 to 12 pt in any color.
 - **Reset to Template Style** removes local changes. **Arrange** brings the object to the front or sends it to the back.
 
-Book-wide defaults for headings and body text are in **Book & Print → Book Typography**. The editor, thumbnails and PDF share the same Core Text layout, so what you see is what prints.
+Select the cover title or the back cover text to format it in the same tab. Book-wide defaults for headings and body text are in **Book & Print → Book Typography**. The editor, thumbnails and PDF share the same Core Text layout, so what you see is what prints.
 
 ## Photo adjustments and film looks
 
@@ -113,6 +120,10 @@ Every look choice or slider drag is a single ⌘Z step.
 - **Export PDF** offers **Viewing PDF**, **Generic Print** and **Pixartprinting · 21 × 21 cm**. The Pixartprinting profile writes one 1:1 PDF: a flat hardcover with the spine width from your quote, then single 216 × 216 mm pages with 3 mm bleed. PDFs are sRGB.
 
 Always use the exact dimensions and color requirements of the product you order.
+
+## Help and about
+
+**Help › Paper & Grain Help** (⌘?) opens a short guide in the interface language. **Paper & Grain › About Paper & Grain** shows the author, Marco Magnocavallo ([marco@magno.me](mailto:marco@magno.me)), the license and the source repository.
 
 ## Command line
 

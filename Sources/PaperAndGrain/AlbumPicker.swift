@@ -187,7 +187,10 @@ private struct LibraryThumbnail: View {
         ZStack(alignment: .bottomTrailing) {
             RoundedRectangle(cornerRadius: 7).fill(.quaternary)
             if let image {
+                // clipped() hides the overflow but SwiftUI still hit-tests it: a portrait photo
+                // would steal clicks from the cells above and below.
                 Image(nsImage: image).resizable().scaledToFill().frame(width: 100, height: 76).clipped()
+                    .allowsHitTesting(false)
             } else {
                 Image(systemName: "photo").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -201,6 +204,7 @@ private struct LibraryThumbnail: View {
         }
         .frame(width: 100, height: 76)
         .clipShape(RoundedRectangle(cornerRadius: 7))
+        .contentShape(RoundedRectangle(cornerRadius: 7))
         .overlay {
             if selected {
                 RoundedRectangle(cornerRadius: 7).strokeBorder(Theme.accent, lineWidth: 2)

@@ -167,7 +167,14 @@ struct PaperAndGrainApp: App {
                     .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
             }
             EditorMenus(language: language)
+            AboutHelpCommands(language: language)
         }
+
+        Window(language.hasPrefix("it") ? "Aiuto di Paper & Grain" : "Paper & Grain Help", id: HelpView.windowID) {
+            HelpView(language: language)
+        }
+        .defaultSize(width: 640, height: 720)
+        .windowResizability(.contentMinSize)
 
         Settings {
             AppSettingsView(language: language, preferredLanguage: $preferredLanguage)
@@ -418,6 +425,7 @@ private struct RecentBookCard: View {
                             .scaledToFill()
                             .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                             .clipped()
+                            .allowsHitTesting(false)
                     }
                 }
                 .overlay {
