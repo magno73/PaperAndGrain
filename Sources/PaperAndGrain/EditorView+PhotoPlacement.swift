@@ -97,10 +97,39 @@ extension EditorView {
             return .position(CanvasAlignment.Result(frame: bounds, guides: []))
         }
         let location = CGPoint(x: dragging.location.x - screenFrame.minX, y: dragging.location.y - screenFrame.minY)
-        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
+        switch photoDropAction(id, on: leaf, composition: composition, at: location, in: bounds, textFrames: textFrames) {
+        case let .swap(target): return .swap(target)
+        case let .replace(target): return .replace(target)
+        case let .fillSlot(_, frame): return .position(CanvasAlignment.Result(frame: frame, guides: []))
+        case .join:
+            let scale = bounds.width / max(1, composition.bounds.width)
+            let area = leaf.layout == .fullPage ? bounds
+                : bounds.insetBy(dx: book.contentInsetPoints * scale, dy: book.contentInsetPoints * scale)
+            return .position(CanvasAlignment.Result(frame: area, guides: []))
+        case .free: return .position(photoPlacement(photo, in: composition, at: location, bounds: bounds))
+        }
+    }
+
+    func photoDropAction(_ id: UUID, on leaf: BookPage, composition: PageComposition, at point: CGPoint,
+                         in bounds: CGRect, textFrames: [CGRect]) -> PhotoDropAction {
+        // ⌥ always places freely, over whatever is there.
+        guard !NSEvent.modifierFlags.contains(.option) else { return .free }
+        let onPage = leaf.photoIDs.contains(id)
+        if onPage, let target = photoSwapTarget(id, at: point, in: bounds, composition: composition, textFrames: textFrames) {
             return .swap(target)
         }
-        return .position(photoPlacement(photo, in: composition, at: location, bounds: bounds))
+        if !onPage, let target = EditorPhotoHitTest.onPage(at: point, frame: bounds, composition: composition,
+                                                            storyFrames: textFrames),
+           let photo = composition.photos.first(where: { $0.id == target }) {
+            let visible = photo.frame.intersection(composition.bounds)
+            return .replace(CanvasPhotoSwap.Target(id: target, frame: PageRect(visible, in: composition.bounds).rect(in: bounds)))
+        }
+        let scale = bounds.width / max(1, composition.bounds.width)
+        if let slot = composition.emptySlots.first(where: { scaled($0.frame, by: scale).contains(point) }) {
+            return .fillSlot(index: slot.index, frame: scaled(slot.frame, by: scale))
+        }
+        if !onPage, composition.acceptsFirstPhoto(on: leaf) { return .join }
+        return .free
     }
 
     func photoSwapTarget(_ id: UUID, at point: CGPoint, in bounds: CGRect,
@@ -140,9 +169,28 @@ extension EditorView {
         let composition = pageComposition(current)
         let blocks = composition.storyBlocks(page: current, book: book)
         let textFrames = blocks.map(\.frame) + composition.storyBackgroundFrames(page: current, blocks: blocks)
-        if let target = photoSwapTarget(id, at: location, in: bounds, composition: composition, textFrames: textFrames) {
+        switch photoDropAction(id, on: current, composition: composition, at: location, in: bounds, textFrames: textFrames) {
+        case let .swap(target):
             swapPhoto(id, with: target.id, on: leaf.id)
             return
+        case let .replace(target):
+            var updated = current
+            guard updated.replacePhoto(target.id, with: id, in: composition) else { return }
+            editPages(tr("Sostituisci foto", "Replace Photo")) { $0[index] = updated }
+            selectCanvasPhoto(id, in: updated)
+            return
+        case let .fillSlot(slot, _):
+            var updated = current
+            guard updated.fillSlot(slot, with: id, in: composition) else { return }
+            editPages(tr("Posiziona foto", "Place Photo")) { $0[index] = updated }
+            selectCanvasPhoto(id, in: updated)
+            return
+        case .join:
+            editPages(tr("Aggiungi foto", "Add Photo")) { Self.placePhoto(id, on: &$0[index]) }
+            selectCanvasPhoto(id, in: book.pages[index])
+            return
+        case .free:
+            break
         }
         let result = photoPlacement(photo, in: composition, at: location, bounds: bounds)
         let normalized = PageRect(result.frame, in: bounds).photoClamped

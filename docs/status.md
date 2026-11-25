@@ -1,5 +1,26 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · rilascio delle foto · 25 novembre 2026
+
+- **Bordo che restava dopo un clic sulla carta.** Era l’anello di focus di macOS sull’oggetto cliccato, non la selezione. Ora è disattivato e la selezione la disegna solo l’app.
+- **Foto della fototeca su una foto della pagina.** La sostituisce con la stessa cornice e nello stesso spazio. Anche nella galleria automatica il resto della pagina non si sposta.
+- **Foto in uno spazio vuoto.** Riempie quello spazio preciso. Su una pagina automatica vuota entra nella composizione.
+- Durante il trascinamento compare l’anteprima: bordo con icona sulla foto da sostituire, contorno tratteggiato sullo spazio da riempire.
+
+**Verificato nell’app** su un libro sintetico, con trascinamenti reali dalla fototeca:
+- clic sulla carta dopo una foto;
+- sostituzione in un modello a quattro;
+- riempimento dello spazio in basso a destra;
+- sostituzione nella galleria automatica con le cornici invariate;
+- scambio fra due foto della stessa pagina.
+
+`swift test` esegue 127 test.
+
+**Resta da provare:**
+- sostituzione su una pagina al vivo;
+- sostituzione su una doppia;
+- rilascio con ⌥ sopra una foto.
+
 ## 0.10.0-redesign · velocità dell’ispettore e pellicola · 25 novembre 2026
 
 **Selezione lenta di una foto.** Ho campionato il thread principale con `sample` su un libro sintetico di 50 pagine e 150 foto da 12 MP. Passando da una foto all’altra lavorava circa 2,4 s su 5. Metà del tempo era AppKit che ricostruiva le tacche dei cursori (`NSSliderTickMarks _rebuildTickMarkRectCache`): `Slider(step: 0.01)` crea circa 200 tacche per cursore. Il resto era layout del pannello aperto e ricalcolo del navigatore. Correzioni:

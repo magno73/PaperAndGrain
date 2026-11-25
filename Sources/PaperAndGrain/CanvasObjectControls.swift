@@ -37,6 +37,9 @@ struct CanvasObjectControl<Content: View>: View {
             .gesture(drag())
             .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleClick?() })
             .focusable()
+            // The app draws its own selection. The system focus ring stayed on the object
+            // after a click on blank paper and looked like a selection that would not go away.
+            .focusEffectDisabled()
             .onKeyPress(.space) {
                 onSelect()
                 return .handled

@@ -257,8 +257,9 @@ extension EditorView {
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper))
             if leaf.arrangement != nil {
-                ForEach(Array(composition.arrangementPhotoSlots.dropFirst(leaf.photoIDs.count).enumerated()), id: \.offset) { _, slot in
-                    positioned(placeholder, in: scaled(slot, by: scale))
+                // A slot is empty when no photo covers it, also after a photo was moved out of it.
+                ForEach(composition.emptySlots, id: \.index) { slot in
+                    positioned(placeholder, in: scaled(slot.frame, by: scale))
                         .allowsHitTesting(false)
                 }
             } else if composition.photos.isEmpty && leaf.effectiveLayout != .text {
@@ -327,6 +328,8 @@ extension EditorView {
             ZStack(alignment: .topLeading) {
                 if case let .swap(incoming) = incomingPhoto {
                     photoSwapIndicator(incoming)
+                } else if case let .replace(incoming) = incomingPhoto {
+                    photoSwapIndicator(incoming, symbol: "photo.badge.arrow.down")
                 } else if let target {
                     photoSwapIndicator(target)
                 }
@@ -342,14 +345,14 @@ extension EditorView {
         )])
     }
 
-    func photoSwapIndicator(_ target: CanvasPhotoSwap.Target) -> some View {
+    func photoSwapIndicator(_ target: CanvasPhotoSwap.Target, symbol: String = "arrow.left.arrow.right") -> some View {
         let indicator = Rectangle()
             .strokeBorder(.white, lineWidth: 4)
             .overlay {
                 Rectangle().strokeBorder(pine, style: StrokeStyle(lineWidth: 2, dash: [6, 3]))
             }
             .overlay(alignment: .topTrailing) {
-                Image(systemName: "arrow.left.arrow.right")
+                Image(systemName: symbol)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(5)

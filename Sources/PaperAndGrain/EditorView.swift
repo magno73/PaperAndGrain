@@ -292,6 +292,21 @@ struct EditorView: View {
     enum IncomingPhotoPlacement {
         case position(CanvasAlignment.Result)
         case swap(CanvasPhotoSwap.Target)
+        case replace(CanvasPhotoSwap.Target)
+    }
+
+    /// What dropping a dragged photo at a point of a page will do.
+    enum PhotoDropAction {
+        /// Two photos of the page trade places.
+        case swap(CanvasPhotoSwap.Target)
+        /// A photo from the library takes the place and frame of the one under the pointer.
+        case replace(CanvasPhotoSwap.Target)
+        /// The photo fills an empty slot of the page layout; the frame is in page view coordinates.
+        case fillSlot(index: Int, frame: CGRect)
+        /// The first photo of an automatic page joins its layout.
+        case join
+        /// A free frame where the pointer is.
+        case free
     }
 
     struct CropSession {

@@ -98,4 +98,13 @@ I cursori non usano `Slider(step:)`. Su macOS il passo crea una tacca per ogni v
 
 La pellicola ha una sola interfaccia visibile alla volta. Con una foto selezionata sta nella scheda **Foto** e modifica `BookPhoto.film`. Se è spuntata **Cambia in tutto il libro**, modifica `Book.film` e toglie l’eccezione della foto selezionata nella stessa azione annullabile. Senza selezione, la scheda **Pellicola** modifica `Book.film`. `filmScope` deriva dalla scheda e dalla casella.
 
+Il rilascio di una foto della fototeca su una pagina passa per `EditorView.photoDropAction`. Ci sono cinque esiti:
+- **scambio**, con una foto della stessa pagina;
+- **sostituzione** (`BookPage.replacePhoto`): la foto nuova prende posto nell’ordine, spazio del modello, cornice e livello di quella sotto il puntatore. In una galleria automatica le cornici visibili vengono prima fissate, così la pagina non si ricompone;
+- **spazio vuoto** (`BookPage.fillSlot`): se la posizione nell’ordine corrisponde già allo spazio la foto resta automatica, altrimenti riceve lo spazio come cornice;
+- **prima foto** di una pagina automatica vuota;
+- **cornice libera**, sempre con **⌥**.
+
+`PageComposition.emptySlots` considera vuoto uno spazio che nessuna foto copre per almeno metà. Lo usano i segnaposto del canvas e il rilascio. Gli oggetti del canvas sono `focusable` ma senza anello di sistema (`focusEffectDisabled`): la selezione la disegna l’app, e l’anello restava visibile dopo un clic sulla carta.
+
 `EditorPreviewLoader` esegue fino a quattro anteprime del canvas in parallelo, dalla richiesta più recente. `EditorPreview` chiede la dimensione adatta alla cornice a schermo (480, 720, 1080, 1440 o 2048 px, tenendo conto di schermo Retina e ritaglio) e mostra subito la miniatura del navigatore già in memoria mentre arriva quella nitida.
