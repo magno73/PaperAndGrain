@@ -81,6 +81,7 @@ extension EditorView {
                     Text(photo.name).font(.callout.weight(.semibold)).lineLimit(1)
                     Text("\(photo.pixelWidth) × \(photo.pixelHeight) · \(photoOrientation(photo).label)")
                         .font(.caption).foregroundStyle(muted)
+                    photoResolutionRow
                 }
             }
             if !isOnCurrentPage(photo.id) {

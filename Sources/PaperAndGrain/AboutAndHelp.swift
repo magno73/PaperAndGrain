@@ -138,6 +138,8 @@ struct HelpView: View {
             Topic(id: "print", symbol: "5.circle", title: s("Stampa", "Print"), lines: [
                 s("**Libro e stampa** imposta formato, abbondanza, margini e copertina con dorso. **Esporta PDF** offre la verifica prestampa e i profili di stampa.",
                   "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles."),
+                s("Un triangolo arancione o rosso sull’angolo di una foto indica una risoluzione di stampa bassa: rimpicciolisci la foto o usa un originale più grande.",
+                  "An orange or red triangle in the corner of a photo means a low print resolution: make the photo smaller or use a larger original."),
                 s("Controlla sempre misure e colori con la tipografia prima di ordinare.",
                   "Always check sizes and color with your print shop before ordering."),
             ]),

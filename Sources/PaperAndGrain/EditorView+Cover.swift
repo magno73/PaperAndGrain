@@ -87,6 +87,10 @@ extension EditorView {
             }
         }) { _ in
             preview(photo, crop: geometry.photoCrop, fills: geometry.fills)
+                .overlay(alignment: .topLeading) {
+                    resolutionBadge(photo, frame: geometry.photoFrame, fills: geometry.fills, crop: geometry.photoCrop,
+                                    shown: scaled(geometry.photoFrame, by: scale), bounds: bounds)
+                }
         }
         .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCoverCrop(side) }
     }

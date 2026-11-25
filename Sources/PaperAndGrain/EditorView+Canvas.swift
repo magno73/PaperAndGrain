@@ -513,6 +513,10 @@ extension EditorView {
                                    onNudge: { nudgeFromKeyboard($0) { selectCanvasPhoto(item.id, in: leaf) } },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
             preview(item.photo, crop: item.crop, fills: item.fills)
+                .overlay(alignment: .topLeading) {
+                    resolutionBadge(item.photo, frame: item.frame, fills: item.fills, crop: item.crop,
+                                    shown: frame, bounds: bounds)
+                }
         }
         .accessibilityAction(named: Text(tr("Ritaglia foto", "Crop Photo"))) { beginCrop(item.id, in: leaf) }
         .accessibilityAction(named: Text(tr("Rimuovi dalla pagina", "Remove from Page"))) {

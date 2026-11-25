@@ -137,3 +137,22 @@ final class TextBoxFrameTests: XCTestCase {
         XCTAssertNil(decoded.borderWidth)
     }
 }
+
+final class PhotoResolutionTests: XCTestCase {
+    func testResolutionLevelsFollowTheTarget() throws {
+        let photo = BookPhoto(name: "p", filename: "p.jpg", pixelWidth: 3000, pixelHeight: 2000)
+        // 3000 px over 10 inches (720 pt) is 300 ppi.
+        let ten = CGRect(x: 0, y: 0, width: 720, height: 480)
+        let exact = try XCTUnwrap(PhotoResolution.ppi(of: photo, in: ten, fills: true, crop: PhotoCrop()))
+        XCTAssertEqual(exact, 300, accuracy: 0.001)
+        XCTAssertEqual(PhotoResolution.level(exact, target: 300), .good)
+        XCTAssertEqual(PhotoResolution.level(299.6, target: 300), .good, "Rounds like the preflight text")
+        XCTAssertEqual(PhotoResolution.level(250, target: 300), .low)
+        XCTAssertEqual(PhotoResolution.level(150, target: 300), .poor)
+        // A 2x crop zoom halves the resolution.
+        var zoomed = PhotoCrop()
+        zoomed.zoom = 2
+        let half = try XCTUnwrap(PhotoResolution.ppi(of: photo, in: ten, fills: true, crop: zoomed))
+        XCTAssertEqual(half, 150, accuracy: 0.001)
+    }
+}
