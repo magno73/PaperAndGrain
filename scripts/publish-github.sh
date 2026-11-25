@@ -13,7 +13,11 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 # Files that must never appear in the public history, not even in old commits.
 removed_paths=(docs/layout-comparison.md)
 force=""
-if [ "${1:-}" = "--force" ]; then force="--force-with-lease"; fi
+if [ "${1:-}" = "--force" ]; then
+    # Overwrite only the commit GitHub has now, never work pushed from elsewhere in the meantime.
+    current="$(git ls-remote "$remote" refs/heads/main | cut -f1)"
+    force="--force-with-lease=main:$current"
+fi
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Commit or discard local changes before publishing." >&2
