@@ -156,7 +156,7 @@ struct EditorMenuEntry {
 
     private init() { title = nil }
 
-    static let separator = EditorMenuEntry()
+    static var separator: EditorMenuEntry { EditorMenuEntry() }
 
     static func menu(_ entries: [EditorMenuEntry]) -> NSMenu {
         let menu = NSMenu()
