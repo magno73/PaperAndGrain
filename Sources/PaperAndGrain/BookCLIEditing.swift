@@ -196,6 +196,7 @@ enum BookCLIEditing {
                 throw Failure("Cannot move a parent into a child")
             }
             value = try visit(&root, path: from[...], op: op == "move" ? "remove" : "read", value: nil)
+            if op == "copy", let copied = value { value = freshIDs(copied) }
             action = "add"
         }
         if op != "test", path.last == "id" { throw Failure("Object IDs are immutable") }
@@ -208,6 +209,34 @@ enum BookCLIEditing {
             throw Failure("Unknown operation or missing value")
         }
         _ = try visit(&root, path: path[...], op: action, value: value)
+    }
+
+    /// A copied page or text box is a new object: every `id` inside it gets a new UUID, and references to those ids
+    /// inside the copy (such as `box:<UUID>` in `layerOrder`) follow. References to photos stay unchanged.
+    private static func freshIDs(_ value: Any) -> Any {
+        var renamed: [String: String] = [:]
+        func collect(_ node: Any) {
+            if let object = node as? [String: Any] {
+                if let id = object["id"] as? String, UUID(uuidString: id) != nil {
+                    renamed[id.uppercased()] = UUID().uuidString
+                }
+                object.values.forEach(collect)
+            } else if let array = node as? [Any] {
+                array.forEach(collect)
+            }
+        }
+        func rewrite(_ node: Any) -> Any {
+            if let object = node as? [String: Any] { return object.mapValues(rewrite) }
+            if let array = node as? [Any] { return array.map(rewrite) }
+            guard let text = node as? String else { return node }
+            if let new = renamed[text.uppercased()] { return new }
+            for prefix in ["box:", "photo:"] where text.hasPrefix(prefix) {
+                if let new = renamed[String(text.dropFirst(prefix.count)).uppercased()] { return prefix + new }
+            }
+            return text
+        }
+        collect(value)
+        return renamed.isEmpty ? value : rewrite(value)
     }
 
     private static func comparable(_ value: Any) throws -> Data {

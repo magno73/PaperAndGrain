@@ -19,7 +19,7 @@ Il file contiene un array di operazioni JSON Patch eseguite nell’ordine indica
 | `replace` | `path`, `value` | Sostituisce un valore esistente. |
 | `remove` | `path` | Elimina un campo facoltativo o un elemento. |
 | `move` | `from`, `path` | Rimuove un valore e lo inserisce alla destinazione, valutata dopo la rimozione. |
-| `copy` | `from`, `path` | Copia il valore alla destinazione. Gli ID del risultato devono essere univoci. |
+| `copy` | `from`, `path` | Copia il valore alla destinazione. Ogni oggetto copiato con un campo `id` (una pagina, un box di testo e quelli che contiene) riceve un nuovo UUID; i riferimenti a quegli ID dentro la copia, come `box:<UUID>` in `layerOrder`, lo seguono. I riferimenti alle foto restano invariati. |
 
 Questa patch richiede una prima pagina con testo «Partenza», modifica il racconto, imposta lo stile del corpo e sposta la pagina in fondo.
 

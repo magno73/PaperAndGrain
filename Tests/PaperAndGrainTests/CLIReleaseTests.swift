@@ -302,4 +302,32 @@ final class CLIReleaseTests: XCTestCase {
         text = message(try build(baseSpec(pages: [["layout": "gallery", "text": "Lost"]]), in: root))
         XCTAssertTrue(text.contains("Page 1 (pages[0])") && text.contains("gallery"), text)
     }
+
+    // MARK: C6
+
+    func testCopyDuplicatesPagesAndTextBoxesWithFreshIDs() throws {
+        let root = try temporaryDirectory()
+        let source = try build(baseSpec(pages: [["layout": "text", "text": "Uno"]]), in: root, name: "Source.papergrain")
+        let box = UUID().uuidString
+        var patch = try writePatch("""
+        [{"op":"add","path":"/pages/0/textBoxes","value":[{"id":"\(box)","text":"Nota","frame":{"x":0.1,"y":0.1,"width":0.3,"height":0.2}}]},
+         {"op":"add","path":"/pages/0/layerOrder","value":["story","box:\(box)"]}]
+        """, in: root)
+        let boxed = root.appendingPathComponent("Boxed.papergrain")
+        _ = try BookCLIEditing.patch(source: source, patchURL: patch, output: boxed)
+        patch = try writePatch(#"[{"op":"copy","from":"/pages/0","path":"/pages/-"},"# +
+                               #"{"op":"copy","from":"/pages/0/textBoxes/0","path":"/pages/0/textBoxes/-"}]"#, in: root)
+        let book = try BookCLIEditing.patch(source: boxed, patchURL: patch, output: root.appendingPathComponent("Copied.papergrain"))
+        XCTAssertEqual(book.pages.count, 2)
+        XCTAssertNotEqual(book.pages[0].id, book.pages[1].id)
+        let original = try XCTUnwrap(book.pages[0].textBoxes)
+        XCTAssertEqual(original.count, 2)
+        XCTAssertEqual(original[0].id.uuidString, box)
+        XCTAssertNotEqual(original[1].id, original[0].id)
+        let copy = try XCTUnwrap(book.pages[1].textBoxes?.first)
+        XCTAssertNotEqual(copy.id.uuidString, box)
+        XCTAssertEqual(copy.text, "Nota")
+        XCTAssertEqual(book.pages[1].layerOrder, [.story, .textBox(copy.id)])
+        XCTAssertEqual(book.pages[0].layerOrder, [.story, .textBox(original[0].id)])
+    }
 }
