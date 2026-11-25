@@ -114,4 +114,37 @@ final class CLIReleaseTests: XCTestCase {
             }
         }
     }
+
+    // MARK: C3
+
+    /// Rewrites the manifest of `project` with `edit` applied to its JSON object.
+    func editManifest(_ project: URL, _ edit: (inout [String: Any]) -> Void) throws {
+        let url = project.appendingPathComponent("manifest.json")
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        edit(&object)
+        try JSONSerialization.data(withJSONObject: object).write(to: url)
+    }
+
+    func testAbsurdPixelDimensionsAreRejectedBeforeExport() async throws {
+        let root = try temporaryDirectory()
+        let project = try build(baseSpec(), in: root, name: "Source.papergrain")
+        for (field, value) in [("pixelWidth", 4_000_000_000_000_000), ("pixelHeight", 0)] {
+            try editManifest(project) { manifest in
+                var photos = manifest["photos"] as! [[String: Any]]
+                photos[0]["pixelWidth"] = 1
+                photos[0]["pixelHeight"] = 1
+                photos[0][field] = value
+                manifest["photos"] = photos
+            }
+            do {
+                _ = try await BookCLIMedia.run(command: "export-pdf",
+                                               arguments: ["Source.papergrain", "--profile", "proof", "--output", "Out.pdf"],
+                                               currentDirectory: root)
+                XCTFail("Exported a book with \(field) \(value)")
+            } catch {
+                XCTAssertTrue(error.localizedDescription.contains(field), error.localizedDescription)
+            }
+        }
+        XCTAssertFalse(try entries(root).contains { $0.hasPrefix(".papergrain") || $0 == "Out.pdf" })
+    }
 }

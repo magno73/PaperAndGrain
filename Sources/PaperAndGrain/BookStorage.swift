@@ -182,7 +182,22 @@ enum BookStorage {
             !name.contains("\u{0000}") && !name.contains(":")
     }
 
+    /// A manifest check that failed, named so that an agent or the author can find the field.
+    struct ValidationError: LocalizedError, Equatable {
+        let message: String
+        init(_ message: String) { self.message = message }
+        var errorDescription: String? { message }
+    }
+
+    static let pixelDimensionRange = 1...1_000_000
+
     private static func validate(_ book: Book) throws {
+        for photo in book.photos {
+            for (field, value) in [("pixelWidth", photo.pixelWidth), ("pixelHeight", photo.pixelHeight)]
+            where !pixelDimensionRange.contains(value) {
+                throw ValidationError("Photo \(photo.id.uuidString) has \(field) \(value); expected 1 to 1000000")
+            }
+        }
         let ids = Set(book.photos.map(\.id))
         let looks = book.photos.compactMap(\.film) + [book.film].compactMap { $0 }
         let coverIDs = [book.cover?.frontPhotoID, book.cover?.backPhotoID].compactMap { $0 }
