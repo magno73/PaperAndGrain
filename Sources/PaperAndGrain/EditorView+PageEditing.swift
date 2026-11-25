@@ -46,15 +46,6 @@ extension EditorView {
         }
     }
 
-    func setLayout(_ layout: PageLayout) {
-        finishCrop()
-        guard let index, book.pages[index].layout != layout || book.pages[index].arrangement != nil else { return }
-        editPages(tr("Cambia composizione", "Change Layout")) { pages in
-            pages[index].layout = layout
-            pages[index].arrangement = nil
-        }
-    }
-
     func applyPageArrangement(_ arrangement: PageArrangement?, to pageID: UUID) {
         finishCrop()
         endInlineTextEditing()

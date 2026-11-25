@@ -160,7 +160,7 @@ private final class PhotoRequest<Value>: @unchecked Sendable {
     private var requestID: PHImageRequestID?
     private var cancelled = false
 
-    func value(start: (@escaping (Result<Value, Error>) -> Void) -> PHImageRequestID) async throws -> Value {
+    func value(start: (@escaping (sending Result<Value, Error>) -> Void) -> PHImageRequestID) async throws -> Value {
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 lock.lock()
@@ -188,7 +188,7 @@ private final class PhotoRequest<Value>: @unchecked Sendable {
         }
     }
 
-    private func finish(_ result: Result<Value, Error>) {
+    private func finish(_ result: sending Result<Value, Error>) {
         lock.lock()
         let pending = continuation
         continuation = nil

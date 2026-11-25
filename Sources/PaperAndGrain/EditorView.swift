@@ -549,28 +549,6 @@ struct EditorView: View {
         return start == end ? String(start) : "\(start)–\(end)"
     }
 
-    var layouts: [PageLayout] { [.gallery, .text, .mixed, .fullPage, .fullSpread] }
-
-    func layoutName(_ layout: PageLayout) -> String {
-        switch layout {
-        case .gallery: tr("Galleria", "Gallery")
-        case .text: tr("Pagina di testo", "Text Page")
-        case .mixed: tr("Foto e testo", "Photo and Text")
-        case .fullPage: tr("Tutta pagina", "Full Page")
-        case .fullSpread: tr("Due pagine", "Full Spread")
-        }
-    }
-
-    func layoutIcon(_ layout: PageLayout) -> String {
-        switch layout {
-        case .gallery: "square.grid.2x2"
-        case .text: "text.alignleft"
-        case .mixed: "rectangle.split.1x2"
-        case .fullPage: "photo"
-        case .fullSpread: "rectangle.split.2x1"
-        }
-    }
-
     func caption(_ value: String) -> some View {
         Text(value)
             .font(.subheadline.weight(.semibold))

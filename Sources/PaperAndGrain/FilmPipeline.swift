@@ -29,7 +29,8 @@ private struct LUTError: LocalizedError {
     var errorDescription: String? { message }
 }
 
-final class FilmCube {
+/// Immutable after init, so it is shared freely between the preview lanes and the exporter.
+final class FilmCube: Sendable {
     let size: Int
     let samples: [SIMD4<Float>]
     private let low: FilmRGB
@@ -65,7 +66,8 @@ final class FilmCube {
 enum FilmRenderer {
     // ColorSync converts embedded profiles (including Display P3) to SDR sRGB.
     // Cube coordinates, interpolation, blending and grain use encoded sRGB.
-    private static let cache: NSCache<NSString, FilmCube> = {
+    // NSCache is thread-safe; its contents are immutable cubes.
+    nonisolated(unsafe) private static let cache: NSCache<NSString, FilmCube> = {
         let cache = NSCache<NSString, FilmCube>()
         cache.totalCostLimit = 80 * 1024 * 1024
         return cache

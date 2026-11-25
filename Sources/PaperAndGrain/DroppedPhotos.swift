@@ -31,7 +31,7 @@ struct DroppedPhotos {
             let (provider, representation) = item
             let suggestedName = provider.suggestedName
             group.enter()
-            let finish: (BookPhoto?, String?) -> Void = { photo, name in
+            let finish: @Sendable (BookPhoto?, String?) -> Void = { photo, name in
                 continuation.yield(Outcome(index: index, photo: photo, name: name))
                 group.leave()
             }

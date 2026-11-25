@@ -373,7 +373,7 @@ enum EditorialTypesetter {
     /// Baseline distance from the top edge of the same frame used by draw().
     static func baseline(_ attributed: NSAttributedString, at index: Int, in rect: CGRect) -> CGFloat? {
         guard index >= 0, index < attributed.length, let frame = textFrame(attributed, in: rect) else { return nil }
-        let lines = CTFrameGetLines(frame) as! [CTLine]
+        guard let lines = CTFrameGetLines(frame) as? [CTLine] else { return nil }
         for (number, line) in lines.enumerated() {
             let range = CTLineGetStringRange(line)
             guard index >= range.location && index < range.location + range.length else { continue }

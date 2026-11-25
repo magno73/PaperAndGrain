@@ -3,7 +3,8 @@ import Darwin
 import Foundation
 
 enum BookStorage {
-    private static let files = FileManager.default
+    // FileManager.default is documented as safe to use from any thread.
+    nonisolated(unsafe) private static let files = FileManager.default
 
     struct DirectoryIdentity: Equatable {
         let volume: UInt64

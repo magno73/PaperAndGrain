@@ -168,7 +168,8 @@ enum PhotoDevelopment {
         override var hash: Int { settings.hashValue }
         override func isEqual(_ object: Any?) -> Bool { (object as? Key)?.settings == settings }
     }
-    private static let cubes: NSCache<Key, FilmCube> = {
+    // NSCache is thread-safe; its contents are immutable cubes.
+    nonisolated(unsafe) private static let cubes: NSCache<Key, FilmCube> = {
         let cache = NSCache<Key, FilmCube>()
         cache.countLimit = 12
         return cache
