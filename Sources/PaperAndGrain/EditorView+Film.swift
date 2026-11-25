@@ -12,35 +12,66 @@ extension EditorView {
         return book.film ?? FilmSettings()
     }
 
-    /// The book-wide look; a photo's own look lives in the Photo tab.
+    /// The book-wide look, shown only when no photo is selected.
     var filmInspector: some View {
         VStack(alignment: .leading, spacing: 15) {
             VStack(alignment: .leading, spacing: 4) {
-                caption(tr("Look del libro", "Book Look"))
-                intro(tr("Vale per tutte le foto che non hanno un look proprio.",
-                         "Applies to every photo without a look of its own."))
+                caption(tr("Look di tutto il libro", "Look for the Whole Book"))
+                intro(tr("Vale per tutte le foto che seguono il libro. Per cambiare una sola foto, selezionala.",
+                         "Applies to every photo that follows the book. To change one photo, select it."))
             }
             filmControls
+            ownLooksNote(excluding: nil)
             Divider()
             Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
                 .disabled(book.photos.isEmpty)
         }
     }
 
+    /// The Film section of the Photo tab: this photo only, unless the author ticks the whole book.
     func photoFilmSection(_ photo: BookPhoto) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Toggle(tr("Usa il look del libro", "Use book look"), isOn: Binding(
-                get: { filmPhoto?.film == nil },
-                set: { inherit in
-                    finishFilmEdit()
-                    if inherit {
-                        setPhotoFilm(nil, for: photo.id)
-                    } else {
-                        setPhotoFilm(book.effectiveFilm(for: photo), for: photo.id)
+            Toggle(tr("Cambia in tutto il libro", "Change the whole book"), isOn: $filmAppliesToBook)
+                .toggleStyle(.checkbox)
+            Group {
+                if filmAppliesToBook {
+                    intro(tr("Le modifiche cambiano il look del libro. Questa foto torna a seguirlo.",
+                             "Changes set the book look. This photo goes back to following it."))
+                } else if photo.film == nil {
+                    intro(tr("Segue il look del libro (\(filmName((book.film ?? FilmSettings()).preset))). Una scelta qui vale solo per questa foto.",
+                             "Follows the book look (\(filmName((book.film ?? FilmSettings()).preset))). A choice here applies to this photo only."))
+                } else {
+                    HStack(alignment: .firstTextBaseline) {
+                        intro(tr("Questa foto ha un look proprio.", "This photo has its own look."))
+                        Spacer(minLength: 4)
+                        Button(tr("Segui il libro", "Follow Book")) {
+                            finishFilmEdit()
+                            setPhotoFilm(nil, for: photo.id)
+                        }
+                        .controlSize(.small)
                     }
                 }
-            ))
+            }
             filmControls
+            if filmAppliesToBook { ownLooksNote(excluding: photo.id) }
+        }
+    }
+
+    /// Photos with their own look don't follow book changes; say so and offer to align them.
+    @ViewBuilder func ownLooksNote(excluding id: UUID?) -> some View {
+        let own = book.photos.filter { $0.film != nil && $0.id != id }
+        if !own.isEmpty {
+            HStack(alignment: .firstTextBaseline) {
+                intro(tr("\(own.count) foto hanno un look proprio e non cambiano.",
+                         "\(own.count) photos have their own look and won’t change."))
+                Spacer(minLength: 4)
+                Button(tr("Uniforma", "Match Book")) {
+                    finishFilmEdit()
+                    for photo in own { setPhotoFilm(nil, for: photo.id) }
+                }
+                .controlSize(.small)
+                .help(tr("Tutte le foto seguono il look del libro", "Every photo follows the book look"))
+            }
         }
     }
 
@@ -261,6 +292,8 @@ extension EditorView {
     func commitFilm(_ settings: FilmSettings, to target: FilmTarget) {
         switch target {
         case .book:
+            // From the Photo tab with “whole book” ticked, the selected photo joins the book look.
+            if filmAppliesToBook, let photo = filmPhoto, photo.film != nil { setPhotoFilm(nil, for: photo.id) }
             let previous = book.film
             guard settings != previous else { return }
             book.film = settings

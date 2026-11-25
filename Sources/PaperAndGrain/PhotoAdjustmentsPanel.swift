@@ -9,7 +9,8 @@ struct PhotoAdjustmentsPanel: View {
     let onReset: () -> Void
     let onEditingChanged: (Bool) -> Void
 
-    @State private var expanded: Set<Group> = [.light]
+    /// Everything starts closed: opening a photo should not build dozens of sliders at once.
+    @State private var expanded: Set<Group> = []
 
     private let pine = Theme.accent
 
@@ -186,10 +187,12 @@ struct PhotoAdjustmentsPanel: View {
                 .frame(width: 93, alignment: .leading)
                 .accessibilityHidden(true)
 
+            // No `step:` here: on macOS it becomes one tick mark per step, and AppKit rebuilds
+            // hundreds of tick rectangles per slider whenever the panel appears or goes away.
             Slider(value: Binding(
                 get: { adjustments[keyPath: control.keyPath] },
-                set: { setValue($0, at: control.keyPath) }
-            ), in: control.range, step: control.format.step, onEditingChanged: onEditingChanged)
+                set: { setValue(Self.quantized($0, step: control.format.step, in: control.range), at: control.keyPath) }
+            ), in: control.range, onEditingChanged: onEditingChanged)
                 .accessibilityLabel(title)
                 .accessibilityValue(value)
 
@@ -275,6 +278,12 @@ struct PhotoAdjustmentsPanel: View {
         case .blue: tr("Blu", "Blue")
         case .magenta: tr("Magenta", "Magenta")
         }
+    }
+
+    static func quantized(_ value: Double, step: Double, in range: ClosedRange<Double>) -> Double {
+        guard step > 0, value.isFinite else { return value }
+        let snapped = range.lowerBound + ((value - range.lowerBound) / step).rounded() * step
+        return min(range.upperBound, max(range.lowerBound, snapped))
     }
 
     private func setValue<Value: Equatable>(_ value: Value, at keyPath: WritableKeyPath<PhotoAdjustments, Value>) {

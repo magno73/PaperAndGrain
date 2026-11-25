@@ -1,5 +1,29 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · velocità dell’ispettore e pellicola · 25 novembre 2026
+
+**Selezione lenta di una foto.** Ho campionato il thread principale con `sample` su un libro sintetico di 50 pagine e 150 foto da 12 MP. Passando da una foto all’altra lavorava circa 2,4 s su 5. Metà del tempo era AppKit che ricostruiva le tacche dei cursori (`NSSliderTickMarks _rebuildTickMarkRectCache`): `Slider(step: 0.01)` crea circa 200 tacche per cursore. Il resto era layout del pannello aperto e ricalcolo del navigatore. Correzioni:
+- cursori senza `step:`, con arrotondamento nel setter;
+- sezioni di **Regola** chiuse all’apertura;
+- navigatore ridisegnato solo quando cambia ciò che mostra.
+
+Dopo le correzioni, lo stesso passaggio occupa il thread principale per circa 0,1 s.
+
+**Pellicola.** Con una foto selezionata, la sezione **Pellicola** della scheda **Foto** cambia solo quella foto. **Cambia in tutto il libro**, che parte spenta a ogni selezione, cambia il look del libro e riporta la foto a seguirlo. La scheda **Pellicola** compare solo senza selezione e si chiama **Look di tutto il libro**. Indica le foto con un look proprio e offre **Uniforma**.
+
+**Verificato nell’app** sul libro sintetico:
+- tempi di selezione misurati con `sample`;
+- Monocromatico su una sola foto;
+- con la casella spuntata, Documentario su tutto il libro: la foto torna al look del libro;
+- scheda Pellicola senza selezione.
+
+`swift test` esegue 123 test.
+
+**Resta da provare:**
+- la selezione su un Mac meno recente;
+- **Uniforma** con molte foto dal look proprio;
+- l’import di una LUT con la casella spuntata.
+
 ## 0.10.0-redesign · editor dopo il primo collaudo · 25 novembre 2026
 
 Correzioni chieste dopo il primo uso del fork:

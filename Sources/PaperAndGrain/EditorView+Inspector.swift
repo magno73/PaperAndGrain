@@ -9,9 +9,11 @@ extension EditorView {
             tabs.append(InspectorTab(id: .text, title: tr("Testo", "Text")))
         }
         if selectedPhoto != nil {
+            // The photo's film look is a section of this tab; the Film tab is the book's look.
             tabs.append(InspectorTab(id: .photo, title: tr("Foto", "Photo")))
+        } else {
+            tabs.append(InspectorTab(id: .film, title: tr("Pellicola", "Film")))
         }
-        tabs.append(InspectorTab(id: .film, title: tr("Pellicola", "Film")))
         return tabs
     }
 
@@ -40,17 +42,20 @@ extension EditorView {
         .onChange(of: tabs.map(\.id)) { _, ids in
             if !ids.contains(inspector) { inspector = .page }
         }
-        .onChange(of: inspector, initial: true) { _, tab in
-            // The Photo tab edits the selected photo's look, the Film tab the book's.
-            let scope: FilmScope = tab == .photo ? .photo : .book
-            if filmScope != scope { filmScope = scope }
-        }
+        .onChange(of: inspector, initial: true) { _, _ in syncFilmScope() }
+        .onChange(of: filmAppliesToBook) { _, _ in syncFilmScope() }
     }
 
     /// Keynote-style: selecting a photo brings its tab forward, deselecting returns to the page.
     func followSelectionInInspector(previous: UUID?, current: UUID?) {
         if current != nil, previous == nil, inspector == .page { inspector = .photo }
         if current == nil, inspector == .photo { inspector = .page }
+    }
+
+    /// The Photo tab edits the selected photo's look unless “whole book” is ticked; the Film tab edits the book.
+    func syncFilmScope() {
+        let scope: FilmScope = inspector == .photo && !filmAppliesToBook ? .photo : .book
+        if filmScope != scope { filmScope = scope }
     }
 
     /// Opens the Photo tab with the adjustments or the film look expanded.
@@ -85,7 +90,10 @@ extension EditorView {
             inspectorSection(tr("Regola", "Adjust"), expanded: $showsAdjustSection) {
                 photoAdjustmentsInspector
             }
-            inspectorSection(tr("Pellicola", "Film"), expanded: $showsPhotoFilmSection) {
+            inspectorSection(tr("Pellicola", "Film"),
+                             detail: filmName(book.effectiveFilm(for: photo).preset)
+                                 + (photo.film == nil ? " · " + tr("dal libro", "from book") : ""),
+                             expanded: $showsPhotoFilmSection) {
                 photoFilmSection(photo)
             }
             if let selection = canvasPhotoSelection, let pageID = selection.pageID, selection.photoID == photo.id {
@@ -109,7 +117,7 @@ extension EditorView {
     }
 
     /// A collapsible group with a bold header, like the sections of Keynote's Format inspector.
-    func inspectorSection<Content: View>(_ title: String, expanded: Binding<Bool>,
+    func inspectorSection<Content: View>(_ title: String, detail: String? = nil, expanded: Binding<Bool>,
                                          @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Divider()
@@ -119,6 +127,9 @@ extension EditorView {
                 HStack {
                     Text(title).font(.headline)
                     Spacer()
+                    if let detail, !expanded.wrappedValue {
+                        Text(detail).font(.caption).foregroundStyle(muted).lineLimit(1)
+                    }
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(muted)

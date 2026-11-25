@@ -2,7 +2,43 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Re-renders its content only when the key changes. The key must list everything the content shows.
+struct Memoized<Key: Equatable & Sendable, Content: View>: View, Equatable {
+    let key: Key
+    @ViewBuilder let content: () -> Content
+
+    var body: some View { content() }
+
+    nonisolated static func == (lhs: Self, rhs: Self) -> Bool { lhs.key == rhs.key }
+}
+
 extension EditorView {
+    /// What the navigator draws. Actions read live state when they run, so they are not part of it.
+    struct NavigatorKey: Equatable, Sendable {
+        let book: Book
+        let page: UUID?
+        let coverSide: CoverSide?
+        let width: Double
+        let hoveredGap: NavigatorPageGap?
+        let insertionID: UUID?
+        let insertionAfter: Bool?
+        let draggingPage: Bool
+        let scrollDirection: Int?
+        let compareOriginal: Bool
+        let comparePhotoOriginal: UUID?
+        let language: String
+    }
+
+    var navigatorKey: NavigatorKey {
+        let insertion = previewPageInsertion
+        let draggingPage: Bool = if case .page? = dragging?.item { true } else { false }
+        return NavigatorKey(book: book, page: page?.id, coverSide: coverSide, width: navigatorWidth,
+                            hoveredGap: hoveredGap, insertionID: insertion?.id, insertionAfter: insertion?.after,
+                            draggingPage: draggingPage, scrollDirection: navigatorScrollDirection,
+                            compareOriginal: compareOriginal, comparePhotoOriginal: comparePhotoOriginal,
+                            language: language)
+    }
+
     /// The navigator floats as a glass pane on macOS 26 and sits in a classic sidebar column before.
     @ViewBuilder var navigatorPane: some View {
         if #available(macOS 26.0, *) {

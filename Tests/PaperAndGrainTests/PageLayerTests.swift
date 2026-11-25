@@ -135,3 +135,13 @@ final class TextFormatTests: XCTestCase {
         XCTAssertEqual(plainParagraph.lineHeightMultiple, 0)
     }
 }
+
+final class SliderQuantizationTests: XCTestCase {
+    func testSlidersSnapWithoutTickMarks() {
+        XCTAssertEqual(PhotoAdjustmentsPanel.quantized(0.123, step: 0.01, in: -1...1), 0.12, accuracy: 1e-9)
+        XCTAssertEqual(PhotoAdjustmentsPanel.quantized(-0.987, step: 0.05, in: -2...2), -1.0, accuracy: 1e-9)
+        XCTAssertEqual(PhotoAdjustmentsPanel.quantized(0.6, step: 0.01, in: 0.55...1), 0.6, accuracy: 1e-9)
+        XCTAssertEqual(PhotoAdjustmentsPanel.quantized(3, step: 0.02, in: 0...1), 1)
+        XCTAssertEqual(PhotoAdjustmentsPanel.quantized(0.5, step: 0, in: 0...1), 0.5)
+    }
+}

@@ -150,7 +150,10 @@ extension EditorView {
         selectedEditorial = nil
         selectedPhoto = id
         canvasPhotoSelection = CanvasPhotoSelection(surface: .canvasPage(leaf.id), photoID: id)
-        if inspector == .film { inspector = .photo }
+        if inspector == .film {
+            showsPhotoFilmSection = true
+            inspector = .photo
+        }
     }
 
     func selectTextBox(_ id: UUID, in leaf: BookPage) {

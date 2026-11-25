@@ -100,9 +100,12 @@ struct EditorView: View {
 
     @State var filmScope: FilmScope = .book
 
-    @AppStorage("inspectorShowsAdjust") var showsAdjustSection = true
+    @State var showsAdjustSection = false
 
-    @AppStorage("inspectorShowsPhotoFilm") var showsPhotoFilmSection = true
+    @State var showsPhotoFilmSection = false
+
+    /// Off by default: with a photo selected, the film look changes only that photo.
+    @State var filmAppliesToBook = false
 
     @AppStorage("inspectorShowsAnalysis") var showsAnalysisSection = false
 
@@ -415,7 +418,9 @@ struct EditorView: View {
     var editorContent: some View {
         HStack(spacing: 0) {
             if showsNavigator {
-                navigatorPane
+                // Selecting a photo or text must not rebuild every thumbnail of a long book.
+                Memoized(key: navigatorKey) { navigatorPane }
+                    .equatable()
                     .transition(.move(edge: .leading).combined(with: .opacity))
             }
             VStack(spacing: 0) {
@@ -464,6 +469,7 @@ struct EditorView: View {
         .onChange(of: selectedPhoto) { previous, id in
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
             if comparePhotoOriginal != id { comparePhotoOriginal = nil }
+            if previous != id { filmAppliesToBook = false }
             if let adjustmentEdit, adjustmentEdit.photoID != id { finishPhotoAdjustmentEdit() }
             if case let .photo(target)? = filmEdit.target, target != id { finishFilmEdit() }
             followSelectionInInspector(previous: previous, current: id)
@@ -773,8 +779,9 @@ struct FilmSlider: View {
                     .foregroundStyle(.secondary)
             }
             .accessibilityHidden(true)
-            Slider(value: Binding(get: { amount }, set: change), in: 0...1, step: 0.02,
-                   onEditingChanged: editingChanged)
+            // Quantized in the setter: a stepped Slider draws a tick mark per step on macOS.
+            Slider(value: Binding(get: { amount }, set: { change(PhotoAdjustmentsPanel.quantized($0, step: 0.02, in: 0...1)) }),
+                   in: 0...1, onEditingChanged: editingChanged)
                 .accessibilityLabel(label)
         }
     }

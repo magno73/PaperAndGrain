@@ -53,7 +53,7 @@ extension EditorView {
             }
             ToolbarItem(id: "film", placement: .principal) {
                 Button {
-                    showInspectorTab(.film)
+                    if selectedPhoto != nil { showPhotoSection(film: true) } else { showInspectorTab(.film) }
                 } label: {
                     Label(tr("Pellicola", "Film"), systemImage: "camera.filters")
                 }
