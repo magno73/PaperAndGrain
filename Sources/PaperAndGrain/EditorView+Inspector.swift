@@ -197,7 +197,13 @@ extension EditorView {
             if storyLayout || page.titleFrame != nil || page.storyFrame != nil {
                 VStack(alignment: .leading, spacing: 8) {
                     caption(tr("Titolo e testo", "Heading and Text"))
-                    pageTypography(page, showsBody: showsBody)
+                    // Formatting lives in the Text tab only; this tab edits the words.
+                    Button {
+                        selectEditorial(showsBody ? .storyGroup(page.id) : .page(page.id, .title), on: page)
+                        showInspectorTab(.text)
+                    } label: {
+                        Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
+                    }
                     if page.effectiveLayout == .mixed && page.arrangement == nil {
                         Picker(tr("Posizione del testo", "Text Position"), selection: Binding(
                             get: { self.page?.textPlacement ?? .below },
@@ -341,18 +347,6 @@ extension EditorView {
                 } label: {
                     Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
                 }
-                Toggle(tr("Usa tutta la larghezza", "Use Full Width"), isOn: Binding(
-                    get: {
-                        book.pages.first { $0.id == leaf.id }?.textBoxes?.first { $0.id == active.id }?.usesFullWidth == true
-                    },
-                    set: { fullWidth in
-                        changeTextBoxes(on: leaf.id, name: tr("Modifica margini del box", "Change Text Box Insets")) { boxes in
-                            guard let index = boxes.firstIndex(where: { $0.id == active.id }) else { return }
-                            boxes[index].usesFullWidth = fullWidth ? true : nil
-                        }
-                    }
-                ))
-                .toggleStyle(.checkbox)
                 TextEditor(text: textInBox(active.id, on: leaf.id))
                     .font(.system(size: 14, design: .serif))
                     .scrollContentBackground(.hidden)
@@ -582,38 +576,6 @@ extension EditorView {
         }
     }
 
-
-    func pageTypography(_ leaf: BookPage, showsBody: Bool) -> some View {
-        let style = book.editorialStyle
-        let defaultTitle = style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
-        return DisclosureGroup(tr("Tipografia", "Typography")) {
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(tr("Titolo", "Heading")).font(.subheadline.weight(.semibold))
-                    EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
-                                               inherited: defaultTitle.applying(book.typography?.title),
-                                               language: language, sampleText: leaf.heading ?? "")
-                        .id(leaf.id)
-                }
-                if showsBody {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(tr("Testo", "Body")).font(.subheadline.weight(.semibold))
-                        EditorialTypographyControls(style: pageTextStyle(\.body, on: leaf.id),
-                                                   inherited: style.defaultBodyStyle.applying(book.typography?.body),
-                                                   language: language, sampleText: leaf.text)
-                            .id(leaf.id)
-                    }
-                }
-                let blocks = pageComposition(leaf).storyDrawingBlocks(page: leaf, book: book)
-                if blocks.contains(where: { !EditorialTypesetter.fits($0.text, in: $0.frame) }) {
-                    typeOverflow(tr("Alcune righe non entrano nel riquadro.",
-                                    "Some lines exceed the text frame."))
-                }
-            }
-            .padding(.vertical, 6)
-        }
-    }
 
     func typeOverflow(_ message: String) -> some View {
         Label(message, systemImage: "exclamationmark.triangle")
