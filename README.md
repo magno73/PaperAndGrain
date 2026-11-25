@@ -1,10 +1,12 @@
 # Paper & Grain
 
+[![CI](https://github.com/magno73/PaperAndGrain/actions/workflows/ci.yml/badge.svg)](https://github.com/magno73/PaperAndGrain/actions/workflows/ci.yml)
+
 Paper & Grain is a native Mac app that turns a travel album into a printed photobook. It mixes photos and stories, film looks and editorial page templates. It also exports print-ready PDFs.
 
 It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision and the PDF output uses Core Graphics and Core Text. Everything runs on your Mac: photos are copied into the book and analysed locally, and nothing is uploaded. The interface is available in English and Italian.
 
-> **Status:** a working prototype that is used to build real books. The first test book was a trip to Namibia. Expect rough edges, and check every PDF with your print shop before ordering.
+> **Status:** a working prototype that is used to build real books. It has been run on macOS 27; macOS 14, 15 and 26 are supported but not yet tested. Expect rough edges, and check every PDF with your print shop before ordering.
 
 ## Features
 
@@ -16,24 +18,36 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 - **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and a Pixartprinting 21 × 21 cm profile. A preflight check flags photos below the target resolution.
 - **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
 
+## Download
+
+Get the latest `Paper-and-Grain-<version>.zip` from [Releases](https://github.com/magno73/PaperAndGrain/releases), unzip it and move **Paper & Grain** to your Applications folder. The app runs on Apple silicon and Intel Macs with macOS 14 or later.
+
+The app is signed but **not notarized by Apple**, so macOS blocks it the first time:
+
+- **macOS 15 and later:** open the app once and close the warning. Then go to **System Settings › Privacy & Security**, scroll to the message about Paper & Grain and click **Open Anyway**.
+- **macOS 14:** Control-click the app in Finder, choose **Open**, then **Open** again.
+- **Terminal alternative:** `xattr -dr com.apple.quarantine "/Applications/Paper & Grain.app"`.
+
+Each release lists the SHA-256 of the zip, so you can check the download with `shasum -a 256`.
+
 ## Requirements
 
-- macOS 14 Sonoma or later. On macOS 26 and later the panels use Liquid Glass.
-- Xcode, or the Swift toolchain that comes with it (Swift 5.10 or later), to build.
+- **To run:** macOS 14 Sonoma or later, Apple silicon or Intel. On macOS 26 and later the panels use Liquid Glass.
+- **To build:** Xcode 26 or later (the macOS 26 SDK). The app is developed with Xcode 27.
 
 ## Build and run
 
 From the repository root:
 
 ```sh
-./scripts/build-app.sh            # debug build
-./scripts/build-app.sh release    # optimised build
+./scripts/build-app.sh            # optimized universal build (Apple silicon and Intel)
+./scripts/build-app.sh debug      # faster build for development
 open ~/Applications/"Paper & Grain.app"
 ```
 
-The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else.
+The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else. `scripts/package-release.sh` makes the release zip.
 
-The bundle identifier is `local.paperandgrain.mac.redesign`; the app keeps its drafts in its own folder, `~/Library/Application Support/PaperAndGrain-Redesign`. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
+The bundle identifier is `me.magno.paperandgrain`; drafts live in `~/Library/Application Support/PaperAndGrain`. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
 
 Run the tests with:
 
@@ -41,7 +55,7 @@ Run the tests with:
 swift test
 ```
 
-`scripts/publish-github.sh` publishes the current branch to GitHub as `main`. On a temporary copy it replaces the author email with the GitHub noreply address and drops the files listed in `removed_paths` from every commit, so the local history is left untouched. Run it with `--force` once after adding a path.
+`scripts/publish-github.sh` publishes the current branch to GitHub as `main` (add `--tag v<version>` to tag a release; `scripts/github-release.sh` then creates the GitHub Release with the zip). On a temporary copy it replaces the author email with the GitHub noreply address and drops the files listed in `removed_paths` from every commit, so the local history is left untouched. Run it with `--force` once after adding a path.
 
 ## Make your first book
 

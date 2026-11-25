@@ -13,11 +13,20 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 # Files that must never appear in the public history, not even in old commits.
 removed_paths=(docs/layout-comparison.md docs/release-plan.md)
 force=""
-if [ "${1:-}" = "--force" ]; then
-    # Overwrite only the commit GitHub has now, never work pushed from elsewhere in the meantime.
-    current="$(git ls-remote "$remote" refs/heads/main | cut -f1)"
-    force="--force-with-lease=main:$current"
-fi
+tag=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --force)
+            # Overwrite only the commit GitHub has now, never work pushed from elsewhere in the meantime.
+            current="$(git ls-remote "$remote" refs/heads/main | cut -f1)"
+            force="--force-with-lease=main:$current" ;;
+        --tag)
+            # The tag must be made on the rewritten commit, so it is created in the clone below.
+            tag="${2:?--tag needs a name such as v0.10.0}"; shift ;;
+        *) echo "Unknown option $1 (use --force and/or --tag vX.Y.Z)" >&2; exit 2 ;;
+    esac
+    shift
+done
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Commit or discard local changes before publishing." >&2
@@ -51,5 +60,10 @@ fi
 
 # HTTPS with the GitHub CLI login, so an unrelated SSH deploy key is never offered.
 # Pass --force once after adding a path to removed_paths: the published history changes.
-git -c credential.helper= -c credential.helper='!gh auth git-credential' push $force "$remote" "$branch:main"
+refs=("$branch:main")
+if [ -n "$tag" ]; then
+    git tag -a "$tag" -m "Paper & Grain ${tag#v}"
+    refs+=("refs/tags/$tag")
+fi
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push $force "$remote" "${refs[@]}"
 echo "Published $branch as main to $remote"

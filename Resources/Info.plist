@@ -6,7 +6,7 @@
     <key>CFBundleDisplayName</key><string>Paper &amp; Grain</string>
     <key>CFBundleExecutable</key><string>PaperAndGrain</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
-    <key>CFBundleIdentifier</key><string>local.paperandgrain.mac.redesign</string>
+    <key>CFBundleIdentifier</key><string>me.magno.paperandgrain</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
     <key>CFBundleName</key><string>Paper &amp; Grain</string>
     <key>CFBundlePackageType</key><string>APPL</string>
@@ -16,7 +16,7 @@
     <key>NSPhotoLibraryUsageDescription</key><string>Choose photos from your albums to include in your photo book. Paper &amp; Grain imports only the photos you select.</string>
     <key>UTExportedTypeDeclarations</key>
     <array><dict>
-        <key>UTTypeIdentifier</key><string>local.paperandgrain.book</string>
+        <key>UTTypeIdentifier</key><string>me.magno.paperandgrain.book</string>
         <key>UTTypeDescription</key><string>Paper &amp; Grain Book</string>
         <key>UTTypeConformsTo</key><array><string>com.apple.package</string></array>
         <key>UTTypeTagSpecification</key><dict>
@@ -27,7 +27,7 @@
     <array><dict>
         <key>CFBundleTypeName</key><string>Paper &amp; Grain Book</string>
         <key>CFBundleTypeRole</key><string>Editor</string>
-        <key>LSItemContentTypes</key><array><string>local.paperandgrain.book</string></array>
+        <key>LSItemContentTypes</key><array><string>me.magno.paperandgrain.book</string></array>
         <key>LSTypeIsPackage</key><true/>
     </dict></array>
 </dict>
