@@ -169,9 +169,133 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertEqual(Int(left), Int(right), accuracy: 3)
         XCTAssertNotEqual(mirrored.bytes[(row * mirrored.width + 1) * 4 + 1], 0, "bleed left unpainted")
     }
+
+    // MARK: B4 JPEG images streamed to a file
+
+    func testPhotosAreEmbeddedAsJPEGAtTheProfileResolution() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let photo = try PrintFixtures.photo(in: folder, width: 3000, height: 3000)
+        let page = BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)
+        var book = Book(title: "JPEG", photos: [photo], pages: [page])
+        book.printSettings = PrintSettings(bleedMM: 0, targetPPI: 300)
+        let proof = folder.appendingPathComponent("proof.pdf")
+        try BookPDF.write(book, directory: folder, to: proof)
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let side = 210 / 25.4
+        for (url, ppi) in [(proof, 150.0), (package.appendingPathComponent("Interior.pdf"), 300.0)] {
+            let images = try PrintFixtures.images(url, page: 1)
+            XCTAssertEqual(images.count, 1, url.lastPathComponent)
+            XCTAssertEqual(images.first?.format, .jpegEncoded, url.lastPathComponent)
+            XCTAssertEqual(Double(images.first?.width ?? 0), side * ppi, accuracy: 3, url.lastPathComponent)
+        }
+        // Only the finished files remain: the temporary stream is moved into place.
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted(),
+                       ["assets", "print", "proof.pdf"])
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: package.path).sorted(), ["Interior.pdf"])
+
+        // A failed export keeps the previous file and leaves no temporary file behind.
+        let previous = try Data(contentsOf: proof)
+        book.pages.append(BookPage(layout: .text, textBoxes: [PageTextBox(text: String(repeating: "Troppo ", count: 3000),
+                                                                           frame: PageRect(x: 0.1, y: 0.1, width: 0.2, height: 0.1))]))
+        XCTAssertThrowsError(try BookPDF.write(book, directory: folder, to: proof))
+        XCTAssertEqual(try Data(contentsOf: proof), previous)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: folder.path).sorted(),
+                       ["assets", "print", "proof.pdf"])
+    }
+
+    func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // A slow sky-like gradient: 0.25 code values per source pixel, where banding shows first.
+        let width = 1600, height = 1600
+        let space = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
+        let context = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                              bytesPerRow: width * 4, space: space,
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        let pixels = try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self)
+        for y in 0..<height {
+            for x in 0..<width {
+                let i = (y * width + x) * 4
+                pixels[i] = UInt8(60 + x * 100 / width)
+                pixels[i + 1] = UInt8(110 + x * 60 / width)
+                pixels[i + 2] = 200
+                pixels[i + 3] = 255
+            }
+        }
+        let photo = BookPhoto(name: "sky.png", filename: "sky.png", pixelWidth: width, pixelHeight: height)
+        try PrintFixtures.writePNG(try XCTUnwrap(context.makeImage()), to: BookStorage.assetURL(filename: photo.filename, in: folder))
+        let page = BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)
+        var book = Book(title: "Sky", photos: [photo], pages: [page])
+        book.printSettings = PrintSettings(bleedMM: 0, targetPPI: 300)
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let raster = try PrintFixtures.raster(package.appendingPathComponent("Interior.pdf"), page: 1, scale: 2)
+        let row = raster.height / 2
+        // Banding would show as steps: values that drift from the ramp or fall back behind the highest so far.
+        var worst = 0
+        var highest = -1
+        var reversals = 0
+        for column in 4..<(raster.width - 4) {
+            let red = Int(raster.bytes[(row * raster.width + column) * 4])
+            let expected = 60 + Int(Double(column) / Double(raster.width) * 100)
+            worst = max(worst, abs(red - expected))
+            if red < highest - 2 { reversals += 1 }
+            highest = max(highest, red)
+        }
+        XCTAssertLessThanOrEqual(worst, 3)
+        XCTAssertEqual(reversals, 0)
+    }
 }
 
 enum PrintFixtures {
+    /// Image XObjects of one page (1-based): stream encoding and pixel width.
+    static func images(_ url: URL, page number: Int) throws -> [(format: CGPDFDataFormat, width: Int)] {
+        // The dictionaries point into the document, which must stay alive while they are read.
+        let document = try XCTUnwrap(CGPDFDocument(url as CFURL))
+        defer { withExtendedLifetime(document) {} }
+        let page = try XCTUnwrap(document.page(at: number)?.dictionary)
+        var resources: CGPDFDictionaryRef?
+        var objects: CGPDFDictionaryRef?
+        guard CGPDFDictionaryGetDictionary(page, "Resources", &resources), let resources,
+              CGPDFDictionaryGetDictionary(resources, "XObject", &objects), let objects else { return [] }
+        final class Box {
+            var found: [(CGPDFDataFormat, Int)] = []
+            var nested: [CGPDFDictionaryRef] = []
+        }
+        let box = Box()
+        box.nested = [objects]
+        while let objects = box.nested.popLast() {
+        CGPDFDictionaryApplyBlock(objects, { _, value, info in
+            var stream: CGPDFStreamRef?
+            guard CGPDFObjectGetValue(value, .stream, &stream), let stream, let dictionary = CGPDFStreamGetDictionary(stream)
+            else { return true }
+            var subtype: UnsafePointer<CChar>?
+            guard CGPDFDictionaryGetName(dictionary, "Subtype", &subtype), let subtype else { return true }
+            if String(cString: subtype) == "Form" {
+                // Quartz wraps clipped images in form XObjects; look inside them too.
+                var resources: CGPDFDictionaryRef?
+                var objects: CGPDFDictionaryRef?
+                if CGPDFDictionaryGetDictionary(dictionary, "Resources", &resources), let resources,
+                   CGPDFDictionaryGetDictionary(resources, "XObject", &objects), let objects {
+                    Unmanaged<Box>.fromOpaque(info!).takeUnretainedValue().nested.append(objects)
+                }
+                return true
+            }
+            guard String(cString: subtype) == "Image" else { return true }
+            var width: CGPDFInteger = 0
+            CGPDFDictionaryGetInteger(dictionary, "Width", &width)
+            var format = CGPDFDataFormat.raw
+            _ = CGPDFStreamCopyData(stream, &format)
+            Unmanaged<Box>.fromOpaque(info!).takeUnretainedValue().found.append((format, Int(width)))
+            return true
+        }, Unmanaged.passUnretained(box).toOpaque())
+        }
+        return box.found.map { (format: $0.0, width: $0.1) }
+    }
+
+
     static func folder() throws -> URL {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: folder.appendingPathComponent("assets"), withIntermediateDirectories: true)

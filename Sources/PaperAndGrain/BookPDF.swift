@@ -2,6 +2,8 @@ import AppKit
 import CoreGraphics
 import CoreText
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 enum BookPDF {
     private static let pointsPerMM = 72.0 / 25.4
@@ -153,18 +155,45 @@ enum BookPDF {
         return withUnsafeBytes(of: &value) { Data($0) }
     }
 
+    /// Resolution and JPEG quality of the photographs embedded in a PDF.
+    struct ImageOutput {
+        let ppi: Double
+        let quality: Double
+
+        /// The viewing PDF is for screens: about 150 ppi at quality 0.85.
+        static let proof = ImageOutput(ppi: 150, quality: 0.85)
+        static func print(_ settings: PrintSettings) -> ImageOutput { ImageOutput(ppi: settings.targetPPI, quality: 0.95) }
+    }
+
+    /// Streams the PDF into a hidden file next to `url` and moves it into place only when it is complete,
+    /// so a failed or cancelled export leaves an existing file untouched.
     private static func render(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?, to url: URL,
                                pixartSpineMM: Double? = nil) throws {
+        let fm = FileManager.default
+        let temporary = url.deletingLastPathComponent()
+            .appendingPathComponent(".\(url.deletingPathExtension().lastPathComponent)-\(UUID().uuidString).pdf")
+        defer { try? fm.removeItem(at: temporary) }
+        try renderDocument(book, directory: directory, settings: settings, cover: cover, to: temporary,
+                           pixartSpineMM: pixartSpineMM)
+        try Task.checkCancellation()
+        if fm.fileExists(atPath: url.path) {
+            _ = try fm.replaceItemAt(url, withItemAt: temporary)
+        } else {
+            try fm.moveItem(at: temporary, to: url)
+        }
+    }
+
+    private static func renderDocument(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?,
+                                       to url: URL, pixartSpineMM: Double?) throws {
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
         let safe = book.contentInsetPoints
-        let ppi = settings?.targetPPI ?? 320
+        let images = settings.map(ImageOutput.print) ?? .proof
         let spine = (cover?.spineMM ?? 0) * pointsPerMM
         guard w.isFinite, h.isFinite, w > 50, h > 50, !book.pages.isEmpty,
               bleed.isFinite, bleed >= 0, safe >= 0, safe * 2 < min(w,h),
-              ppi.isFinite, ppi > 0, spine.isFinite, spine >= 0 else { throw ExportError.invalidBook }
-        let output = NSMutableData()
+              images.ppi.isFinite, images.ppi > 0, spine.isFinite, spine >= 0 else { throw ExportError.invalidBook }
         var media = CGRect(x: 0, y: 0, width: w + bleed * 2, height: h + bleed * 2)
         var metadata: [String: Any] = [kCGPDFContextTitle as String: book.title]
         if settings != nil {
@@ -177,9 +206,11 @@ enum BookPDF {
                 kCGPDFXDestinationOutputProfile as String: rgb
             ] as [String: Any]
         }
-        guard let consumer = CGDataConsumer(data: output as CFMutableData),
-              let ctx = CGContext(consumer: consumer, mediaBox: &media, metadata as CFDictionary)
+        guard let ctx = CGContext(url as CFURL, mediaBox: &media, metadata as CFDictionary)
         else { throw ExportError.invalidBook }
+        // Close the file even when a page throws, so the temporary file can be removed.
+        var closed = false
+        defer { if !closed { ctx.closePDF() } }
         func begin(width: Double, height: Double, bleed: Double) {
             let trim = CGRect(x: bleed, y: bleed, width: width, height: height)
             let full = trim.insetBy(dx: -bleed, dy: -bleed)
@@ -206,7 +237,7 @@ enum BookPDF {
                 ctx.saveGState()
                 if front { ctx.translateBy(x: width - panelW, y: 0) }
                 try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
-                             ppi: ppi, book: book, directory: directory, context: ctx, outer: outer)
+                             images: images, book: book, directory: directory, context: ctx, outer: outer)
                 ctx.restoreGState()
             }
             ctx.endPDFPage()
@@ -218,13 +249,13 @@ enum BookPDF {
             ctx.setFillColor(EditorialStyle.color(back.background))
             ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
             let backOuter = CGRect(x: -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
-            try drawFace(back, photoID: cover.backPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
+            try drawFace(back, photoID: cover.backPhotoID, images: images, book: book, directory: directory, context: ctx,
                          outer: backOuter)
             drawSpine(book, in: CGRect(x: w, y: 0, width: spine, height: h), context: ctx)
             ctx.translateBy(x: w + spine, y: 0)
             let front = BookCoverGeometry(book: book, front: true, bleed: bleed)
             let frontOuter = CGRect(x: 0, y: -bleed, width: w + bleed, height: h + 2 * bleed)
-            try drawFace(front, photoID: cover.frontPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
+            try drawFace(front, photoID: cover.frontPhotoID, images: images, book: book, directory: directory, context: ctx,
                          outer: frontOuter)
             ctx.endPDFPage()
         } else {
@@ -234,28 +265,29 @@ enum BookPDF {
                 let sheet = slots[first..<(first + size)]
                 try Task.checkCancellation()
                 begin(width: Double(sheet.count)*w, height: h, bleed: bleed)
-                for (index,slot) in sheet.enumerated() {
-                    guard let leaf = slot else { continue }
-                    ctx.saveGState()
-                    ctx.translateBy(x: Double(index)*w, y: 0)
-                    let left = index == 0 ? bleed : 0
-                    let right = index == sheet.count-1 ? bleed : 0
-                    ctx.clip(to: CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed))
-                    ctx.translateBy(x: -Double(leaf.half)*w, y: 0)
-                    try draw(leaf.page, pageNumber: leaf.number, book: book, directory: directory,
-                             context: ctx, bleed: bleed, ppi: ppi)
-                    ctx.restoreGState()
+                try autoreleasepool {
+                    for (index,slot) in sheet.enumerated() {
+                        guard let leaf = slot else { continue }
+                        ctx.saveGState()
+                        defer { ctx.restoreGState() }
+                        ctx.translateBy(x: Double(index)*w, y: 0)
+                        let left = index == 0 ? bleed : 0
+                        let right = index == sheet.count-1 ? bleed : 0
+                        ctx.clip(to: CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed))
+                        ctx.translateBy(x: -Double(leaf.half)*w, y: 0)
+                        try draw(leaf.page, pageNumber: leaf.number, book: book, directory: directory,
+                                 context: ctx, bleed: bleed, images: images)
+                    }
                 }
                 ctx.endPDFPage()
             }
         }
         ctx.closePDF()
-        try Task.checkCancellation()
-        try (output as Data).write(to: url, options: .atomic)
+        closed = true
     }
 
     private static func draw(_ page: BookPage, pageNumber: Int, book: Book, directory: URL,
-                             context: CGContext, bleed: Double, ppi: Double) throws {
+                             context: CGContext, bleed: Double, images: ImageOutput) throws {
         // Frames stay at the editor's size; photos reaching the trim are carried into the bleed by paint.
         let composition = PageComposition(page: page, book: book)
         let style = book.editorialStyle
@@ -278,7 +310,7 @@ enum BookPDF {
                 guard let index = composition.photos.firstIndex(where: { $0.id == id }) else { continue }
                 let slot = composition.photos[index]
                 let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
-                try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, ppi: ppi,
+                try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, images: images,
                           book: book, directory: directory, context: context, underlap: underlap,
                           trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
             case .story:
@@ -335,7 +367,7 @@ enum BookPDF {
         return CGSize(width: right ? 7 : 0, height: below ? 7 : 0)
     }
 
-    private static func paint(_ photo: BookPhoto, rect: CGRect, fills: Bool, crop: PhotoCrop, ppi: Double,
+    private static func paint(_ photo: BookPhoto, rect: CGRect, fills: Bool, crop: PhotoCrop, images: ImageOutput,
                               book: Book, directory: URL, context: CGContext, underlap: CGSize = .zero,
                               trim: CGRect, outer: CGRect) throws {
         guard !rect.isEmpty else { return }
@@ -344,13 +376,14 @@ enum BookPDF {
         let lut = settings.lutFilename.map { BookStorage.lutURL(filename: $0, in: directory) }
         let pixels = CGSize(width: max(1, photo.pixelWidth), height: max(1, photo.pixelHeight))
         let cropped = crop.imageRect(for: pixels, in: rect, fills: fills)
-        let desired = ceil(max(cropped.width, cropped.height) * ppi / 72)
+        let desired = ceil(max(cropped.width, cropped.height) * images.ppi / 72)
         let maxPixels = Int(min(max(pixels.width, pixels.height), max(1, desired)))
         guard let rendered = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
                                                 adjustments: photo.adjustments)
         else { throw ExportError.missingImage(photo.name) }
         let area = fills ? bleedArea(of: rect, trim: trim, outer: outer) : rect
-        let (image, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
+        let (padded, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
+        let image = jpegBacked(padded, quality: images.quality)
         if underlap != .zero {
             let seams = CGMutablePath()
             // The seams run through the bleed too, where the neighbors are also carried out.
@@ -429,20 +462,36 @@ enum BookPDF {
                                width: CGFloat(padded.width) / scaleX, height: CGFloat(padded.height) / scaleY))
     }
 
+    /// Re-encodes a render as JPEG. Quartz embeds a JPEG-backed image as DCT data, so a page of
+    /// photographs costs a few megabytes instead of the lossless pixels.
+    private static func jpegBacked(_ image: CGImage, quality: Double) -> CGImage {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
+        else { return image }
+        CGImageDestinationAddImage(destination, image, [
+            kCGImageDestinationLossyCompressionQuality: quality,
+        ] as CFDictionary)
+        guard CGImageDestinationFinalize(destination), let provider = CGDataProvider(data: data),
+              let jpeg = CGImage(jpegDataProviderSource: provider, decode: nil, shouldInterpolate: true,
+                                 intent: .defaultIntent)
+        else { return image }
+        return jpeg
+    }
+
     private static func drawImage(_ image: CGImage, at placement: CGRect, in context: CGContext) {
         context.translateBy(x: placement.minX, y: placement.maxY)
         context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(origin: .zero, size: placement.size))
     }
 
-    private static func drawFace(_ face: BookCoverGeometry, photoID: UUID?, ppi: Double, book: Book,
+    private static func drawFace(_ face: BookCoverGeometry, photoID: UUID?, images: ImageOutput, book: Book,
                                  directory: URL, context: CGContext, outer: CGRect) throws {
         if let id = photoID {
             guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
             context.saveGState()
             defer { context.restoreGState() }
             context.clip(to: outer)
-            try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop, ppi: ppi,
+            try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop, images: images,
                       book: book, directory: directory, context: context, trim: face.bounds, outer: outer)
         }
         if let band = face.band {
