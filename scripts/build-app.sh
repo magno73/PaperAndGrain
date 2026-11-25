@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 configuration="${1:-debug}"
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
-app="dist/$version/Paper & Grain.app"
+app="dist/$version/Paper & Grain Redesign.app"
 swift build --disable-sandbox --configuration "$configuration"
 build_dir="$(swift build --disable-sandbox --configuration "$configuration" --show-bin-path)"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/it.lproj"

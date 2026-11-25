@@ -142,7 +142,9 @@ enum BookStorage {
     private static func draftsDirectory(create: Bool) throws -> URL {
         let support = try files.url(for: .applicationSupportDirectory, in: .userDomainMask,
                                     appropriateFor: nil, create: create)
-        return support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)
+        // Redesign builds keep their own drafts so the main app's books are never touched.
+        let folder = Bundle.main.bundleIdentifier?.hasSuffix(".redesign") == true ? "PaperAndGrain-Redesign" : "PaperAndGrain"
+        return support.appendingPathComponent("\(folder)/Drafts", isDirectory: true)
     }
 
     private static func validFilename(_ name: String) -> Bool {
