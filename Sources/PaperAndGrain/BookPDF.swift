@@ -164,12 +164,10 @@ enum BookPDF {
         }
         func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, location: String) {
             guard settings != nil else { return }
-            let pixels = CGSize(width: photo.pixelWidth, height: photo.pixelHeight)
-            let drawn = crop.imageRect(for: pixels, in: frame, fills: fills)
-            guard drawn.width > 0 else { return }
-            // Compare what is printed in the message, so "300 ppi < 300 ppi" cannot appear.
-            let actual = (pixels.width * 72 / drawn.width).rounded()
-            if actual < ppi.rounded() {
+            // The same measure as the canvas badge; rounded like the message, so "300 ppi < 300 ppi" cannot appear.
+            guard let measured = PhotoResolution.ppi(of: photo, in: frame, fills: fills, crop: crop) else { return }
+            let actual = measured.rounded()
+            if PhotoResolution.level(measured, target: ppi) != .good {
                 report.warnings.append(String(format: "%@ · %@ · %.0f ppi < %.0f ppi", location, photo.name, actual, ppi))
             }
         }

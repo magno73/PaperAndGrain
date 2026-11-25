@@ -22,6 +22,8 @@ final class Workspace: ObservableObject {
     @Published private(set) var importProgress = ""
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
     @Published private(set) var exporting = false
+    /// Fraction of the current export, 0 to 1, reported per sheet.
+    @Published private(set) var exportProgress = 0.0
     /// Save As copies the package off the main thread behind the progress overlay.
     @Published private(set) var savingCopy = false
     /// The open book is an unsaved draft: Save Project asks for a place. Cached when the location changes.
@@ -1070,20 +1072,26 @@ final class Workspace: ObservableObject {
     private func export(to destination: URL, from directory: URL, request: PDFExportRequest) {
         let snapshot = book
         exporting = true
+        exportProgress = 0
         exportTask = Task {
             defer {
                 exporting = false
                 exportTask = nil
             }
             do {
+                // The exporter reports from its own thread; the progress card reads it on the main actor.
+                let progress: @Sendable (Double) -> Void = { [self] fraction in
+                    Task { @MainActor in self.exportProgress = min(1, max(0, fraction)) }
+                }
                 let worker = Task.detached(priority: .userInitiated) {
                     switch request {
                     case .proof:
-                        try BookPDF.write(snapshot, directory: directory, to: destination)
+                        try BookPDF.write(snapshot, directory: directory, to: destination, progress: progress)
                     case .printPackage:
-                        try BookPDF.writePrint(snapshot, directory: directory, to: destination)
+                        try BookPDF.writePrint(snapshot, directory: directory, to: destination, progress: progress)
                     case let .pixart(spineMM):
-                        try BookPDF.writePixart(snapshot, directory: directory, spineMM: spineMM, to: destination)
+                        try BookPDF.writePixart(snapshot, directory: directory, spineMM: spineMM, to: destination,
+                                                progress: progress)
                     }
                 }
                 try await withTaskCancellationHandler {

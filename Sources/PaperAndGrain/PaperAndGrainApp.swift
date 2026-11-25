@@ -98,7 +98,7 @@ struct PaperAndGrainApp: App {
             .sheet(isPresented: $showPDFExport, onDismiss: runPDFExport) {
                 let book = workspace.book
                 let directory = workspace.directory
-                PDFExportChooser(book: book, language: language, cancel: { showPDFExport = false }) { request in
+                PDFExportChooser(book: book, directory: directory, language: language, cancel: { showPDFExport = false }) { request in
                     pendingPDFExport = PendingPDFExport(bookID: book.id, directory: directory, request: request)
                     showPDFExport = false
                 }
@@ -110,7 +110,9 @@ struct PaperAndGrainApp: App {
                 } else if workspace.savingCopy {
                     progressCard(label: s("Salvo una copia del libro", "Saving a copy of the book"), value: "", cancel: nil)
                 } else if workspace.exporting {
-                    progressCard(label: s("Esporto il PDF", "Exporting PDF"), value: "", cancel: workspace.cancelExport)
+                    progressCard(label: s("Esporto il PDF", "Exporting PDF"),
+                                 value: workspace.exportProgress.formatted(.percent.precision(.fractionLength(0))),
+                                 cancel: workspace.cancelExport)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
