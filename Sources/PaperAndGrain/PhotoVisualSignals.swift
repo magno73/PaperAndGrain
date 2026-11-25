@@ -35,9 +35,8 @@ struct PhotoVisualSignals: Codable, Hashable, Sendable {
     private static func sample(_ image: CGImage, width: Int, height: Int) -> [UInt8]? {
         var bytes = [UInt8](repeating: 0, count: width * height * 4)
         let success = bytes.withUnsafeMutableBytes { buffer -> Bool in
-            guard let space = CGColorSpace(name: CGColorSpace.sRGB),
-                  let context = CGContext(data: buffer.baseAddress, width: width, height: height,
-                                          bitsPerComponent: 8, bytesPerRow: width * 4, space: space,
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height,
+                                          bitsPerComponent: 8, bytesPerRow: width * 4, space: .sRGBSpace,
                                           bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue)
             else { return false }
             context.interpolationQuality = .high

@@ -252,10 +252,8 @@ enum BookPDF {
         return leaves
     }
 
-    private static let rgb = CGColorSpace(name: CGColorSpace.sRGB)!
-
     private static func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, alpha: CGFloat = 1) -> CGColor {
-        CGColor(colorSpace: rgb, components: [red, green, blue, alpha])!
+        CGColor(colorSpace: .sRGBSpace, components: [red, green, blue, alpha])!
     }
 
     private static func box(_ rect: CGRect) -> Data {
@@ -267,10 +265,30 @@ enum BookPDF {
     struct ImageOutput {
         let ppi: Double
         let quality: Double
+        /// One export's last developed photograph.
+        fileprivate let cache = PaintCache()
 
         /// The viewing PDF is for screens: about 150 ppi at quality 0.85.
-        static let proof = ImageOutput(ppi: 150, quality: 0.85)
+        static var proof: ImageOutput { ImageOutput(ppi: 150, quality: 0.85) }
         static func print(_ settings: PrintSettings) -> ImageOutput { ImageOutput(ppi: settings.targetPPI, quality: 0.95) }
+    }
+
+    /// Keeps the last photograph developed and its embedded image, so both halves of a panorama and a
+    /// photo repeated on the next page are rendered once and embedded once.
+    fileprivate final class PaintCache {
+        struct Render: Equatable {
+            let filename: String
+            let film: FilmSettings
+            let adjustments: PhotoAdjustments?
+            let maxPixels: Int
+        }
+        struct Placed: Equatable {
+            let render: Render
+            let cropped: CGRect
+            let area: CGRect
+        }
+        var render: (key: Render, image: CGImage)?
+        var placed: (key: Placed, image: CGImage, placement: CGRect)?
     }
 
     /// Streams the PDF into a hidden file next to `url` and moves it into place only when it is complete,
@@ -311,7 +329,7 @@ enum BookPDF {
                 kCGPDFXOutputIntentSubtype as String: "GTS_PDFX",
                 kCGPDFXOutputConditionIdentifier as String: "sRGB IEC61966-2.1",
                 kCGPDFXInfo as String: "sRGB photographic exchange",
-                kCGPDFXDestinationOutputProfile as String: rgb
+                kCGPDFXDestinationOutputProfile as String: CGColorSpace.sRGBSpace
             ] as [String: Any]
         }
         guard let ctx = CGContext(url as CFURL, mediaBox: &media, metadata as CFDictionary)
@@ -452,7 +470,7 @@ enum BookPDF {
                 guard let box = composition.textBoxes.first(where: { $0.id == id }),
                       box.prints(paper: style.paper, ink: style.ink) else { continue }
                 let frame = box.frame.rect(in: composition.bounds)
-                if let fill = box.fill(paper: style.paper) {
+                if let fill = box.printedFill(paper: style.paper) {
                     context.setFillColor(EditorialStyle.color(fill))
                     context.fill(frame)
                 }
@@ -507,12 +525,31 @@ enum BookPDF {
         let cropped = crop.imageRect(for: pixels, in: rect, fills: fills)
         let desired = ceil(max(cropped.width, cropped.height) * images.ppi / 72)
         let maxPixels = Int(min(max(pixels.width, pixels.height), max(1, desired)))
-        guard let rendered = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
-                                                adjustments: photo.adjustments)
-        else { throw ExportError.missingImage(photo.name) }
         let area = fills ? bleedArea(of: rect, trim: trim, outer: outer) : rect
-        let (padded, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
-        let image = jpegBacked(padded, quality: images.quality)
+        let cache = images.cache
+        let renderKey = PaintCache.Render(filename: photo.filename, film: settings, adjustments: photo.adjustments,
+                                          maxPixels: maxPixels)
+        let placedKey = PaintCache.Placed(render: renderKey, cropped: cropped, area: area)
+        let image: CGImage
+        let placement: CGRect
+        if let placed = cache.placed, placed.key == placedKey {
+            (image, placement) = (placed.image, placed.placement)
+        } else {
+            let rendered: CGImage
+            if let last = cache.render, last.key == renderKey {
+                rendered = last.image
+            } else {
+                guard let developed = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings,
+                                                         lutURL: lut, adjustments: photo.adjustments)
+                else { throw ExportError.missingImage(photo.name) }
+                rendered = developed
+                cache.render = (renderKey, developed)
+            }
+            let padded: CGImage
+            (padded, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
+            image = jpegBacked(padded, quality: images.quality)
+            cache.placed = (placedKey, image, placement)
+        }
         if underlap != Underlap() {
             // The seams run through the bleed too, where the neighbors are also carried out.
             let reach = CGRect(x: area.minX - underlap.left, y: area.minY - underlap.top,
@@ -570,7 +607,7 @@ enum BookPDF {
         let top = pad(placement.minY - area.minY, scaleY, h), bottom = pad(area.maxY - placement.maxY, scaleY, h)
         guard left + right + top + bottom > 0,
               let context = CGContext(data: nil, width: w + left + right, height: h + top + bottom, bitsPerComponent: 8,
-                                      bytesPerRow: 0, space: rgb,
+                                      bytesPerRow: 0, space: .sRGBSpace,
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
         else { return (image, placement) }
         context.interpolationQuality = .none

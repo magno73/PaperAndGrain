@@ -74,7 +74,7 @@ struct PhotoAdjustments: Codable, Hashable, Sendable {
         let width = image.width, height = image.height
         let format = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
         guard let bitmap = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
-                                     bytesPerRow: 4 * width, space: PhotoDevelopment.space, bitmapInfo: format),
+                                     bytesPerRow: 4 * width, space: .sRGBSpace, bitmapInfo: format),
               let data = bitmap.data else { return nil }
         bitmap.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
         let pixels = data.assumingMemoryBound(to: UInt8.self)
@@ -159,7 +159,6 @@ private func bounded(_ number: Double, _ range: ClosedRange<Double>, fallback: D
 /// Tone and color use a small interpolated RGB cube in encoded sRGB. Spatial filters
 /// run over the oriented photo before its frame, crop, film LUT and print placement.
 enum PhotoDevelopment {
-    fileprivate static let space = CGColorSpace(name: CGColorSpace.sRGB)!
     fileprivate static let lumaWeights = SIMD3(0.2126, 0.7152, 0.0722)
     private static let dimension = 33
 

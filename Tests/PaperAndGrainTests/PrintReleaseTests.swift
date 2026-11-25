@@ -443,6 +443,111 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertEqual(radii.definition / small.definition, 5, accuracy: 0.0001)
     }
 
+    // MARK: B12 smaller items
+
+    func testCubeWithResolveInputRangeAndExtraKeywords() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // A 2-point table over the domain 0...2 that maps the input to half its value.
+        var rows = ["TITLE \"Resolve\"", "LUT_3D_SIZE 2", "LUT_3D_INPUT_RANGE 0.0 2.0", "LUT_IN_VIDEO_RANGE"]
+        for b in [0.0, 1.0] { for g in [0.0, 1.0] { for r in [0.0, 1.0] { rows.append("\(r) \(g) \(b)") } } }
+        let cube = folder.appendingPathComponent("resolve.cube")
+        try rows.joined(separator: "\n").write(to: cube, atomically: true, encoding: .utf8)
+        XCTAssertNoThrow(try FilmRenderer.validateLUT(at: cube))
+        let gray = try PrintFixtures.solid(in: folder, name: "gray", red: 128, green: 128, blue: 128)
+        let image = try XCTUnwrap(FilmRenderer.image(from: BookStorage.assetURL(filename: gray.filename, in: folder),
+                                                     maxPixelSize: 8, settings: FilmSettings(preset: .custom), lutURL: cube))
+        let pixel = try PrintFixtures.firstPixel(image)
+        XCTAssertEqual(Int(pixel[0]), 64, accuracy: 2)
+
+        let oneD = folder.appendingPathComponent("curve.cube")
+        try "LUT_1D_SIZE 2\n0 0 0\n1 1 1\n".write(to: oneD, atomically: true, encoding: .utf8)
+        XCTAssertThrowsError(try FilmRenderer.validateLUT(at: oneD))
+        let twice = folder.appendingPathComponent("twice.cube")
+        try "LUT_3D_SIZE 2\nDOMAIN_MIN 0 0 0\nLUT_3D_INPUT_RANGE 0 1\n".write(to: twice, atomically: true, encoding: .utf8)
+        XCTAssertThrowsError(try FilmRenderer.validateLUT(at: twice))
+    }
+
+    func testHaldLevelTwelveIsResampled() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // An identity Hald CLUT of level 12: 1728 px square, 144 steps per channel, 16 bits.
+        let level = 12, steps = level * level, side = level * level * level
+        let context = try XCTUnwrap(CGContext(data: nil, width: side, height: side, bitsPerComponent: 16,
+                                              bytesPerRow: side * 8, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                              bitmapInfo: CGBitmapInfo.byteOrder16Little.rawValue
+                                                | CGImageAlphaInfo.premultipliedLast.rawValue))
+        let samples = try XCTUnwrap(context.data).assumingMemoryBound(to: UInt16.self)
+        for index in 0..<(side * side) {
+            let r = index % steps, g = (index / steps) % steps, b = index / (steps * steps)
+            samples[index * 4] = UInt16(r * 65535 / (steps - 1))
+            samples[index * 4 + 1] = UInt16(g * 65535 / (steps - 1))
+            samples[index * 4 + 2] = UInt16(b * 65535 / (steps - 1))
+            samples[index * 4 + 3] = 65535
+        }
+        let hald = folder.appendingPathComponent("identity12.png")
+        try PrintFixtures.writePNG(try XCTUnwrap(context.makeImage()), to: hald)
+        XCTAssertNoThrow(try FilmRenderer.validateLUT(at: hald))
+        let color = try PrintFixtures.solid(in: folder, name: "color", red: 200, green: 90, blue: 30)
+        let image = try XCTUnwrap(FilmRenderer.image(from: BookStorage.assetURL(filename: color.filename, in: folder),
+                                                     maxPixelSize: 8, settings: FilmSettings(preset: .custom), lutURL: hald))
+        let pixel = try PrintFixtures.firstPixel(image)
+        XCTAssertEqual(pixel.prefix(3).map(Int.init), [200, 90, 30], accuracy: 2)
+        XCTAssertEqual(FilmRenderer.maximumHaldCube, 64)
+    }
+
+    func testEmptyTextBoxPrintsOnlyWhatTheAuthorStyled() throws {
+        let paper = BookTemplate.atlas.style.paper, ink = BookTemplate.atlas.style.ink
+        let frame = PageRect(x: 0.1, y: 0.1, width: 0.4, height: 0.3)
+        XCTAssertFalse(PageTextBox(text: "  ", frame: frame).prints(paper: paper, ink: ink))
+        XCTAssertFalse(PageTextBox(text: "", frame: frame, backgroundColor: paper).prints(paper: paper, ink: ink))
+        let filled = PageTextBox(text: "", frame: frame, backgroundColor: 0xC03020)
+        XCTAssertTrue(filled.prints(paper: paper, ink: ink))
+        XCTAssertEqual(filled.printedFill(paper: paper), 0xC03020)
+        XCTAssertFalse(PageTextBox(text: "", frame: frame, backgroundColor: 0xC03020, hidesBackground: true)
+            .prints(paper: paper, ink: ink))
+        let bordered = PageTextBox(text: "", frame: frame, borderWidth: 2)
+        XCTAssertTrue(bordered.prints(paper: paper, ink: ink))
+        XCTAssertNil(bordered.printedFill(paper: paper), "an empty bordered box shows what is under it")
+        XCTAssertEqual(PageTextBox(text: "Testo", frame: frame).printedFill(paper: paper), paper)
+
+        // In the PDF the filled box shows its color and the bordered one leaves the photo visible inside.
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let blue = try PrintFixtures.solid(in: folder, name: "blue", red: 20, green: 40, blue: 200)
+        let page = BookPage(layout: .fullPage, photoIDs: [blue.id], textBoxes: [
+            filled, PageTextBox(text: "", frame: PageRect(x: 0.55, y: 0.55, width: 0.3, height: 0.3), borderWidth: 3),
+        ], arrangement: .fullBleed)
+        let book = Book(title: "Boxes", photos: [blue], pages: [page], template: .atlas)
+        let url = folder.appendingPathComponent("proof.pdf")
+        try BookPDF.write(book, directory: folder, to: url)
+        let raster = try PrintFixtures.raster(url, page: 1, scale: 0.5)
+        func color(_ x: Double, _ y: Double) -> [Int] {
+            let i = (Int(y * Double(raster.height)) * raster.width + Int(x * Double(raster.width))) * 4
+            return raster.bytes[i..<(i + 3)].map(Int.init)
+        }
+        XCTAssertEqual(color(0.3, 0.25), [0xC0, 0x30, 0x20], accuracy: 3)
+        XCTAssertEqual(color(0.7, 0.7), [20, 40, 200], accuracy: 6)
+    }
+
+    func testPanoramaHalvesShareOneEmbeddedImage() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let photo = try PrintFixtures.photo(in: folder, width: 1200, height: 600)
+        var book = Book(title: "Panorama", photos: [photo],
+                        pages: [BookPage(layout: .fullSpread, photoIDs: [photo.id], arrangement: .fullSpread)])
+        book.printSettings = PrintSettings(bleedMM: 3, spreads: false)
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let data = try Data(contentsOf: package.appendingPathComponent("Interior.pdf"))
+        let marker = Data("/Subtype /Image".utf8)
+        var count = 0, start = data.startIndex
+        while let range = data.range(of: marker, in: start..<data.endIndex) { count += 1; start = range.upperBound }
+        XCTAssertEqual(try PrintFixtures.images(package.appendingPathComponent("Interior.pdf"), page: 1).count, 1)
+        XCTAssertEqual(try PrintFixtures.images(package.appendingPathComponent("Interior.pdf"), page: 2).count, 1)
+        XCTAssertEqual(count, 1, "both halves embed the same photograph once")
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -571,6 +676,16 @@ enum PrintFixtures {
         context.fill(CGRect(x: 0, y: 0, width: 40, height: 60))
         try writePNG(try XCTUnwrap(context.makeImage()), to: BookStorage.assetURL(filename: photo.filename, in: folder))
         return photo
+    }
+
+    /// The first pixel of an image, as 8-bit sRGB RGBA.
+    static func firstPixel(_ image: CGImage) throws -> [UInt8] {
+        let context = try XCTUnwrap(CGContext(data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.interpolationQuality = .none
+        context.draw(image, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+        return Array(UnsafeBufferPointer(start: try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self), count: 4))
     }
 
     static func gradient(width: Int, height: Int) throws -> CGImage {

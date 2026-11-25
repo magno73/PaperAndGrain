@@ -111,9 +111,18 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     /// The fill to paint, or nil for a transparent box.
     func fill(paper: UInt32) -> UInt32? { hidesBackground == true ? nil : backgroundColor ?? paper }
 
-    /// Whether the box appears in print: any text, or an empty box with a border.
+    var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// The fill that prints. An empty box prints only a color the author chose, never the default paper.
+    func printedFill(paper: UInt32) -> UInt32? {
+        guard let fill = fill(paper: paper) else { return nil }
+        return isEmpty && fill == paper ? nil : fill
+    }
+
+    /// Whether the box appears in print and in thumbnails: any text, or an empty box with a chosen
+    /// fill or a border. The canvas still shows empty boxes so they can be edited.
     func prints(paper: UInt32, ink: UInt32) -> Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || border(ink: ink) != nil
+        !isEmpty || printedFill(paper: paper) != nil || border(ink: ink) != nil
     }
 
     /// Border width and color to stroke, or nil when the box has no border.

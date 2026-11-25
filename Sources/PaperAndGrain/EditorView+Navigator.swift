@@ -319,12 +319,12 @@ extension EditorView {
                     }
                 }
                 .zIndex(Double(composition.rank(.story)))
-                ForEach(composition.textBoxes.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { box in
+                ForEach(composition.textBoxes.filter { $0.prints(paper: style.paper, ink: style.ink) }) { box in
                     let frame = box.frame.rect(in: composition.bounds)
                     let text = PageComposition.boxText(box: box, book: book)
                     let inset = box.textInsetPoints
                     ZStack(alignment: .topLeading) {
-                        if let fill = box.fill(paper: style.paper) {
+                        if let fill = box.printedFill(paper: style.paper) {
                             positioned(Color(cgColor: EditorialStyle.color(fill)), in: scaled(frame, by: scale))
                         }
                         if let border = box.border(ink: style.ink) {
