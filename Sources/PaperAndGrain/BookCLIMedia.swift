@@ -217,7 +217,7 @@ enum BookCLIMedia {
             }
             do {
                 photos.append(try await LocalImages.importFile(url, into: scratch))
-            } catch PhotoImportError.unreadableImage {
+            } catch where BookCLI.isUnreadableImage(error) {
                 throw BookCLI.Failure("Image unavailable or unreadable: " + path)
             }
         }

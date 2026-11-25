@@ -49,14 +49,14 @@ final class Workspace: ObservableObject {
     private var queuedAnalysis: [UUID] = []
     private var openRequest: UUID?
     // Order autosaves before durable writes and package copies.
-    private let saveQueue = DispatchQueue(label: "local.paperandgrain.manifest", qos: .utility)
+    private let saveQueue = DispatchQueue(label: "me.magno.paperandgrain.manifest", qos: .utility)
     private weak var settingsUndoManager: UndoManager?
     private var documentSession = UUID()
     private var directoryIdentity: BookStorage.DirectoryIdentity?
     private let defaults: UserDefaults
     private let draftsRoot: URL?
     private let moveToTrash: (URL) throws -> Void
-    static let bookType = UTType(exportedAs: "local.paperandgrain.book", conformingTo: .package)
+    static let bookType = UTType(exportedAs: "me.magno.paperandgrain.book", conformingTo: .package)
 
     init(defaults: UserDefaults = .standard, draftsRoot: URL? = nil,
          moveToTrash: @escaping (URL) throws -> Void = { try FileManager.default.trashItem(at: $0, resultingItemURL: nil) }) {

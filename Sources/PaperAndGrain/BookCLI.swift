@@ -3,6 +3,13 @@ import Foundation
 
 /// Explicit headless entry point; Finder and ordinary launches still use the SwiftUI app.
 enum BookCLI {
+    /// The image readers throw the app's localized error; the CLI reports it in English with the path.
+    static func isUnreadableImage(_ error: Error) -> Bool {
+        if case PhotoImportError.unreadableImage = error { return true }
+        if case AppError.imageUnavailable = error { return true }
+        return false
+    }
+
     struct Spec: Decodable {
         struct Asset: Decodable {
             let id: String
@@ -274,7 +281,7 @@ enum BookCLI {
                 photo = try LocalImages.store(Data(contentsOf: url), preferredExtension: nil,
                                               name: URL(fileURLWithPath: asset.path).lastPathComponent, sourceID: nil,
                                               date: nil, in: staging)
-            } catch PhotoImportError.unreadableImage {
+            } catch where BookCLI.isUnreadableImage(error) {
                 throw Failure("Image unavailable or unreadable for asset \"\(asset.id)\": " + asset.path)
             }
             book.photos.append(photo)
