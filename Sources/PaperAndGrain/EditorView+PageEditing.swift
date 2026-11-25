@@ -78,7 +78,13 @@ extension EditorView {
     }
 
     func insert(_ layout: PageLayout, at position: Int? = nil) {
-        let newPage = BookPage(layout: layout)
+        insert(arrangement: nil, layout: layout, at: position)
+    }
+
+    /// New pages carry a page template; nil is the automatic gallery.
+    func insert(arrangement: PageArrangement?, layout: PageLayout = .gallery, at position: Int? = nil) {
+        var newPage = BookPage(layout: arrangement?.layout ?? layout)
+        newPage.arrangement = arrangement
         let insertionIndex = position ?? index.map { $0 + 1 } ?? book.pages.endIndex
         editPages(tr("Inserisci pagina", "Insert Page")) { $0.insert(newPage, at: insertionIndex) }
         select(newPage)
@@ -86,7 +92,8 @@ extension EditorView {
     }
 
     func insertTitlePage() {
-        let titlePage = BookPage(layout: .text, heading: book.title)
+        var titlePage = BookPage(layout: .text, heading: book.title)
+        titlePage.arrangement = .textOnly
         editPages(tr("Inserisci frontespizio", "Insert Title Page")) { $0.insert(titlePage, at: 0) }
         select(titlePage)
         inspector = .page

@@ -84,6 +84,10 @@ extension EditorView {
         }
     }
 
+    static let insertableTemplates: [PageArrangement?] = [
+        nil, .textOnly, .textBesidePhoto, .photoAboveText, .textOverPhoto, .fullBleed, .fullSpread, .twoAcross, .fourGrid
+    ]
+
     @ViewBuilder var insertMenuItems: some View {
         Button(tr("Pagina", "Page"), systemImage: "doc.badge.plus") { insert(.gallery) }
         Button(tr("Box di testo", "Text Box"), systemImage: "character.textbox", action: insertTextBox)
@@ -92,9 +96,10 @@ extension EditorView {
             .disabled(page == nil)
         Button(tr("Frontespizio", "Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
         Divider()
-        Menu(tr("Pagina con composizione", "Page with Layout")) {
-            ForEach(layouts, id: \.self) { layout in
-                Button(layoutName(layout), systemImage: layoutIcon(layout)) { insert(layout) }
+        // The same page templates as the inspector, so new pages never use the legacy layouts.
+        Menu(tr("Pagina con modello", "Page with Template")) {
+            ForEach(Self.insertableTemplates, id: \.self) { arrangement in
+                Button(PageArrangementPicker.name(arrangement, language: language)) { insert(arrangement: arrangement) }
             }
         }
     }
