@@ -26,6 +26,8 @@ struct EditorCommandSet {
     var showsTray = true
     var showsSpread = true
     var gutterGuide = false
+    var canBringForward = false
+    var canSendBackward = false
 
     var insertPage: () -> Void = {}
     var insertTextBox: () -> Void = {}
@@ -51,6 +53,7 @@ struct EditorCommandSet {
     var zoomToFit: () -> Void = {}
     var toggleGutter: () -> Void = {}
     var browse: () -> Void = {}
+    var moveLayer: (PageLayer.Move) -> Void = { _ in }
 }
 
 private struct EditorCommandsKey: FocusedValueKey {
@@ -166,6 +169,21 @@ struct EditorMenus: Commands {
             Divider()
             Button(s("Togli dalla pagina", "Remove from Page")) { editor?.removePhoto() }
                 .disabled(editor?.hasPhotoSelection != true)
+        }
+
+        CommandMenu(s("Disponi", "Arrange")) {
+            Button(s("Porta in primo piano", "Bring to Front")) { editor?.moveLayer(.front) }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+                .disabled(editor?.canBringForward != true)
+            Button(s("Porta avanti", "Bring Forward")) { editor?.moveLayer(.forward) }
+                .keyboardShortcut("f", modifiers: [.command, .shift, .option])
+                .disabled(editor?.canBringForward != true)
+            Button(s("Porta indietro", "Send Backward")) { editor?.moveLayer(.backward) }
+                .keyboardShortcut("b", modifiers: [.command, .shift, .option])
+                .disabled(editor?.canSendBackward != true)
+            Button(s("Porta in fondo", "Send to Back")) { editor?.moveLayer(.back) }
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+                .disabled(editor?.canSendBackward != true)
         }
     }
 }

@@ -33,11 +33,17 @@ extension EditorView {
                 }
                 .help(tr("Inserisci pagine, testi e frontespizio", "Insert pages, text and a title page"))
             }
+            ToolbarItem(id: "template", placement: .principal) {
+                Button(action: actions.showTemplates) {
+                    Label(tr("Stile", "Style"), systemImage: "swatchpalette")
+                }
+                .help(tr("Scegli il modello del libro: carta, caratteri e margini", "Choose the book template: paper, type and margins"))
+            }
             ToolbarItem(id: "layout", placement: .principal) {
                 Button {
                     showLayoutPopover = true
                 } label: {
-                    Label(tr("Modello", "Layout"), systemImage: "rectangle.3.group")
+                    Label(tr("Impagina", "Layout"), systemImage: "rectangle.3.group")
                 }
                 .help(tr("Scegli il modello della pagina", "Choose the page layout"))
                 .disabled(page == nil || coverSide != nil)
@@ -111,7 +117,8 @@ extension EditorView {
             if let page {
                 PageArrangementChoices(selection: page.arrangement ?? (page.layout == .fullSpread ? .fullSpread : nil),
                                        language: language,
-                                       pageSize: book.format.pageSize) { arrangement in
+                                       pageSize: book.format.pageSize,
+                                       layout: page.effectiveLayout) { arrangement in
                     applyPageArrangement(arrangement, to: page.id)
                     showLayoutPopover = false
                 }
@@ -143,6 +150,10 @@ extension EditorView {
         commands.showsTray = showsTray
         commands.showsSpread = showSpread
         commands.gutterGuide = gutterGuide
+        let layer = selectedLayer
+        commands.canBringForward = canMoveLayer(layer, .forward)
+        commands.canSendBackward = canMoveLayer(layer, .backward)
+        commands.moveLayer = { moveLayer(layer, $0) }
         commands.insertPage = { insert(.gallery) }
         commands.insertTextBox = insertTextBox
         commands.insertHeading = insertPageHeading
@@ -156,13 +167,12 @@ extension EditorView {
         commands.moveLater = { move(1) }
         commands.deletePage = { if page != nil { showDelete = true } }
         commands.crop = cropSelection
-        commands.adjust = { showInspectorTab(.adjust) }
+        commands.adjust = { showPhotoSection(film: false) }
         commands.autoEnhance = {
             if let id = canvasPhotoSelection?.photoID, let photo = indexedPhoto(id) { autoEnhance(photo) }
         }
         commands.film = {
-            if selectedPhoto != nil { filmScope = .photo }
-            showInspectorTab(.film)
+            if selectedPhoto != nil { showPhotoSection(film: true) } else { showInspectorTab(.film) }
         }
         commands.removePhoto = { _ = deleteSelectedCanvasObject() }
         commands.toggleNavigator = { showsNavigator.toggle() }

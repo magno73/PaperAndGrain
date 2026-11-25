@@ -27,17 +27,22 @@ actor EditorPreviewLoader {
     private final class Lane {
         let queue: DispatchQueue
         let cache = NSCache<Key, CGImage>()
-        var running: EditorPreviewRequest?
+        /// How many renders may run at once; the canvas renders a spread's photos side by side.
+        let width: Int
+        var running: Set<EditorPreviewRequest> = []
         var pending: [EditorPreviewRequest] = []
         var waiters: [EditorPreviewRequest: [UUID: Waiter]] = [:]
 
-        init(name: String, qos: DispatchQoS, megabytes: Int) {
-            queue = DispatchQueue(label: name, qos: qos, autoreleaseFrequency: .workItem)
+        init(name: String, qos: DispatchQoS, megabytes: Int, width: Int = 1) {
+            self.width = max(1, width)
+            queue = DispatchQueue(label: name, qos: qos, attributes: width > 1 ? .concurrent : [],
+                                  autoreleaseFrequency: .workItem)
             cache.totalCostLimit = megabytes * 1024 * 1024
         }
     }
 
-    private let canvas = Lane(name: "PaperAndGrain.preview.canvas", qos: .userInitiated, megabytes: 80)
+    private let canvas = Lane(name: "PaperAndGrain.preview.canvas", qos: .userInitiated, megabytes: 160,
+                              width: min(4, max(2, ProcessInfo.processInfo.activeProcessorCount / 3)))
     private let interactive = Lane(name: "PaperAndGrain.preview.interactive", qos: .userInitiated, megabytes: 24)
     private let thumbnails = Lane(name: "PaperAndGrain.preview.thumbnails", qos: .utility, megabytes: 20)
     private let filmSwatches = Lane(name: "PaperAndGrain.preview.filmSwatches", qos: .userInitiated, megabytes: 4)
@@ -52,6 +57,14 @@ actor EditorPreviewLoader {
 
     static func image(for request: EditorPreviewRequest) async -> CGImage? {
         await shared.load(request)
+    }
+
+    static func cachedImage(for request: EditorPreviewRequest) async -> CGImage? {
+        await shared.cached(request)
+    }
+
+    func cached(_ request: EditorPreviewRequest) -> CGImage? {
+        lane(for: request).cache.object(forKey: Key(request))
     }
 
     func load(_ request: EditorPreviewRequest) async -> CGImage? {
@@ -84,19 +97,21 @@ actor EditorPreviewLoader {
     }
 
     private func startNext(in lane: Lane) {
-        guard lane.running == nil, !lane.pending.isEmpty else { return }
-        let request = lane.pending.removeFirst()
-        lane.running = request
-        lane.queue.async { [render] in
-            let image = render(request)
-            Task { await self.finish(request, image: image) }
+        while lane.running.count < lane.width, !lane.pending.isEmpty {
+            // The newest request is the page the author is looking at now.
+            let request = lane.pending.removeLast()
+            lane.running.insert(request)
+            lane.queue.async { [render] in
+                let image = render(request)
+                Task { await self.finish(request, image: image) }
+            }
         }
     }
 
     private func cancel(_ ticket: UUID, request: EditorPreviewRequest) {
         let lane = lane(for: request)
         guard let waiter = lane.waiters[request]?.removeValue(forKey: ticket) else { return }
-        if lane.waiters[request]?.isEmpty == true, lane.running != request {
+        if lane.waiters[request]?.isEmpty == true, !lane.running.contains(request) {
             lane.pending.removeAll { $0 == request }
             lane.waiters.removeValue(forKey: request)
         }
@@ -109,7 +124,7 @@ actor EditorPreviewLoader {
         if let image, !waiters.isEmpty {
             lane.cache.setObject(image, forKey: Key(request), cost: image.bytesPerRow * image.height)
         }
-        lane.running = nil
+        lane.running.remove(request)
         for waiter in waiters.values { waiter.resume(returning: image) }
         startNext(in: lane)
     }

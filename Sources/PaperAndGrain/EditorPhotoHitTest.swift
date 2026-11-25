@@ -40,11 +40,24 @@ enum EditorPhotoHitTest {
                        storyFrames: [CGRect]? = nil) -> UUID? {
         let bounds = composition.bounds
         guard let local = CanvasHitMap.localPoint(point, frame: frame, bounds: bounds) else { return nil }
-        if let storyFrames {
-            if storyFrames.contains(where: { $0.contains(local) }) { return nil }
-        } else if composition.story?.contains(local) == true { return nil }
-        if composition.textBoxes.contains(where: { $0.frame.rect(in: bounds).contains(local) }) { return nil }
-        return composition.photos.last { $0.id != excluding && $0.frame.contains(local) }?.id
+        // The topmost object under the point decides: a photo restacked over text can still be hit.
+        for layer in composition.layers.reversed() {
+            switch layer {
+            case let .photo(id):
+                guard id != excluding, composition.photos.first(where: { $0.id == id })?.frame.contains(local) == true
+                else { continue }
+                return id
+            case .story:
+                if let storyFrames {
+                    if storyFrames.contains(where: { $0.contains(local) }) { return nil }
+                } else if composition.story?.contains(local) == true { return nil }
+            case let .textBox(id):
+                if composition.textBoxes.first(where: { $0.id == id })?.frame.rect(in: bounds).contains(local) == true {
+                    return nil
+                }
+            }
+        }
+        return nil
     }
 }
 

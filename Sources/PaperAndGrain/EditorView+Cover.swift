@@ -158,11 +158,11 @@ extension EditorView {
                 HStack {
                     Button(tr("Regola foto", "Adjust Photo")) {
                         selectCoverPhoto(photo.id)
-                        inspector = .adjust
+                        showPhotoSection(film: false)
                     }
                     Button(tr("Pellicola", "Film")) {
                         selectCoverPhoto(photo.id)
-                        inspector = .film
+                        showPhotoSection(film: true)
                     }
                 }
                 if coverPhotoPlacement(side) != nil {
@@ -225,7 +225,6 @@ extension EditorView {
             canvasPhotoSelection = CanvasPhotoSelection(surface: .cover(front: coverSide == .front), photoID: id)
         }
         searchingPhotos = false
-        filmScope = .photo
     }
 
     func changeCover(_ change: (inout BookCover) -> Void) {

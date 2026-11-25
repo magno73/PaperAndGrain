@@ -3,7 +3,13 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension EditorView {
+    func isCanvasControl(_ point: CGPoint) -> Bool {
+        EditorDropTarget.canvasControls.contains { dropFrames[$0]?.contains(point) == true }
+    }
+
     func selectObject(at point: CGPoint) {
+        // Buttons floating over the page act on the selection; they must not clear it.
+        guard !isCanvasControl(point) else { return }
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
         guard insideCanvas else {
             if showsTray, let id = libraryHitFrames.frames.photo(at: point) {
@@ -144,9 +150,7 @@ extension EditorView {
         selectedEditorial = nil
         selectedPhoto = id
         canvasPhotoSelection = CanvasPhotoSelection(surface: .canvasPage(leaf.id), photoID: id)
-        if inspector == .film {
-            filmScope = .photo
-        }
+        if inspector == .film { inspector = .photo }
     }
 
     func selectTextBox(_ id: UUID, in leaf: BookPage) {
@@ -198,7 +202,64 @@ extension EditorView {
         case .none: return false
         case .canvas: return deleteSelectedCanvasObject()
         case let .navigatorPage(id): return deleteNavigatorPage(id)
+        case .navigatorCover: return false
         }
+    }
+
+    /// Arrow keys move the selection: objects on the canvas first, otherwise pages.
+    /// In the navigator ← → step one page and ↑ ↓ one spread; on an empty canvas ← → turn the page.
+    func handleArrowKey(_ offset: CGSize) -> Bool {
+        if nudgeCanvasSelection(offset) { return true }
+        guard cropSession == nil, inlineEditingBox == nil, editingEditorial == nil, browsingSpread == nil else { return false }
+        let horizontal = offset.width != 0
+        let forward = horizontal ? offset.width > 0 : offset.height > 0
+        switch editorInput.target {
+        case .navigatorPage, .navigatorCover:
+            if horizontal { stepPage(forward ? 1 : -1) } else { stepSpread(forward ? 1 : -1) }
+            editorInput.target = page.map { .navigatorPage($0.id) } ?? .navigatorCover
+            return true
+        case .canvas:
+            guard horizontal, canvasPhotoSelection == nil, selectedBox == nil, selectedEditorial == nil else { return false }
+            turnCanvasPage(forward ? 1 : -1)
+            editorInput.target = .canvas
+            return true
+        case .none:
+            return false
+        }
+    }
+
+    /// The canvas turns what it shows: a spread in two-page view, otherwise a page.
+    func turnCanvasPage(_ direction: Int) {
+        if showSpread && coverSide == nil { stepSpread(direction) } else { stepPage(direction) }
+    }
+
+    func stepSpread(_ direction: Int) {
+        let spreads = groups
+        if coverSide == .front {
+            if direction > 0, let first = spreads.first?.first { select(first); clearCanvasSelection() }
+            return
+        }
+        if coverSide == .back {
+            if direction < 0, let last = spreads.last?.first { select(last); clearCanvasSelection() }
+            return
+        }
+        guard let page, let current = spreads.firstIndex(where: { $0.contains { $0.id == page.id } }) else { return }
+        let target = current + direction
+        if target < 0 {
+            selectCover(.front)
+        } else if target >= spreads.count {
+            selectCover(.back)
+        } else if let first = spreads[target].first {
+            select(first)
+            clearCanvasSelection()
+        }
+    }
+
+    /// Scrolling over the page turns it while the whole page fits; zoomed pages keep scrolling.
+    func canTurnPages(at point: CGPoint) -> Bool {
+        guard zoom == .fitPage, dropFrames[.canvasViewport]?.contains(point) == true, cropSession == nil,
+              inlineEditingBox == nil, editingEditorial == nil, browsingSpread == nil, dragging == nil else { return false }
+        return !book.pages.isEmpty
     }
 
     func deleteSelectedCanvasObject() -> Bool {

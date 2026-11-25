@@ -30,6 +30,10 @@ enum EditorDropTarget: Hashable {
     static let coordinateSpace = "PaperAndGrainEditor"
     case navigatorViewport, canvasViewport
     case navigatorPage(UUID), navigatorGap(NavigatorPageGap), canvasPage(UUID), cover(front: Bool)
+    /// Floating controls over the canvas; clicks on them never change the canvas selection.
+    case canvasHUD, canvasViewControls
+
+    static let canvasControls: [Self] = [.canvasHUD, .canvasViewControls]
 }
 
 struct EditorDropFrames: PreferenceKey {

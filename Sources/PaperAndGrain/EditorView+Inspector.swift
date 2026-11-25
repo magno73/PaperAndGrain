@@ -5,9 +5,11 @@ import UniformTypeIdentifiers
 extension EditorView {
     var inspectorTabs: [InspectorTab] {
         var tabs = [InspectorTab(id: .page, title: coverSide == nil ? tr("Pagina", "Page") : tr("Copertina", "Cover"))]
+        if selectedText != nil {
+            tabs.append(InspectorTab(id: .text, title: tr("Testo", "Text")))
+        }
         if selectedPhoto != nil {
             tabs.append(InspectorTab(id: .photo, title: tr("Foto", "Photo")))
-            tabs.append(InspectorTab(id: .adjust, title: tr("Regola", "Adjust")))
         }
         tabs.append(InspectorTab(id: .film, title: tr("Pellicola", "Film")))
         return tabs
@@ -21,8 +23,8 @@ extension EditorView {
                 VStack(alignment: .leading, spacing: 20) {
                     switch tab {
                     case .page: pageInspector
+                    case .text: textInspector
                     case .photo: selectedPhotoInspector
-                    case .adjust: photoAdjustmentsInspector
                     case .film: filmInspector
                     }
                 }
@@ -38,20 +40,32 @@ extension EditorView {
         .onChange(of: tabs.map(\.id)) { _, ids in
             if !ids.contains(inspector) { inspector = .page }
         }
+        .onChange(of: inspector, initial: true) { _, tab in
+            // The Photo tab edits the selected photo's look, the Film tab the book's.
+            let scope: FilmScope = tab == .photo ? .photo : .book
+            if filmScope != scope { filmScope = scope }
+        }
     }
 
     /// Keynote-style: selecting a photo brings its tab forward, deselecting returns to the page.
     func followSelectionInInspector(previous: UUID?, current: UUID?) {
         if current != nil, previous == nil, inspector == .page { inspector = .photo }
-        if current == nil, inspector == .photo || inspector == .adjust { inspector = .page }
+        if current == nil, inspector == .photo { inspector = .page }
+    }
+
+    /// Opens the Photo tab with the adjustments or the film look expanded.
+    func showPhotoSection(film: Bool) {
+        if film { showsPhotoFilmSection = true } else { showsAdjustSection = true }
+        showInspectorTab(.photo)
     }
 
     func showInspectorTab(_ tab: Inspector) {
         showsInspector = true
-        if (tab == .photo || tab == .adjust) && selectedPhoto == nil { inspector = .page; return }
+        if tab == .photo && selectedPhoto == nil { inspector = .page; return }
         inspector = tab
     }
 
+    /// Everything about the selected photo in one place: placement, adjustments and its film look.
     @ViewBuilder var selectedPhotoInspector: some View {
         if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
             HStack(spacing: 10) {
@@ -64,37 +78,105 @@ extension EditorView {
                         .font(.caption).foregroundStyle(muted)
                 }
             }
-            selectedPhotoDetails(photo)
+            if !isOnCurrentPage(photo.id) {
+                Button(tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
+                    .disabled(page == nil && coverSide == nil)
+            }
+            inspectorSection(tr("Regola", "Adjust"), expanded: $showsAdjustSection) {
+                photoAdjustmentsInspector
+            }
+            inspectorSection(tr("Pellicola", "Film"), expanded: $showsPhotoFilmSection) {
+                photoFilmSection(photo)
+            }
+            if let selection = canvasPhotoSelection, let pageID = selection.pageID, selection.photoID == photo.id {
+                layerButtons(LayerTarget(pageID: pageID, layer: .photo(photo.id)))
+            }
+            if let analysis = photo.analysis {
+                let labels = (!analysis.labels.isEmpty ? analysis.labels : analysis.concepts).prefix(4)
+                if !labels.isEmpty || analysis.revision >= PhotoAnalysis.currentRevision {
+                    inspectorSection(tr("Analisi", "Analysis"), expanded: $showsAnalysisSection) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if !labels.isEmpty { intro(labels.map(conceptName).joined(separator: " · ")) }
+                            if analysis.revision >= PhotoAnalysis.currentRevision { photoAnalysisDetails(analysis) }
+                        }
+                    }
+                }
+            }
         } else {
             intro(tr("Seleziona una foto nella pagina o nella fototeca.",
                      "Select a photo on the page or in the photo library."))
         }
     }
 
+    /// A collapsible group with a bold header, like the sections of Keynote's Format inspector.
+    func inspectorSection<Content: View>(_ title: String, expanded: Binding<Bool>,
+                                         @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+            Button {
+                withAnimation(.snappy(duration: 0.2)) { expanded.wrappedValue.toggle() }
+            } label: {
+                HStack {
+                    Text(title).font(.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(muted)
+                        .rotationEffect(.degrees(expanded.wrappedValue ? 90 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(expanded.wrappedValue ? tr("Espanso", "Expanded") : tr("Compresso", "Collapsed"))
+            if expanded.wrappedValue { content() }
+        }
+    }
+
+    /// The book's template, one click from the page it styles.
+    var bookTemplateRow: some View {
+        Button(action: actions.showTemplates) {
+            HStack(spacing: 9) {
+                Image(systemName: "swatchpalette")
+                    .font(.system(size: 15))
+                    .foregroundStyle(pine)
+                    .frame(width: 35, height: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(tr("Modello del libro", "Book Template")).font(.system(size: 11, weight: .semibold))
+                    Text(book.template?.name(language: language) ?? tr("Base", "Basic"))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 3)
+                Text(tr("Cambia…", "Change…")).font(.system(size: 11)).foregroundStyle(pine)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(pine.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
+            .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(pine.opacity(0.24)) }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tr("Modello del libro", "Book Template"))
+        .accessibilityValue(book.template?.name(language: language) ?? tr("Base", "Basic"))
+        .help(tr("Carta, caratteri e margini di tutto il libro", "Paper, type and margins for the whole book"))
+    }
+
     @ViewBuilder var pageInspector: some View {
+        bookTemplateRow
         if let coverSide {
             coverInspector(coverSide)
         } else if let page {
             let visiblePhotos = Set(pageComposition(page).photos.map(\.id))
             let waiting = page.photoIDs.count - visiblePhotos.count
             VStack(alignment: .leading, spacing: 7) {
+                // One control for the page type: automatic gallery, fixed layouts and full bleed.
                 PageArrangementPicker(selection: page.arrangement ?? (page.layout == .fullSpread ? .fullSpread : nil),
                                       language: language,
-                                      pageSize: book.format.pageSize) { arrangement in
+                                      pageSize: book.format.pageSize,
+                                      layout: page.effectiveLayout) { arrangement in
                     applyPageArrangement(arrangement, to: page.id)
                 }
-                if page.arrangement == nil {
-                    Picker(tr("Composizione", "Layout"), selection: Binding(
-                        get: { self.page?.effectiveLayout ?? .gallery },
-                        set: { setLayout($0) }
-                    )) {
-                        ForEach(layouts, id: \.self) { layout in
-                            Text(layoutName(layout)).tag(layout)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                } else if waiting > 0 {
+                if waiting > 0 {
                     intro(tr("\(waiting) foto in attesa di un riquadro.", "\(waiting) photos waiting for a slot."))
                 }
             }
@@ -243,18 +325,10 @@ extension EditorView {
                 .labelsHidden()
             }
             if let active {
-                DisclosureGroup(tr("Tipografia del box", "Box Typography")) {
-                    EditorialTypographyControls(style: boxTextStyle(active.id, on: leaf.id),
-                                               inherited: book.editorialStyle.defaultBodyStyle.applying(book.typography?.body),
-                                               language: language, sampleText: active.text)
-                        .padding(.top, 6)
-                        .id(active.id)
-                    let frame = active.frame.rect(in: pageComposition(leaf).bounds)
-                        .insetBy(dx: active.textInsetPoints, dy: active.textInsetPoints)
-                    if !EditorialTypesetter.fits(PageComposition.boxText(box: active, book: book), in: frame) {
-                        typeOverflow(tr("Ingrandisci il box o riduci la dimensione del testo.",
-                                        "Enlarge the box or reduce the text size."))
-                    }
+                Button {
+                    showInspectorTab(.text)
+                } label: {
+                    Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
                 }
                 Toggle(tr("Usa tutta la larghezza", "Use Full Width"), isOn: Binding(
                     get: {
@@ -284,6 +358,125 @@ extension EditorView {
             }
         }
     }
+
+    // MARK: Text tab
+
+    enum TextSelection: Equatable {
+        case box(page: UUID, box: UUID)
+        case heading(page: UUID)
+        case story(page: UUID)
+    }
+
+    var selectedText: TextSelection? {
+        guard coverSide == nil, let page else { return nil }
+        if let box = selectedBox, page.textBoxes?.contains(where: { $0.id == box }) == true {
+            return .box(page: page.id, box: box)
+        }
+        switch selectedEditorial {
+        case let .page(id, .title)? where id == page.id: return .heading(page: id)
+        case let .page(id, _)? where id == page.id: return .story(page: id)
+        case let .storyGroup(id)? where id == page.id: return .story(page: id)
+        default: return nil
+        }
+    }
+
+    /// Keynote's Format › Text, for the box, heading or story selected on the page.
+    @ViewBuilder var textInspector: some View {
+        let style = book.editorialStyle
+        let palette = [style.titleInk, style.ink, style.accent, 0x000000, 0xFFFFFF]
+        switch selectedText {
+        case let .box(pageID, boxID)?:
+            if let leaf = book.pages.first(where: { $0.id == pageID }),
+               let box = leaf.textBoxes?.first(where: { $0.id == boxID }) {
+                caption(tr("Box di testo", "Text Box"))
+                EditorialTypographyControls(style: boxTextStyle(boxID, on: pageID),
+                                           inherited: style.defaultBodyStyle.applying(book.typography?.body),
+                                           language: language, sampleText: box.text,
+                                           defaultInk: style.ink, palette: palette)
+                    .id(boxID)
+                let frame = box.frame.rect(in: pageComposition(leaf).bounds)
+                    .insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
+                if !EditorialTypesetter.fits(PageComposition.boxText(box: box, book: book), in: frame) {
+                    typeOverflow(tr("Ingrandisci il box o riduci la dimensione del testo.",
+                                    "Enlarge the box or reduce the text size."))
+                }
+                Divider()
+                Toggle(tr("Usa tutta la larghezza", "Use Full Width"), isOn: Binding(
+                    get: { box.usesFullWidth == true },
+                    set: { fullWidth in
+                        changeTextBoxes(on: pageID, name: tr("Modifica margini del box", "Change Text Box Insets")) { boxes in
+                            guard let index = boxes.firstIndex(where: { $0.id == boxID }) else { return }
+                            boxes[index].usesFullWidth = fullWidth ? true : nil
+                        }
+                    }
+                ))
+                .toggleStyle(.checkbox)
+                layerButtons(LayerTarget(pageID: pageID, layer: .textBox(boxID)))
+            }
+        case let .heading(pageID)?:
+            if let leaf = book.pages.first(where: { $0.id == pageID }) {
+                headingFormat(leaf, palette: palette)
+                layerButtons(LayerTarget(pageID: pageID, layer: .story))
+            }
+        case let .story(pageID)?:
+            if let leaf = book.pages.first(where: { $0.id == pageID }) {
+                headingFormat(leaf, palette: palette)
+                Divider()
+                caption(tr("Racconto", "Story"))
+                EditorialTypographyControls(style: pageTextStyle(\.body, on: pageID),
+                                           inherited: style.defaultBodyStyle.applying(book.typography?.body),
+                                           language: language, sampleText: leaf.text,
+                                           defaultInk: leaf.arrangement == .textOverPhoto ? style.overlayInk : style.ink,
+                                           palette: palette)
+                    .id(pageID)
+                let blocks = pageComposition(leaf).storyDrawingBlocks(page: leaf, book: book)
+                if blocks.contains(where: { !EditorialTypesetter.fits($0.text, in: $0.frame) }) {
+                    typeOverflow(tr("Alcune righe non entrano nel riquadro.", "Some lines exceed the text frame."))
+                }
+                layerButtons(LayerTarget(pageID: pageID, layer: .story))
+            }
+        case nil:
+            intro(tr("Seleziona un box, un titolo o un racconto nella pagina.",
+                     "Select a text box, heading or story on the page."))
+        }
+    }
+
+    func headingFormat(_ leaf: BookPage, palette: [UInt32]) -> some View {
+        let style = book.editorialStyle
+        return VStack(alignment: .leading, spacing: 10) {
+            caption(tr("Titolo", "Heading"))
+            TextField(tr("Titolo della pagina", "Page Heading"), text: Binding(
+                get: { book.pages.first { $0.id == leaf.id }?.heading ?? "" },
+                set: { value in
+                    guard let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
+                    book.pages[index].heading = value.isEmpty ? nil : value
+                }
+            ))
+            .textFieldStyle(.roundedBorder)
+            EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
+                                       inherited: style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
+                                           .applying(book.typography?.title),
+                                       language: language, sampleText: leaf.heading ?? "",
+                                       defaultInk: leaf.arrangement == .textOverPhoto ? style.overlayTitleInk : style.titleInk,
+                                       palette: palette)
+                .id(leaf.id)
+        }
+    }
+
+    func layerButtons(_ target: LayerTarget) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Divider()
+            caption(tr("Disposizione", "Arrange"))
+            HStack(spacing: 6) {
+                Button(tr("In primo piano", "Front")) { moveLayer(target, .front) }
+                    .disabled(!canMoveLayer(target, .front))
+                Button(tr("In fondo", "Back")) { moveLayer(target, .back) }
+                    .disabled(!canMoveLayer(target, .back))
+            }
+            .controlSize(.small)
+        }
+    }
+
 
     func pageTypography(_ leaf: BookPage, showsBody: Bool) -> some View {
         let style = book.editorialStyle
@@ -450,38 +643,6 @@ extension EditorView {
         case "text": tr("Testo nella foto", "Text in photo") + " · " + evidence.value
         default: conceptName(evidence.value)
         }
-    }
-
-    func selectedPhotoDetails(_ photo: BookPhoto) -> some View {
-        let assigned = isOnCurrentPage(photo.id)
-        return VStack(alignment: .leading, spacing: 6) {
-            if let analysis = photo.analysis {
-                let labels = (!analysis.labels.isEmpty ? analysis.labels : analysis.concepts).prefix(4)
-                if !labels.isEmpty { intro(labels.map(conceptName).joined(separator: " · ")) }
-                if analysis.revision >= PhotoAnalysis.currentRevision {
-                    photoAnalysisDetails(analysis)
-                }
-            }
-            if !assigned {
-                Button(tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
-                    .disabled(page == nil && coverSide == nil)
-            }
-            HStack(spacing: 7) {
-                Button(tr("Regola foto", "Adjust Photo")) { inspector = .adjust }
-                if enhancingPhotos[photo.id] != nil {
-                    ProgressView().controlSize(.small)
-                } else {
-                    action("wand.and.stars", tr("Migliora in automatico", "Auto Enhance")) { autoEnhance(photo) }
-                }
-            }
-            Button(tr("Look pellicola", "Film look")) {
-                filmScope = .photo
-                inspector = .film
-            }
-        }
-        .padding(9)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(pine.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
     }
 
     func photoAnalysisDetails(_ analysis: PhotoAnalysis) -> some View {

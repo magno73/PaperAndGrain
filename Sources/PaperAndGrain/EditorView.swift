@@ -100,6 +100,12 @@ struct EditorView: View {
 
     @State var filmScope: FilmScope = .book
 
+    @AppStorage("inspectorShowsAdjust") var showsAdjustSection = true
+
+    @AppStorage("inspectorShowsPhotoFilm") var showsPhotoFilmSection = true
+
+    @AppStorage("inspectorShowsAnalysis") var showsAnalysisSection = false
+
     @State var filmEdit = FilmEdit()
 
     @State var filmPreviewTask: Task<Void, Never>?
@@ -141,7 +147,7 @@ struct EditorView: View {
     @State var cropSession: CropSession?
 
     enum Inspector: String, CaseIterable {
-        case page, photo, adjust, film
+        case page, text, photo, film
     }
 
     enum TrayFilter: Hashable {
@@ -188,8 +194,8 @@ struct EditorView: View {
                 content(navigation.tab)
             }
             .onChange(of: navigation.tab) { _, tab in
-                if tab != .adjust { finishAdjustment() }
-                if tab != .film { finishFilm() }
+                if tab != .photo { finishAdjustment() }
+                finishFilm()
             }
         }
     }
@@ -267,6 +273,13 @@ struct EditorView: View {
         case page(UUID, PageComposition.TextRole)
         case storyGroup(UUID)
         case cover(CoverSide)
+
+        var pageID: UUID? {
+            switch self {
+            case let .page(id, _), let .storyGroup(id): id
+            case .cover: nil
+            }
+        }
     }
 
     enum AlignmentElement: Equatable {
@@ -372,6 +385,8 @@ struct EditorView: View {
                 sidePanel
                     .inspectorColumnWidth(min: 270, ideal: 300, max: 420)
             }
+            // The window can't shrink below the panes it shows, so the inspector never gets clipped.
+            .frame(minWidth: (showsNavigator ? navigatorWidth : 0) + 640 + (showsInspector ? 280 : 0))
             .toolbar(id: "editor") { editorToolbar }
             .navigationTitle(book.title.isEmpty ? tr("Senza titolo", "Untitled") : book.title)
             .navigationSubtitle(toolbarSubtitle)
@@ -414,10 +429,16 @@ struct EditorView: View {
         .background { Theme.table.ignoresSafeArea() }
         .background(alignment: .topLeading) {
             CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
-                                 onNudge: nudgeCanvasSelection, onClick: selectObject(at:),
+                                 onNudge: handleArrowKey, onClick: selectObject(at:),
                                  onPointerDown: { point in
-                editorInput.target = dropFrames[.canvasViewport]?.contains(point) == true ? .canvas : .none
-            }, onKeyboardTraversal: { editorInput.target = .none })
+                if dropFrames[.canvasViewport]?.contains(point) == true {
+                    editorInput.target = .canvas
+                } else if !isNavigatorPoint(point) {
+                    editorInput.target = .none
+                }
+            }, onKeyboardTraversal: { editorInput.target = .none },
+                                 onContextMenu: canvasMenu(at:), canTurnPages: canTurnPages(at:),
+                                 onTurnPage: turnCanvasPage)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -435,6 +456,10 @@ struct EditorView: View {
         }
         .onChange(of: editorialFocus) { previous, current in
             if let previous, current == nil, editingEditorial == previous { editingEditorial = nil }
+        }
+        .onChange(of: selectedText) { previous, current in
+            if current != nil, previous == nil, inspector == .page { inspector = .text }
+            if current == nil, inspector == .text { inspector = .page }
         }
         .onChange(of: selectedPhoto) { previous, id in
             if canvasPhotoSelection?.photoID != id { canvasPhotoSelection = nil }
@@ -776,28 +801,52 @@ struct EditorPreview<Placeholder: View>: View {
                                     adjustments: request.adjustments, isInteractive: true)
     }
 
+    @Environment(\.displayScale) private var displayScale
+
+    /// Renders no larger than the frame needs, in steps so small resizes reuse the cache.
+    static func sized(_ request: EditorPreviewRequest, frame: CGSize, zoom: Double, scale: CGFloat) -> EditorPreviewRequest {
+        guard request.limit > 180, !request.isInteractive, frame.width > 0, frame.height > 0 else { return request }
+        let needed = Double(max(frame.width, frame.height) * max(1, scale)) * max(1, zoom)
+        let step = [480, 720, 1080, 1440, 2048].first { Double($0) >= needed * 1.1 } ?? 2048
+        guard step < request.limit else { return request }
+        var sized = EditorPreviewRequest(url: request.url, limit: step, look: request.look, lutURL: request.lutURL,
+                                         adjustments: request.adjustments)
+        sized.isFilmSwatch = request.isFilmSwatch
+        return sized
+    }
+
     var body: some View {
-        let request = liveRequest
+        let live = liveRequest
         GeometryReader { geometry in
-            if let image, displayedURL == request.url {
-                let frame = crop.imageRect(for: image.size, in: CGRect(origin: .zero, size: geometry.size), fills: fills)
-                Image(nsImage: image)
-                    .resizable()
-                    .frame(width: frame.width, height: frame.height)
-                    .position(x: frame.midX, y: frame.midY)
-                    .accessibilityHidden(true)
-            } else {
-                placeholder()
+            let request = Self.sized(live, frame: geometry.size, zoom: crop.zoom, scale: displayScale)
+            Group {
+                if let image, displayedURL == request.url {
+                    let frame = crop.imageRect(for: image.size, in: CGRect(origin: .zero, size: geometry.size), fills: fills)
+                    Image(nsImage: image)
+                        .resizable()
+                        .frame(width: frame.width, height: frame.height)
+                        .position(x: frame.midX, y: frame.midY)
+                        .accessibilityHidden(true)
+                } else {
+                    placeholder()
+                }
+            }
+            .task(id: request) {
+                // Show the navigator's thumbnail at once while the sharp render is on its way.
+                if displayedURL != request.url, request.limit > 180 {
+                    let thumbnail = EditorPreviewRequest(url: request.url, limit: 180, look: request.look,
+                                                         lutURL: request.lutURL, adjustments: request.adjustments)
+                    if let quick = await EditorPreviewLoader.cachedImage(for: thumbnail), !Task.isCancelled {
+                        image = NSImage(cgImage: quick, size: NSSize(width: quick.width, height: quick.height))
+                        displayedURL = request.url
+                    }
+                }
+                let pixels = await EditorPreviewLoader.image(for: request)
+                guard !Task.isCancelled, let pixels else { return }
+                image = NSImage(cgImage: pixels, size: NSSize(width: pixels.width, height: pixels.height))
+                displayedURL = request.url
             }
         }
         .clipped()
-        .task(id: request) {
-            let pixels = await EditorPreviewLoader.image(for: request)
-            guard !Task.isCancelled else { return }
-            image = pixels.map {
-                NSImage(cgImage: $0, size: NSSize(width: $0.width, height: $0.height))
-            }
-            displayedURL = request.url
-        }
     }
 }

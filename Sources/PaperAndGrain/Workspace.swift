@@ -12,6 +12,8 @@ final class Workspace: ObservableObject {
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
     @Published private(set) var exporting = false
     @Published var problem: String?
+    /// Set when a new book opens, so the window can ask for its template first.
+    @Published var newBookNeedsTemplate = false
     @Published private(set) var recentBooks: [RecentBook] = []
 
     private var analysisTask: Task<Void, Never>?
@@ -334,6 +336,7 @@ final class Workspace: ObservableObject {
                 guard flushSave() else { return }
                 keepFolder = true
                 open(newBook, in: folder)
+                newBookNeedsTemplate = true
                 analyze(language: language)
                 if failures > 0 {
                     problem = language == "it"

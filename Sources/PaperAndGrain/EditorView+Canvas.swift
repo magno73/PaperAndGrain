@@ -3,26 +3,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension EditorView {
-    @ViewBuilder var canvasContextMenu: some View {
-        if canvasPhotoSelection != nil {
-            Button(tr("Ritaglia", "Crop"), action: cropSelection)
-            Button(tr("Regola", "Adjust")) { showInspectorTab(.adjust) }
-            Button(tr("Look pellicola", "Film Look")) {
-                filmScope = .photo
-                showInspectorTab(.film)
-            }
-            Divider()
-            Button(tr("Togli dalla pagina", "Remove from Page"), role: .destructive) { _ = deleteSelectedCanvasObject() }
-            Divider()
-        }
-        if coverSide == nil, page != nil {
-            Button(tr("Inserisci box di testo", "Insert Text Box"), action: insertTextBox)
-            Button(tr("Modello di pagina…", "Page Layout…")) { showLayoutPopover = true }
-        }
-        Button(tr("Sfoglia il libro", "Browse the Book"), action: openBrowser)
-            .disabled(book.pages.isEmpty)
-    }
-
     var canvas: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
@@ -78,6 +58,7 @@ extension EditorView {
                     canvasTools(page)
                 }
             }
+            .editorDropFrame(.canvasHUD)
             .padding(.bottom, 14)
         }
     }
@@ -116,6 +97,7 @@ extension EditorView {
         .controlSize(.small)
         .padding(4)
         .floatingCapsule()
+        .editorDropFrame(.canvasViewControls)
     }
 
     func zoomName(_ level: CanvasZoom) -> String {
@@ -135,7 +117,6 @@ extension EditorView {
                 .frame(minWidth: viewport.width, minHeight: viewport.height)
         }
         .defaultScrollAnchor(.center)
-        .contextMenu { canvasContextMenu }
         .editorDropFrame(.canvasViewport)
     }
 
@@ -182,11 +163,8 @@ extension EditorView {
         if let photo = canvasPhotoSelection, photo.pageID == page.id {
             HStack(spacing: 2) {
                 hudButton(tr("Ritaglia", "Crop"), "crop") { beginCrop(photo.photoID, in: page) }
-                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showInspectorTab(.adjust) }
-                hudButton(tr("Pellicola", "Film"), "camera.filters") {
-                    filmScope = .photo
-                    showInspectorTab(.film)
-                }
+                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
+                hudButton(tr("Pellicola", "Film"), "camera.filters") { showPhotoSection(film: true) }
                 Divider().frame(height: 16).padding(.horizontal, 3)
                 hudButton(tr("Togli dalla pagina", "Remove from Page"), "trash", role: .destructive, iconOnly: true) {
                     _ = deleteSelectedCanvasObject()
@@ -225,7 +203,7 @@ extension EditorView {
         HStack(spacing: 2) {
             if photoSelected {
                 hudButton(tr("Ritaglia", "Crop"), "crop") { beginCoverCrop(side) }
-                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showInspectorTab(.adjust) }
+                hudButton(tr("Regola", "Adjust"), "slider.horizontal.3") { showPhotoSection(film: false) }
             }
             if coverEditorialValue(side).wrappedValue.isEmpty {
                 hudButton(localized("editor.cover.add_text", fallback: "Add Text"), "textformat") {
@@ -300,22 +278,27 @@ extension EditorView {
                     let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
                     canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds, scale: scale,
                                 alignmentTargets: targets, textFrames: textFrames)
+                        .zIndex(Double(composition.rank(.photo(item.id))))
                 }
             }
             canvasStory(leaf, composition: composition, blocks: blocks, backings: backings, bounds: bounds, scale: scale)
+                .zIndex(editingEditorial?.pageID == leaf.id ? 10_000 : Double(composition.rank(.story)))
             ForEach(composition.textBoxes) { box in
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id), blocks: blocks)
                 canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
+                    .zIndex(inlineEditingBox == box.id ? 10_000 : Double(composition.rank(.textBox(box.id))))
             }
             if let folio = composition.folio {
                 let label = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
                 positioned(editorialText(label, scale: scale), in: scaled(folio, by: scale))
                     .allowsHitTesting(false).accessibilityHidden(true)
+                    .zIndex(20_000)
             }
             if let session = cropSession, session.surface == .canvasPage(leaf.id),
                let item = composition.photos.first(where: { $0.id == session.photoID }) {
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
                 canvasCrop(session, photo: item.photo, bounds: bounds, scale: scale, alignmentTargets: targets)
+                    .zIndex(20_001)
             }
         }
         .frame(width: bounds.width, height: bounds.height)
@@ -424,15 +407,27 @@ extension EditorView {
     func pageHitMap(_ leaf: BookPage, composition: PageComposition, blocks: [PageComposition.TextBlock],
                             backings: [CGRect], bounds: CGRect, scale: CGFloat) -> CanvasHitMap {
         typealias Region = CanvasHitMap.Region
-        var regions = composition.photos.map { Region(frame: $0.frame, target: .photo($0.id)) }
+        var regions: [Region] = []
         let group = storyGroupFrame(blocks, backings: backings)
-        regions += backings.map { Region(frame: $0, target: group == nil ? .paper : .storyGroup) }
-        regions += blocks.map { Region(frame: $0.frame, target: .story($0.role)) }
-        if let group {
-            let grip = CanvasStoryGrip.frame(for: scaled(group, by: scale), in: bounds)
-            regions.append(Region(frame: scaled(grip, by: 1 / scale), target: .storyGroup))
+        for layer in composition.layers {
+            switch layer {
+            case let .photo(id):
+                if let item = composition.photos.first(where: { $0.id == id }) {
+                    regions.append(Region(frame: item.frame, target: .photo(id)))
+                }
+            case .story:
+                regions += backings.map { Region(frame: $0, target: group == nil ? .paper : .storyGroup) }
+                regions += blocks.map { Region(frame: $0.frame, target: .story($0.role)) }
+                if let group {
+                    let grip = CanvasStoryGrip.frame(for: scaled(group, by: scale), in: bounds)
+                    regions.append(Region(frame: scaled(grip, by: 1 / scale), target: .storyGroup))
+                }
+            case let .textBox(id):
+                if let box = composition.textBoxes.first(where: { $0.id == id }) {
+                    regions.append(Region(frame: box.frame.rect(in: composition.bounds), target: .textBox(id)))
+                }
+            }
         }
-        regions += composition.textBoxes.map { Region(frame: $0.frame.rect(in: composition.bounds), target: .textBox($0.id)) }
         // Inline editors sit above other text, while the active crop intercepts clicks within its frame.
         if let editingEditorial, case let .page(id, role) = editingEditorial, id == leaf.id,
            let block = blocks.first(where: { $0.role == role }) {
@@ -560,7 +555,7 @@ extension EditorView {
             let editor = TextEditor(text: value)
                 .font(.custom(font, size: max(1, (type.pointSize ?? style.bodySize) * scale)))
                 .multilineTextAlignment(alignment)
-                .foregroundStyle(Color(cgColor: EditorialStyle.color(textInk ?? style.ink)))
+                .foregroundStyle(Color(cgColor: EditorialStyle.color(type.color ?? textInk ?? style.ink)))
                 .scrollContentBackground(.hidden)
                 .background(Color(cgColor: EditorialStyle.color(textPaper ?? style.paper)))
                 .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
@@ -646,7 +641,7 @@ extension EditorView {
         return TextEditor(text: textInBox(box.id, on: leaf.id))
             .font(.custom(font, size: max(1, (type.pointSize ?? style.bodySize) * scale)))
             .multilineTextAlignment(alignment)
-            .foregroundStyle(Color(cgColor: EditorialStyle.color(style.ink)))
+            .foregroundStyle(Color(cgColor: EditorialStyle.color(type.color ?? style.ink)))
             .scrollContentBackground(.hidden)
             .focused($inlineBoxFocus, equals: box.id)
             .padding(max(0, box.textInsetPoints * scale - 4))

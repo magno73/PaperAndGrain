@@ -64,6 +64,8 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var textBoxes: [PageTextBox]? = nil
     var arrangement: PageArrangement? = nil
     var typography: EditorialTypography? = nil
+    /// Back-to-front order chosen by the author; nil keeps photos under text.
+    var layerOrder: [PageLayer]? = nil
 
     var titleFrame: PageRect? = nil
     var storyFrame: PageRect? = nil

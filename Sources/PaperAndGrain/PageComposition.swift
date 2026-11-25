@@ -201,6 +201,8 @@ struct PageComposition {
     let textBoxes: [PageTextBox]
     let rule: CGRect?
     let folio: CGRect?
+    /// Back-to-front stacking of photos, story and text boxes.
+    let layers: [PageLayer]
 
     init(page: BookPage, book: Book, bleed: Double = 0, photoForID: ((UUID) -> BookPhoto?)? = nil) {
         let size = book.format.pageSize
@@ -247,6 +249,7 @@ struct PageComposition {
                 return Photo(photo: photo, frame: frame, fills: true,
                              crop: placement?.crop ?? PhotoCrop(x: alignment, y: alignment))
             }
+            layers = page.stackingOrder(photos: photos.map(\.id), boxes: textBoxes.map(\.id))
             return
         }
 
@@ -281,6 +284,82 @@ struct PageComposition {
                          fills: full || studioGallery != nil || manual?.frame != nil || manual?.crop != nil,
                          crop: manual?.crop ?? PhotoCrop(x: alignment, y: alignment))
         }
+        layers = page.stackingOrder(photos: photos.map(\.id), boxes: textBoxes.map(\.id))
+    }
+
+    /// Back-to-front position of a layer; unknown layers sit at the bottom.
+    func rank(_ layer: PageLayer) -> Int { layers.firstIndex(of: layer) ?? -1 }
+}
+
+/// One stackable object on a page. The title, story and their backdrop move as one layer.
+enum PageLayer: Hashable, Sendable {
+    case photo(UUID), story, textBox(UUID)
+
+    enum Move: CaseIterable { case front, forward, backward, back }
+}
+
+extension PageLayer: Codable {
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        if value == "story" { self = .story; return }
+        let parts = value.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2, let id = UUID(uuidString: parts[1]) else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unknown layer \(value)"))
+        }
+        switch parts[0] {
+        case "photo": self = .photo(id)
+        case "box": self = .textBox(id)
+        default: throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Unknown layer \(value)"))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .story: try container.encode("story")
+        case let .photo(id): try container.encode("photo:" + id.uuidString)
+        case let .textBox(id): try container.encode("box:" + id.uuidString)
+        }
+    }
+}
+
+extension BookPage {
+    /// Photos sit under the story and text boxes until the author restacks them.
+    /// Objects added after a restack keep that default: new photos at the back, new boxes in front.
+    func stackingOrder(photos: [UUID], boxes: [UUID]) -> [PageLayer] {
+        let defaults = photos.map(PageLayer.photo) + [.story] + boxes.map(PageLayer.textBox)
+        guard let layerOrder, !layerOrder.isEmpty else { return defaults }
+        var saved: [PageLayer: Int] = [:]
+        for (index, layer) in layerOrder.enumerated() where saved[layer] == nil { saved[layer] = index }
+        let count = Double(layerOrder.count)
+        func key(_ layer: PageLayer) -> Double {
+            if let rank = saved[layer] { return Double(rank) }
+            switch layer {
+            case .photo: return -1
+            case .story: return count
+            case .textBox: return count + 1
+            }
+        }
+        return defaults.enumerated()
+            .sorted { (key($0.element), $0.offset) < (key($1.element), $1.offset) }
+            .map(\.element)
+    }
+
+    @discardableResult
+    mutating func moveLayer(_ layer: PageLayer, _ move: PageLayer.Move, photos: [UUID], boxes: [UUID]) -> Bool {
+        var order = stackingOrder(photos: photos, boxes: boxes)
+        guard let index = order.firstIndex(of: layer) else { return false }
+        let target = switch move {
+        case .front: order.count - 1
+        case .forward: min(index + 1, order.count - 1)
+        case .backward: max(index - 1, 0)
+        case .back: 0
+        }
+        guard target != index else { return false }
+        order.remove(at: index)
+        order.insert(layer, at: target)
+        layerOrder = order
+        return true
     }
 }
 

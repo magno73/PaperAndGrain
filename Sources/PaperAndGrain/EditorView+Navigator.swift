@@ -215,6 +215,7 @@ extension EditorView {
         let width = min(thumbBase * 1.9, thumbBase * aspect)
         return navigatorCard(coverName(side), active: coverSide == side) {
             selectCover(side)
+            editorInput.target = .navigatorCover
         } preview: {
             navigatorPreview(for: .cover(front: side == .front)) {
                 coverCanvas(side, scale: width / book.format.pageSize.width, thumbnail: true)
@@ -273,21 +274,29 @@ extension EditorView {
                 ForEach(composition.photos) { item in
                     positioned(preview(item.photo, small: small, crop: item.crop, fills: item.fills),
                                in: scaled(item.frame, by: scale))
+                        .zIndex(Double(composition.rank(.photo(item.id))))
                 }
-                storyBacking(backings, scale: scale)
-                ForEach(blocks) { block in
-                    positioned(editorialText(block.text, scale: scale), in: scaled(block.frame, by: scale))
+                ZStack(alignment: .topLeading) {
+                    storyBacking(backings, scale: scale)
+                    ForEach(blocks) { block in
+                        positioned(editorialText(block.text, scale: scale), in: scaled(block.frame, by: scale))
+                    }
                 }
+                .zIndex(Double(composition.rank(.story)))
                 ForEach(composition.textBoxes.filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { box in
                     let frame = box.frame.rect(in: composition.bounds)
-                    positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
                     let text = PageComposition.boxText(box: box, book: book)
                     let inset = box.textInsetPoints
-                    positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
+                    ZStack(alignment: .topLeading) {
+                        positioned(Color(cgColor: EditorialStyle.color(style.paper)), in: scaled(frame, by: scale))
+                        positioned(editorialText(text, scale: scale), in: scaled(frame.insetBy(dx: inset, dy: inset), by: scale))
+                    }
+                    .zIndex(Double(composition.rank(.textBox(box.id))))
                 }
                 if let folio = composition.folio {
                     let number = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
                     positioned(editorialText(number, scale: scale), in: scaled(folio, by: scale))
+                        .zIndex(20_000)
                 }
             }
             .frame(width: bounds.width, height: bounds.height)
@@ -297,6 +306,11 @@ extension EditorView {
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
         }
         .accessibilityHidden(true)
+    }
+
+    /// Clicks inside the navigator keep its keyboard focus; the row's own action sets the page.
+    func isNavigatorPoint(_ point: CGPoint) -> Bool {
+        showsNavigator && point.x <= navigatorWidth
     }
 
     func select(_ leaf: BookPage) {

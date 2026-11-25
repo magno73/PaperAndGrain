@@ -14,7 +14,7 @@ Un progetto `.papergrain` ha `manifest.json` e una cartella `assets/` e, se nece
 |---|---|
 | Libro | ID, titolo, formato in mm, ordine delle pagine e versione dello schema |
 | Foto | ID, nome, data di scatto, dimensioni orientate, filename locale, luogo e analisi facoltativi |
-| Pagina | ID, tipo di composizione, foto nell’ordine di disposizione, titolo e racconto, posizione del testo e inquadratura facoltativa |
+| Pagina | ID, tipo di composizione, foto nell’ordine di disposizione, titolo e racconto, posizione del testo, inquadratura e ordine dei livelli facoltativi |
 | Analisi | Lista di etichette Vision, chiavi stabili dei temi e revisione |
 | Pellicola | Profilo del libro, eccezioni per foto e riferimento alla LUT inclusa nel progetto |
 | Stampa | Abbondanza, margine, PPI, ordine delle facciate e copertina facoltativa |
@@ -44,7 +44,11 @@ Con un modello di pagina, `PageArrangement` assegna le cornici nell’ordine deg
 
 I modelli al vivo distribuiscono le cornici sui bordi del formato e omettono filetti e folio. Il PDF estende in abbondanza le sole cornici che raggiungono il bordo esterno. I confini tra le foto restano condivisi.
 
-I campi `BookPage.arrangement`, `BookPage.photoPlacements`, `BookPage.textBoxes` e `BookCover.backText` sono facoltativi. `BookCoverGeometry` risolve le due facce sia per l’editor sia per `Cover.pdf`. Il retro può contenere testo e foto. Il frontespizio è una pagina di testo interna che si inserisce in testa a `Book.pages`.
+I campi `BookPage.arrangement`, `BookPage.photoPlacements`, `BookPage.textBoxes`, `BookPage.layerOrder` e `BookCover.backText` sono facoltativi.
+
+`BookPage.layerOrder` elenca i livelli dal fondo alla cima come stringhe `photo:UUID`, `story` e `box:UUID`. Il racconto, il titolo e il loro sfondo formano un solo livello. Senza il campo, le foto stanno sotto il racconto e i box sopra, come nei progetti precedenti. Dopo un riordino, una foto nuova va in fondo e un box nuovo in cima. `PageComposition.layers` risolve l’ordine una volta sola e lo condividono canvas (`zIndex`), miniature, mappa dei clic, rilevamento delle foto sotto il puntatore e PDF. Gli ID non più presenti nella pagina vengono ignorati.
+
+`EditorialTextStyle` aggiunge `color` (0xRRGGBB) e `lineSpacing` (multiplo dell’interlinea, da 0,8 a 2). Entrambi ereditano dal libro come carattere, dimensione e allineamento. `EditorialStyle.typography` li applica come colore Core Text e `lineHeightMultiple`, quindi editor e PDF coincidono. `BookCoverGeometry` risolve le due facce sia per l’editor sia per `Cover.pdf`. Il retro può contenere testo e foto. Il frontespizio è una pagina di testo interna che si inserisce in testa a `Book.pages`.
 
 Il ritaglio apre una modifica temporanea direttamente sulla pagina. I gesti regolano la foto e la cornice. La conferma applica posizione e ritaglio assieme in una singola operazione annullabile. Le modifiche a schermo non attivano l’app e la messa a fuoco della tastiera resta quella naturale della finestra. I pannelli file si presentano come schede asincrone. Il workspace controlla l’identità del libro e la sua cartella prima di usare il risultato ricevuto da una scheda.
 
@@ -85,3 +89,9 @@ Il profilo Pixartprinting 21 × 21 cm usa un singolo PDF con la copertina rigida
 La 0.3 aggiunge il modello facoltativo del libro. Colore della pagina, tipografia, colonna del testo e interspazi escono dai parametri di `BookTemplate.swift`. La zona sicura di stampa imposta il margine minimo. [Modelli editoriali](templates.md) descrive l’applicazione e le anteprime.
 
 Font PostScript, dimensione in punti e allineamento sono campi facoltativi e si ereditano singolarmente. Il modello editoriale dà i valori iniziali. Il libro può ridefinire quelli di titoli e testi. Una pagina può aggiungere modifiche al proprio titolo o racconto. Anche il fronte, il retro e i box possono ridefinire il tipo di testo corrispondente. Core Text applica lo stile risolto nel canvas, nelle miniature e nel PDF. La resa usa il carattere del modello quando il font scelto è assente sul Mac.
+
+## Canvas, eventi e anteprime
+
+`CanvasDeleteShortcut` osserva tastiera, clic e rotella della finestra senza intercettarli, tranne nei casi che gestisce. Il tasto destro sul canvas seleziona l’oggetto sotto il puntatore e mostra un `NSMenu` costruito in quell’istante da `EditorView.canvasMenu(at:)`, così le voci agiscono sempre su quell’oggetto. `PageScrollGesture` gira una pagina per gesto del trackpad o per scatto della rotella e assorbe l’inerzia. Lo fa solo con lo zoom **Riempi pagina** e senza modifiche in corso. Le frecce spostano prima l’oggetto selezionato, poi cambiano pagina nel navigatore o sul canvas vuoto. I controlli mobili sopra la pagina registrano la propria cornice (`EditorDropTarget.canvasHUD`, `.canvasViewControls`): un clic su di essi non cambia la selezione.
+
+`EditorPreviewLoader` esegue fino a quattro anteprime del canvas in parallelo, dalla richiesta più recente. `EditorPreview` chiede la dimensione adatta alla cornice a schermo (480, 720, 1080, 1440 o 2048 px, tenendo conto di schermo Retina e ritaglio) e mostra subito la miniatura del navigatore già in memoria mentre arriva quella nitida.

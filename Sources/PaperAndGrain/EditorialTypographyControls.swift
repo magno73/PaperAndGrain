@@ -7,8 +7,13 @@ struct EditorialTypographyControls: View {
     let language: String
     var updatesSizeWhileTyping = false
     var sampleText = ""
+    /// The template's ink for this text; enables the color and line spacing rows when set.
+    var defaultInk: UInt32? = nil
+    /// Book colors offered as one-click swatches next to the system color picker.
+    var palette: [UInt32] = []
 
     @State private var sizeDraft: String?
+    @State private var lineDraft: Double?
     @State private var sizeBeforeEditing: Double?
     @State private var showingFonts = false
     @FocusState private var editingSize: Bool
@@ -16,16 +21,133 @@ struct EditorialTypographyControls: View {
     private let pine = Theme.accent
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            fontControl
-            HStack(spacing: 5) {
-                sizeControl
-                Spacer(minLength: 2)
-                alignmentControl
-                resetControl
+        if defaultInk == nil {
+            VStack(alignment: .leading, spacing: 6) {
+                fontControl
+                HStack(spacing: 5) {
+                    sizeControl
+                    Spacer(minLength: 2)
+                    alignmentControl
+                    resetControl
+                }
+            }
+            .controlSize(.small)
+        } else {
+            formatPanel
+        }
+    }
+
+    /// The full Format panel: font, size and color, then paragraph alignment and spacing.
+    private var formatPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 7) {
+                rowTitle(tr("Carattere", "Font"))
+                fontControl
+                HStack(spacing: 8) {
+                    sizeControl
+                    Spacer(minLength: 4)
+                    colorControl
+                }
+            }
+            VStack(alignment: .leading, spacing: 7) {
+                rowTitle(tr("Allineamento", "Alignment"))
+                alignmentSegments
+            }
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    rowTitle(tr("Interlinea", "Line Spacing"))
+                    Spacer()
+                    Text(lineSpacingLabel)
+                        .font(.system(size: 11).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Slider(value: Binding(
+                    get: { lineDraft ?? style?.normalizedLineSpacing ?? inherited.normalizedLineSpacing ?? 1 },
+                    set: { lineDraft = ($0 * 20).rounded() / 20 }
+                ), in: EditorialTextStyle.lineSpacingRange) { editing in
+                    if !editing, let draft = lineDraft {
+                        lineDraft = nil
+                        set(\.lineSpacing, to: abs(draft - 1) < 0.001 ? nil : draft)
+                    }
+                }
+                .accessibilityLabel(tr("Interlinea", "Line Spacing"))
+                .accessibilityValue(lineSpacingLabel)
+            }
+            HStack {
+                Spacer()
+                Button(tr("Ripristina stile del modello", "Reset to Template Style")) {
+                    sizeDraft = nil
+                    lineDraft = nil
+                    editingSize = false
+                    style = nil
+                }
+                .disabled(style == nil || style == EditorialTextStyle())
             }
         }
         .controlSize(.small)
+    }
+
+    private func rowTitle(_ title: String) -> some View {
+        Text(title).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+    }
+
+    private var lineSpacingLabel: String {
+        let value = lineDraft ?? style?.normalizedLineSpacing ?? inherited.normalizedLineSpacing ?? 1
+        return value.formatted(.number.precision(.fractionLength(2)).locale(Locale(identifier: language))) + "×"
+    }
+
+    private var resolvedInk: UInt32 { style?.color ?? inherited.color ?? defaultInk ?? 0x222222 }
+
+    private var colorControl: some View {
+        let colors = Array(NSOrderedSet(array: ([defaultInk].compactMap { $0 } + palette).map(NSNumber.init(value:))))
+            .compactMap { ($0 as? NSNumber)?.uint32Value }
+        return HStack(spacing: 5) {
+            ForEach(colors, id: \.self) { value in
+                let active = value == resolvedInk
+                Button {
+                    set(\.color, to: value == defaultInk ? nil : value)
+                } label: {
+                    Circle()
+                        .fill(Color(cgColor: EditorialStyle.color(value)))
+                        .overlay { Circle().strokeBorder(.black.opacity(0.18), lineWidth: 0.5) }
+                        .padding(active ? 2.5 : 0)
+                        .overlay { Circle().strokeBorder(active ? pine : .clear, lineWidth: 1.5) }
+                        .frame(width: 18, height: 18)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(String(format: "#%06X", value))
+                .accessibilityAddTraits(active ? .isSelected : [])
+                .help(value == defaultInk ? tr("Colore del modello", "Template color") : String(format: "#%06X", value))
+            }
+            ColorPicker(tr("Colore del testo", "Text Color"), selection: Binding(
+                get: { Color(cgColor: EditorialStyle.color(resolvedInk)) },
+                set: { color in
+                    guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return }
+                    let value = (UInt32((rgb.redComponent * 255).rounded()) << 16)
+                        | (UInt32((rgb.greenComponent * 255).rounded()) << 8)
+                        | UInt32((rgb.blueComponent * 255).rounded())
+                    set(\.color, to: value == defaultInk ? nil : value)
+                }
+            ), supportsOpacity: false)
+            .labelsHidden()
+            .help(tr("Colore del testo", "Text Color"))
+        }
+    }
+
+    private var alignmentSegments: some View {
+        Picker(tr("Allineamento", "Alignment"), selection: Binding(
+            get: { style?.alignment ?? inherited.alignment ?? .left },
+            set: { set(\.alignment, to: $0) }
+        )) {
+            ForEach(EditorialAlignment.allCases) { alignment in
+                let info = alignmentInfo(alignment)
+                Image(systemName: info.icon).accessibilityLabel(info.label).tag(alignment)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(maxWidth: .infinity)
     }
 
     private var fontControl: some View {
@@ -33,10 +155,13 @@ struct EditorialTypographyControls: View {
         let name = EditorialFontBrowser.displayName(style?.fontName ?? inherited.fontName, language: language)
         return Button { showingFonts.toggle() } label: {
             HStack(spacing: 6) {
-                Text(label)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                if defaultInk == nil {
+                    Text(label)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
                 Text(name)
+                    .font(defaultInk == nil ? nil : .custom(style?.fontName ?? inherited.fontName ?? "Georgia", size: 13))
                     .lineLimit(1)
                 Spacer(minLength: 2)
                 Image(systemName: "chevron.up.chevron.down")

@@ -339,11 +339,17 @@ struct EditorialStyle {
         let pointSize = override?.normalizedSize ?? size
         let available = override?.fontName.flatMap { NSFont(name: $0, size: pointSize) }
         let name = available?.fontName ?? font
+        var paragraphStyle = paragraph
+        if let multiple = override?.normalizedLineSpacing,
+           let adjusted = paragraph.mutableCopy() as? NSMutableParagraphStyle {
+            adjusted.lineHeightMultiple = multiple
+            paragraphStyle = adjusted
+        }
         return [
             NSAttributedString.Key(kCTFontAttributeName as String): CTFontCreateWithName(name as CFString, pointSize, nil),
-            NSAttributedString.Key(kCTForegroundColorAttributeName as String): Self.color(color),
+            NSAttributedString.Key(kCTForegroundColorAttributeName as String): Self.color(override?.color ?? color),
             NSAttributedString.Key(kCTKernAttributeName as String): tracking,
-            .paragraphStyle: paragraph,
+            .paragraphStyle: paragraphStyle,
         ]
     }
 }

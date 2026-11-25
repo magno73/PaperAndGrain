@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum EditorKeyboardTarget: Equatable {
-    case none, canvas, navigatorPage(UUID)
+    case none, canvas, navigatorPage(UUID), navigatorCover
 
     func deletionTarget(selectedPageID: UUID?) -> Self {
         if case let .navigatorPage(id) = self, id != selectedPageID { return .none }
@@ -18,6 +18,10 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     let onClick: (CGPoint) -> Void
     let onPointerDown: (CGPoint) -> Void
     let onKeyboardTraversal: () -> Void
+    var onContextMenu: (CGPoint) -> [EditorMenuEntry]? = { _ in nil }
+    /// Returns true when a scroll at this point should turn pages instead of scrolling content.
+    var canTurnPages: (CGPoint) -> Bool = { _ in false }
+    var onTurnPage: (Int) -> Void = { _ in }
 
     func makeNSView(context: Context) -> Anchor {
         let anchor = Anchor(frame: .zero)
@@ -32,6 +36,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         anchor.onClick = onClick
         anchor.onPointerDown = onPointerDown
         anchor.onKeyboardTraversal = onKeyboardTraversal
+        anchor.onContextMenu = onContextMenu
+        anchor.canTurnPages = canTurnPages
+        anchor.onTurnPage = onTurnPage
     }
 
     static func dismantleNSView(_ anchor: Anchor, coordinator: ()) {
@@ -81,8 +88,12 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         var onClick: (CGPoint) -> Void = { _ in }
         var onPointerDown: (CGPoint) -> Void = { _ in }
         var onKeyboardTraversal: () -> Void = {}
+        var onContextMenu: (CGPoint) -> [EditorMenuEntry]? = { _ in nil }
+        var canTurnPages: (CGPoint) -> Bool = { _ in false }
+        var onTurnPage: (Int) -> Void = { _ in }
         private var monitor: Any?
         private var pressOrigin: CGPoint?
+        private var pageScroll = PageScrollGesture()
 
         override var isFlipped: Bool { true }
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
@@ -95,7 +106,7 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             }
             if monitor == nil {
                 let mask: NSEvent.EventTypeMask = [
-                    .keyDown, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .otherMouseDown
+                    .keyDown, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .otherMouseDown, .scrollWheel
                 ]
                 monitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
                     guard let self else { return event }
@@ -117,6 +128,20 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 pressOrigin = nil
                 return event
             }
+            if event.type == .scrollWheel {
+                return turnPages(event, in: window) ? nil : event
+            }
+            if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)),
+               event.window === window, let contentView = window.contentView {
+                pressOrigin = nil
+                onKeyboardTraversal()
+                let point = convert(event.locationInWindow, from: nil)
+                if bounds.contains(point), let entries = onContextMenu(point), !entries.isEmpty {
+                    NSMenu.popUpContextMenu(EditorMenuEntry.menu(entries), with: event, for: contentView)
+                    return nil
+                }
+                return event
+            }
             if event.type != .keyDown {
                 trackClick(event, in: window)
                 return event
@@ -134,6 +159,19 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 return onNudge(offset) ? nil : event
             }
             return event
+        }
+
+        private func turnPages(_ event: NSEvent, in window: NSWindow) -> Bool {
+            guard event.window === window, window.isKeyWindow || window.isMainWindow else { return false }
+            let point = convert(event.locationInWindow, from: nil)
+            let allowed = bounds.contains(point) && canTurnPages(point)
+            switch pageScroll.handle(event, allowed: allowed, now: event.timestamp) {
+            case .ignore: return false
+            case .consume: return true
+            case let .turn(direction):
+                onTurnPage(direction)
+                return true
+            }
         }
 
         private func trackClick(_ event: NSEvent, in window: NSWindow) {
@@ -178,5 +216,57 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 break
             }
         }
+    }
+}
+
+
+/// Turns one page per scroll gesture: a trackpad swipe or a wheel notch, never a burst of momentum.
+struct PageScrollGesture {
+    enum Outcome: Equatable { case ignore, consume, turn(Int) }
+
+    static let threshold: CGFloat = 28
+    static let wheelInterval: TimeInterval = 0.28
+
+    private var accumulated: CGFloat = 0
+    private var turned = false
+    private var owning = false
+    private var lastWheelTurn: TimeInterval = -.infinity
+
+    /// Positive means forward: scrolling down or to the right.
+    static func forwardDelta(dx: CGFloat, dy: CGFloat) -> CGFloat {
+        abs(dx) > abs(dy) ? -dx : -dy
+    }
+
+    mutating func handle(_ event: NSEvent, allowed: Bool, now: TimeInterval) -> Outcome {
+        handle(phase: event.phase, momentum: event.momentumPhase, precise: event.hasPreciseScrollingDeltas,
+               dx: event.scrollingDeltaX, dy: event.scrollingDeltaY, allowed: allowed, now: now)
+    }
+
+    mutating func handle(phase: NSEvent.Phase, momentum: NSEvent.Phase, precise: Bool,
+                         dx: CGFloat, dy: CGFloat, allowed: Bool, now: TimeInterval) -> Outcome {
+        if !momentum.isEmpty { return owning ? .consume : .ignore }
+        let delta = Self.forwardDelta(dx: dx, dy: dy)
+        if phase.isEmpty {
+            // A classic mouse wheel has no gesture phases: one notch, one page.
+            owning = false
+            guard allowed, delta != 0 else { return .ignore }
+            guard now - lastWheelTurn >= Self.wheelInterval || !precise && now - lastWheelTurn >= 0.12 else { return .consume }
+            lastWheelTurn = now
+            return .turn(delta > 0 ? 1 : -1)
+        }
+        if phase.contains(.began) || phase.contains(.mayBegin) {
+            accumulated = 0
+            turned = false
+            owning = allowed
+        }
+        guard owning else { return .ignore }
+        if phase.contains(.ended) || phase.contains(.cancelled) {
+            accumulated = 0
+            return .consume
+        }
+        accumulated += delta
+        guard !turned, abs(accumulated) >= Self.threshold else { return .consume }
+        turned = true
+        return .turn(accumulated > 0 ? 1 : -1)
     }
 }

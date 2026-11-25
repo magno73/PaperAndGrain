@@ -12,37 +12,40 @@ extension EditorView {
         return book.film ?? FilmSettings()
     }
 
+    /// The book-wide look; a photo's own look lives in the Photo tab.
     var filmInspector: some View {
         VStack(alignment: .leading, spacing: 15) {
-            VStack(alignment: .leading, spacing: 8) {
-                caption(tr("Look pellicola", "Film look"))
-                Picker(tr("Applica a", "Apply to"), selection: $filmScope) {
-                    Text(tr("Libro", "Book")).tag(FilmScope.book)
-                    Text(tr("Foto selezionata", "Selected photo"))
-                        .tag(FilmScope.photo)
-                        .disabled(filmPhoto == nil)
-                }
-                .pickerStyle(.menu)
-                .onChange(of: selectedPhoto) { _, id in
-                    if id == nil { filmScope = .book }
-                }
-                if filmScope == .photo, let photo = filmPhoto {
-                    Text(photo.name)
-                        .font(.system(size: 12, weight: .semibold))
-                        .lineLimit(2)
-                    Toggle(tr("Usa il look del libro", "Use book look"), isOn: Binding(
-                        get: { filmPhoto?.film == nil },
-                        set: { inherit in
-                            finishFilmEdit()
-                            if inherit {
-                                setPhotoFilm(nil, for: photo.id)
-                            } else {
-                                setPhotoFilm(book.effectiveFilm(for: photo), for: photo.id)
-                            }
-                        }
-                    ))
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                caption(tr("Look del libro", "Book Look"))
+                intro(tr("Vale per tutte le foto che non hanno un look proprio.",
+                         "Applies to every photo without a look of its own."))
             }
+            filmControls
+            Divider()
+            Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
+                .disabled(book.photos.isEmpty)
+        }
+    }
+
+    func photoFilmSection(_ photo: BookPhoto) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Toggle(tr("Usa il look del libro", "Use book look"), isOn: Binding(
+                get: { filmPhoto?.film == nil },
+                set: { inherit in
+                    finishFilmEdit()
+                    if inherit {
+                        setPhotoFilm(nil, for: photo.id)
+                    } else {
+                        setPhotoFilm(book.effectiveFilm(for: photo), for: photo.id)
+                    }
+                }
+            ))
+            filmControls
+        }
+    }
+
+    var filmControls: some View {
+        VStack(alignment: .leading, spacing: 15) {
             VStack(alignment: .leading, spacing: 9) {
                 filmSwatches
                 filmLUTMenu
@@ -56,8 +59,6 @@ extension EditorView {
                     intro(fujifilmInputDescription(selected.input))
                 }
             }
-            .disabled(filmScope == .photo && filmPhoto == nil)
-            Divider()
             VStack(alignment: .leading, spacing: 10) {
                 filmSlider(tr("Intensità", "Intensity"), value: \.strength)
                     .disabled(currentFilm.preset == .original)
@@ -65,11 +66,8 @@ extension EditorView {
                 filmSlider(tr("Dimensione grana", "Grain size"), value: \.grainSize)
                     .disabled(currentFilm.grain == 0)
             }
-            .disabled(filmScope == .photo && filmPhoto == nil)
-            Divider()
-            Toggle(tr("Confronta con l’originale", "Compare with original"), isOn: $compareOriginal)
-                .disabled(book.photos.isEmpty)
         }
+        .disabled(filmScope == .photo && filmPhoto == nil)
     }
 
     var filmLUTMenu: some View {

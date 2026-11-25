@@ -23,6 +23,60 @@ extension EditorView {
             }
     }
 
+    @ViewBuilder func trayControls(results: (concepts: [InspectorPhotoLibraryCache.Concept], photos: [BookPhoto]),
+                                   needsAnalysis: Bool, hasOlderAnalysis: Bool, compact: Bool) -> some View {
+        HStack(spacing: 10) {
+            if !book.photos.isEmpty {
+                Picker(tr("Mostra", "Show"), selection: $trayFilter) {
+                    Text(tr("Tutte", "All")).tag(TrayFilter.all)
+                    Text(tr("Non usate", "Unused")).tag(TrayFilter.unused)
+                    Text(coverSide == nil ? tr("In pagina", "On Page") : tr("In copertina", "On Cover")).tag(TrayFilter.onPage)
+                }
+                .labelsHidden()
+                .fixedSize()
+                .modifier(TrayFilterStyle(compact: compact))
+                Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
+                    ForEach(PhotoLibraryOrder.allCases) { order in
+                        Text(photoOrderLabel(order)).tag(order)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
+                .help(libraryLabel("sort", "Ordina per", "Sort by"))
+                if !compact {
+                    conceptFilter(results.concepts)
+                        .fixedSize()
+                }
+                TextField(tr("Cerca foto", "Search photos"), text: $search)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($searchingPhotos)
+                    .frame(width: compact ? 110 : 160)
+            }
+            if !compact {
+                photoDropZone
+                    .frame(width: 140)
+            }
+            Menu {
+                Button(hasOlderAnalysis ? tr("Aggiorna analisi", "Update Analysis") : tr("Analizza foto", "Analyze Photos"),
+                       systemImage: "viewfinder", action: onAnalyze)
+                    .disabled(isAnalyzing || !needsAnalysis)
+                Button(tr("Importa file…", "Import Files…"), systemImage: "folder", action: actions.importFiles)
+                if !analysisStatus.isEmpty {
+                    Divider()
+                    Text(analysisStatus)
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(tr("Altre azioni della fototeca", "More photo library actions"))
+            .accessibilityLabel(tr("Altre azioni della fototeca", "More photo library actions"))
+        }
+    }
+
     func acceptPhotoDrop(_ accepted: Bool) -> Bool {
         guard accepted else { return false }
         search = ""
@@ -66,50 +120,11 @@ extension EditorView {
                         .accessibilityLabel(analysisStatus)
                 }
                 Spacer(minLength: 8)
-                if !book.photos.isEmpty {
-                    Picker(tr("Mostra", "Show"), selection: $trayFilter) {
-                        Text(tr("Tutte", "All")).tag(TrayFilter.all)
-                        Text(tr("Non usate", "Unused")).tag(TrayFilter.unused)
-                        Text(coverSide == nil ? tr("In pagina", "On Page") : tr("In copertina", "On Cover")).tag(TrayFilter.onPage)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    Picker(libraryLabel("sort", "Ordina per", "Sort by"), selection: $photoOrder) {
-                        ForEach(PhotoLibraryOrder.allCases) { order in
-                            Text(photoOrderLabel(order)).tag(order)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .fixedSize()
-                    .help(libraryLabel("sort", "Ordina per", "Sort by"))
-                    conceptFilter(results.concepts)
-                        .fixedSize()
-                    TextField(tr("Cerca foto", "Search photos"), text: $search)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($searchingPhotos)
-                        .frame(minWidth: 90, maxWidth: 180)
+                // Narrow windows get the compact controls instead of clipping the inspector.
+                ViewThatFits(in: .horizontal) {
+                    trayControls(results: results, needsAnalysis: needsAnalysis, hasOlderAnalysis: hasOlderAnalysis, compact: false)
+                    trayControls(results: results, needsAnalysis: needsAnalysis, hasOlderAnalysis: hasOlderAnalysis, compact: true)
                 }
-                photoDropZone
-                    .frame(width: 140)
-                Menu {
-                    Button(hasOlderAnalysis ? tr("Aggiorna analisi", "Update Analysis") : tr("Analizza foto", "Analyze Photos"),
-                           systemImage: "viewfinder", action: onAnalyze)
-                        .disabled(isAnalyzing || !needsAnalysis)
-                    Button(tr("Importa file…", "Import Files…"), systemImage: "folder", action: actions.importFiles)
-                    if !analysisStatus.isEmpty {
-                        Divider()
-                        Text(analysisStatus)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help(tr("Altre azioni della fototeca", "More photo library actions"))
-                .accessibilityLabel(tr("Altre azioni della fototeca", "More photo library actions"))
             }
             if book.photos.isEmpty {
                 Text(tr("Trascina qui foto dal Finder o da Foto, oppure importa dei file.",
@@ -390,5 +405,13 @@ extension EditorView {
     func browsePhotos() {
         showsTray = true
         trayFilter = .all
+    }
+}
+
+private struct TrayFilterStyle: ViewModifier {
+    let compact: Bool
+
+    func body(content: Content) -> some View {
+        if compact { content.pickerStyle(.menu) } else { content.pickerStyle(.segmented) }
     }
 }

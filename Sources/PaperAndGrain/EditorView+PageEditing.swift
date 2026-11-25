@@ -65,7 +65,8 @@ extension EditorView {
             if let arrangement {
                 pages[index].layout = arrangement.layout
                 pages[index].photoPlacements = Self.photoCrops(from: pages[index].photoPlacements)
-            } else if wasSpread {
+            } else if wasSpread || pages[index].layout != .gallery {
+                // Automatic now means the gallery; fixed layouts cover text and mixed pages.
                 pages[index].layout = .gallery
             }
         }

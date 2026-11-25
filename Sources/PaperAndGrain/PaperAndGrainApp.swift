@@ -86,6 +86,12 @@ struct PaperAndGrainApp: App {
             }
             .modifier(BookSettingsSheets(workspace: workspace, language: language,
                                          showSettings: $showBookSettings, showTemplates: $showBookTemplates))
+            .onChange(of: workspace.newBookNeedsTemplate) { _, needed in
+                // A new book starts by choosing its look; Cancel keeps the base style.
+                guard needed else { return }
+                workspace.newBookNeedsTemplate = false
+                showBookTemplates = true
+            }
             .sheet(isPresented: $showPDFExport, onDismiss: runPDFExport) {
                 let book = workspace.book
                 let directory = workspace.directory
@@ -401,21 +407,30 @@ private struct RecentBookCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ZStack(alignment: .bottomLeading) {
-                Rectangle().fill(Theme.welcomeInk.opacity(0.85))
-                if let cover {
-                    Image(decorative: cover, scale: 1)
-                        .resizable()
-                        .scaledToFill()
+            // The square is laid out first; the cover only fills it, so any aspect ratio stays inside.
+            Rectangle().fill(Theme.welcomeInk.opacity(0.85))
+                .aspectRatio(1, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .overlay {
+                    if let cover {
+                        Image(decorative: cover, scale: 1)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                            .clipped()
+                    }
                 }
-                LinearGradient(colors: [.clear, .black.opacity(0.45)], startPoint: .center, endPoint: .bottom)
-                Text(recent.title)
-                    .font(.system(size: 17, design: .serif))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .padding(12)
-            }
-            .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    LinearGradient(colors: [.clear, .black.opacity(0.45)], startPoint: .center, endPoint: .bottom)
+                }
+                .overlay(alignment: .bottomLeading) {
+                    Text(recent.title)
+                        .font(.system(size: 17, design: .serif))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .padding(12)
+                }
+                .clipped()
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 3,
                                               bottomTrailingRadius: 7, topTrailingRadius: 7, style: .continuous))
             .overlay(alignment: .leading) {

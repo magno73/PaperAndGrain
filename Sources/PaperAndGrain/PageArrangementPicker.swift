@@ -4,6 +4,8 @@ struct PageArrangementPicker: View {
     let selection: PageArrangement?
     let language: String
     var pageSize = CGSize(width: 4, height: 3)
+    /// Names pages from older projects that use an automatic layout other than the gallery.
+    var layout: PageLayout = .gallery
     let onSelect: (PageArrangement?) -> Void
 
     @State private var isPresented = false
@@ -11,7 +13,9 @@ struct PageArrangementPicker: View {
     private let pine = Theme.accent
 
     var body: some View {
-        let current = Self.name(selection, language: language)
+        let current = selection == nil && layout != .gallery
+            ? Self.automaticName(layout, language: language)
+            : Self.name(selection, language: language)
         return Button {
             isPresented = true
         } label: {
@@ -43,7 +47,7 @@ struct PageArrangementPicker: View {
         .accessibilityValue(current)
         .help(tr("Scegli un modello per la pagina", "Choose a page template"))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            PageArrangementChoices(selection: selection, language: language, pageSize: pageSize) { arrangement in
+            PageArrangementChoices(selection: selection, language: language, pageSize: pageSize, layout: layout) { arrangement in
                 isPresented = false
                 onSelect(arrangement)
             }
@@ -52,7 +56,7 @@ struct PageArrangementPicker: View {
 
     static func name(_ arrangement: PageArrangement?, language: String) -> String {
         let title: (italian: String, english: String) = switch arrangement {
-        case nil: ("Automatico", "Automatic")
+        case nil: ("Galleria automatica", "Automatic gallery")
         case .fullBleed: ("Foto al vivo", "Full bleed")
         case .fullSpread: ("Due pagine", "Full Spread")
         case .twoAcross: ("Due affiancate", "Two across")
@@ -74,6 +78,17 @@ struct PageArrangementPicker: View {
         return language.hasPrefix("it") ? title.italian : title.english
     }
 
+    static func automaticName(_ layout: PageLayout, language: String) -> String {
+        let title: (italian: String, english: String) = switch layout {
+        case .gallery: ("Galleria automatica", "Automatic gallery")
+        case .text: ("Solo testo", "Text only")
+        case .mixed: ("Foto e testo", "Photo and text")
+        case .fullPage: ("Foto al vivo", "Full bleed")
+        case .fullSpread: ("Due pagine", "Full Spread")
+        }
+        return language.hasPrefix("it") ? title.italian : title.english
+    }
+
     private func tr(_ italian: String, _ english: String) -> String {
         language.hasPrefix("it") ? italian : english
     }
@@ -84,6 +99,7 @@ struct PageArrangementChoices: View {
     let selection: PageArrangement?
     let language: String
     var pageSize = CGSize(width: 4, height: 3)
+    var layout: PageLayout = .gallery
     let onSelect: (PageArrangement?) -> Void
 
     @State private var fullBleedGroup: Bool
@@ -92,10 +108,11 @@ struct PageArrangementChoices: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
 
     init(selection: PageArrangement?, language: String, pageSize: CGSize = CGSize(width: 4, height: 3),
-         onSelect: @escaping (PageArrangement?) -> Void) {
+         layout: PageLayout = .gallery, onSelect: @escaping (PageArrangement?) -> Void) {
         self.selection = selection
         self.language = language
         self.pageSize = pageSize
+        self.layout = layout
         self.onSelect = onSelect
         _fullBleedGroup = State(initialValue: selection?.isFullBleed == true)
     }
@@ -124,7 +141,7 @@ struct PageArrangementChoices: View {
     }
 
     private func tile(_ arrangement: PageArrangement?) -> some View {
-        let active = selection == arrangement
+        let active = selection == arrangement && (arrangement != nil || layout == .gallery)
         let name = PageArrangementPicker.name(arrangement, language: language)
         return Button {
             if !active { onSelect(arrangement) }

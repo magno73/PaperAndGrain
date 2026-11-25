@@ -6,7 +6,6 @@ extension EditorView {
     @ViewBuilder var photoAdjustmentsInspector: some View {
         if let selectedPhoto, let photo = indexedPhoto(selectedPhoto) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(photo.name).font(.callout.weight(.semibold)).lineLimit(2)
                 intro(tr("Le regolazioni seguono la foto in tutto il libro.",
                          "Adjustments follow this photo throughout the book."))
                 if let message = adjustmentErrors[photo.id] {

@@ -1,5 +1,35 @@
 # Stato dello sviluppo
 
+## 0.10.0-redesign · editor dopo il primo collaudo · 25 novembre 2026
+
+Correzioni chieste dopo il primo uso del fork:
+- **Navigazione:** nel navigatore **←** e **→** cambiano pagina e **↑** e **↓** cambiano doppia. Con la pagina intera a schermo, la rotella o le due dita sfogliano il libro una doppia per gesto. A canvas attivo e senza selezione, **←** e **→** girano pagina.
+- **Livelli:** il tasto destro su foto, box e testi apre un menu costruito sull’oggetto sotto il puntatore, con **Porta in primo piano**, **Porta avanti**, **Porta indietro** e **Porta in fondo**. Gli stessi comandi sono nel nuovo menu **Disponi**. L’ordine è salvato in `BookPage.layerOrder` e rispettato da canvas, miniature, clic e PDF.
+- **Modelli:** un libro nuovo si apre sulla scelta del modello. Il modello si cambia anche da **Stile** nella barra e da **Pagina → Modello del libro**. Il pulsante del modello di pagina si chiama ora **Impagina**.
+- **Finestra e libreria:** la finestra non si stringe oltre i pannelli aperti, e in poco spazio la Fototeca passa a controlli compatti. Le schede dei libri recenti restano quadrate anche con copertine verticali.
+- **Ispettore:** la scheda **Foto** riunisce **Regola**, **Pellicola** della foto e **Analisi**, e la scheda **Pellicola** resta per il look del libro. La nuova scheda **Testo** contiene carattere, dimensione, colore, allineamento, interlinea e disposizione. Nel pannello **Pagina** resta un solo selettore del tipo di pagina, **Modello di pagina**.
+- **Regola che spariva:** un clic sulla barra mobile sotto la foto arrivava anche al canvas come clic sulla carta e toglieva la selezione. I controlli mobili ora sono esclusi dai clic del canvas.
+- **Foto lente:** fino a quattro anteprime in parallelo, risoluzione adatta alla cornice e miniatura del navigatore mostrata subito.
+
+**Verificato** con il libro dimostrativo nell’app:
+- frecce nel navigatore dalla copertina al retro;
+- rotella sul canvas avanti e indietro;
+- menu del tasto destro su una foto e **Annulla** dopo **Togli dalla pagina**;
+- **In fondo** e corpo 17 pt centrato su un box, con lo stesso ordine nel PDF esportato dalla CLI;
+- clic reale su **Regola** nella barra mobile: la selezione resta e la sezione si apre;
+- scheda **Testo** aperta automaticamente da un box nuovo;
+- finestra a 1400 punti senza ispettore tagliato, con la Fototeca compatta;
+- griglia dei recenti con una copertina verticale;
+- modello chiesto alla creazione di un libro da file.
+
+`swift test` esegue 122 test, fra cui ordine dei livelli, compatibilità dei progetti senza `layerOrder`, gesti di scorrimento e colore e interlinea nel testo.
+
+**Resta da provare:**
+- la velocità delle anteprime su un libro grande come Namibia;
+- il menu del tasto destro su un box e su un racconto;
+- il colore personalizzato del testo nel PDF di stampa;
+- lo scorrimento con un mouse a rotella classica.
+
 ## 0.10.0-redesign · modelli · 25 novembre 2026
 
 `EditorView` è diviso in dodici estensioni per area. La vecchia griglia verticale della libreria, non più usata, è stata rimossa.

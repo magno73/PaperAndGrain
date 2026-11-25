@@ -16,9 +16,19 @@ enum EditorialAlignment: String, Codable, CaseIterable, Identifiable, Sendable {
 
 struct EditorialTextStyle: Codable, Hashable, Sendable {
     static let pointSizeRange = 6.0...120.0
+    static let lineSpacingRange = 0.8...2.0
     var fontName: String?
     var pointSize: Double?
     var alignment: EditorialAlignment?
+    /// Text color as 0xRRGGBB; nil keeps the template's ink.
+    var color: UInt32? = nil
+    /// Line height multiple; nil keeps the template's leading.
+    var lineSpacing: Double? = nil
+
+    var normalizedLineSpacing: Double? {
+        guard let lineSpacing, lineSpacing.isFinite else { return nil }
+        return min(Self.lineSpacingRange.upperBound, max(Self.lineSpacingRange.lowerBound, lineSpacing))
+    }
 
     var normalizedSize: Double? {
         guard let pointSize, pointSize.isFinite else { return nil }
@@ -32,7 +42,9 @@ struct EditorialTextStyle: Codable, Hashable, Sendable {
     func inheriting(_ base: Self?) -> Self {
         Self(fontName: fontName ?? base?.fontName,
              pointSize: normalizedSize ?? base?.normalizedSize,
-             alignment: alignment ?? base?.alignment)
+             alignment: alignment ?? base?.alignment,
+             color: color ?? base?.color,
+             lineSpacing: normalizedLineSpacing ?? base?.normalizedLineSpacing)
     }
 }
 

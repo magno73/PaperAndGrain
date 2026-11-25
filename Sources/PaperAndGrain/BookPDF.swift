@@ -268,36 +268,43 @@ enum BookPDF {
         }
         let stitchedSlots = page.arrangement.map { $0.isFullBleed && $0.photoCapacity == composition.photos.count } == true
             && page.photoPlacements?.values.contains(where: { $0.frame != nil }) != true
-        for (index, slot) in composition.photos.enumerated() {
-            let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
-            try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, ppi: ppi,
-                      book: book, directory: directory, context: context, underlap: underlap,
-                      trim: preserveTrimCrop ? composition.bounds : nil,
-                      outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
-        }
         let storyBlocks = composition.storyDrawingBlocks(page: page, book: book)
         let backgrounds = composition.storyBackgroundFrames(page: page, blocks: storyBlocks)
-        if !backgrounds.isEmpty {
-            context.saveGState()
-            context.setAlpha(style.overlayOpacity)
-            context.setFillColor(EditorialStyle.color(style.overlayPaper))
-            context.addRects(backgrounds)
-            context.fillPath()
-            context.restoreGState()
-            context.setFillColor(EditorialStyle.color(style.overlayAccent))
-            context.addRects(backgrounds.compactMap { style.overlayMark(in: $0) })
-            context.fillPath()
-        }
-        for block in storyBlocks where block.text.length > 0 {
-            try drawText(block.text, in: block.frame, pageNumber: pageNumber, context: context)
-        }
-        for box in composition.textBoxes where !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            let frame = box.frame.rect(in: composition.bounds)
-            context.setFillColor(EditorialStyle.color(style.paper))
-            context.fill(frame)
-            let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
-            try drawText(PageComposition.boxText(box: box, book: book),
-                         in: textFrame, pageNumber: pageNumber, context: context)
+        for layer in composition.layers {
+            switch layer {
+            case let .photo(id):
+                guard let index = composition.photos.firstIndex(where: { $0.id == id }) else { continue }
+                let slot = composition.photos[index]
+                let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
+                try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, ppi: ppi,
+                          book: book, directory: directory, context: context, underlap: underlap,
+                          trim: preserveTrimCrop ? composition.bounds : nil,
+                          outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
+            case .story:
+                if !backgrounds.isEmpty {
+                    context.saveGState()
+                    context.setAlpha(style.overlayOpacity)
+                    context.setFillColor(EditorialStyle.color(style.overlayPaper))
+                    context.addRects(backgrounds)
+                    context.fillPath()
+                    context.restoreGState()
+                    context.setFillColor(EditorialStyle.color(style.overlayAccent))
+                    context.addRects(backgrounds.compactMap { style.overlayMark(in: $0) })
+                    context.fillPath()
+                }
+                for block in storyBlocks where block.text.length > 0 {
+                    try drawText(block.text, in: block.frame, pageNumber: pageNumber, context: context)
+                }
+            case let .textBox(id):
+                guard let box = composition.textBoxes.first(where: { $0.id == id }),
+                      !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+                let frame = box.frame.rect(in: composition.bounds)
+                context.setFillColor(EditorialStyle.color(style.paper))
+                context.fill(frame)
+                let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
+                try drawText(PageComposition.boxText(box: box, book: book),
+                             in: textFrame, pageNumber: pageNumber, context: context)
+            }
         }
         if let folio = composition.folio {
             _ = EditorialTypesetter.draw(style.typography(String(pageNumber), heading: nil, mixed: false),
