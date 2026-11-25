@@ -41,7 +41,7 @@ Run the tests with:
 swift test
 ```
 
-`scripts/publish-github.sh` publishes the current branch to GitHub as `main`. It replaces the author email with the GitHub noreply address on a temporary copy, so the local history is left untouched.
+`scripts/publish-github.sh` publishes the current branch to GitHub as `main`. On a temporary copy it replaces the author email with the GitHub noreply address and drops the files listed in `removed_paths` from every commit, so the local history is left untouched. Run it with `--force` once after adding a path.
 
 ## Make your first book
 

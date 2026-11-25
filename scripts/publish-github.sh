@@ -10,6 +10,10 @@ remote="${PAPERGRAIN_GITHUB_REPO:-https://github.com/magno73/PaperAndGrain.git}"
 private_email="${PAPERGRAIN_PRIVATE_EMAIL:-$(git config user.email)}"
 public_email="${PAPERGRAIN_PUBLIC_EMAIL:-175606015+magno73@users.noreply.github.com}"
 branch="$(git rev-parse --abbrev-ref HEAD)"
+# Files that must never appear in the public history, not even in old commits.
+removed_paths=(docs/layout-comparison.md)
+force=""
+if [ "${1:-}" = "--force" ]; then force="--force-with-lease"; fi
 
 if [ -n "$(git status --porcelain)" ]; then
     echo "Commit or discard local changes before publishing." >&2
@@ -23,10 +27,18 @@ cd "$work/repo"
 git remote remove origin
 
 export PRIVATE_EMAIL="$private_email" PUBLIC_EMAIL="$public_email"
-FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --env-filter '
+export REMOVED_PATHS="${removed_paths[*]}"
+FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --prune-empty --env-filter '
     if [ "$GIT_AUTHOR_EMAIL" = "$PRIVATE_EMAIL" ]; then export GIT_AUTHOR_EMAIL="$PUBLIC_EMAIL"; fi
     if [ "$GIT_COMMITTER_EMAIL" = "$PRIVATE_EMAIL" ]; then export GIT_COMMITTER_EMAIL="$PUBLIC_EMAIL"; fi
-' -- "$branch" >/dev/null
+' --index-filter 'git rm --cached --quiet --ignore-unmatch $REMOVED_PATHS' -- "$branch" >/dev/null
+
+for path in "${removed_paths[@]}"; do
+    if [ -n "$(git log --format=%H -- "$path")" ]; then
+        echo "$path is still in the history; nothing was pushed." >&2
+        exit 1
+    fi
+done
 
 if git log --format='%ae%n%ce%n%B' | grep -qiF "$private_email"; then
     echo "The private email is still in the history; nothing was pushed." >&2
@@ -34,5 +46,6 @@ if git log --format='%ae%n%ce%n%B' | grep -qiF "$private_email"; then
 fi
 
 # HTTPS with the GitHub CLI login, so an unrelated SSH deploy key is never offered.
-git -c credential.helper= -c credential.helper='!gh auth git-credential' push "$remote" "$branch:main"
+# Pass --force once after adding a path to removed_paths: the published history changes.
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push $force "$remote" "$branch:main"
 echo "Published $branch as main to $remote"
