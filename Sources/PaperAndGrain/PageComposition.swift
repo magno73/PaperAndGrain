@@ -111,6 +111,11 @@ struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
     /// The fill to paint, or nil for a transparent box.
     func fill(paper: UInt32) -> UInt32? { hidesBackground == true ? nil : backgroundColor ?? paper }
 
+    /// Whether the box appears in print: any text, or an empty box with a border.
+    func prints(paper: UInt32, ink: UInt32) -> Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || border(ink: ink) != nil
+    }
+
     /// Border width and color to stroke, or nil when the box has no border.
     func border(ink: UInt32) -> (width: Double, color: UInt32)? {
         guard let borderWidth, borderWidth > 0 else { return nil }

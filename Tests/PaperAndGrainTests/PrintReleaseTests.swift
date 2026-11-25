@@ -205,6 +205,91 @@ final class PrintReleaseTests: XCTestCase {
                        ["assets", "print", "proof.pdf"])
     }
 
+    // MARK: B5 preflight and progress
+
+    func testPreflightListsEveryBlockerSeparatelyFromWarnings() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let small = try PrintFixtures.photo(in: folder, width: 60, height: 60, name: "small")
+        let lost = BookPhoto(name: "lost.png", filename: "lost.png", pixelWidth: 4000, pixelHeight: 4000)
+        var tinted = try PrintFixtures.photo(in: folder, width: 4000, height: 4000, name: "tinted")
+        try FileManager.default.createDirectory(at: folder.appendingPathComponent("looks"), withIntermediateDirectories: true)
+        try "LUT_3D_SIZE 2\nnot a number\n".write(to: BookStorage.lutURL(filename: "broken.cube", in: folder),
+                                                  atomically: true, encoding: .utf8)
+        tinted.film = FilmSettings(preset: .custom, lutFilename: "broken.cube")
+        let overflowing = PageTextBox(text: String(repeating: "Troppo testo ", count: 400),
+                                      frame: PageRect(x: 0.1, y: 0.1, width: 0.3, height: 0.1))
+        let book = Book(title: "Preflight", photos: [small, lost, tinted], pages: [
+            BookPage(layout: .gallery, photoIDs: [small.id]),
+            BookPage(layout: .text, text: "Breve", textBoxes: [overflowing]),
+            BookPage(layout: .gallery, photoIDs: [lost.id, UUID()]),
+            BookPage(layout: .gallery, photoIDs: [tinted.id]),
+        ])
+        let report = BookPDF.preflight(book, directory: folder, profile: .print)
+        XCTAssertEqual(report.blockers.count, 4, "\(report.blockers)")
+        XCTAssertTrue(report.blockers.contains("p. 2 · Il testo eccede lo spazio / Text overflows"), "\(report.blockers)")
+        XCTAssertTrue(report.blockers.contains("p. 3 · Foto mancante / Missing photo"), "\(report.blockers)")
+        XCTAssertTrue(report.blockers.contains("p. 3 · lost.png · File della foto mancante / Photo file missing"))
+        XCTAssertTrue(report.blockers.contains("p. 4 · broken.cube · LUT illeggibile / Unreadable LUT"))
+        XCTAssertEqual(report.warnings.count, 1)
+        XCTAssertTrue(report.warnings[0].hasPrefix("p. 1 · small.png ·"), "\(report.warnings)")
+
+        // The viewing PDF has no print warnings, but the same blockers stop it.
+        let proof = BookPDF.preflight(book, directory: folder, profile: .proof)
+        XCTAssertEqual(proof.blockers, report.blockers)
+        XCTAssertEqual(proof.warnings, [])
+        XCTAssertThrowsError(try BookPDF.write(book, directory: folder, to: folder.appendingPathComponent("proof.pdf")))
+
+        var clean = book
+        clean.pages = [book.pages[0]]
+        XCTAssertEqual(BookPDF.preflight(clean, directory: folder, profile: .proof), BookPDF.Preflight())
+    }
+
+    func testResolutionAtTheTargetDoesNotWarnInAnyProfile() throws {
+        // 2480 px across a 210 mm page is 299.96 ppi: it rounds to the target and must not warn.
+        for side in [2480, 2481] {
+            let photo = BookPhoto(name: "exact.png", filename: "exact.png", pixelWidth: side, pixelHeight: side)
+            var book = Book(title: "Exact", photos: [photo],
+                            pages: [BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)])
+            book.printSettings = PrintSettings(bleedMM: 3, targetPPI: 300)
+            XCTAssertEqual(BookPDF.printWarnings(book).filter { $0.contains("ppi") }, [], "\(side)")
+            XCTAssertEqual(BookPDF.printWarnings(book, pixart: true).filter { $0.contains("ppi") }, [], "\(side)")
+        }
+        let photo = BookPhoto(name: "low.png", filename: "low.png", pixelWidth: 2400, pixelHeight: 2400)
+        var book = Book(title: "Low", photos: [photo],
+                        pages: [BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)])
+        book.printSettings = PrintSettings(targetPPI: 300)
+        XCTAssertEqual(BookPDF.printWarnings(book, pixart: true).filter { $0.contains("ppi") },
+                       ["p. 1 · low.png · 290 ppi < 300 ppi"])
+    }
+
+    func testExportReportsProgressPerSheet() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var book = Book(title: "Progress", pages: (0..<5).map { BookPage(layout: .text, text: "Pagina \($0)") })
+        book.cover = BookCover(title: "Progress")
+        final class Values: @unchecked Sendable {
+            let lock = NSLock()
+            var all: [Double] = []
+            func add(_ value: Double) { lock.lock(); all.append(value); lock.unlock() }
+        }
+        let proof = Values()
+        try BookPDF.write(book, directory: folder, to: folder.appendingPathComponent("proof.pdf"), progress: proof.add)
+        XCTAssertEqual(proof.all, [0, 0.2, 0.4, 0.6, 0.8, 1, 1])
+        let print = Values()
+        book.printSettings = PrintSettings(spreads: true)
+        try BookPDF.writePrint(book, directory: folder, to: folder.appendingPathComponent("print"), progress: print.add)
+        // Three interior sheets and the cover.
+        XCTAssertEqual(print.all, [0, 0.25, 0.5, 0.75, 1, 1])
+        let pixart = Values()
+        try BookPDF.writePixart(book, directory: folder, spineMM: 6, to: folder.appendingPathComponent("pixart.pdf"),
+                                progress: pixart.add)
+        XCTAssertEqual(pixart.all.first, 0)
+        XCTAssertEqual(pixart.all.last, 1)
+        XCTAssertEqual(pixart.all, pixart.all.sorted())
+        XCTAssertEqual(pixart.all.count, 2 + 1 + 6)
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }

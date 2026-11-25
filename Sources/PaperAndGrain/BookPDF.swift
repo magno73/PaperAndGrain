@@ -24,21 +24,29 @@ enum BookPDF {
         }
     }
 
-    static func write(_ book: Book, directory: URL, to destination: URL) throws {
-        try render(book, directory: directory, settings: nil, cover: nil, to: destination)
+    /// `progress` receives the completed fraction, from 0 to 1, after each sheet. It is called on the
+    /// exporting thread.
+    static func write(_ book: Book, directory: URL, to destination: URL,
+                      progress: (@Sendable (Double) -> Void)? = nil) throws {
+        let meter = ProgressMeter(total: sheetCount(book, settings: nil, pixart: false), report: progress)
+        try render(book, directory: directory, settings: nil, cover: nil, to: destination, meter: meter)
+        meter.finish()
     }
 
-    static func writePrint(_ book: Book, directory: URL, to destination: URL) throws {
+    static func writePrint(_ book: Book, directory: URL, to destination: URL,
+                           progress: (@Sendable (Double) -> Void)? = nil) throws {
         let settings = book.printSettings ?? PrintSettings()
+        let meter = ProgressMeter(total: sheetCount(book, settings: settings, pixart: false) + (book.cover == nil ? 0 : 1),
+                                  report: progress)
         let fm = FileManager.default
         let scratch = destination.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at: scratch, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: scratch) }
         try render(book, directory: directory, settings: settings, cover: nil,
-                   to: scratch.appendingPathComponent("Interior.pdf"))
+                   to: scratch.appendingPathComponent("Interior.pdf"), meter: meter)
         if let cover = book.cover {
             try render(book, directory: directory, settings: settings, cover: cover,
-                       to: scratch.appendingPathComponent("Cover.pdf"))
+                       to: scratch.appendingPathComponent("Cover.pdf"), meter: meter)
         }
         try Task.checkCancellation()
         if fm.fileExists(atPath: destination.path) {
@@ -47,14 +55,44 @@ enum BookPDF {
         } else {
             try fm.moveItem(at: scratch, to: destination)
         }
+        meter.finish()
     }
 
-    static func writePixart(_ book: Book, directory: URL, spineMM: Double, to destination: URL) throws {
+    static func writePixart(_ book: Book, directory: URL, spineMM: Double, to destination: URL,
+                            progress: (@Sendable (Double) -> Void)? = nil) throws {
         guard PixartPrintProfile.supports(book.format), PixartPrintProfile.isValidSpine(spineMM) else {
             throw ExportError.invalidBook
         }
-        try render(book, directory: directory, settings: pixartSettings(book), cover: nil, to: destination,
-                   pixartSpineMM: spineMM)
+        let settings = pixartSettings(book)
+        let meter = ProgressMeter(total: 1 + sheetCount(book, settings: settings, pixart: true), report: progress)
+        try render(book, directory: directory, settings: settings, cover: nil, to: destination,
+                   pixartSpineMM: spineMM, meter: meter)
+        meter.finish()
+    }
+
+    /// Counts rendered sheets and reports the completed fraction.
+    private final class ProgressMeter {
+        private let total: Int
+        private var done = 0
+        private let report: (@Sendable (Double) -> Void)?
+
+        init(total: Int, report: (@Sendable (Double) -> Void)?) {
+            self.total = max(1, total)
+            self.report = report
+            report?(0)
+        }
+
+        func sheetDone() {
+            done += 1
+            report?(min(1, Double(done) / Double(total)))
+        }
+
+        func finish() { report?(1) }
+    }
+
+    private static func sheetCount(_ book: Book, settings: PrintSettings?, pixart: Bool) -> Int {
+        let slots = leaves(book.pages, settings: settings, pixart: pixart).count
+        return settings?.spreads == true ? (slots + 1) / 2 : slots
     }
 
     private static func pixartSettings(_ book: Book) -> PrintSettings {
@@ -65,55 +103,120 @@ enum BookPDF {
         return settings
     }
 
+    /// The three exports; the preflight checks what each of them will render.
+    enum Profile: Sendable {
+        case proof, print, pixart
+    }
+
+    /// Problems found before an export. Blockers make the export fail and must be fixed first;
+    /// warnings describe a weaker print. Messages read "location · Italiano / English".
+    struct Preflight: Equatable, Sendable {
+        var blockers: [String] = []
+        var warnings: [String] = []
+    }
+
+    /// Every problem in one list, blockers first, for callers that show a single list.
     static func printWarnings(_ book: Book, pixart: Bool = false) -> [String] {
-        let settings = pixart ? pixartSettings(book) : book.printSettings ?? PrintSettings()
+        let report = preflight(book, directory: nil, profile: pixart ? .pixart : .print)
+        return report.blockers + report.warnings
+    }
+
+    /// A cheap pass over the book that lists everything that would stop the export (text that
+    /// does not fit, photos or files that are missing, a LUT that cannot be read) and the print
+    /// warnings (resolution, blank pages). Without `directory`, files on disk are not checked.
+    static func preflight(_ book: Book, directory: URL?, profile: Profile) -> Preflight {
+        let settings: PrintSettings? = switch profile {
+        case .proof: nil
+        case .print: book.printSettings ?? PrintSettings()
+        case .pixart: pixartSettings(book)
+        }
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
-        let bleed = settings.bleedMM * pointsPerMM
+        let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
+        let ppi = settings?.targetPPI ?? ImageOutput.proof.ppi
         let safe = book.contentInsetPoints
         guard w.isFinite, h.isFinite, min(w,h) > 50, safe >= 0, 2*safe < min(w,h),
-              bleed.isFinite, bleed >= 0, settings.targetPPI.isFinite, settings.targetPPI > 0 else {
-            return ["Dimensioni non valide · Invalid print dimensions"]
+              bleed.isFinite, bleed >= 0, ppi.isFinite, ppi > 0 else {
+            return Preflight(blockers: ["Dimensioni non valide · Invalid print dimensions"])
         }
-        var warnings = [String]()
-        func check(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, location: String) {
+        var report = Preflight()
+        var checkedFiles = Set<String>()
+        var checkedLooks = Set<String>()
+        let fm = FileManager.default
+        func checkFiles(_ photo: BookPhoto, location: String) {
+            guard let directory else { return }
+            if checkedFiles.insert(photo.filename).inserted,
+               !fm.fileExists(atPath: BookStorage.assetURL(filename: photo.filename, in: directory).path) {
+                report.blockers.append("\(location) · \(photo.name) · File della foto mancante / Photo file missing")
+            }
+            let film = book.effectiveFilm(for: photo)
+            guard film.preset == .custom, film.strength > 0 else { return }
+            let name = film.lutFilename ?? ""
+            guard checkedLooks.insert(name).inserted else { return }
+            if film.lutFilename.map({ (try? FilmRenderer.validateLUT(at: BookStorage.lutURL(filename: $0, in: directory))) == nil }) ?? true {
+                report.blockers.append("\(location) · \(name.isEmpty ? photo.name : name) · LUT illeggibile / Unreadable LUT")
+            }
+        }
+        func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, location: String) {
+            guard settings != nil else { return }
             let pixels = CGSize(width: photo.pixelWidth, height: photo.pixelHeight)
             let drawn = crop.imageRect(for: pixels, in: frame, fills: fills)
             guard drawn.width > 0 else { return }
-            let actual = pixels.width * 72 / drawn.width
-            if actual < settings.targetPPI {
-                warnings.append(String(format: "%@ · %@ · %.0f ppi < %.0f ppi", location, photo.name, actual, settings.targetPPI))
+            // Compare what is printed in the message, so "300 ppi < 300 ppi" cannot appear.
+            let actual = (pixels.width * 72 / drawn.width).rounded()
+            if actual < ppi.rounded() {
+                report.warnings.append(String(format: "%@ · %@ · %.0f ppi < %.0f ppi", location, photo.name, actual, ppi))
             }
         }
-        let slots = leaves(book.pages, settings: settings, pixart: pixart)
+        func overflow(_ location: String) { report.blockers.append(location + " · Il testo eccede lo spazio / Text overflows") }
+
+        let slots = leaves(book.pages, settings: settings, pixart: profile == .pixart)
         let blanks = slots.indices.filter { slots[$0] == nil }.map { String($0 + 1) }
-        if !blanks.isEmpty {
-            warnings.append("Pagine bianche di compensazione / Blank pages for alignment · " + blanks.joined(separator: ", "))
+        if !blanks.isEmpty, settings != nil {
+            report.warnings.append("Pagine bianche di compensazione / Blank pages for alignment · " + blanks.joined(separator: ", "))
         }
+        let style = book.editorialStyle
         for leaf in slots.compactMap({ $0 }) where leaf.half == 0 {
             let page = leaf.page
             let loc = "p. "+String(leaf.number)
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
-                warnings.append(loc + " · Foto mancante / Missing photo")
+                report.blockers.append(loc + " · Foto mancante / Missing photo")
             }
-            for slot in PageComposition(page: page, book: book).photos {
-                check(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, location: loc)
+            let composition = PageComposition(page: page, book: book)
+            for slot in composition.photos {
+                checkFiles(slot.photo, location: loc)
+                checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, location: loc)
             }
+            let story = composition.storyDrawingBlocks(page: page, book: book)
+            var fits = story.allSatisfy { $0.text.length == 0 || EditorialTypesetter.fits($0.text, in: $0.frame) }
+            for box in composition.textBoxes where fits && box.prints(paper: style.paper, ink: style.ink) {
+                let frame = box.frame.rect(in: composition.bounds)
+                fits = EditorialTypesetter.fits(PageComposition.boxText(box: box, book: book),
+                                                in: frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints))
+            }
+            if !fits { overflow(loc) }
         }
-        if let cover = book.cover {
+        if let cover = book.cover, profile != .proof {
+            let location = "Copertina / Cover"
+            var coverFits = true
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
+                let face = profile == .pixart
+                    ? BookCoverGeometry(book: book, front: front, size: CGSize(
+                        width: PixartPrintProfile.panelWidth * pointsPerMM,
+                        height: PixartPrintProfile.panelHeight * pointsPerMM))
+                    : BookCoverGeometry(book: book, front: front, bleed: bleed)
+                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) { coverFits = false }
                 guard let id else { continue }
                 if let photo = book.photo(id) {
-                    let face = pixart
-                        ? BookCoverGeometry(book: book, front: front, size: CGSize(
-                            width: PixartPrintProfile.panelWidth * pointsPerMM,
-                            height: PixartPrintProfile.panelHeight * pointsPerMM))
-                        : BookCoverGeometry(book: book, front: front, bleed: bleed)
-                    check(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, location: "Copertina / Cover")
-                } else { warnings.append("Copertina / Cover · Foto mancante / Missing photo") }
+                    checkFiles(photo, location: location)
+                    checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, location: location)
+                } else {
+                    report.blockers.append(location + " · Foto mancante / Missing photo")
+                }
             }
+            if !coverFits { overflow(location) }
         }
-        return warnings
+        return report
     }
 
     private struct Leaf {
@@ -168,13 +271,13 @@ enum BookPDF {
     /// Streams the PDF into a hidden file next to `url` and moves it into place only when it is complete,
     /// so a failed or cancelled export leaves an existing file untouched.
     private static func render(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?, to url: URL,
-                               pixartSpineMM: Double? = nil) throws {
+                               pixartSpineMM: Double? = nil, meter: ProgressMeter? = nil) throws {
         let fm = FileManager.default
         let temporary = url.deletingLastPathComponent()
             .appendingPathComponent(".\(url.deletingPathExtension().lastPathComponent)-\(UUID().uuidString).pdf")
         defer { try? fm.removeItem(at: temporary) }
         try renderDocument(book, directory: directory, settings: settings, cover: cover, to: temporary,
-                           pixartSpineMM: pixartSpineMM)
+                           pixartSpineMM: pixartSpineMM, meter: meter)
         try Task.checkCancellation()
         if fm.fileExists(atPath: url.path) {
             _ = try fm.replaceItemAt(url, withItemAt: temporary)
@@ -184,7 +287,7 @@ enum BookPDF {
     }
 
     private static func renderDocument(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?,
-                                       to url: URL, pixartSpineMM: Double?) throws {
+                                       to url: URL, pixartSpineMM: Double?, meter: ProgressMeter?) throws {
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
@@ -241,6 +344,7 @@ enum BookPDF {
                 ctx.restoreGState()
             }
             ctx.endPDFPage()
+            meter?.sheetDone()
         }
         if let cover {
             begin(width: 2 * w + spine, height: h, bleed: bleed)
@@ -258,6 +362,7 @@ enum BookPDF {
             try drawFace(front, photoID: cover.frontPhotoID, images: images, book: book, directory: directory, context: ctx,
                          outer: frontOuter)
             ctx.endPDFPage()
+            meter?.sheetDone()
         } else {
             let slots = leaves(book.pages, settings: settings, pixart: pixartSpineMM != nil)
             let size = settings?.spreads == true ? 2 : 1
@@ -280,6 +385,7 @@ enum BookPDF {
                     }
                 }
                 ctx.endPDFPage()
+                meter?.sheetDone()
             }
         }
         ctx.closePDF()
@@ -330,8 +436,7 @@ enum BookPDF {
                 }
             case let .textBox(id):
                 guard let box = composition.textBoxes.first(where: { $0.id == id }),
-                      !box.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || box.border(ink: style.ink) != nil else { continue }
+                      box.prints(paper: style.paper, ink: style.ink) else { continue }
                 let frame = box.frame.rect(in: composition.bounds)
                 if let fill = box.fill(paper: style.paper) {
                     context.setFillColor(EditorialStyle.color(fill))

@@ -8,21 +8,24 @@ enum PDFExportRequest: Sendable {
 
 struct PDFExportChooser: View {
     let book: Book
+    /// The open package; with it the preflight also checks photo and LUT files on disk.
+    let directory: URL?
     let language: String
     let cancel: () -> Void
     let export: (PDFExportRequest) -> Void
 
     @State private var profile: Profile = .proof
     @State private var spine: String
-    @State private var warnings: [String]?
+    @State private var report: BookPDF.Preflight?
 
     private enum Profile: CaseIterable {
         case proof, printPackage, pixart
     }
 
-    init(book: Book, language: String, cancel: @escaping () -> Void,
+    init(book: Book, directory: URL? = nil, language: String, cancel: @escaping () -> Void,
          export: @escaping (PDFExportRequest) -> Void) {
         self.book = book
+        self.directory = directory
         self.language = language
         self.cancel = cancel
         self.export = export
@@ -52,7 +55,7 @@ struct PDFExportChooser: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
                 .tint(pine)
-                .disabled(request == nil)
+                .disabled(request == nil || report?.blockers.isEmpty != true)
             }
         }
         .padding(22)
@@ -119,46 +122,43 @@ struct PDFExportChooser: View {
         .padding(.horizontal, 3)
     }
 
-    /// Print checks shown before choosing where to save, so problems can be fixed first.
+    /// Checks shown before choosing where to save, so problems can be fixed first. Blockers would
+    /// stop the export and disable Continue; warnings only describe a weaker print.
     private var preflight: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(tr("Verifica prima della stampa", "Preflight"))
+            Text(tr("Verifica prima dell’esportazione", "Preflight"))
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
-            if profile == .proof {
-                Text(tr("Il PDF da sfogliare non richiede controlli di stampa.",
-                        "The viewing PDF needs no print checks."))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            } else if let warnings {
-                if warnings.isEmpty {
+            if let report {
+                if report.blockers.isEmpty && report.warnings.isEmpty {
                     Label(tr("Nessun problema trovato", "No problems found"), systemImage: "checkmark.circle.fill")
                         .font(.callout)
                         .symbolRenderingMode(.multicolor)
-                } else {
-                    ForEach(Array(warnings.prefix(6).enumerated()), id: \.offset) { _, warning in
-                        Label {
-                            Text(localizedWarning(warning)).fixedSize(horizontal: false, vertical: true)
-                        } icon: {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                        }
-                        .font(.callout)
-                    }
-                    if warnings.count > 6 {
-                        Text(tr("e altri \(warnings.count - 6) avvisi", "and \(warnings.count - 6) more warnings"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(tr("Puoi esportare comunque: gli stessi avvisi compaiono alla fine dell’esportazione.",
-                            "You can still export: the same warnings appear when the export finishes."))
+                }
+                if !report.blockers.isEmpty {
+                    problems(report.blockers, icon: "xmark.octagon.fill", tint: .red,
+                             more: { tr("e altri \($0) problemi da correggere", "and \($0) more problems to fix") })
+                    Text(tr("Correggi questi problemi per esportare il PDF.", "Fix these problems to export the PDF."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                if !report.warnings.isEmpty {
+                    problems(report.warnings, icon: "exclamationmark.triangle.fill", tint: .orange,
+                             more: { tr("e altri \($0) avvisi", "and \($0) more warnings") })
+                    if report.blockers.isEmpty {
+                        Text(tr("Puoi esportare comunque: gli stessi avvisi compaiono alla fine dell’esportazione.",
+                                "You can still export: the same warnings appear when the export finishes."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             } else {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
-                    Text(tr("Controllo risoluzione e pagine…", "Checking resolution and pages…"))
+                    Text(profile == .proof ? tr("Controllo testi e file…", "Checking text and files…")
+                                           : tr("Controllo risoluzione e pagine…", "Checking resolution and pages…"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -168,12 +168,36 @@ struct PDFExportChooser: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .task(id: profile) {
-            warnings = nil
-            guard profile != .proof else { return }
+            report = nil
             let book = book
-            let pixart = profile == .pixart
-            let found = await Task.detached(priority: .userInitiated) { BookPDF.printWarnings(book, pixart: pixart) }.value
-            if !Task.isCancelled { warnings = found }
+            let directory = directory
+            let checked: BookPDF.Profile = switch profile {
+            case .proof: .proof
+            case .printPackage: .print
+            case .pixart: .pixart
+            }
+            let found = await Task.detached(priority: .userInitiated) {
+                BookPDF.preflight(book, directory: directory, profile: checked)
+            }.value
+            if !Task.isCancelled { report = found }
+        }
+    }
+
+    private func problems(_ lines: [String], icon: String, tint: Color, more: @escaping (Int) -> String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            ForEach(Array(lines.prefix(6).enumerated()), id: \.offset) { _, line in
+                Label {
+                    Text(localizedWarning(line)).fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: icon).foregroundStyle(tint)
+                }
+                .font(.callout)
+            }
+            if lines.count > 6 {
+                Text(more(lines.count - 6))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
