@@ -8,12 +8,28 @@ enum BookCLI {
             let id: String
             let path: String
         }
+        /// The model's text box, with an optional id: a new UUID is assigned when it is absent.
+        struct TextBox: Decodable {
+            let id: UUID?
+            let text: String?
+            let frame: PageRect
+            let typography: EditorialTextStyle?
+            let usesFullWidth: Bool?
+            let backgroundColor: UInt32?
+            let hidesBackground: Bool?
+            let borderColor: UInt32?
+            let borderWidth: Double?
+        }
         struct Page: Decodable {
             let layout: PageLayout?
             let arrangement: PageArrangement?
             let photos: [String]?
             let heading: String?
             let text: String?
+            let typography: EditorialTypography?
+            let textBoxes: [TextBox]?
+            /// `story`, `photo:<asset id>` or `box:<text box UUID>`, back to front.
+            let layerOrder: [String]?
         }
         struct Cover: Decodable {
             let title: String?
@@ -21,12 +37,14 @@ enum BookCLI {
             let backPhoto: String?
             let backText: String?
             let spineMM: Double?
+            let typography: EditorialTypography?
         }
         let version: Int
         let title: String
         let format: BookFormat?
         let template: BookTemplate?
         let showPageNumbers: Bool?
+        let typography: EditorialTypography?
         let assets: [Asset]
         let pages: [Page]
         let cover: Cover?
@@ -164,15 +182,38 @@ enum BookCLI {
         for (index, element) in array.enumerated() { try checkKeys(element, allowed, at: "\(path)[\(index)]") }
     }
 
+    static let textStyleKeys = ["fontName", "pointSize", "alignment", "color", "lineSpacing"]
+    static let frameKeys = ["x", "y", "width", "height"]
+
+    private static func checkTypographyKeys(_ value: Any?, at path: String) throws {
+        try checkKeys(value, ["title", "body"], at: path)
+        let typography = value as? [String: Any]
+        try checkKeys(typography?["title"], textStyleKeys, at: path + ".title")
+        try checkKeys(typography?["body"], textStyleKeys, at: path + ".body")
+    }
+
     private static func checkSpecKeys(_ data: Data) throws {
         let root = try JSONSerialization.jsonObject(with: data)
-        try checkKeys(root, ["version", "title", "format", "template", "showPageNumbers", "assets", "pages", "cover"],
-                      at: "spec")
+        try checkKeys(root, ["version", "title", "format", "template", "showPageNumbers", "typography", "assets", "pages",
+                             "cover"], at: "spec")
         guard let spec = root as? [String: Any] else { return }
         try checkKeys(spec["format"], ["widthMM", "heightMM"], at: "format")
+        try checkTypographyKeys(spec["typography"], at: "typography")
         try checkEachKeys(spec["assets"], ["id", "path"], at: "assets")
-        try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text"], at: "pages")
-        try checkKeys(spec["cover"], ["title", "frontPhoto", "backPhoto", "backText", "spineMM"], at: "cover")
+        try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text", "typography", "textBoxes",
+                                          "layerOrder"], at: "pages")
+        for (index, page) in (spec["pages"] as? [[String: Any]] ?? []).enumerated() {
+            try checkTypographyKeys(page["typography"], at: "pages[\(index)].typography")
+            let path = "pages[\(index)].textBoxes"
+            try checkEachKeys(page["textBoxes"], ["id", "text", "frame", "typography", "usesFullWidth", "backgroundColor",
+                                                  "hidesBackground", "borderColor", "borderWidth"], at: path)
+            for (offset, box) in (page["textBoxes"] as? [[String: Any]] ?? []).enumerated() {
+                try checkKeys(box["frame"], frameKeys, at: "\(path)[\(offset)].frame")
+                try checkKeys(box["typography"], textStyleKeys, at: "\(path)[\(offset)].typography")
+            }
+        }
+        try checkKeys(spec["cover"], ["title", "frontPhoto", "backPhoto", "backText", "spineMM", "typography"], at: "cover")
+        try checkTypographyKeys((spec["cover"] as? [String: Any])?["typography"], at: "cover.typography")
     }
 
     static func encode<Value: Encodable>(_ value: Value) throws -> Data {
@@ -217,10 +258,20 @@ enum BookCLI {
             guard let id = ids[key] else { throw Failure("Unknown asset: " + key) }
             return id
         }
+        book.typography = spec.typography
         for (index, page) in spec.pages.enumerated() {
-            let built = BookPage(layout: page.layout ?? page.arrangement?.layout ?? .gallery,
+            let boxes = page.textBoxes?.map { box in
+                PageTextBox(id: box.id ?? UUID(), text: box.text ?? "", frame: box.frame, typography: box.typography,
+                            usesFullWidth: box.usesFullWidth, backgroundColor: box.backgroundColor,
+                            hidesBackground: box.hidesBackground, borderColor: box.borderColor, borderWidth: box.borderWidth)
+            }
+            var built = BookPage(layout: page.layout ?? page.arrangement?.layout ?? .gallery,
                                  photoIDs: try (page.photos ?? []).map(photoID), text: page.text ?? "",
-                                 heading: page.heading, arrangement: page.arrangement)
+                                 heading: page.heading, textBoxes: boxes, arrangement: page.arrangement,
+                                 typography: page.typography)
+            built.layerOrder = try page.layerOrder.map { entries in
+                try entries.map { entry in try layer(entry, on: built, photoID: { ids[$0] }, at: index) }
+            }
             // A new book has no reason to store what it would not show: build treats warnings as errors.
             if let problem = try BookCLIEditing.checkPage(built, at: index).first { throw Failure(problem) }
             book.pages.append(built)
@@ -229,13 +280,35 @@ enum BookCLI {
             guard (cover.spineMM ?? 0) >= 0 else { throw Failure("Expected a nonnegative spineMM") }
             book.cover = try BookCover(title: cover.title ?? spec.title, frontPhotoID: cover.frontPhoto.map(photoID),
                                        backPhotoID: cover.backPhoto.map(photoID), spineMM: cover.spineMM ?? 0,
-                                       backText: cover.backText)
+                                       backText: cover.backText, typography: cover.typography)
         }
+        try BookCLIEditing.checkTextStyles(book)
+        try BookCLIEditing.validatePackage(book, in: staging)
         try BookStorage.write(book, to: staging)
         // Atomic no-clobber publication even when another process creates the output concurrently.
         guard renamex_np(staging.path, output.path, UInt32(RENAME_EXCL)) == 0 else {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSFilePathErrorKey: output.path])
         }
         return book
+    }
+
+    /// Resolves a spec layer: photos are named by asset id, text boxes by UUID, both on the same page.
+    private static func layer(_ entry: String, on page: BookPage, photoID: (String) -> UUID?, at index: Int) throws -> PageLayer {
+        let name = "Page \(index + 1) (pages[\(index)]) layerOrder entry \"\(entry)\""
+        if entry == "story" { return .story }
+        if entry.hasPrefix("photo:") {
+            guard let id = photoID(String(entry.dropFirst(6))), page.photoIDs.contains(id) else {
+                throw Failure("\(name) does not name an asset placed on this page")
+            }
+            return .photo(id)
+        }
+        if entry.hasPrefix("box:") {
+            guard let id = UUID(uuidString: String(entry.dropFirst(4))),
+                  page.textBoxes?.contains(where: { $0.id == id }) == true else {
+                throw Failure("\(name) does not name a text box id on this page")
+            }
+            return .textBox(id)
+        }
+        throw Failure("\(name) must be \"story\", \"photo:<asset id>\" or \"box:<text box UUID>\"")
     }
 }

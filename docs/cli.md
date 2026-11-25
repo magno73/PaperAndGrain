@@ -53,12 +53,19 @@ Il rilevatore animali di Apple Vision localizza cani e gatti. Per la fauna selva
   "title": "Quaderno di viaggio",
   "format": { "widthMM": 210, "heightMM": 210 },
   "template": "atlas",
+  "typography": { "body": { "fontName": "Georgia", "pointSize": 11, "lineSpacing": 1.3 } },
   "assets": [{ "id": "orizzonte", "path": "foto/orizzonte.jpg" }],
   "pages": [
-    { "arrangement": "textBesidePhoto", "photos": ["orizzonte"], "heading": "Partenza", "text": "Attraversiamo la pianura al mattino." },
-    { "layout": "fullSpread", "photos": ["orizzonte"] }
+    { "arrangement": "textBesidePhoto", "photos": ["orizzonte"], "heading": "Partenza", "text": "Attraversiamo la pianura al mattino.",
+      "typography": { "title": { "color": 9109504, "alignment": "left" } } },
+    { "layout": "fullSpread", "photos": ["orizzonte"],
+      "textBoxes": [{ "id": "6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77", "text": "Etosha, ore 6",
+                      "frame": { "x": 0.06, "y": 0.82, "width": 0.3, "height": 0.1 },
+                      "backgroundColor": 16777215, "borderColor": 0, "borderWidth": 1 }],
+      "layerOrder": ["photo:orizzonte", "story", "box:6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77"] }
   ],
-  "cover": { "frontPhoto": "orizzonte", "title": "Quaderno di viaggio", "backText": "Appunti dal campo", "spineMM": 4 }
+  "cover": { "frontPhoto": "orizzonte", "title": "Quaderno di viaggio", "backText": "Appunti dal campo", "spineMM": 4,
+             "typography": { "title": { "color": 16777215 } } }
 }
 ```
 
@@ -66,7 +73,11 @@ Il rilevatore animali di Apple Vision localizza cani e gatti. Per la fauna selva
 - Ogni asset ha un ID univoco e un percorso file assoluto o relativo alla specifica. Il comando copia gli originali nel pacchetto. Gli ID della specifica valgono durante la composizione. L’app assegna UUID alle foto importate.
 - L’ordine di `pages` è quello del libro. L’ordine di `photos` assegna gli slot sulla pagina. Una foto può ricorrere su più pagine e in copertina. Ogni pagina accetta una sola occorrenza dello stesso ID.
 - `templates` elenca ID dei modelli del libro, tipi di pagina e composizioni con capacità e layout corrispondente. Una pagina priva di `layout` e `arrangement` usa `gallery`. La composizione determina il layout. Con `mixed` e `text` si possono includere `heading` e `text`. `fullSpread` dispone una foto su due facciate. Si può indicare anche come `arrangement` per selezionarla come modello della pagina.
-- La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText` e un dorso `spineMM` in millimetri.
+- La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText`, un dorso `spineMM` in millimetri e `typography` per il titolo sul fronte e il testo sul retro.
+- `typography` vale per il libro (radice della specifica), per la pagina e per la copertina, con gli stessi campi del manifest: `title` e `body`, ciascuno con `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` e `lineSpacing` (multiplo dell’interlinea da 0.8 a 2). Uno stile di pagina eredita i campi assenti da quello del libro.
+- `textBoxes` aggiunge box di testo alla pagina con i campi del manifest: `frame` obbligatorio (`x`, `y`, `width`, `height` in proporzione alla pagina, origine in alto a sinistra, larghezza e altezza maggiori di 0), `text`, `typography` (uno stile con i campi sopra), `usesFullWidth` (il testo occupa il box senza margine interno), `backgroundColor`, `hidesBackground` (box trasparente), `borderColor` e `borderWidth` in punti da 0 a 12. `id` è facoltativo: un UUID scelto dall’agente, utile per `layerOrder`; se manca, il comando ne assegna uno nuovo.
+- I colori sono interi `0xRRGGBB` scritti in decimale nel JSON, da 0 (nero) a 16777215 (`0xFFFFFF`, bianco); per esempio `0x8B0000` è `9109504`. Senza colore valgono l’inchiostro e la carta del modello.
+- `layerOrder` elenca gli oggetti della pagina dal fondo verso l’alto: `story` (titolo, racconto e sfondo insieme), `photo:<ID asset>` per una foto della stessa pagina e `box:<UUID>` per un box della stessa pagina. Nel manifest le foto diventano `photo:<UUID>`. Una voce che non corrisponde a un oggetto della pagina è un errore in `build`. Gli oggetti non elencati mantengono la posizione predefinita: foto sotto, box sopra.
 - Ogni oggetto accetta solo le chiavi elencate. Una chiave sconosciuta o scritta male interrompe il comando con un errore che nomina la chiave, l’oggetto (per esempio `pages[0]`) e le chiavi valide.
 
 ## Contratto dei comandi

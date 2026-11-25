@@ -32,7 +32,7 @@ enum BookCLIEditing {
         }
         try mutate(&book, stage)
         book.id = UUID()
-        try validate(book, in: stage)
+        try validatePackage(book, in: stage)
         try BookStorage.writeExisting(book, to: stage)
         guard try BookStorage.read(from: stage) == book else { throw Failure("Output verification failed") }
         guard renamex_np(stage.path, target.path, UInt32(RENAME_EXCL)) == 0 else {
@@ -56,7 +56,7 @@ enum BookCLIEditing {
         let book = try BookStorage.read(from: directory)
         guard try JSONDecoder().decode(Book.self, from: raw) == book else { throw Failure("Manifest changed while reading") }
         try checkFields(JSONSerialization.jsonObject(with: raw), against: json(book))
-        try validate(book, in: directory)
+        try validatePackage(book, in: directory)
         return (book, raw)
     }
 
@@ -134,6 +134,41 @@ enum BookCLIEditing {
         return warnings
     }
 
+    /// Range checks for the text fields that `build` and `patch` write. Colors are 0xRRGGBB integers.
+    static func checkTextStyles(_ book: Book) throws {
+        func color(_ value: UInt32?, _ path: String) throws {
+            if let value, value > 0xFFFFFF {
+                throw Failure("\(path) must be a 0xRRGGBB color from 0 to 16777215 (found \(value))")
+            }
+        }
+        func style(_ style: EditorialTextStyle?, _ path: String) throws {
+            guard let style else { return }
+            try color(style.color, path + ".color")
+            if let spacing = style.lineSpacing, !EditorialTextStyle.lineSpacingRange.contains(spacing) {
+                throw Failure("\(path).lineSpacing must be between 0.8 and 2 (found \(spacing))")
+            }
+        }
+        func typography(_ value: EditorialTypography?, _ path: String) throws {
+            try style(value?.title, path + ".title")
+            try style(value?.body, path + ".body")
+        }
+        try typography(book.typography, "typography")
+        try typography(book.cover?.typography, "cover.typography")
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            try typography(page.typography, name + " typography")
+            for (offset, box) in (page.textBoxes ?? []).enumerated() {
+                let path = "\(name) textBoxes[\(offset)]"
+                try style(box.typography, path + ".typography")
+                try color(box.backgroundColor, path + ".backgroundColor")
+                try color(box.borderColor, path + ".borderColor")
+                if let width = box.borderWidth, !PageTextBox.borderWidthRange.contains(width) {
+                    throw Failure("\(path).borderWidth must be between 0 and 12 (found \(width))")
+                }
+            }
+        }
+    }
+
     static func patch(source: URL, patchURL: URL, output: URL) throws -> Book {
         var warnings: [String] = []
         return try patch(source: source, patchURL: patchURL, output: output, warnings: &warnings)
@@ -167,6 +202,7 @@ enum BookCLIEditing {
                 }
             }
             guard !result.pages.isEmpty else { throw Failure("The book must keep at least one page") }
+            try checkTextStyles(result)
             let original = Dictionary(book.pages.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             for (index, page) in result.pages.enumerated() where original[page.id] != page {
                 found += try checkPage(page, at: index)
@@ -289,7 +325,7 @@ enum BookCLIEditing {
         throw Failure("Cannot traverse a scalar")
     }
 
-    private static func validate(_ book: Book, in package: URL) throws {
+    static func validatePackage(_ book: Book, in package: URL) throws {
         func checkFile(_ url: URL, _ owner: String) throws {
             guard try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
                 throw Failure("\(owner) refers to a missing file in the package: " + url.lastPathComponent)

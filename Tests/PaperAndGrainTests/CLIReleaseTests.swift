@@ -330,4 +330,92 @@ final class CLIReleaseTests: XCTestCase {
         XCTAssertEqual(book.pages[1].layerOrder, [.story, .textBox(copy.id)])
         XCTAssertEqual(book.pages[0].layerOrder, [.story, .textBox(original[0].id)])
     }
+
+    // MARK: C7
+
+    func testBuildAcceptsTextBoxesTypographyAndLayerOrder() throws {
+        let root = try temporaryDirectory()
+        let box = UUID()
+        let project = try build([
+            "version": 1, "title": "T", "assets": [["id": "a", "path": "pixel.png"]],
+            "typography": ["title": ["fontName": "Didot", "color": 0x223344], "body": ["pointSize": 12, "lineSpacing": 1.4]],
+            "pages": [[
+                "arrangement": "textBesidePhoto", "photos": ["a"], "text": "Racconto",
+                "typography": ["body": ["alignment": "justified", "color": 0x101010]],
+                "textBoxes": [["id": box.uuidString, "text": "Nota", "frame": ["x": 0.1, "y": 0.1, "width": 0.4, "height": 0.2],
+                               "typography": ["pointSize": 9, "lineSpacing": 0.9], "usesFullWidth": true,
+                               "backgroundColor": 0xFFFFFF, "hidesBackground": false, "borderColor": 0, "borderWidth": 2],
+                              ["text": "Seconda", "frame": ["x": 0.5, "y": 0.5, "width": 0.2, "height": 0.2]]],
+                "layerOrder": ["story", "photo:a", "box:\(box.uuidString)"],
+            ]],
+            "cover": ["title": "T", "typography": ["title": ["color": 0xAA0000]]],
+        ], in: root)
+        let book = try BookStorage.read(from: project)
+        let photo = try XCTUnwrap(book.photos.first)
+        XCTAssertEqual(book.typography?.title?.fontName, "Didot")
+        XCTAssertEqual(book.typography?.title?.color, 0x223344)
+        XCTAssertEqual(book.typography?.body?.lineSpacing, 1.4)
+        XCTAssertEqual(book.cover?.typography?.title?.color, 0xAA0000)
+        let page = try XCTUnwrap(book.pages.first)
+        XCTAssertEqual(page.typography?.body?.alignment, .justified)
+        let boxes = try XCTUnwrap(page.textBoxes)
+        XCTAssertEqual(boxes.count, 2)
+        XCTAssertEqual(boxes[0].id, box)
+        XCTAssertEqual(boxes[0].frame, PageRect(x: 0.1, y: 0.1, width: 0.4, height: 0.2))
+        XCTAssertEqual(boxes[0].typography?.pointSize, 9)
+        XCTAssertEqual(boxes[0].usesFullWidth, true)
+        XCTAssertEqual(boxes[0].backgroundColor, 0xFFFFFF)
+        XCTAssertEqual(boxes[0].hidesBackground, false)
+        XCTAssertEqual(boxes[0].borderColor, 0)
+        XCTAssertEqual(boxes[0].borderWidth, 2)
+        XCTAssertNotEqual(boxes[1].id, box)
+        XCTAssertEqual(boxes[1].text, "Seconda")
+        XCTAssertEqual(page.layerOrder, [.story, .photo(photo.id), .textBox(box)])
+    }
+
+    func testBuildRejectsOutOfRangeStylesAndUnknownLayers() throws {
+        let root = try temporaryDirectory()
+        func page(_ extra: [String: Any]) -> [String: Any] {
+            var spec = baseSpec(pages: [["layout": "mixed", "photos": ["a"]].merging(extra) { $1 }])
+            spec["title"] = "T"
+            return spec
+        }
+        let frame: [String: Any] = ["x": 0, "y": 0, "width": 0.5, "height": 0.5]
+        let cases: [([String: Any], String)] = [
+            (page(["typography": ["body": ["color": 0x1000000]]]), "typography.body.color"),
+            (page(["typography": ["title": ["lineSpacing": 3]]]), "typography.title.lineSpacing"),
+            (page(["textBoxes": [["text": "x", "frame": frame, "borderWidth": 13]]]), "textBoxes[0].borderWidth"),
+            (page(["textBoxes": [["text": "x", "frame": frame, "borderColor": 0x1000000]]]), "textBoxes[0].borderColor"),
+            (page(["textBoxes": [["text": "x", "frame": frame, "typography": ["lineSpacing": 0.5]]]]), "textBoxes[0].typography.lineSpacing"),
+            (page(["textBoxes": [["text": "x", "frame": ["x": 0, "y": 0, "width": 0, "height": 0.5]]]]), "textBoxes[0].frame"),
+            (page(["textBoxes": [["text": "x", "frame": frame, "colour": 1]]]), "\"colour\""),
+            (page(["layerOrder": ["photo:missing"]]), "photo:missing"),
+            (page(["layerOrder": ["box:\(UUID().uuidString)"]]), "box:"),
+            (page(["layerOrder": ["title"]]), "title"),
+        ]
+        for (spec, expected) in cases {
+            let text = message(try build(spec, in: root, name: "Out-\(UUID()).papergrain"))
+            XCTAssertTrue(text.contains(expected), "\(expected) not in: \(text)")
+        }
+        var spec = baseSpec()
+        spec["typography"] = ["body": ["color": 0x1000000]]
+        XCTAssertTrue(message(try build(spec, in: root)).contains("typography.body.color"))
+        XCTAssertFalse(try entries(root).contains { $0.hasSuffix(".papergrain") })
+    }
+
+    func testPatchRangeChecksColorsBorderAndLineSpacing() throws {
+        let root = try temporaryDirectory()
+        let source = try build(baseSpec(pages: [["layout": "text", "text": "Uno"]]), in: root, name: "Source.papergrain")
+        for (operation, expected) in [
+            (#"{"op":"add","path":"/typography","value":{"body":{"color":16777216}}}"#, "typography.body.color"),
+            (#"{"op":"add","path":"/pages/0/typography","value":{"title":{"lineSpacing":2.5}}}"#, "typography.title.lineSpacing"),
+            (#"{"op":"add","path":"/pages/0/textBoxes","value":[{"id":"\#(UUID().uuidString)","text":"x","frame":{"x":0,"y":0,"width":0.2,"height":0.2},"borderWidth":-1}]}"#,
+             "textBoxes[0].borderWidth"),
+            (#"{"op":"add","path":"/cover","value":{"title":"T","spineMM":0,"typography":{"title":{"color":99999999}}}}"#, "cover.typography.title.color"),
+        ] {
+            let patch = try writePatch("[\(operation)]", in: root)
+            let text = message(try BookCLIEditing.patch(source: source, patchURL: patch, output: root.appendingPathComponent("Out.papergrain")))
+            XCTAssertTrue(text.contains(expected), "\(expected) not in: \(text)")
+        }
+    }
 }
