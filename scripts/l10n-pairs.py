@@ -4,7 +4,8 @@
   scripts/l10n-pairs.py sources [--json]   pairs written inline in Sources/ (the pre-catalog form)
   scripts/l10n-pairs.py catalog [--json]   pairs stored in Resources/Localizable.xcstrings
   scripts/l10n-pairs.py diff BASELINE      every pair of BASELINE must exist in the catalog
-  scripts/l10n-pairs.py check              no inline pair left in Sources/ outside L10n.swift
+  scripts/l10n-pairs.py check              no inline pair left in Sources/ outside L10n.swift, every
+                                           literal key in the catalog, no unused catalog key
 
 A pair is (Italian, English). Interpolations `\\(expr)` and format specifiers (`%@`, `%1$lld`, `%.0f`)
 are both normalised to `{}`, so `"\\(n) foto"` and `"%lld foto"` compare equal. Plural variations in the
@@ -310,10 +311,22 @@ def source_pairs(catalog=None):
 # ---------------------------------------------------------------- catalog pairs
 
 def variations(entry, lang):
-    """All forms of a localization: [(form, value)]; `form` is '' for a plain string."""
+    """All forms of a localization: [(form, value)]; `form` is '' for a plain string.
+    Plural substitutions (`%#@name@`) are expanded with every substitution in its `one`, then `other` form."""
     loc = entry.get("localizations", {}).get(lang)
     if not loc:
         return []
+    if "substitutions" in loc:
+        out = []
+        for form in ("one", "other"):
+            value = loc["stringUnit"]["value"]
+            for name, sub in loc["substitutions"].items():
+                cases = sub["variations"]["plural"]
+                text = cases.get(form, cases["other"])["stringUnit"]["value"]
+                spec = "%" + str(sub["argNum"]) + "$" + sub.get("formatSpecifier", "@")
+                value = value.replace("%#@" + name + "@", text.replace("%arg", spec))
+            out.append((form, value))
+        return out
     if "stringUnit" in loc:
         return [("", loc["stringUnit"]["value"])]
     out = []
@@ -344,11 +357,22 @@ def catalog_pairs(catalog=None):
 
 # ---------------------------------------------------------------- comparison
 
-PLACEHOLDER = re.compile(r"\\\((?:[^()]|\([^()]*\))*\)|%(?:\d+\$)?[-+ 0#]*\d*(?:\.\d+)?(?:ll|l|h)?[@dfgisux]")
+PLACEHOLDER = re.compile(r"%(?:\d+\$)?[-+ 0#]*\d*(?:\.\d+)?(?:ll|l|h)?[@dfgisux]")
 
 
 def normalise(value):
-    return PLACEHOLDER.sub("{}", value)
+    out, i = [], 0
+    while i < len(value):
+        if value.startswith("\\(", i):  # an interpolation, with balanced parentheses
+            depth, i = 1, i + 2
+            while depth:
+                depth += {"(": 1, ")": -1}.get(value[i], 0)
+                i += 1
+            out.append("{}")
+        else:
+            out.append(value[i])
+            i += 1
+    return PLACEHOLDER.sub("{}", "".join(out)).strip()
 
 
 def singular(value):
@@ -364,7 +388,7 @@ def diff(baseline_path):
         have.add((normalise(p["it"]), normalise(p["en"])))
         if p["form"].endswith("one") or p["form"].endswith("zero"):
             have.add((normalise(singular(p["it"])), normalise(singular(p["en"]))))
-    composed = json.load(open(baseline_path, encoding="utf-8")).get("composed", {})
+    composed = COMPOSED
     unique = {}
     for p in baseline:
         unique.setdefault((normalise(p["it"]), normalise(p["en"])), p)
@@ -384,6 +408,60 @@ def diff(baseline_path):
     return 1 if missing else 0
 
 
+# Baseline pairs that are no longer one catalog entry, and why. Keyed by the baseline's English text.
+COMPOSED = {
+    "Photo unavailable — \\(name)": "the bilingual export error read 'Foto non disponibile · Photo unavailable — name'; "
+                                     "the catalog entry is 'Photo unavailable — %@' / 'Foto non disponibile — %@'",
+}
+
+
+def literal_keys():
+    """Keys passed as literals: tr("…"), tr("…", key: "…"), L10n.string("…"), L10n.format("…"), default: "…"."""
+    found = {}
+    calls = {"tr", "string", "format"}
+    for name in sorted(os.listdir(SOURCES)):
+        if not name.endswith(".swift") or name == "L10n.swift":
+            continue
+        toks = lex(open(os.path.join(SOURCES, name), encoding="utf-8").read())
+        for i, t in enumerate(toks[:-2]):
+            if t.kind == "id" and t.text in calls and toks[i + 1].text == "(" and toks[i + 2].kind == "str":
+                if t.text != "tr" and not (i > 1 and toks[i - 1].text == "." and toks[i - 2].text == "L10n"):
+                    continue
+                run = string_run(toks, i + 2)
+                if toks[run[2]].text == "," and toks[run[2] + 1].text == "key" and toks[run[2] + 3].kind == "str":
+                    found.setdefault(toks[run[2] + 3].value, f"{name}:{t.line}")
+                else:
+                    found.setdefault(run[0], f"{name}:{t.line}")
+    return found
+
+
+def keys():
+    """Every literal key exists in the catalog with both languages; every catalog key is spelled in the sources."""
+    strings = catalog_strings()
+    problems = 0
+    for key, where in sorted(literal_keys().items()):
+        entry = strings.get(key)
+        if not entry or not variations(entry, "it") or not variations(entry, "en"):
+            print(f"{where}: {key!r} is not in the catalog in both languages")
+            problems += 1
+    literals = set()
+    for name in sorted(os.listdir(SOURCES)):
+        if name.endswith(".swift"):
+            literals.update(t.value for t in lex(open(os.path.join(SOURCES, name), encoding="utf-8").read())
+                            if t.kind == "str")
+    for key in sorted(strings):
+        if key not in literals:
+            print(f"unused catalog key {key!r}")
+            problems += 1
+        for lang in ("en", "it"):
+            for form, value in variations(strings[key], lang):
+                if strings[key]["localizations"][lang].get("stringUnit", {}).get("state", "translated") != "translated":
+                    print(f"{key!r} {lang} is not marked translated")
+                    problems += 1
+    print(f"{len(strings)} catalog keys, {problems} problems")
+    return 1 if problems else 0
+
+
 def catalog_strings():
     return load_catalog()["strings"]
 
@@ -401,7 +479,7 @@ INLINE = [
     (re.compile(r'(italian|isItalian|"it"\)?)\s*\?\s*"'), "ternary choosing by language"),
     (re.compile(r'hasPrefix\("it"\)'), "hasPrefix(\"it\")"),
     (re.compile(r'==\s*"it"'), "== \"it\""),
-    (re.compile(r'\b(italian|english):\s*"'), "italian:/english: literal"),
+    (re.compile(r"\bitalian:\s*\""), "italian: literal"),
 ]
 
 
@@ -449,7 +527,7 @@ def main(argv):
     if mode == "diff":
         return diff(argv[2])
     if mode == "check":
-        return check()
+        return check() | keys()
     print(__doc__)
     return 2
 
