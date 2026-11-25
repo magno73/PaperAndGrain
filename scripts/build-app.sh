@@ -1,15 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-configuration="${1:-debug}"
+# release (default): optimized universal binary for Apple silicon and Intel. debug: fast local build.
+configuration="${1:-release}"
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
 app="dist/$version/Paper & Grain.app"
-swift build --disable-sandbox --configuration "$configuration"
-build_dir="$(swift build --disable-sandbox --configuration "$configuration" --show-bin-path)"
+if [ "$configuration" = "release" ]; then
+    flags=(--disable-sandbox --configuration release --arch arm64 --arch x86_64)
+else
+    flags=(--disable-sandbox --configuration "$configuration")
+fi
+swift build "${flags[@]}"
+build_dir="$(swift build "${flags[@]}" --show-bin-path)"
+rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/it.lproj"
 cp "$build_dir/PaperAndGrain" "$app/Contents/MacOS/"
 cp Resources/Info.plist "$app/Contents/"
 cp Resources/Demo.png "$app/Contents/Resources/"
+cp Resources/AppIcon.icns "$app/Contents/Resources/"
 cp -R Resources/FujifilmFilmLooks "$app/Contents/Resources/"
 cp Resources/it.lproj/InfoPlist.strings "$app/Contents/Resources/it.lproj/"
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$app/Contents/Resources"

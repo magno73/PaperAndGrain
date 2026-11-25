@@ -43,7 +43,7 @@ enum AboutPanel {
         credits.append(NSAttributedString(string: email + "\n\n", attributes: base.merging([
             .link: URL(string: "mailto:" + email) as Any
         ]) { $1 }))
-        credits.append(NSAttributedString(string: italian ? "Codice sorgente con licenza MIT\n" : "Source code under the MIT License\n",
+        credits.append(NSAttributedString(string: italian ? "Codice sorgente con licenza PolyForm Noncommercial: uso non commerciale\n" : "Source code under the PolyForm Noncommercial License: noncommercial use\n",
                                           attributes: base))
         credits.append(NSAttributedString(string: "github.com/magno73/PaperAndGrain\n\n", attributes: base.merging([
             .link: URL(string: repository) as Any
