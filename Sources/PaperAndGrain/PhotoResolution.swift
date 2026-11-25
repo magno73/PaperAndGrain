@@ -31,7 +31,7 @@ enum PhotoResolution {
 }
 
 /// A small warning shown in the corner of a photo on the canvas when its print resolution is low.
-struct ResolutionBadge: View {
+struct ResolutionBadge: View, Localizing {
     let ppi: Double
     let target: Double
     let level: PhotoResolution.Level
@@ -53,9 +53,8 @@ struct ResolutionBadge: View {
 
     var message: String {
         let actual = Int(ppi.rounded()), goal = Int(target.rounded())
-        return language.hasPrefix("it")
-            ? "Risoluzione bassa per la stampa: \(actual) ppi, obiettivo \(goal) ppi. Rimpicciolisci la foto o usa un originale più grande."
-            : "Low print resolution: \(actual) ppi, target \(goal) ppi. Make the photo smaller or use a larger original."
+        return tr("Low print resolution: %1$lld ppi, target %2$lld ppi. Make the photo smaller or use a larger original.",
+                  actual, goal)
     }
 }
 
@@ -100,9 +99,8 @@ extension EditorView {
             let value = "\(Int(ppi.rounded())) ppi"
             Label {
                 Text(level == .good
-                     ? tr("Stampa: \(value)", "Print: \(value)")
-                     : tr("Stampa: \(value), sotto i \(Int(targetPPI.rounded())) ppi consigliati",
-                          "Print: \(value), below the recommended \(Int(targetPPI.rounded())) ppi"))
+                     ? tr("Print: %@", value)
+                     : tr("Print: %1$@, below the recommended %2$lld ppi", value, Int(targetPPI.rounded())))
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: level == .good ? "checkmark.circle" : "exclamationmark.triangle.fill")
@@ -110,8 +108,7 @@ extension EditorView {
             .font(.caption)
             .foregroundStyle(level == .good ? muted : (level == .poor ? Color(red: 0.78, green: 0.16, blue: 0.12)
                                                                        : Color(red: 0.80, green: 0.47, blue: 0.04)))
-            .help(tr("Pixel della foto rispetto alla dimensione stampata, con il ritaglio.",
-                     "The photo's pixels over its printed size, crop included."))
+            .help(tr("The photo's pixels over its printed size, crop included."))
         }
     }
 }

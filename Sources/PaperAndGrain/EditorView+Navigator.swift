@@ -49,14 +49,14 @@ extension EditorView {
                     .floatingPanel(cornerRadius: 18)
                     .padding(.leading, 8)
                     .padding(.vertical, 8)
-                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Larghezza delle pagine", "Pages Width"))
+                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Pages Width"))
             }
         } else {
             HStack(spacing: 0) {
                 navigator
                     .frame(width: navigatorWidth)
                     .background(Theme.sidebar)
-                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Larghezza delle pagine", "Pages Width"))
+                PaneResizeHandle(width: $navigatorWidth, range: 150...340, label: tr("Pages Width"))
                     .overlay { Rectangle().fill(edge).frame(width: 1) }
             }
         }
@@ -66,13 +66,13 @@ extension EditorView {
         let insertion = previewPageInsertion
         return VStack(spacing: 0) {
             HStack {
-                caption(tr("Pagine", "Pages"))
+                caption(tr("Pages"))
                 Spacer()
                 Text(String(physicalPageCount))
                     .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(muted)
-                    .accessibilityLabel(tr("\(physicalPageCount) pagine", "\(physicalPageCount) pages"))
+                    .accessibilityLabel(tr("%lld pages", physicalPageCount))
             }
             .padding(.horizontal, 16)
             .padding(.top, 12)
@@ -116,16 +116,16 @@ extension EditorView {
             Divider()
             HStack(spacing: 6) {
                 Button { insert(.gallery) } label: {
-                    Label(tr("Pagina", "Page"), systemImage: "plus")
+                    Label(tr("Page"), systemImage: "plus")
                 }
                 .buttonStyle(.borderless)
-                .help(tr("Aggiungi pagina", "Add page"))
+                .help(tr("Add page"))
                 Spacer()
-                action("chevron.up", tr("Sposta prima", "Move earlier")) { move(-1) }
+                action("chevron.up", tr("Move earlier")) { move(-1) }
                     .disabled(index.map { $0 < 1 } ?? true)
-                action("chevron.down", tr("Sposta dopo", "Move later")) { move(1) }
+                action("chevron.down", tr("Move later")) { move(1) }
                     .disabled(index.map { $0 >= book.pages.count - 1 } ?? true)
-                action("book", tr("Sfoglia il libro", "Browse the Book")) { openBrowser() }
+                action("book", tr("Browse the Book")) { openBrowser() }
                     .disabled(book.pages.isEmpty)
             }
             .padding(.horizontal, 12)
@@ -139,7 +139,7 @@ extension EditorView {
     }
 
     func navigatorInsertButton(_ gap: NavigatorPageGap, betweenColumns: Bool) -> some View {
-        let label = localized("editor.insert_page_here", fallback: tr("Inserisci pagina qui", "Insert Page Here"))
+        let label = tr("Insert Page Here")
         let visible = hoveredGap == gap
         return Button {
             guard let index = gap.index(in: book.pages) else { return }
@@ -177,7 +177,7 @@ extension EditorView {
         let ratio = aspect * (leaf.effectiveLayout == .fullSpread ? 2 : 1)
         let width = min(paired ? thumbBase * 1.2 : thumbBase * 2.45, thumbBase * ratio)
         let number = spreadNumber([leaf])
-        let label = first && !paired ? tr("Prima pagina", "First Page") : number
+        let label = first && !paired ? tr("First Page") : number
         return navigatorCard(label, active: active) {
             select(leaf)
             clearCanvasSelection()
@@ -188,8 +188,8 @@ extension EditorView {
             }
             .frame(width: width, height: width / ratio)
         }
-        .accessibilityLabel(first ? tr("Prima pagina", "First Page") : tr("Pagina", "Page") + " " + number)
-        .help(tr("Trascina per riordinare la pagina", "Drag to reorder the page"))
+        .accessibilityLabel(first ? tr("First Page") : tr("Page") + " " + number)
+        .help(tr("Drag to reorder the page"))
         .onKeyPress(keys: [.delete, .deleteForward], phases: .down) { press in
             guard press.modifiers.intersection([.command, .shift, .control, .option]).isEmpty else { return .ignored }
             return deleteNavigatorPage(leaf.id) ? .handled : .ignored
@@ -208,25 +208,25 @@ extension EditorView {
 
     @ViewBuilder func navigatorContextMenu(_ leaf: BookPage) -> some View {
         let position = book.pages.firstIndex { $0.id == leaf.id }
-        Button(tr("Inserisci pagina prima", "Insert Page Before")) {
+        Button(tr("Insert Page Before")) {
             if let position { insert(.gallery, at: position) }
         }
-        Button(tr("Inserisci pagina dopo", "Insert Page After")) {
+        Button(tr("Insert Page After")) {
             if let position { insert(.gallery, at: position + 1) }
         }
         Divider()
-        Button(tr("Sposta prima", "Move Earlier")) {
+        Button(tr("Move Earlier")) {
             select(leaf)
             move(-1)
         }
         .disabled(position.map { $0 < 1 } ?? true)
-        Button(tr("Sposta dopo", "Move Later")) {
+        Button(tr("Move Later")) {
             select(leaf)
             move(1)
         }
         .disabled(position.map { $0 >= book.pages.count - 1 } ?? true)
         Divider()
-        Button(tr("Elimina pagina…", "Delete Page…"), role: .destructive) {
+        Button(tr("Delete Page…"), role: .destructive) {
             select(leaf)
             showDelete = true
         }
@@ -375,7 +375,7 @@ extension EditorView {
     func deletePage() {
         guard let index else { return }
         endInlineTextEditing()
-        editPages(tr("Elimina pagina", "Delete Page")) { $0.remove(at: index) }
+        editPages(tr("Delete Page")) { $0.remove(at: index) }
         selection = book.pages.isEmpty ? nil : book.pages[min(index, book.pages.count - 1)].id
         editorInput.target = .none
         canvasPhotoSelection = nil
@@ -388,7 +388,7 @@ extension EditorView {
     func move(_ offset: Int) {
         guard let index, book.pages.indices.contains(index + offset) else { return }
         if let page { selection = page.id }
-        editPages(tr("Sposta pagina", "Move Page")) { $0.swapAt(index, index + offset) }
+        editPages(tr("Move Page")) { $0.swapAt(index, index + offset) }
     }
 
     func pageInsertion(at location: CGPoint) -> (id: UUID, after: Bool)? {
@@ -440,7 +440,7 @@ extension EditorView {
               let source = book.pages.firstIndex(where: { $0.id == sourceID }),
               book.pages.contains(where: { $0.id == targetID }) else { return }
         let leaf = book.pages[source]
-        editPages(tr("Riordina pagina", "Reorder Page")) { pages in
+        editPages(tr("Reorder Page")) { pages in
             pages.remove(at: source)
             guard let target = pages.firstIndex(where: { $0.id == targetID }) else { return }
             pages.insert(leaf, at: target + (after ? 1 : 0))

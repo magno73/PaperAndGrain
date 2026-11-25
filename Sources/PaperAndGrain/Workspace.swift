@@ -372,7 +372,7 @@ final class Workspace: ObservableObject {
         EditorFilePanels.present(panel) { [weak self] response in
             guard let self, self.documentLocation == origin, response == .OK, !panel.urls.isEmpty else { return }
             let urls = panel.urls
-            self.importImages(count: urls.count, title: language == "it" ? "Nuovo libro" : "New Book",
+            self.importImages(count: urls.count, title: L10n.string("New Book", language: language),
                               format: .square, language: language) { index, directory in
                 try await LocalImages.importFile(urls[index], into: directory)
             }
@@ -403,7 +403,7 @@ final class Workspace: ObservableObject {
     func addDroppedPhotos(_ providers: [NSItemProvider], language: String,
                           onImported: @escaping (UUID) -> Void = { _ in }) -> Bool {
         enqueueDroppedPhotos(language: language, onImported: onImported) {
-            try DroppedPhotos.start(providers, fallbackName: language == "it" ? "Foto" : "Photo")
+            try DroppedPhotos.start(providers, fallbackName: L10n.string("Photo", language: language))
         }
     }
 
@@ -636,8 +636,8 @@ final class Workspace: ObservableObject {
             }
             await save()
             if failures > 0 {
-                problem = language == "it" ? "Analisi non riuscita per \(failures) foto. Puoi riprovare dall’editor."
-                    : "Analysis failed for \(failures) photos. You can retry from the editor."
+                problem = L10n.format("Analysis failed for %lld photos. You can retry from the editor.",
+                                      language: language, [failures])
             }
         }
     }
@@ -767,17 +767,14 @@ final class Workspace: ObservableObject {
 
     /// The open book could not be saved because its package is gone. Ask before leaving it.
     private func confirmLeavingLostBook(then leave: @escaping () -> Void) {
-        let italian = AppError.interfaceLanguage == "it"
+        let language = L10n.interfaceLanguage
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = italian ? "Il libro non si trova più nella sua posizione"
-            : "The book is no longer where it was saved"
-        alert.informativeText = italian
-            ? "Le ultime modifiche non sono salvate. Puoi salvarle in un’altra posizione oppure chiudere senza salvare."
-            : "Your latest changes are not saved. You can save them in another place or close without saving."
-        alert.addButton(withTitle: italian ? "Salva con nome…" : "Save As…")
-        alert.addButton(withTitle: italian ? "Chiudi senza salvare" : "Close Without Saving")
-        alert.addButton(withTitle: italian ? "Annulla" : "Cancel")
+        alert.messageText = L10n.string("The book is no longer where it was saved", language: language)
+        alert.informativeText = L10n.string("Your latest changes are not saved. You can save them in another place or close without saving.", language: language)
+        alert.addButton(withTitle: L10n.string("Save As…", language: language))
+        alert.addButton(withTitle: L10n.string("Close Without Saving", language: language))
+        alert.addButton(withTitle: L10n.string("Cancel", language: language))
         let origin = documentLocation
         EditorFilePanels.present(alert) { [weak self] response in
             guard let self, self.documentLocation == origin else { return }
@@ -1007,7 +1004,7 @@ final class Workspace: ObservableObject {
 
     func loadDemo(language: String) {
         guard let image = Bundle.main.url(forResource: "Demo", withExtension: "png") else { return }
-        importImages(count: 1, title: language == "it" ? "Sardegna, settembre" : "Sardinia in September",
+        importImages(count: 1, title: L10n.string("Sardinia in September", language: language),
                      format: .square, language: language) { _, directory in
             try await LocalImages.importFile(image, into: directory)
         }
@@ -1033,12 +1030,11 @@ final class Workspace: ObservableObject {
 
     func exportPrint(language: String) {
         guard let directory, !book.pages.isEmpty, !exporting else { return }
-        let italian = language == "it"
-        let warnings = BookPDF.printWarnings(book)
+        let warnings = BookPDF.printWarnings(book, language: language)
         func chooseDestination() {
             let panel = NSSavePanel()
-            panel.message = italian ? "Scegli dove creare la cartella dei PDF" : "Choose where to create the PDF folder"
-            panel.nameFieldStringValue = safeFilename(book.title) + (italian ? " – Stampa" : " – Print")
+            panel.message = L10n.string("Choose where to create the PDF folder", language: language)
+            panel.nameFieldStringValue = safeFilename(book.title) + L10n.string(" – Print", language: language)
             chooseExportDestination(panel, from: directory, request: .printPackage)
         }
         guard !warnings.isEmpty else {
@@ -1046,12 +1042,12 @@ final class Workspace: ObservableObject {
             return
         }
         let check = NSAlert()
-        check.messageText = italian ? "Controllo di stampa" : "Print Check"
+        check.messageText = L10n.string("Print Check", language: language)
         let lines = warnings.prefix(8).joined(separator: "\n")
         let suffix = warnings.count > 8 ? "\n… +\(warnings.count - 8)" : ""
         check.informativeText = lines + suffix
-        check.addButton(withTitle: italian ? "Continua" : "Continue")
-        check.addButton(withTitle: italian ? "Annulla" : "Cancel")
+        check.addButton(withTitle: L10n.string("Continue", language: language))
+        check.addButton(withTitle: L10n.string("Cancel", language: language))
         let origin = documentLocation
         EditorFilePanels.present(check) { [weak self] response in
             guard let self, self.documentLocation == origin, !self.exporting, response == .alertFirstButtonReturn

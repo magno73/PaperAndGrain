@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-struct BookTemplateChooser: View {
+struct BookTemplateChooser: View, Localizing {
     let book: Book
     let directory: URL
     let language: String
@@ -26,9 +26,9 @@ struct BookTemplateChooser: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(tr("Modelli del libro", "Book Templates"))
+                Text(tr("Book Templates"))
                     .font(.system(size: 33, weight: .regular, design: .serif))
-                Text(tr("Scegli carta, caratteri e margini per tutto il libro.", "Choose the paper, type and margins for the entire book."))
+                Text(tr("Choose the paper, type and margins for the entire book."))
                     .foregroundStyle(.secondary)
             }
             ScrollView {
@@ -62,11 +62,11 @@ struct BookTemplateChooser: View {
                 .toggleStyle(.checkbox)
                 Spacer()
                 if book.template != nil {
-                    Button(tr("Ripristina stile di base", "Restore Basic Style")) { onApply(nil, showPageNumbers) }
+                    Button(tr("Restore Basic Style")) { onApply(nil, showPageNumbers) }
                         .buttonStyle(.link)
                 }
-                Button(tr("Annulla", "Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
-                Button(tr("Applica", "Apply")) { onApply(selected, showPageNumbers) }
+                Button(tr("Cancel"), action: onCancel).keyboardShortcut(.cancelAction)
+                Button(tr("Apply")) { onApply(selected, showPageNumbers) }
                     .buttonStyle(.borderedProminent)
                     .tint(Theme.accent)
                     .keyboardShortcut(.defaultAction)
@@ -123,7 +123,7 @@ struct BookTemplateChooser: View {
         let face = BookCoverGeometry(book: sample, front: true)
         let overPhoto = style.identity != nil
         let excerpt = book.pages.first(where: { !$0.text.isEmpty })?.text
-            ?? tr("La luce attraversa il paesaggio.", "Light moves across the landscape.")
+            ?? tr("Light moves across the landscape.")
         let page = BookPage(layout: overPhoto ? .mixed : .text, text: String(excerpt.prefix(190)),
                             heading: book.pages.lazy.compactMap(\.heading).first ?? book.title,
                             arrangement: overPhoto ? .textOverPhoto : nil)
@@ -175,11 +175,5 @@ struct BookTemplateChooser: View {
         clipped.draw(Image(nsImage: photo), in: placement)
     }
 
-    private var pageNumbersLabel: String {
-        let bundle = Bundle.main.url(forResource: language, withExtension: "lproj").flatMap(Bundle.init(url:))
-        return (bundle ?? .main).localizedString(forKey: "book.template.show_page_numbers",
-                                                value: tr("Mostra numeri di pagina", "Show Page Numbers"), table: nil)
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String { language == "it" ? italian : english }
+    private var pageNumbersLabel: String { tr("Show Page Numbers") }
 }

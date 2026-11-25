@@ -13,7 +13,7 @@ enum PaperAndGrainEntry {
     }
 }
 
-struct PaperAndGrainApp: App {
+struct PaperAndGrainApp: App, Localizing {
     @StateObject private var workspace = Workspace()
     @AppStorage("interfaceLanguage") private var preferredLanguage = "system"
     @State private var showAlbums = false
@@ -30,14 +30,10 @@ struct PaperAndGrainApp: App {
     }
 
     private var saveProjectTitle: String {
-        workspace.needsSaveLocation ? s("Salva progetto…", "Save Project…") : s("Salva progetto", "Save Project")
+        workspace.needsSaveLocation ? tr("Save Project…") : tr("Save Project")
     }
 
-    private var language: String {
-        preferredLanguage == "system"
-            ? (Locale.preferredLanguages.first?.hasPrefix("it") == true ? "it" : "en")
-            : preferredLanguage
-    }
+    var language: String { L10n.resolve(preferredLanguage) }
 
     private var editorActions: EditorAppActions {
         EditorAppActions(closeBook: { workspace.closeBook() },
@@ -105,12 +101,12 @@ struct PaperAndGrainApp: App {
             }
             .overlay {
                 if workspace.importing {
-                    progressCard(label: s("Importo le immagini", "Importing photos"), value: workspace.importProgress,
+                    progressCard(label: tr("Importing photos"), value: workspace.importProgress,
                                  cancel: workspace.cancelImport)
                 } else if workspace.savingCopy {
-                    progressCard(label: s("Salvo una copia del libro", "Saving a copy of the book"), value: "", cancel: nil)
+                    progressCard(label: tr("Saving a copy of the book"), value: "", cancel: nil)
                 } else if workspace.exporting {
-                    progressCard(label: s("Esporto il PDF", "Exporting PDF"),
+                    progressCard(label: tr("Exporting PDF"),
                                  value: workspace.exportProgress.formatted(.percent.precision(.fractionLength(0))),
                                  cancel: workspace.cancelExport)
                 }
@@ -129,12 +125,12 @@ struct PaperAndGrainApp: App {
         .defaultSize(width: 1440, height: 900)
         .commands {
             CommandGroup(after: .newItem) {
-                Button(s("Nuovo libro da Foto…", "New Book from Photos…")) { showAlbums = true }
+                Button(tr("New Book from Photos…")) { showAlbums = true }
                     .keyboardShortcut("n")
-                Button(s("Nuovo libro da file…", "New Book from Files…")) { workspace.importFiles(language: language) }
-                Button(s("Apri…", "Open…"), action: workspace.openProject)
+                Button(tr("New Book from Files…")) { workspace.importFiles(language: language) }
+                Button(tr("Open…"), action: workspace.openProject)
                     .keyboardShortcut("o")
-                Menu(s("Apri recente", "Open Recent")) {
+                Menu(tr("Open Recent")) {
                     ForEach(workspace.recentBooks) { recent in
                         Button(recent.title.isEmpty ? recent.url.deletingPathExtension().lastPathComponent : recent.title) {
                             workspace.openProject(at: recent.url)
@@ -143,7 +139,7 @@ struct PaperAndGrainApp: App {
                 }
                 .disabled(workspace.recentBooks.isEmpty)
                 Divider()
-                Button(s("Torna alla libreria", "Back to Library")) { workspace.closeBook() }
+                Button(tr("Back to Library")) { workspace.closeBook() }
                     .keyboardShortcut("l", modifiers: [.command, .shift])
                     .disabled(workspace.directory == nil)
             }
@@ -151,29 +147,29 @@ struct PaperAndGrainApp: App {
                 Button(saveProjectTitle, action: workspace.saveProject)
                     .keyboardShortcut("s")
                     .disabled(workspace.directory == nil)
-                Button(s("Salva con nome…", "Save As…"), action: workspace.saveProjectAs)
+                Button(tr("Save As…"), action: workspace.saveProjectAs)
                     .keyboardShortcut("s", modifiers: [.command, .shift])
                     .disabled(!workspace.canSaveAs)
             }
             CommandGroup(after: .saveItem) {
                 Divider()
-                Button(s("Modelli del libro…", "Book Templates…")) { showBookTemplates = true }
+                Button(tr("Book Templates…")) { showBookTemplates = true }
                     .disabled(workspace.directory == nil)
-                Button(s("Libro e stampa…", "Book & Print…")) { showBookSettings = true }
+                Button(tr("Book & Print…")) { showBookSettings = true }
                     .keyboardShortcut("p", modifiers: [.command, .option])
                     .disabled(workspace.directory == nil)
                 Divider()
-                Button(s("Esporta PDF…", "Export PDF…")) { showPDFExport = true }
+                Button(tr("Export PDF…")) { showPDFExport = true }
                     .keyboardShortcut("e", modifiers: [.command, .shift])
                     .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
-                Button(s("Esporta per la stampa…", "Export for Print…")) { workspace.exportPrint(language: language) }
+                Button(tr("Export for Print…")) { workspace.exportPrint(language: language) }
                     .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
             }
             EditorMenus(language: language)
             AboutHelpCommands(language: language)
         }
 
-        Window(language.hasPrefix("it") ? "Aiuto di Paper & Grain" : "Paper & Grain Help", id: HelpView.windowID) {
+        Window(tr("Paper & Grain Help"), id: HelpView.windowID) {
             HelpView(language: language)
         }
         .defaultSize(width: 640, height: 720)
@@ -193,13 +189,11 @@ struct PaperAndGrainApp: App {
 
     private var analysisStatus: String {
         if let (done, total) = workspace.analysisProgress {
-            return s("Analisi foto", "Photo analysis") + " · \(done) / \(total)"
+            return tr("Photo analysis") + " · \(done) / \(total)"
         }
         let reviewed = workspace.book.photos.filter { ($0.analysis?.revision ?? 0) >= PhotoAnalysis.currentRevision }.count
-        return s("Foto analizzate", "Photos analysed") + " · \(reviewed) / \(workspace.book.photos.count)"
+        return tr("Photos analysed") + " · \(reviewed) / \(workspace.book.photos.count)"
     }
-
-    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
     private func errorBanner(_ message: String) -> some View {
         HStack(alignment: .center, spacing: 10) {
@@ -214,7 +208,7 @@ struct PaperAndGrainApp: App {
                 Image(systemName: "xmark")
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(s("Chiudi avviso", "Dismiss Message"))
+            .accessibilityLabel(tr("Dismiss Message"))
         }
         .font(.callout)
         .padding(.horizontal, 16)
@@ -231,7 +225,7 @@ struct PaperAndGrainApp: App {
                 ProgressView().controlSize(.small)
                 Text(label).font(.headline)
                 if !value.isEmpty { Text(value).monospacedDigit().foregroundStyle(.secondary) }
-                if let cancel { Button(s("Annulla", "Cancel"), action: cancel) }
+                if let cancel { Button(tr("Cancel"), action: cancel) }
             }
             .frame(width: 225)
             .padding(26)
@@ -240,7 +234,7 @@ struct PaperAndGrainApp: App {
     }
 }
 
-private struct BookSettingsSheets: ViewModifier {
+private struct BookSettingsSheets: ViewModifier, Localizing {
     @Environment(\.undoManager) private var undoManager
     let workspace: Workspace
     let language: String
@@ -254,7 +248,7 @@ private struct BookSettingsSheets: ViewModifier {
                     BookTemplateChooser(book: workspace.book, directory: directory, language: language,
                                         onCancel: { showTemplates = false }) { template, showPageNumbers in
                         workspace.applyBookTemplate(template, showPageNumbers: showPageNumbers, undoManager: undoManager,
-                                                    actionName: language == "it" ? "Modello del libro" : "Book Template")
+                                                    actionName: tr("Book Template"))
                         showTemplates = false
                     }
                 }
@@ -264,7 +258,7 @@ private struct BookSettingsSheets: ViewModifier {
                     title, format, printSettings, cover, typography in
                     workspace.applyBookPrintSettings(title: title, format: format, printSettings: printSettings,
                                                      cover: cover, typography: typography, undoManager: undoManager,
-                                                     actionName: language == "it" ? "Libro e stampa" : "Book & Print")
+                                                     actionName: tr("Book & Print"))
                     showSettings = false
                 }
             }
@@ -272,21 +266,18 @@ private struct BookSettingsSheets: ViewModifier {
 }
 
 /// Paper & Grain › Settings (⌘,). The interface language lives here instead of the toolbar.
-private struct AppSettingsView: View {
+private struct AppSettingsView: View, Localizing {
     let language: String
     @Binding var preferredLanguage: String
 
-    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
-
     var body: some View {
         Form {
-            Picker(s("Lingua dell’interfaccia", "App Language"), selection: $preferredLanguage) {
-                Text(s("Come il sistema", "System Default")).tag("system")
+            Picker(tr("App Language"), selection: $preferredLanguage) {
+                Text(tr("System Default")).tag("system")
                 Text("Italiano").tag("it")
                 Text("English").tag("en")
             }
-            Text(s("Puoi scegliere la lingua anche in Impostazioni di Sistema › Generali › Lingua e zona › Applicazioni.",
-                   "You can also choose it in System Settings › General › Language & Region › Applications."))
+            Text(tr("You can also choose it in System Settings › General › Language & Region › Applications."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -298,7 +289,7 @@ private struct AppSettingsView: View {
     }
 }
 
-private struct WelcomeView: View {
+private struct WelcomeView: View, Localizing {
     let language: String
     let recents: [Workspace.RecentBook]
     let onAlbums: () -> Void
@@ -309,8 +300,6 @@ private struct WelcomeView: View {
     let onDeleteDraft: (Workspace.RecentBook) -> Void
     let onDemo: () -> Void
     @State private var draftToDelete: Workspace.RecentBook?
-
-    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -323,15 +312,15 @@ private struct WelcomeView: View {
                     .foregroundStyle(Theme.welcomeInk)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityLabel("Paper & Grain")
-                Text(s("I tuoi viaggi, pagina dopo pagina.", "Your travels, page by page."))
+                Text(tr("Your travels, page by page."))
                     .font(.title3)
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 8) {
-                    welcomeButton(s("Nuovo libro da un album di Foto", "New Book from a Photos Album"),
+                    welcomeButton(tr("New Book from a Photos Album"),
                                   symbol: "photo.on.rectangle", prominent: true, action: onAlbums)
-                    welcomeButton(s("Nuovo libro da file del Finder", "New Book from Finder Files"),
+                    welcomeButton(tr("New Book from Finder Files"),
                                   symbol: "folder", action: onFiles)
-                    welcomeButton(s("Apri il libro dimostrativo", "Open the Sample Book"),
+                    welcomeButton(tr("Open the Sample Book"),
                                   symbol: "book", action: onDemo)
                 }
                 .frame(maxWidth: 330)
@@ -344,17 +333,16 @@ private struct WelcomeView: View {
 
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Text(s("I tuoi libri", "Your Books"))
+                    Text(tr("Your Books"))
                         .font(.title2.weight(.bold))
                     Spacer()
-                    Button(s("Apri altro…", "Open Other…"), action: onOpen)
+                    Button(tr("Open Other…"), action: onOpen)
                 }
                 if recents.isEmpty {
                     ContentUnavailableView {
-                        Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
+                        Label(tr("No Books Yet"), systemImage: "books.vertical")
                     } description: {
-                        Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
-                               "Choose a Photos album to lay out your first book, or open the sample."))
+                        Text(tr("Choose a Photos album to lay out your first book, or open the sample."))
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -365,16 +353,16 @@ private struct WelcomeView: View {
                                 RecentBookCard(recent: recent, language: language)
                                     .onTapGesture { onOpenRecent(recent) }
                                     .contextMenu {
-                                        Button(s("Apri", "Open")) { onOpenRecent(recent) }
-                                        Button(s("Mostra nel Finder", "Show in Finder")) {
+                                        Button(tr("Open")) { onOpenRecent(recent) }
+                                        Button(tr("Show in Finder")) {
                                             NSWorkspace.shared.activateFileViewerSelecting([recent.url])
                                         }
                                         .disabled(recent.isDraft)
                                         Divider()
                                         if recent.isDraft {
-                                            Button(s("Elimina bozza…", "Delete Draft…")) { draftToDelete = recent }
+                                            Button(tr("Delete Draft…")) { draftToDelete = recent }
                                         } else {
-                                            Button(s("Togli dai recenti", "Remove from Recents")) { onForget(recent) }
+                                            Button(tr("Remove from Recents")) { onForget(recent) }
                                         }
                                     }
                                     .accessibilityElement(children: .combine)
@@ -391,15 +379,14 @@ private struct WelcomeView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(.background)
         }
-        .alert(s("Eliminare la bozza?", "Delete This Draft?"),
+        .alert(tr("Delete This Draft?"),
                isPresented: Binding(get: { draftToDelete != nil }, set: { if !$0 { draftToDelete = nil } }),
                presenting: draftToDelete) { draft in
-            Button(s("Sposta nel Cestino", "Move to Trash"), role: .destructive) { onDeleteDraft(draft) }
-            Button(s("Annulla", "Cancel"), role: .cancel) {}
+            Button(tr("Move to Trash"), role: .destructive) { onDeleteDraft(draft) }
+            Button(tr("Cancel"), role: .cancel) {}
         } message: { draft in
-            let title = draft.title.isEmpty ? s("Senza titolo", "Untitled") : draft.title
-            Text(s("«\(title)» non è mai stato salvato in un file. La bozza verrà spostata nel Cestino.",
-                   "“\(title)” was never saved to a file. The draft will be moved to the Trash."))
+            let title = draft.title.isEmpty ? tr("Untitled") : draft.title
+            Text(tr("“%@” was never saved to a file. The draft will be moved to the Trash.", title))
         }
     }
 
@@ -420,13 +407,11 @@ private struct WelcomeView: View {
     }
 }
 
-private struct RecentBookCard: View {
+private struct RecentBookCard: View, Localizing {
     let recent: Workspace.RecentBook
     let language: String
     @State private var cover: CGImage?
     @State private var hovering = false
-
-    private func s(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -464,7 +449,7 @@ private struct RecentBookCard: View {
             .scaleEffect(hovering ? 1.02 : 1)
             .animation(.snappy(duration: 0.18), value: hovering)
             VStack(alignment: .leading, spacing: 2) {
-                Text(recent.title.isEmpty ? s("Senza titolo", "Untitled") : recent.title)
+                Text(recent.title.isEmpty ? tr("Untitled") : recent.title)
                     .font(.callout.weight(.semibold))
                     .lineLimit(1)
                 Text(details)
@@ -483,7 +468,7 @@ private struct RecentBookCard: View {
 
     private var details: String {
         let date = recent.opened.formatted(.relative(presentation: .named).locale(Locale(identifier: language)))
-        let pages = s("\(recent.pageCount) pagine", "\(recent.pageCount) pages")
-        return (recent.isDraft ? s("Bozza", "Draft") + " · " : "") + pages + " · " + date
+        let pages = tr("%lld pages", recent.pageCount)
+        return (recent.isDraft ? tr("Draft") + " · " : "") + pages + " · " + date
     }
 }

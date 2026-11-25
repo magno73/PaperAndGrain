@@ -1,0 +1,5461 @@
+{
+ "pairs": [
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 11,
+   "kind": "call",
+   "it": "Informazioni su Paper & Grain",
+   "en": "About Paper & Grain"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 14,
+   "kind": "call",
+   "it": "Aiuto di Paper & Grain",
+   "en": "Paper & Grain Help"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 39,
+   "kind": "ternary",
+   "it": "Fotolibri di viaggio, dall’album alla stampa.\n\n",
+   "en": "Travel photobooks, from album to print.\n\n"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 47,
+   "kind": "ternary",
+   "it": "Codice sorgente con licenza PolyForm Noncommercial: uso non commerciale\n",
+   "en": "Source code under the PolyForm Noncommercial License: noncommercial use\n"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 53,
+   "kind": "ternary",
+   "it": "LUT di emulazione pellicola di abpy, CC BY-NC-SA 4.0.",
+   "en": "Film-emulation LUTs by abpy, CC BY-NC-SA 4.0."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 79,
+   "kind": "call",
+   "it": "Aiuto di Paper & Grain",
+   "en": "Paper & Grain Help"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 81,
+   "kind": "call",
+   "it": "Dall’album al fotolibro stampato, in cinque passi.",
+   "en": "From album to printed photobook, in five steps."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 98,
+   "kind": "call",
+   "it": "Domande o problemi: [\\(AboutPanel.email)](mailto:\\(AboutPanel.email)) · [Codice su GitHub](\\(AboutPanel.repository))",
+   "en": "Questions or problems: [\\(AboutPanel.email)](mailto:\\(AboutPanel.email)) · [Source on GitHub](\\(AboutPanel.repository))"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 111,
+   "kind": "call",
+   "it": "Crea il libro",
+   "en": "Create the book"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 112,
+   "kind": "call",
+   "it": "**File › Nuovo libro da Foto** sceglie un album; **Nuovo libro da file** usa il Finder. Scegli il formato e poi il modello del libro: carta, caratteri e margini.",
+   "en": "**File › New Book from Photos** picks an album; **New Book from Files** uses Finder. Choose the size, then the book template: paper, type and margins."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 114,
+   "kind": "call",
+   "it": "Il modello si cambia quando vuoi da **Stile** nella barra.",
+   "en": "Change the template any time with **Style** in the toolbar."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 116,
+   "kind": "call",
+   "it": "Impagina",
+   "en": "Lay out pages"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 117,
+   "kind": "call",
+   "it": "Trascina le foto dalla **Fototeca** in basso sulla pagina. Su una foto la sostituisce senza ritagliarla di nascosto; su uno spazio vuoto lo riempie.",
+   "en": "Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 119,
+   "kind": "call",
+   "it": "**Impagina** sceglie il modello della pagina. Trascina le miniature delle **Pagine** per riordinarle; ← → e ↑ ↓ si spostano fra pagine e doppie.",
+   "en": "**Layout** picks the page layout. Drag the **Pages** thumbnails to reorder; ← → and ↑ ↓ move between pages and spreads."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 121,
+   "kind": "call",
+   "it": "Tasto destro su un elemento: ritaglio, regolazioni e **Porta in primo piano / in fondo**. Doppio clic su una foto per ritagliarla.",
+   "en": "Right-click an object for crop, adjustments and **Bring to Front / Send to Back**. Double-click a photo to crop it."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 123,
+   "kind": "call",
+   "it": "Spostando o ridimensionando, le guide agganciano foto e testi agli altri elementi e ai bordi della pagina, così una foto arriva al bordo senza lasciare spazi. Trascina oltre per staccarla, o tieni premuto ⌥ per muoverti liberamente.",
+   "en": "When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Drag further to pull it away, or hold ⌥ to move freely."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "Scrivi",
+   "en": "Write"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 127,
+   "kind": "call",
+   "it": "**Inserisci › Box di testo** o **Titolo di pagina**. Doppio clic per scrivere nella pagina.",
+   "en": "**Insert › Text Box** or **Page Heading**. Double-click to type on the page."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 129,
+   "kind": "call",
+   "it": "La scheda **Testo** dell’ispettore regola carattere, dimensione, colore, allineamento, interlinea, sfondo e bordo del box.",
+   "en": "The **Text** tab of the inspector sets font, size, color, alignment, line spacing, and the box background and border."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 132,
+   "kind": "call",
+   "it": "Rifinisci le foto",
+   "en": "Finish the photos"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 133,
+   "kind": "call",
+   "it": "Seleziona una foto: la scheda **Foto** ha **Regola** (anche **Migliora in automatico**) e **Pellicola**, che cambia solo quella foto.",
+   "en": "Select a photo: the **Photo** tab has **Adjust** (with **Auto Enhance**) and **Film**, which changes only that photo."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 135,
+   "kind": "call",
+   "it": "Per tutto il libro spunta **Cambia in tutto il libro**, oppure usa la scheda **Pellicola** senza foto selezionate.",
+   "en": "For the whole book tick **Change the whole book**, or use the **Film** tab with no photo selected."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 138,
+   "kind": "call",
+   "it": "Stampa",
+   "en": "Print"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 139,
+   "kind": "call",
+   "it": "**Libro e stampa** imposta formato, abbondanza, margini e copertina con dorso. **Esporta PDF** offre la verifica prestampa e i profili di stampa.",
+   "en": "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 141,
+   "kind": "call",
+   "it": "Un triangolo arancione o rosso sull’angolo di una foto indica una risoluzione di stampa bassa: rimpicciolisci la foto o usa un originale più grande.",
+   "en": "An orange or red triangle in the corner of a photo means a low print resolution: make the photo smaller or use a larger original."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 143,
+   "kind": "call",
+   "it": "Controlla sempre misure e colori con la tipografia prima di ordinare.",
+   "en": "Always check sizes and color with your print shop before ordering."
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 146,
+   "kind": "call",
+   "it": "Scorciatoie utili",
+   "en": "Handy shortcuts"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 147,
+   "kind": "call",
+   "it": "⌃⌘S pagine · ⌥⌘I ispettore · ⌥⌘L fototeca · ⌘1 / ⌘2 pagina singola o doppia · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ sfoglia il libro",
+   "en": "⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book"
+  },
+  {
+   "file": "AboutAndHelp.swift",
+   "line": 149,
+   "kind": "call",
+   "it": "⇧⌘N nuova pagina · ⌘[ ⌘] pagina precedente e successiva · ⌥⌘C ritaglia · ⌥⌘E migliora · ⇧⌘F / ⇧⌘B primo piano / in fondo",
+   "en": "⇧⌘N new page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 42,
+   "kind": "call",
+   "it": "Scegli un album",
+   "en": "Choose an Album"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 44,
+   "kind": "call",
+   "it": "Seleziona gli scatti da impaginare.",
+   "en": "Select the photos to lay out."
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 49,
+   "kind": "call",
+   "it": "Carico gli album…",
+   "en": "Loading albums…"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 53,
+   "kind": "call",
+   "it": "Accesso a Foto",
+   "en": "Access to Photos"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 55,
+   "kind": "call",
+   "it": "Consenti l’accesso in Impostazioni di Sistema oppure importa i file dal Finder.",
+   "en": "Allow access in System Settings or import files from Finder."
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 58,
+   "kind": "call",
+   "it": "Apri Impostazioni",
+   "en": "Open Settings"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 66,
+   "kind": "call",
+   "it": "Nessun album",
+   "en": "No Albums"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 68,
+   "kind": "call",
+   "it": "La libreria di Foto non contiene album da impaginare. Puoi creare un libro dai file del Finder.",
+   "en": "Your Photos library has no albums to lay out. You can start a book from Finder files instead."
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 77,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Impagina",
+   "en": "Auto-Layout"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 89,
+   "kind": "call",
+   "it": "Nuovo libro",
+   "en": "New Book"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 123,
+   "kind": "call",
+   "it": "Album di Foto",
+   "en": "Photos Albums"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 127,
+   "kind": "call",
+   "it": "Vedi soltanto le foto che hai autorizzato.",
+   "en": "Only the photos you allowed are shown."
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 131,
+   "kind": "call",
+   "it": "Seleziona tutte",
+   "en": "Select All"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 133,
+   "kind": "call",
+   "it": "Deseleziona tutte",
+   "en": "Deselect All"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 135,
+   "kind": "ternary",
+   "it": "\\(selected.count) selezionate",
+   "en": "\\(selected.count) selected"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 139,
+   "kind": "call",
+   "it": "Carico le foto…",
+   "en": "Loading photos…"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 142,
+   "kind": "call",
+   "it": "Nessuna foto nell’album",
+   "en": "No Photos in This Album"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 154,
+   "kind": "call",
+   "it": "Foto",
+   "en": "Photo"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 161,
+   "kind": "call",
+   "it": "Formato del libro",
+   "en": "Book Size"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 170,
+   "kind": "call",
+   "it": "Personalizzato…",
+   "en": "Custom…"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 176,
+   "kind": "call",
+   "it": "Larghezza in mm",
+   "en": "Width in mm"
+  },
+  {
+   "file": "AlbumPicker.swift",
+   "line": 177,
+   "kind": "call",
+   "it": "Altezza in mm",
+   "en": "Height in mm"
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 22,
+   "kind": "call",
+   "it": "\\(Self.it(title, or: \"Il libro\")) è stato spostato, rinominato o non è più disponibile. Usa Salva con nome per conservare le modifiche in un’altra posizione.",
+   "en": "\\(Self.en(title, or: \"The book\")) was moved, renamed or is no longer available. Use Save As to keep your changes in another place."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 25,
+   "kind": "call",
+   "it": "\\(Self.it(title, or: \"Questo libro\")) è stato salvato con una versione più recente di Paper & Grain. È aperto in sola lettura: le modifiche non verranno salvate. Aggiorna l’app per modificarlo.",
+   "en": "\\(Self.en(title, or: \"This book\")) was saved by a newer version of Paper & Grain. It is open read-only and changes will not be saved. Update the app to edit it."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 28,
+   "kind": "call",
+   "it": "\\(Self.it(title, or: \"Questo libro\")) si trova in una posizione in sola lettura. Le modifiche non verranno salvate finché non usi Salva con nome per copiarlo altrove.",
+   "en": "\\(Self.en(title, or: \"This book\")) is in a read-only location. Changes will not be saved until you use Save As to copy it somewhere else."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 31,
+   "kind": "call",
+   "it": "Impossibile aprire \\(Self.it(package, or: \"il libro\")): il file manifest.json è danneggiato o non descrive un libro.",
+   "en": "\\(Self.en(package, or: \"The book\")) can’t be opened: its manifest.json file is damaged or does not describe a book."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 35,
+   "kind": "call",
+   "it": "L’immagine non è disponibile o non è in un formato leggibile.",
+   "en": "The image is unavailable or not in a readable format."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 38,
+   "kind": "call",
+   "it": "«\\(name)» non è disponibile o non è in un formato leggibile.",
+   "en": "“\\(name)” is unavailable or not in a readable format."
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 44,
+   "kind": "fragment",
+   "it": "Importata 1 foto. ",
+   "en": "Imported 1 photo. "
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 44,
+   "kind": "fragment",
+   "it": "Importate \\(imported) foto. ",
+   "en": "Imported \\(imported) photos. "
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 45,
+   "kind": "fragment",
+   "it": "1 immagine non era disponibile",
+   "en": "1 image was unavailable"
+  },
+  {
+   "file": "AppErrors.swift",
+   "line": 45,
+   "kind": "fragment",
+   "it": "\\(failed) immagini non erano disponibili",
+   "en": "\\(failed) images were unavailable"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 12,
+   "kind": "ternary",
+   "it": "Quadrati",
+   "en": "Square"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 13,
+   "kind": "ternary",
+   "it": "Orizzontali",
+   "en": "Landscape"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 14,
+   "kind": "ternary",
+   "it": "Verticali",
+   "en": "Portrait"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 48,
+   "kind": "labelled",
+   "it": "piccolo, da regalo",
+   "en": "small, gift size"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 50,
+   "kind": "labelled",
+   "it": "standard americano",
+   "en": "US standard"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 52,
+   "kind": "labelled",
+   "it": "medio",
+   "en": "medium"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 54,
+   "kind": "labelled",
+   "it": "medio, profilo Pixartprinting",
+   "en": "medium, Pixartprinting profile"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 56,
+   "kind": "labelled",
+   "it": "grande",
+   "en": "large"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 58,
+   "kind": "labelled",
+   "it": "molto grande, da tavolo",
+   "en": "extra large, coffee table"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 60,
+   "kind": "labelled",
+   "it": "album americano",
+   "en": "US album"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 63,
+   "kind": "labelled",
+   "it": "piccolo",
+   "en": "small"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 65,
+   "kind": "labelled",
+   "it": "standard americano",
+   "en": "US standard"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 67,
+   "kind": "labelled",
+   "it": "medio",
+   "en": "medium"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 69,
+   "kind": "labelled",
+   "it": "A4",
+   "en": "A4"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 71,
+   "kind": "labelled",
+   "it": "panoramico",
+   "en": "panoramic"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 73,
+   "kind": "labelled",
+   "it": "grande",
+   "en": "large"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 75,
+   "kind": "labelled",
+   "it": "grande americano",
+   "en": "US large"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 77,
+   "kind": "labelled",
+   "it": "molto grande",
+   "en": "extra large"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 80,
+   "kind": "labelled",
+   "it": "piccolo",
+   "en": "small"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 82,
+   "kind": "labelled",
+   "it": "standard americano",
+   "en": "US standard"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 84,
+   "kind": "labelled",
+   "it": "A4, rivista",
+   "en": "A4, magazine"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 86,
+   "kind": "labelled",
+   "it": "medio",
+   "en": "medium"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 88,
+   "kind": "labelled",
+   "it": "alto",
+   "en": "tall"
+  },
+  {
+   "file": "BookFormatPresets.swift",
+   "line": 90,
+   "kind": "labelled",
+   "it": "grande",
+   "en": "large"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 19,
+   "kind": "bilingual",
+   "it": "Impossibile creare il PDF",
+   "en": "Could not create the PDF"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 20,
+   "kind": "bilingual",
+   "it": "Foto non disponibile",
+   "en": "Photo unavailable — \\(name)"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 21,
+   "kind": "bilingual",
+   "it": "Il testo eccede lo spazio a pagina \\(number)",
+   "en": "Text overflows on page \\(number)"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 22,
+   "kind": "bilingual",
+   "it": "Il testo eccede lo spazio in copertina",
+   "en": "Text overflows on the cover"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 145,
+   "kind": "bilingual",
+   "it": "Dimensioni non valide",
+   "en": "Invalid print dimensions"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 155,
+   "kind": "bilingual",
+   "it": "File della foto mancante",
+   "en": "Photo file missing"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 162,
+   "kind": "bilingual",
+   "it": "LUT illeggibile",
+   "en": "Unreadable LUT"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 174,
+   "kind": "bilingual",
+   "it": "Il testo eccede lo spazio",
+   "en": "Text overflows"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 179,
+   "kind": "bilingual",
+   "it": "Pagine bianche di compensazione",
+   "en": "Blank pages for alignment"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 186,
+   "kind": "bilingual",
+   "it": "Foto mancante",
+   "en": "Missing photo"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 203,
+   "kind": "bilingual",
+   "it": "Copertina",
+   "en": "Cover"
+  },
+  {
+   "file": "BookPDF.swift",
+   "line": 217,
+   "kind": "bilingual",
+   "it": "Foto mancante",
+   "en": "Missing photo"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 48,
+   "kind": "call",
+   "it": "Libro e stampa",
+   "en": "Book & Print"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 49,
+   "kind": "call",
+   "it": "Formato, impostazioni del PDF e copertina.",
+   "en": "Book size, PDF settings and cover."
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 57,
+   "kind": "call",
+   "it": "Libro",
+   "en": "Book"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 58,
+   "kind": "call",
+   "it": "Titolo",
+   "en": "Title"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 59,
+   "kind": "call",
+   "it": "Formato",
+   "en": "Size"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 73,
+   "kind": "call",
+   "it": "Personalizzato",
+   "en": "Custom"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 75,
+   "kind": "call",
+   "it": "Larghezza (mm)",
+   "en": "Width (mm)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 76,
+   "kind": "call",
+   "it": "Altezza (mm)",
+   "en": "Height (mm)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 78,
+   "kind": "call",
+   "it": "Tipografia del libro",
+   "en": "Book Typography"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 79,
+   "kind": "call",
+   "it": "Titoli",
+   "en": "Headings"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Testi",
+   "en": "Body Text"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 94,
+   "kind": "call",
+   "it": "Interni",
+   "en": "Interior"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 95,
+   "kind": "call",
+   "it": "Abbondanza (mm)",
+   "en": "Bleed (mm)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 96,
+   "kind": "call",
+   "it": "Margine sicuro (mm)",
+   "en": "Safe margin (mm)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 97,
+   "kind": "call",
+   "it": "Risoluzione desiderata (ppi)",
+   "en": "Target resolution (ppi)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 99,
+   "kind": "call",
+   "it": "PDF a doppie pagine",
+   "en": "Export facing-page spreads"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 100,
+   "kind": "call",
+   "it": "Prima pagina interna a destra",
+   "en": "First interior page on the right"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 102,
+   "kind": "call",
+   "it": "Copertina",
+   "en": "Cover"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 103,
+   "kind": "call",
+   "it": "Esporta una copertina separata",
+   "en": "Export a separate cover"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 105,
+   "kind": "call",
+   "it": "Titolo in copertina",
+   "en": "Cover title"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 106,
+   "kind": "call",
+   "it": "Fronte",
+   "en": "Front"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 107,
+   "kind": "call",
+   "it": "Retro",
+   "en": "Back"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 108,
+   "kind": "call",
+   "it": "Larghezza del dorso (mm)",
+   "en": "Spine width (mm)"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 116,
+   "kind": "call",
+   "it": "Controlla titolo e misure.",
+   "en": "Check the title and dimensions."
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 120,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 121,
+   "kind": "call",
+   "it": "Applica",
+   "en": "Apply"
+  },
+  {
+   "file": "BookSettingsView.swift",
+   "line": 166,
+   "kind": "call",
+   "it": "Nessuna foto",
+   "en": "No photo"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 18,
+   "kind": "ternary",
+   "it": "Classici",
+   "en": "Classics"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 19,
+   "kind": "ternary",
+   "it": "Studio",
+   "en": "Studio"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 20,
+   "kind": "ternary",
+   "it": "Fotolibro d’autore",
+   "en": "Photobook"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 27,
+   "kind": "ternary",
+   "it": "Racconto e foto in equilibrio.",
+   "en": "Story and photographs in balance."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 28,
+   "kind": "ternary",
+   "it": "Griglie e caratteri da rivista.",
+   "en": "Magazine grids and type."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 29,
+   "kind": "ternary",
+   "it": "Ispirati ai fotolibri premiati: ritmo, margini, sequenza.",
+   "en": "Inspired by award-winning photobooks: pacing, margins, sequence."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 47,
+   "kind": "ternary",
+   "it": "Diario",
+   "en": "Journal"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 48,
+   "kind": "ternary",
+   "it": "Atlante",
+   "en": "Atlas"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 49,
+   "kind": "ternary",
+   "it": "Galleria",
+   "en": "Gallery"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 50,
+   "kind": "ternary",
+   "it": "Griglia svizzera",
+   "en": "Swiss Grid"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 51,
+   "kind": "ternary",
+   "it": "Quaderno berlinese",
+   "en": "Berlin Notebook"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 52,
+   "kind": "ternary",
+   "it": "Intervallo giapponese",
+   "en": "Japanese Interval"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 53,
+   "kind": "ternary",
+   "it": "Essenziale",
+   "en": "Essential"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 54,
+   "kind": "ternary",
+   "it": "Monografia",
+   "en": "Monograph"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 55,
+   "kind": "ternary",
+   "it": "Cartolina",
+   "en": "Postcard"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 56,
+   "kind": "ternary",
+   "it": "Notturno",
+   "en": "Nocturne"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 58,
+   "kind": "ternary",
+   "it": "Diario di bordo",
+   "en": "Road Log"
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 65,
+   "kind": "ternary",
+   "it": "Carta avorio e titoli in grande. Per alternare il racconto alle fotografie.",
+   "en": "Ivory paper and generous headlines. For alternating stories with photographs."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 68,
+   "kind": "ternary",
+   "it": "Griglia, carta chiara e folio. Per paesaggi, tappe e sequenze.",
+   "en": "A grid, light paper and page numbers. For landscapes, stops and sequences."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 71,
+   "kind": "ternary",
+   "it": "Fondo carbone e margini larghi. Una foto alla volta.",
+   "en": "Charcoal paper and generous margins. One image at a time."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 73,
+   "kind": "ternary",
+   "it": "Griglia a sei colonne, neretto compatto e cartiglio segnato in rosso.",
+   "en": "Six-column grid, compact bold type and a caption panel marked in red."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 74,
+   "kind": "ternary",
+   "it": "Blu notte, titoli cedro e una fascia fotografica sopra la testata.",
+   "en": "Midnight blue, citron headlines and a strip of photography above the masthead."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 75,
+   "kind": "ternary",
+   "it": "Piccola stampa decentrata, titoli Mincho e una didascalia su carta calda.",
+   "en": "An off-centre print, Mincho headings and a caption on warm paper."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 77,
+   "kind": "ternary",
+   "it": "Bianco netto, titoli leggeri e fotografia a piena pagina.",
+   "en": "Pure white, light typography and edge-to-edge photography."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 80,
+   "kind": "ternary",
+   "it": "Una foto per pagina con margini larghi, come le monografie d’autore. Carta calda e serif classico.",
+   "en": "One photograph per page with wide margins, like an artist’s monograph. Warm paper and a classic serif."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 83,
+   "kind": "ternary",
+   "it": "Riquadro fisso, titoli Futura rossi e copertina da manifesto di viaggio.",
+   "en": "A fixed picture box, red Futura headlines and a travel-poster cover."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 86,
+   "kind": "ternary",
+   "it": "Pagine nere e foto sospese, per notti, città e luci basse.",
+   "en": "Black pages and floating prints, for nights, cities and low light."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 89,
+   "kind": "ternary",
+   "it": "Stampe incorniciate in coppia su carta avorio, con Gill Sans e un azzurro cielo.",
+   "en": "Framed prints in pairs on ivory paper, with Gill Sans and a sky blue."
+  },
+  {
+   "file": "BookTemplate.swift",
+   "line": 92,
+   "kind": "ternary",
+   "it": "Carta manila, macchina da scrivere e provini fitti, in ordine di viaggio.",
+   "en": "Manila paper, typewriter headings and dense contact sheets in travel order."
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 29,
+   "kind": "call",
+   "it": "Modelli del libro",
+   "en": "Book Templates"
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 31,
+   "kind": "call",
+   "it": "Scegli carta, caratteri e margini per tutto il libro.",
+   "en": "Choose the paper, type and margins for the entire book."
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 65,
+   "kind": "call",
+   "it": "Ripristina stile di base",
+   "en": "Restore Basic Style"
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 68,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 69,
+   "kind": "call",
+   "it": "Applica",
+   "en": "Apply"
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "La luce attraversa il paesaggio.",
+   "en": "Light moves across the landscape."
+  },
+  {
+   "file": "BookTemplateChooser.swift",
+   "line": 181,
+   "kind": "call",
+   "it": "Mostra numeri di pagina",
+   "en": "Show Page Numbers"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 38,
+   "kind": "labelled",
+   "it": "Diapositiva naturale",
+   "en": "Natural Slide"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 40,
+   "kind": "labelled",
+   "it": "Diapositiva vivida",
+   "en": "Vivid Slide"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 42,
+   "kind": "labelled",
+   "it": "Diapositiva morbida",
+   "en": "Soft Slide"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 44,
+   "kind": "labelled",
+   "it": "Cromo smorzato",
+   "en": "Muted Chrome"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 46,
+   "kind": "labelled",
+   "it": "Negativo urbano",
+   "en": "Street Negative"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 48,
+   "kind": "labelled",
+   "it": "Ritratto standard",
+   "en": "Portrait Standard"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 50,
+   "kind": "labelled",
+   "it": "Ritratto contrastato",
+   "en": "Portrait Contrast"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 52,
+   "kind": "labelled",
+   "it": "Cinema morbido",
+   "en": "Soft Cinema"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 54,
+   "kind": "labelled",
+   "it": "Bleach bypass",
+   "en": "Bleach Bypass"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 56,
+   "kind": "labelled",
+   "it": "Negativo d’epoca",
+   "en": "Vintage Negative"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 58,
+   "kind": "labelled",
+   "it": "Colore fedele",
+   "en": "True Color"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 60,
+   "kind": "labelled",
+   "it": "Negativo urbano",
+   "en": "Street Negative"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 62,
+   "kind": "labelled",
+   "it": "Bleach bypass",
+   "en": "Bleach Bypass"
+  },
+  {
+   "file": "BundledFilmLooks.swift",
+   "line": 64,
+   "kind": "labelled",
+   "it": "Negativo d’epoca",
+   "en": "Vintage Negative"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 81,
+   "kind": "call",
+   "it": "Mostra pagine",
+   "en": "Show Pages"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 81,
+   "kind": "call",
+   "it": "Nascondi pagine",
+   "en": "Hide Pages"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Mostra ispettore",
+   "en": "Show Inspector"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Nascondi ispettore",
+   "en": "Hide Inspector"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 91,
+   "kind": "call",
+   "it": "Mostra fototeca",
+   "en": "Show Photo Library"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 91,
+   "kind": "call",
+   "it": "Nascondi fototeca",
+   "en": "Hide Photo Library"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 97,
+   "kind": "call",
+   "it": "Pagina singola",
+   "en": "Single Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 100,
+   "kind": "call",
+   "it": "Doppia pagina",
+   "en": "Two Pages"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 104,
+   "kind": "call",
+   "it": "Zoom avanti",
+   "en": "Zoom In"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 107,
+   "kind": "call",
+   "it": "Zoom indietro",
+   "en": "Zoom Out"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 110,
+   "kind": "call",
+   "it": "Adatta alla finestra",
+   "en": "Zoom to Fit"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 113,
+   "kind": "call",
+   "it": "Nascondi guida della piega",
+   "en": "Hide Gutter Guide"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 114,
+   "kind": "call",
+   "it": "Mostra guida della piega",
+   "en": "Show Gutter Guide"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 119,
+   "kind": "call",
+   "it": "Sfoglia il libro",
+   "en": "Browse the Book"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 125,
+   "kind": "call",
+   "it": "Inserisci",
+   "en": "Insert"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 129,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Box"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 131,
+   "kind": "call",
+   "it": "Titolo di pagina",
+   "en": "Page Heading"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 133,
+   "kind": "call",
+   "it": "Frontespizio",
+   "en": "Title Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 137,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 138,
+   "kind": "call",
+   "it": "Modello di pagina…",
+   "en": "Page Layout…"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 141,
+   "kind": "call",
+   "it": "Pagina precedente",
+   "en": "Previous Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 144,
+   "kind": "call",
+   "it": "Pagina successiva",
+   "en": "Next Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 148,
+   "kind": "call",
+   "it": "Sposta prima",
+   "en": "Move Earlier"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 151,
+   "kind": "call",
+   "it": "Sposta dopo",
+   "en": "Move Later"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 155,
+   "kind": "call",
+   "it": "Elimina pagina…",
+   "en": "Delete Page…"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 159,
+   "kind": "call",
+   "it": "Foto",
+   "en": "Photo"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 160,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 163,
+   "kind": "call",
+   "it": "Regola",
+   "en": "Adjust"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 165,
+   "kind": "call",
+   "it": "Migliora in automatico",
+   "en": "Auto Enhance"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 168,
+   "kind": "call",
+   "it": "Look pellicola",
+   "en": "Film Look"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 171,
+   "kind": "call",
+   "it": "Togli dalla pagina",
+   "en": "Remove from Page"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 175,
+   "kind": "call",
+   "it": "Disponi",
+   "en": "Arrange"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 176,
+   "kind": "call",
+   "it": "Porta in primo piano",
+   "en": "Bring to Front"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 179,
+   "kind": "call",
+   "it": "Porta avanti",
+   "en": "Bring Forward"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 182,
+   "kind": "call",
+   "it": "Porta indietro",
+   "en": "Send Backward"
+  },
+  {
+   "file": "EditorCommands.swift",
+   "line": 185,
+   "kind": "call",
+   "it": "Porta in fondo",
+   "en": "Send to Back"
+  },
+  {
+   "file": "EditorView+Adjustments.swift",
+   "line": 9,
+   "kind": "call",
+   "it": "Le regolazioni seguono la foto in tutto il libro.",
+   "en": "Adjustments follow this photo throughout the book."
+  },
+  {
+   "file": "EditorView+Adjustments.swift",
+   "line": 38,
+   "kind": "call",
+   "it": "Seleziona una foto nella pagina o nella fototeca.",
+   "en": "Select a photo on the page or in the photo library."
+  },
+  {
+   "file": "EditorView+Adjustments.swift",
+   "line": 54,
+   "kind": "call",
+   "it": "Regola foto",
+   "en": "Adjust Photo"
+  },
+  {
+   "file": "EditorView+Adjustments.swift",
+   "line": 117,
+   "kind": "call",
+   "it": "Impossibile analizzare questa foto.",
+   "en": "Couldn’t analyze this photo."
+  },
+  {
+   "file": "EditorView+Adjustments.swift",
+   "line": 122,
+   "kind": "call",
+   "it": "Migliora in automatico",
+   "en": "Auto Enhance"
+  },
+  {
+   "file": "EditorView+Browser.swift",
+   "line": 67,
+   "kind": "call",
+   "it": "Fine",
+   "en": "Done"
+  },
+  {
+   "file": "EditorView+Browser.swift",
+   "line": 80,
+   "kind": "call",
+   "it": "Doppia precedente",
+   "en": "Previous Spread"
+  },
+  {
+   "file": "EditorView+Browser.swift",
+   "line": 93,
+   "kind": "call",
+   "it": "Doppia successiva",
+   "en": "Next Spread"
+  },
+  {
+   "file": "EditorView+Browser.swift",
+   "line": 105,
+   "kind": "call",
+   "it": "Sfoglia il libro",
+   "en": "Browse the Book"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 14,
+   "kind": "call",
+   "it": "Prima pagina",
+   "en": "First Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 15,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 23,
+   "kind": "call",
+   "it": "Torna alle regolazioni",
+   "en": "Return to Edits"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 26,
+   "kind": "call",
+   "it": "Torna alle regolazioni",
+   "en": "Return to Edits"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 42,
+   "kind": "call",
+   "it": "Il libro comincia qui",
+   "en": "Your book starts here"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 44,
+   "kind": "call",
+   "it": "Aggiungi una pagina",
+   "en": "Add a page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 82,
+   "kind": "call",
+   "it": "Vista",
+   "en": "View"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 84,
+   "kind": "call",
+   "it": "Pagina singola",
+   "en": "Single Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Doppia pagina",
+   "en": "Two-Page View"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 92,
+   "kind": "call",
+   "it": "Pagina singola o doppia",
+   "en": "Single or two-page view"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 94,
+   "kind": "call",
+   "it": "Zoom della pagina",
+   "en": "Page Zoom"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 101,
+   "kind": "call",
+   "it": "Guida della piega",
+   "en": "Gutter Guide"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 108,
+   "kind": "call",
+   "it": "Zoom della pagina",
+   "en": "Page Zoom"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 118,
+   "kind": "call",
+   "it": "Riempi pagina",
+   "en": "Fit Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 119,
+   "kind": "call",
+   "it": "Adatta alla larghezza",
+   "en": "Fit Width"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 178,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 179,
+   "kind": "call",
+   "it": "Regola",
+   "en": "Adjust"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 180,
+   "kind": "call",
+   "it": "Pellicola",
+   "en": "Film"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 182,
+   "kind": "call",
+   "it": "Togli dalla pagina",
+   "en": "Remove from Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 218,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 219,
+   "kind": "call",
+   "it": "Regola",
+   "en": "Adjust"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 222,
+   "kind": "catalog",
+   "it": "Aggiungi testo",
+   "en": "Add Text",
+   "key": "editor.cover.add_text"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 239,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 242,
+   "kind": "call",
+   "it": "Riduci immagine",
+   "en": "Zoom Out Photo"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 247,
+   "kind": "call",
+   "it": "Ingrandisci immagine",
+   "en": "Zoom In Photo"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 250,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 252,
+   "kind": "call",
+   "it": "Fine",
+   "en": "Done"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 403,
+   "kind": "call",
+   "it": "Sposta blocco",
+   "en": "Move Story Group"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 491,
+   "kind": "call",
+   "it": "Nessuna foto",
+   "en": "No photo"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 521,
+   "kind": "call",
+   "it": "Ritaglia foto",
+   "en": "Crop Photo"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 522,
+   "kind": "call",
+   "it": "Rimuovi dalla pagina",
+   "en": "Remove from Page"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 556,
+   "kind": "call",
+   "it": "Titolo",
+   "en": "Heading"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 556,
+   "kind": "call",
+   "it": "Racconto",
+   "en": "Story"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 610,
+   "kind": "call",
+   "it": "Modifica il testo",
+   "en": "Edit Text"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 619,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Box"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 659,
+   "kind": "call",
+   "it": "Modifica il testo",
+   "en": "Edit Text"
+  },
+  {
+   "file": "EditorView+Canvas.swift",
+   "line": 680,
+   "kind": "call",
+   "it": "Testo del box in pagina",
+   "en": "Text Box on Page"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 8,
+   "kind": "call",
+   "it": "1 pagina",
+   "en": "1 page"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 8,
+   "kind": "call",
+   "it": "\\(count) pagine",
+   "en": "\\(count) pages"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 18,
+   "kind": "call",
+   "it": "Pagine",
+   "en": "Pages"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 20,
+   "kind": "call",
+   "it": "Nascondi pagine",
+   "en": "Hide Pages"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 20,
+   "kind": "call",
+   "it": "Mostra pagine",
+   "en": "Show Pages"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 24,
+   "kind": "call",
+   "it": "Libreria",
+   "en": "Library"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 26,
+   "kind": "call",
+   "it": "Torna ai tuoi libri",
+   "en": "Back to your books"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 32,
+   "kind": "call",
+   "it": "Inserisci",
+   "en": "Insert"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 34,
+   "kind": "call",
+   "it": "Inserisci pagine, testi e frontespizio",
+   "en": "Insert pages, text and a title page"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 38,
+   "kind": "call",
+   "it": "Stile",
+   "en": "Style"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 40,
+   "kind": "call",
+   "it": "Scegli il modello del libro: carta, caratteri e margini",
+   "en": "Choose the book template: paper, type and margins"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 46,
+   "kind": "call",
+   "it": "Impagina",
+   "en": "Layout"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 48,
+   "kind": "call",
+   "it": "Scegli il modello della pagina",
+   "en": "Choose the page layout"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 58,
+   "kind": "call",
+   "it": "Pellicola",
+   "en": "Film"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 60,
+   "kind": "call",
+   "it": "Look pellicola del libro o della foto",
+   "en": "Film look for the book or photo"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 64,
+   "kind": "call",
+   "it": "Esporta",
+   "en": "Export"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 70,
+   "kind": "call",
+   "it": "Esporta il libro in PDF",
+   "en": "Export the book as PDF"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 74,
+   "kind": "call",
+   "it": "Fototeca",
+   "en": "Photo Library"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 76,
+   "kind": "call",
+   "it": "Nascondi la fototeca",
+   "en": "Hide Photo Library"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 76,
+   "kind": "call",
+   "it": "Mostra la fototeca",
+   "en": "Show Photo Library"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 80,
+   "kind": "call",
+   "it": "Ispettore",
+   "en": "Inspector"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 82,
+   "kind": "call",
+   "it": "Nascondi ispettore",
+   "en": "Hide Inspector"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 82,
+   "kind": "call",
+   "it": "Mostra ispettore",
+   "en": "Show Inspector"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 92,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 93,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Box"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 95,
+   "kind": "call",
+   "it": "Titolo di pagina",
+   "en": "Page Heading"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 97,
+   "kind": "call",
+   "it": "Frontespizio",
+   "en": "Title Page"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 100,
+   "kind": "call",
+   "it": "Pagina con modello",
+   "en": "Page with Template"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 108,
+   "kind": "call",
+   "it": "Modelli del libro…",
+   "en": "Book Templates…"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 109,
+   "kind": "call",
+   "it": "Libro e stampa…",
+   "en": "Book & Print…"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 112,
+   "kind": "call",
+   "it": "Salva con nome…",
+   "en": "Save As…"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 114,
+   "kind": "call",
+   "it": "Esporta PDF…",
+   "en": "Export PDF…"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 116,
+   "kind": "call",
+   "it": "Esporta per la stampa…",
+   "en": "Export for Print…"
+  },
+  {
+   "file": "EditorView+Commands.swift",
+   "line": 130,
+   "kind": "call",
+   "it": "Scegliere un modello ridistribuisce le cornici. Testi, foto e ritagli restano nella pagina.",
+   "en": "Choosing a layout rearranges the frames. Text, photos and crops stay on the page."
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 85,
+   "kind": "call",
+   "it": "Sposta o ridimensiona foto",
+   "en": "Move or Resize Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 95,
+   "kind": "call",
+   "it": "Ritaglia foto",
+   "en": "Crop Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 109,
+   "kind": "call",
+   "it": "Titolo",
+   "en": "Title"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 109,
+   "kind": "call",
+   "it": "Testo del retro",
+   "en": "Back Cover Text"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 121,
+   "kind": "call",
+   "it": "Titolo in copertina",
+   "en": "Cover Title"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 138,
+   "kind": "call",
+   "it": "Testo del retro",
+   "en": "Back Cover Text"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 145,
+   "kind": "call",
+   "it": "Carattere e paragrafo",
+   "en": "Font and Paragraph"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 148,
+   "kind": "call",
+   "it": "Ripristina posizione del testo",
+   "en": "Reset Text Placement"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 151,
+   "kind": "call",
+   "it": "Foto",
+   "en": "Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 166,
+   "kind": "call",
+   "it": "Seleziona la foto per regolarla",
+   "en": "Select the photo to adjust it"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 168,
+   "kind": "catalog",
+   "it": "Ripristina posizione e ritaglio",
+   "en": "Reset Photo Placement and Crop",
+   "key": "editor.cover.reset_photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 169,
+   "kind": "call",
+   "it": "Ripristina foto di copertina",
+   "en": "Reset Cover Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 175,
+   "kind": "call",
+   "it": "Scegli foto",
+   "en": "Choose Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 177,
+   "kind": "call",
+   "it": "Aggiungi copertina al libro",
+   "en": "Add Cover to Book"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 194,
+   "kind": "call",
+   "it": "Modifica tipografia",
+   "en": "Change Typography"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 269,
+   "kind": "call",
+   "it": "Rimuovi foto di copertina",
+   "en": "Remove Cover Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 270,
+   "kind": "call",
+   "it": "Imposta foto di copertina",
+   "en": "Set Cover Photo"
+  },
+  {
+   "file": "EditorView+Cover.swift",
+   "line": 297,
+   "kind": "call",
+   "it": "Sposta o ridimensiona testo",
+   "en": "Move or Resize Text"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 19,
+   "kind": "call",
+   "it": "Look di tutto il libro",
+   "en": "Look for the Whole Book"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 20,
+   "kind": "call",
+   "it": "Vale per tutte le foto che seguono il libro. Per cambiare una sola foto, selezionala.",
+   "en": "Applies to every photo that follows the book. To change one photo, select it."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 26,
+   "kind": "call",
+   "it": "Confronta con l’originale",
+   "en": "Compare with original"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 34,
+   "kind": "call",
+   "it": "Cambia in tutto il libro",
+   "en": "Change the whole book"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 38,
+   "kind": "call",
+   "it": "Le modifiche cambiano il look del libro. Questa foto torna a seguirlo.",
+   "en": "Changes set the book look. This photo goes back to following it."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 41,
+   "kind": "call",
+   "it": "Segue il look del libro (\\(filmName((book.film ?? FilmSettings()).preset))). Una scelta qui vale solo per questa foto.",
+   "en": "Follows the book look (\\(filmName((book.film ?? FilmSettings()).preset))). A choice here applies to this photo only."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 45,
+   "kind": "call",
+   "it": "Questa foto ha un look proprio.",
+   "en": "This photo has its own look."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 47,
+   "kind": "call",
+   "it": "Segui il libro",
+   "en": "Follow Book"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 65,
+   "kind": "call",
+   "it": "\\(own.count) foto hanno un look proprio e non cambiano.",
+   "en": "\\(own.count) photos have their own look and won’t change."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 68,
+   "kind": "call",
+   "it": "Uniforma",
+   "en": "Match Book"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 73,
+   "kind": "call",
+   "it": "Tutte le foto seguono il look del libro",
+   "en": "Every photo follows the book look"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 85,
+   "kind": "call",
+   "it": "Chiudi avviso",
+   "en": "Dismiss Message"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 94,
+   "kind": "call",
+   "it": "Intensità",
+   "en": "Intensity"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 96,
+   "kind": "call",
+   "it": "Grana",
+   "en": "Grain"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 97,
+   "kind": "call",
+   "it": "Dimensione grana",
+   "en": "Grain size"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 109,
+   "kind": "catalog",
+   "it": "Scegli LUT",
+   "en": "Choose LUT",
+   "key": "editor.lut.choose"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 129,
+   "kind": "call",
+   "it": "Da diapositiva standard",
+   "en": "From Standard Slide Film"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 132,
+   "kind": "call",
+   "it": "Base a contrasto lineare",
+   "en": "Linear-Contrast Input"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 135,
+   "kind": "call",
+   "it": "Fonte e licenza",
+   "en": "Source and License"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 140,
+   "kind": "call",
+   "it": "Importa LUT…",
+   "en": "Import LUT…"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 171,
+   "kind": "call",
+   "it": "Per immagini sviluppate con contrasto lineare.",
+   "en": "For images developed with linear contrast."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 173,
+   "kind": "call",
+   "it": "Per immagini già sviluppate con un aspetto da diapositiva standard, come i JPEG della fotocamera.",
+   "en": "For images already rendered with a standard slide-film look, such as in-camera JPEGs."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 187,
+   "kind": "call",
+   "it": "Impossibile aggiungere questa LUT al progetto.",
+   "en": "Couldn’t add this LUT to the project."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 236,
+   "kind": "call",
+   "it": "Originale",
+   "en": "Original"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 237,
+   "kind": "call",
+   "it": "Documentario",
+   "en": "Documentary"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 238,
+   "kind": "call",
+   "it": "Negativo caldo",
+   "en": "Warm Negative"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 239,
+   "kind": "call",
+   "it": "Monocromatico",
+   "en": "Monochrome"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 240,
+   "kind": "call",
+   "it": "LUT personalizzata",
+   "en": "Custom LUT"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 303,
+   "kind": "call",
+   "it": "Modifica pellicola",
+   "en": "Change Film Look"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 317,
+   "kind": "call",
+   "it": "Modifica pellicola",
+   "en": "Change Film Look"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 323,
+   "kind": "call",
+   "it": "Importa LUT",
+   "en": "Import LUT"
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 324,
+   "kind": "call",
+   "it": "Scegli un file .cube 3D o un PNG Hald CLUT.",
+   "en": "Choose a 3D .cube file or a Hald CLUT PNG."
+  },
+  {
+   "file": "EditorView+Film.swift",
+   "line": 342,
+   "kind": "call",
+   "it": "Verifica che il file sia una LUT .cube 3D o un PNG Hald CLUT valido.",
+   "en": "Check that the file is a valid 3D .cube LUT or Hald CLUT PNG."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 7,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 7,
+   "kind": "call",
+   "it": "Copertina",
+   "en": "Cover"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 9,
+   "kind": "call",
+   "it": "Testo",
+   "en": "Text"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 13,
+   "kind": "call",
+   "it": "Foto",
+   "en": "Photo"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 15,
+   "kind": "call",
+   "it": "Pellicola",
+   "en": "Film"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 22,
+   "kind": "call",
+   "it": "Ispettore",
+   "en": "Inspector"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 88,
+   "kind": "call",
+   "it": "Aggiungi alla pagina",
+   "en": "Add to page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 91,
+   "kind": "call",
+   "it": "Regola",
+   "en": "Adjust"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 94,
+   "kind": "call",
+   "it": "Pellicola",
+   "en": "Film"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 96,
+   "kind": "call",
+   "it": "dal libro",
+   "en": "from book"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 106,
+   "kind": "call",
+   "it": "Analisi",
+   "en": "Analysis"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 115,
+   "kind": "call",
+   "it": "Seleziona una foto nella pagina o nella fototeca.",
+   "en": "Select a photo on the page or in the photo library."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 142,
+   "kind": "call",
+   "it": "Espanso",
+   "en": "Expanded"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 142,
+   "kind": "call",
+   "it": "Compresso",
+   "en": "Collapsed"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 156,
+   "kind": "call",
+   "it": "Modello del libro",
+   "en": "Book Template"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 157,
+   "kind": "call",
+   "it": "Base",
+   "en": "Basic"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 161,
+   "kind": "call",
+   "it": "Cambia…",
+   "en": "Change…"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 171,
+   "kind": "call",
+   "it": "Modello del libro",
+   "en": "Book Template"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 172,
+   "kind": "call",
+   "it": "Base",
+   "en": "Basic"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 173,
+   "kind": "call",
+   "it": "Carta, caratteri e margini di tutto il libro",
+   "en": "Paper, type and margins for the whole book"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 192,
+   "kind": "call",
+   "it": "\\(waiting) foto in attesa di un riquadro.",
+   "en": "\\(waiting) photos waiting for a slot."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 200,
+   "kind": "call",
+   "it": "Titolo e testo",
+   "en": "Heading and Text"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 206,
+   "kind": "call",
+   "it": "Carattere e paragrafo",
+   "en": "Font and Paragraph"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 209,
+   "kind": "call",
+   "it": "Posizione del testo",
+   "en": "Text Position"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 216,
+   "kind": "call",
+   "it": "Sotto",
+   "en": "Below"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 217,
+   "kind": "call",
+   "it": "A fianco",
+   "en": "Beside"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 221,
+   "kind": "call",
+   "it": "Titolo della pagina",
+   "en": "Page Heading"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 238,
+   "kind": "call",
+   "it": "Racconto",
+   "en": "Story"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 241,
+   "kind": "call",
+   "it": "Ripristina posizione di titolo e testo",
+   "en": "Reset Heading and Text Placement"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 245,
+   "kind": "call",
+   "it": "Ripristina posizione del testo",
+   "en": "Reset Text Placement"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 258,
+   "kind": "call",
+   "it": "Foto nella pagina",
+   "en": "Photos on page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 263,
+   "kind": "call",
+   "it": "Apri le foto disponibili",
+   "en": "Browse available photos"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 268,
+   "kind": "call",
+   "it": "Scegli una foto dalla fototeca o trascinala nella pagina.",
+   "en": "Choose a photo from the photo library or drag it onto the page."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 277,
+   "kind": "call",
+   "it": "In attesa",
+   "en": "Waiting"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 282,
+   "kind": "call",
+   "it": "Sposta prima",
+   "en": "Move earlier"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 284,
+   "kind": "call",
+   "it": "Sposta dopo",
+   "en": "Move later"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 288,
+   "kind": "call",
+   "it": "Rimuovi dalla pagina",
+   "en": "Remove from page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 298,
+   "kind": "call",
+   "it": "Opzioni della foto",
+   "en": "Photo options"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 305,
+   "kind": "call",
+   "it": "Ripristina posizione automatica delle foto",
+   "en": "Reset automatic photo placement"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 311,
+   "kind": "call",
+   "it": "Elimina pagina…",
+   "en": "Delete page…"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 317,
+   "kind": "call",
+   "it": "Aggiungi una pagina per impaginare foto e racconti.",
+   "en": "Add a page to arrange photos and stories."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 327,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Boxes"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 329,
+   "kind": "call",
+   "it": "Aggiungi box di testo",
+   "en": "Add Text Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 332,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 336,
+   "kind": "call",
+   "it": "Seleziona un box",
+   "en": "Select a Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 339,
+   "kind": "call",
+   "it": "Box",
+   "en": "Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 349,
+   "kind": "call",
+   "it": "Carattere e paragrafo",
+   "en": "Font and Paragraph"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 359,
+   "kind": "call",
+   "it": "Testo del box",
+   "en": "Box Text"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 360,
+   "kind": "call",
+   "it": "Rimuovi box",
+   "en": "Remove Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 361,
+   "kind": "call",
+   "it": "Rimuovi box",
+   "en": "Remove Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 401,
+   "kind": "call",
+   "it": "Box di testo",
+   "en": "Text Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 410,
+   "kind": "call",
+   "it": "Ingrandisci il box o riduci la dimensione del testo.",
+   "en": "Enlarge the box or reduce the text size."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 414,
+   "kind": "call",
+   "it": "Usa tutta la larghezza",
+   "en": "Use Full Width"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 417,
+   "kind": "call",
+   "it": "Modifica margini del box",
+   "en": "Change Text Box Insets"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 436,
+   "kind": "call",
+   "it": "Racconto",
+   "en": "Story"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 445,
+   "kind": "call",
+   "it": "Alcune righe non entrano nel riquadro.",
+   "en": "Some lines exceed the text frame."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 452,
+   "kind": "call",
+   "it": "Titolo in copertina",
+   "en": "Cover Title"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 452,
+   "kind": "call",
+   "it": "Testo del retro",
+   "en": "Back Cover Text"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 460,
+   "kind": "call",
+   "it": "Il testo supera lo spazio della copertina.",
+   "en": "The text exceeds the cover space."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 463,
+   "kind": "call",
+   "it": "Seleziona un box, un titolo o un racconto nella pagina.",
+   "en": "Select a text box, heading or story on the page."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 480,
+   "kind": "call",
+   "it": "Modifica sfondo del box",
+   "en": "Change Box Background"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 481,
+   "kind": "call",
+   "it": "Modifica bordo del box",
+   "en": "Change Box Border"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 485,
+   "kind": "call",
+   "it": "Riquadro",
+   "en": "Box"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 486,
+   "kind": "call",
+   "it": "Sfondo",
+   "en": "Background"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 487,
+   "kind": "call",
+   "it": "Sfondo",
+   "en": "Background"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 503,
+   "kind": "call",
+   "it": "Nessuno",
+   "en": "None"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 504,
+   "kind": "call",
+   "it": "Carta",
+   "en": "Paper"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 505,
+   "kind": "call",
+   "it": "Colore",
+   "en": "Color"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 512,
+   "kind": "call",
+   "it": "Colore di sfondo",
+   "en": "Background Color"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 517,
+   "kind": "call",
+   "it": "Bordo",
+   "en": "Border"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 526,
+   "kind": "call",
+   "it": "Nessuno",
+   "en": "None"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 531,
+   "kind": "call",
+   "it": "Spessore del bordo",
+   "en": "Border Width"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 536,
+   "kind": "call",
+   "it": "Colore del bordo",
+   "en": "Border Color"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 547,
+   "kind": "call",
+   "it": "Titolo",
+   "en": "Heading"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 548,
+   "kind": "call",
+   "it": "Titolo della pagina",
+   "en": "Page Heading"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 569,
+   "kind": "call",
+   "it": "Disposizione",
+   "en": "Arrange"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 571,
+   "kind": "call",
+   "it": "In primo piano",
+   "en": "Front"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 573,
+   "kind": "call",
+   "it": "In fondo",
+   "en": "Back"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 597,
+   "kind": "call",
+   "it": "Modifica tipografia",
+   "en": "Change Typography"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 608,
+   "kind": "call",
+   "it": "Modifica tipografia",
+   "en": "Change Typography"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 638,
+   "kind": "call",
+   "it": "Copia nella pagina",
+   "en": "Copy to page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 645,
+   "kind": "call",
+   "it": "Sposta nella pagina",
+   "en": "Move to page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 661,
+   "kind": "call",
+   "it": "Foto suggerite",
+   "en": "Suggested photos"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 664,
+   "kind": "call",
+   "it": "Scrivi di un luogo, un animale o un soggetto per vedere le foto abbinate.",
+   "en": "Write about a place, animal, or subject to see matching photos."
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 667,
+   "kind": "call",
+   "it": "Analizza le foto",
+   "en": "Analyze photos"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 687,
+   "kind": "call",
+   "it": "Abbina alla pagina",
+   "en": "Add to the page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 688,
+   "kind": "call",
+   "it": "Abbina alla pagina",
+   "en": "Add to the page"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 711,
+   "kind": "call",
+   "it": "Testo nella foto",
+   "en": "Text in photo"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 717,
+   "kind": "call",
+   "it": "Dettagli analisi",
+   "en": "Analysis details"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 723,
+   "kind": "call",
+   "it": "Persone",
+   "en": "People"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 724,
+   "kind": "call",
+   "it": "Volti",
+   "en": "Faces"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 724,
+   "kind": "call",
+   "it": "Animali",
+   "en": "Animals"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 731,
+   "kind": "call",
+   "it": "Testo nella foto",
+   "en": "Text in photo"
+  },
+  {
+   "file": "EditorView+Inspector.swift",
+   "line": 744,
+   "kind": "call",
+   "it": "Colori dominanti",
+   "en": "Dominant colors"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 45,
+   "kind": "call",
+   "it": "Porta in primo piano",
+   "en": "Bring to Front"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 46,
+   "kind": "call",
+   "it": "Porta avanti",
+   "en": "Bring Forward"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 47,
+   "kind": "call",
+   "it": "Porta indietro",
+   "en": "Send Backward"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 48,
+   "kind": "call",
+   "it": "Porta in fondo",
+   "en": "Send to Back"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 67,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 68,
+   "kind": "call",
+   "it": "Regola foto…",
+   "en": "Adjust Photo…"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 77,
+   "kind": "call",
+   "it": "Ritaglia",
+   "en": "Crop"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 78,
+   "kind": "call",
+   "it": "Regola foto…",
+   "en": "Adjust Photo…"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 79,
+   "kind": "call",
+   "it": "Migliora in automatico",
+   "en": "Auto Enhance"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 87,
+   "kind": "call",
+   "it": "Togli dalla pagina",
+   "en": "Remove from Page"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 92,
+   "kind": "call",
+   "it": "Modifica testo",
+   "en": "Edit Text"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 93,
+   "kind": "call",
+   "it": "Carattere e paragrafo…",
+   "en": "Font and Paragraph…"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 99,
+   "kind": "call",
+   "it": "Rimuovi box",
+   "en": "Remove Box"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 100,
+   "kind": "call",
+   "it": "Rimuovi box",
+   "en": "Remove Box"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 107,
+   "kind": "call",
+   "it": "Modifica testo",
+   "en": "Edit Text"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 112,
+   "kind": "call",
+   "it": "Carattere e paragrafo…",
+   "en": "Font and Paragraph…"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "Inserisci box di testo",
+   "en": "Insert Text Box"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 127,
+   "kind": "call",
+   "it": "Modello di pagina…",
+   "en": "Page Layout…"
+  },
+  {
+   "file": "EditorView+Layers.swift",
+   "line": 130,
+   "kind": "call",
+   "it": "Sfoglia il libro",
+   "en": "Browse the Book"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 52,
+   "kind": "call",
+   "it": "Larghezza delle pagine",
+   "en": "Pages Width"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 59,
+   "kind": "call",
+   "it": "Larghezza delle pagine",
+   "en": "Pages Width"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 69,
+   "kind": "call",
+   "it": "Pagine",
+   "en": "Pages"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 75,
+   "kind": "call",
+   "it": "\\(physicalPageCount) pagine",
+   "en": "\\(physicalPageCount) pages"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 119,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 122,
+   "kind": "call",
+   "it": "Aggiungi pagina",
+   "en": "Add page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 124,
+   "kind": "call",
+   "it": "Sposta prima",
+   "en": "Move earlier"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "Sposta dopo",
+   "en": "Move later"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 128,
+   "kind": "call",
+   "it": "Sfoglia il libro",
+   "en": "Browse the Book"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 142,
+   "kind": "catalog",
+   "it": "Inserisci pagina qui",
+   "en": "Insert Page Here",
+   "key": "editor.insert_page_here"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 142,
+   "kind": "call",
+   "it": "Inserisci pagina qui",
+   "en": "Insert Page Here"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 180,
+   "kind": "call",
+   "it": "Prima pagina",
+   "en": "First Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 191,
+   "kind": "call",
+   "it": "Prima pagina",
+   "en": "First Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 191,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 192,
+   "kind": "call",
+   "it": "Trascina per riordinare la pagina",
+   "en": "Drag to reorder the page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 211,
+   "kind": "call",
+   "it": "Inserisci pagina prima",
+   "en": "Insert Page Before"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 214,
+   "kind": "call",
+   "it": "Inserisci pagina dopo",
+   "en": "Insert Page After"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 218,
+   "kind": "call",
+   "it": "Sposta prima",
+   "en": "Move Earlier"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 223,
+   "kind": "call",
+   "it": "Sposta dopo",
+   "en": "Move Later"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 229,
+   "kind": "call",
+   "it": "Elimina pagina…",
+   "en": "Delete Page…"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 378,
+   "kind": "call",
+   "it": "Elimina pagina",
+   "en": "Delete Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 391,
+   "kind": "call",
+   "it": "Sposta pagina",
+   "en": "Move Page"
+  },
+  {
+   "file": "EditorView+Navigator.swift",
+   "line": 443,
+   "kind": "call",
+   "it": "Riordina pagina",
+   "en": "Reorder Page"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 26,
+   "kind": "call",
+   "it": "Sposta o ridimensiona testo",
+   "en": "Move or Resize Text"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 44,
+   "kind": "call",
+   "it": "Sposta blocco di testo",
+   "en": "Move Story Group"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 53,
+   "kind": "call",
+   "it": "Cambia modello della pagina",
+   "en": "Change Page Template"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 80,
+   "kind": "call",
+   "it": "Inserisci pagina",
+   "en": "Insert Page"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 88,
+   "kind": "call",
+   "it": "Inserisci frontespizio",
+   "en": "Insert Title Page"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 101,
+   "kind": "call",
+   "it": "Inserisci titolo",
+   "en": "Insert Heading"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 121,
+   "kind": "call",
+   "it": "Inserisci box di testo",
+   "en": "Insert Text Box"
+  },
+  {
+   "file": "EditorView+PageEditing.swift",
+   "line": 146,
+   "kind": "call",
+   "it": "Sposta o ridimensiona box",
+   "en": "Move or Resize Text Box"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 85,
+   "kind": "call",
+   "it": "Aggiungi foto",
+   "en": "Add Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 172,
+   "kind": "call",
+   "it": "Posiziona foto su due pagine",
+   "en": "Place Photo Across Both Pages"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 188,
+   "kind": "call",
+   "it": "Sostituisci foto",
+   "en": "Replace Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 192,
+   "kind": "call",
+   "it": "Proporzioni diverse: la cornice si è adattata alla foto intera.",
+   "en": "Different proportions: the frame now fits the whole photo."
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 195,
+   "kind": "call",
+   "it": "Foto ritagliata per riempire lo spazio al vivo. Doppio clic per regolare il ritaglio.",
+   "en": "Photo cropped to fill the full-bleed space. Double-click to adjust the crop."
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 204,
+   "kind": "call",
+   "it": "Posiziona foto",
+   "en": "Place Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 208,
+   "kind": "call",
+   "it": "Aggiungi foto",
+   "en": "Add Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 219,
+   "kind": "call",
+   "it": "Posiziona foto",
+   "en": "Place Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 233,
+   "kind": "call",
+   "it": "Scambia foto",
+   "en": "Swap Photos"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 241,
+   "kind": "call",
+   "it": "Sposta o ridimensiona foto",
+   "en": "Move or Resize Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 252,
+   "kind": "call",
+   "it": "Ripristina posizioni foto",
+   "en": "Reset Photo Placement"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 291,
+   "kind": "call",
+   "it": "Ritaglia foto",
+   "en": "Crop Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 301,
+   "kind": "call",
+   "it": "Ritaglia foto",
+   "en": "Crop Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 328,
+   "kind": "call",
+   "it": "Sposta foto",
+   "en": "Move Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 328,
+   "kind": "call",
+   "it": "Copia foto",
+   "en": "Copy Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 365,
+   "kind": "call",
+   "it": "Rimuovi foto",
+   "en": "Remove Photo"
+  },
+  {
+   "file": "EditorView+PhotoPlacement.swift",
+   "line": 389,
+   "kind": "call",
+   "it": "Sposta foto",
+   "en": "Move Photo"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 7,
+   "kind": "call",
+   "it": "Trascina foto qui",
+   "en": "Drop Photos Here"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 30,
+   "kind": "call",
+   "it": "Mostra",
+   "en": "Show"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 31,
+   "kind": "call",
+   "it": "Tutte",
+   "en": "All"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 32,
+   "kind": "call",
+   "it": "Non usate",
+   "en": "Unused"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 33,
+   "kind": "call",
+   "it": "In pagina",
+   "en": "On Page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 33,
+   "kind": "call",
+   "it": "In copertina",
+   "en": "On Cover"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 38,
+   "kind": "catalog",
+   "it": "Ordina per",
+   "en": "Sort by",
+   "key": "editor.photo_library.sort"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 46,
+   "kind": "catalog",
+   "it": "Ordina per",
+   "en": "Sort by",
+   "key": "editor.photo_library.sort"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 51,
+   "kind": "call",
+   "it": "Cerca foto",
+   "en": "Search photos"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 61,
+   "kind": "call",
+   "it": "Aggiorna analisi",
+   "en": "Update Analysis"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 61,
+   "kind": "call",
+   "it": "Analizza foto",
+   "en": "Analyze Photos"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 64,
+   "kind": "call",
+   "it": "Importa file…",
+   "en": "Import Files…"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 80,
+   "kind": "call",
+   "it": "Altre azioni della fototeca",
+   "en": "More photo library actions"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 81,
+   "kind": "call",
+   "it": "Altre azioni della fototeca",
+   "en": "More photo library actions"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 114,
+   "kind": "call",
+   "it": "Fototeca",
+   "en": "Photo Library"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 115,
+   "kind": "call",
+   "it": "\\(book.photos.count) foto · \\(unused) non usate",
+   "en": "\\(book.photos.count) photos · \\(unused) unused"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 135,
+   "kind": "call",
+   "it": "Trascina qui foto dal Finder o da Foto, oppure importa dei file.",
+   "en": "Drag photos here from the Finder or Photos, or import files."
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 146,
+   "kind": "call",
+   "it": "Nessuna foto corrispondente.",
+   "en": "No matching photos."
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 197,
+   "kind": "call",
+   "it": "Rilascia per aggiungere al libro",
+   "en": "Drop to Add to the Book"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 217,
+   "kind": "call",
+   "it": "Fototeca",
+   "en": "Photo Library"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 263,
+   "kind": "catalog",
+   "it": "Data",
+   "en": "Date",
+   "key": "editor.photo_library.date"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 264,
+   "kind": "catalog",
+   "it": "Luogo",
+   "en": "Place",
+   "key": "editor.photo_library.place"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 265,
+   "kind": "catalog",
+   "it": "Argomento",
+   "en": "Subject",
+   "key": "editor.photo_library.subject"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 266,
+   "kind": "catalog",
+   "it": "Non usate prima",
+   "en": "Unused First",
+   "key": "editor.photo_library.usage"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 280,
+   "kind": "call",
+   "it": "O",
+   "en": "W"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 285,
+   "kind": "catalog",
+   "it": "Non usate",
+   "en": "Unused",
+   "key": "editor.photo_library.unused"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 287,
+   "kind": "catalog",
+   "it": "Già usate",
+   "en": "Already Used",
+   "key": "editor.photo_library.used"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 290,
+   "kind": "catalog",
+   "it": "Senza data",
+   "en": "No Date",
+   "key": "editor.photo_library.unknown_date"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 291,
+   "kind": "catalog",
+   "it": "Senza luogo",
+   "en": "No Location",
+   "key": "editor.photo_library.unknown_place"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 292,
+   "kind": "catalog",
+   "it": "Senza argomento",
+   "en": "No Subject",
+   "key": "editor.photo_library.unknown_subject"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 298,
+   "kind": "call",
+   "it": "Concetto",
+   "en": "Concept"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 299,
+   "kind": "call",
+   "it": "Tutti i concetti",
+   "en": "All concepts"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 358,
+   "kind": "call",
+   "it": "Rimuovi dalla pagina",
+   "en": "Remove from page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 359,
+   "kind": "call",
+   "it": "Aggiungi alla pagina",
+   "en": "Add to page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 363,
+   "kind": "call",
+   "it": "Rimuovi dalla pagina",
+   "en": "Remove from page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 364,
+   "kind": "call",
+   "it": "Aggiungi alla pagina",
+   "en": "Add to page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 373,
+   "kind": "catalog",
+   "it": "Orizzontale",
+   "en": "Landscape",
+   "key": "editor.photo_orientation.landscape"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 373,
+   "kind": "call",
+   "it": "Orizzontale",
+   "en": "Landscape"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 376,
+   "kind": "catalog",
+   "it": "Verticale",
+   "en": "Portrait",
+   "key": "editor.photo_orientation.portrait"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 376,
+   "kind": "call",
+   "it": "Verticale",
+   "en": "Portrait"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 378,
+   "kind": "catalog",
+   "it": "Quadrata",
+   "en": "Square",
+   "key": "editor.photo_orientation.square"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 378,
+   "kind": "call",
+   "it": "Quadrata",
+   "en": "Square"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 386,
+   "kind": "call",
+   "it": "C",
+   "en": "F"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 388,
+   "kind": "call",
+   "it": "R",
+   "en": "B"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 395,
+   "kind": "call",
+   "it": "Pagina",
+   "en": "Page"
+  },
+  {
+   "file": "EditorView+PhotoTray.swift",
+   "line": 395,
+   "kind": "call",
+   "it": "Pagine",
+   "en": "Pages"
+  },
+  {
+   "file": "EditorView+Selection.swift",
+   "line": 105,
+   "kind": "call",
+   "it": "Sposta foto di copertina",
+   "en": "Move Cover Photo"
+  },
+  {
+   "file": "EditorView+Selection.swift",
+   "line": 271,
+   "kind": "call",
+   "it": "Rimuovi box",
+   "en": "Remove Box"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 410,
+   "kind": "call",
+   "it": "Senza titolo",
+   "en": "Untitled"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 420,
+   "kind": "call",
+   "it": "Eliminare la pagina?",
+   "en": "Delete the page?"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 421,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 422,
+   "kind": "call",
+   "it": "Elimina",
+   "en": "Delete"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 424,
+   "kind": "call",
+   "it": "Le foto della pagina resteranno disponibili nel libro.",
+   "en": "The page’s photos will remain available in the book."
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 609,
+   "kind": "call",
+   "it": "Copertina",
+   "en": "Front Cover"
+  },
+  {
+   "file": "EditorView.swift",
+   "line": 609,
+   "kind": "call",
+   "it": "Retro copertina",
+   "en": "Back Cover"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 35,
+   "kind": "call",
+   "it": "Raccolta caratteri",
+   "en": "Font Collection"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 36,
+   "kind": "call",
+   "it": "Tutti",
+   "en": "All"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 37,
+   "kind": "call",
+   "it": "Preferiti",
+   "en": "Favorites"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 38,
+   "kind": "call",
+   "it": "Recenti",
+   "en": "Recent"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 47,
+   "kind": "call",
+   "it": "Usa carattere ereditato",
+   "en": "Use Inherited Font"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 55,
+   "kind": "call",
+   "it": "Applica carattere",
+   "en": "Apply Font"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 77,
+   "kind": "call",
+   "it": "Cerca famiglia o stile",
+   "en": "Search Families or Styles"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 78,
+   "kind": "call",
+   "it": "Usa le frecce per scegliere la famiglia, Opzione con le frecce per scegliere lo stile e Invio per applicare.",
+   "en": "Use the arrow keys to choose a family, Option with the arrow keys to choose a style, and Return to apply."
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 119,
+   "kind": "call",
+   "it": "Caricamento caratteri",
+   "en": "Loading Fonts"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 122,
+   "kind": "call",
+   "it": "Famiglia",
+   "en": "Family"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 127,
+   "kind": "call",
+   "it": "Stile",
+   "en": "Style"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 133,
+   "kind": "call",
+   "it": "Applicato",
+   "en": "Applied"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 206,
+   "kind": "call",
+   "it": "Il viaggio continua",
+   "en": "The journey continues"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 215,
+   "kind": "call",
+   "it": "Rimuovi dai preferiti",
+   "en": "Remove from Favorites"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 216,
+   "kind": "call",
+   "it": "Aggiungi ai preferiti",
+   "en": "Add to Favorites"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 238,
+   "kind": "call",
+   "it": "Anteprima carattere",
+   "en": "Font Preview"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 270,
+   "kind": "call",
+   "it": "Nessun carattere trovato",
+   "en": "No Fonts Found"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 273,
+   "kind": "call",
+   "it": "Nessun carattere disponibile",
+   "en": "No Fonts Available"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 274,
+   "kind": "call",
+   "it": "Nessun carattere preferito",
+   "en": "No Favorite Fonts"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 275,
+   "kind": "call",
+   "it": "Nessun carattere recente",
+   "en": "No Recent Fonts"
+  },
+  {
+   "file": "EditorialFontBrowser.swift",
+   "line": 297,
+   "kind": "ternary",
+   "it": "Carattere di sistema",
+   "en": "System Font"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 44,
+   "kind": "call",
+   "it": "Carattere",
+   "en": "Font"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 53,
+   "kind": "call",
+   "it": "Allineamento",
+   "en": "Alignment"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 58,
+   "kind": "call",
+   "it": "Interlinea",
+   "en": "Line Spacing"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 73,
+   "kind": "call",
+   "it": "Interlinea",
+   "en": "Line Spacing"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 78,
+   "kind": "call",
+   "it": "Ripristina stile del modello",
+   "en": "Reset to Template Style"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 121,
+   "kind": "call",
+   "it": "Colore del modello",
+   "en": "Template color"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 123,
+   "kind": "call",
+   "it": "Colore del testo",
+   "en": "Text Color"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 134,
+   "kind": "call",
+   "it": "Colore del testo",
+   "en": "Text Color"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 139,
+   "kind": "call",
+   "it": "Allineamento",
+   "en": "Alignment"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 154,
+   "kind": "call",
+   "it": "Carattere",
+   "en": "Font"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 186,
+   "kind": "call",
+   "it": "Dimensione carattere",
+   "en": "Font Size"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 187,
+   "kind": "call",
+   "it": "Da 6 a 120 punti. Cancella il valore per usare la dimensione ereditata.",
+   "en": "6 to 120 points. Clear the value to use the inherited size."
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 190,
+   "kind": "call",
+   "it": "Riduci dimensione carattere",
+   "en": "Decrease Font Size"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 220,
+   "kind": "call",
+   "it": "Aumenta dimensione carattere",
+   "en": "Increase Font Size"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 264,
+   "kind": "call",
+   "it": "Allineamento",
+   "en": "Alignment"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 266,
+   "kind": "call",
+   "it": "Usa allineamento ereditato",
+   "en": "Use Inherited Alignment"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 272,
+   "kind": "call",
+   "it": "Ripristina impostazioni ereditate",
+   "en": "Reset to Inherited Settings"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 326,
+   "kind": "call",
+   "it": "Allinea a sinistra",
+   "en": "Align Left"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 327,
+   "kind": "call",
+   "it": "Centra",
+   "en": "Center"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 328,
+   "kind": "call",
+   "it": "Allinea a destra",
+   "en": "Align Right"
+  },
+  {
+   "file": "EditorialTypographyControls.swift",
+   "line": 329,
+   "kind": "call",
+   "it": "Giustifica",
+   "en": "Justify"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 41,
+   "kind": "call",
+   "it": "Esporta PDF",
+   "en": "Export PDF"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 51,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 52,
+   "kind": "call",
+   "it": "Continua…",
+   "en": "Continue…"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 99,
+   "kind": "call",
+   "it": "Imposta il formato del libro a 21 × 21 cm in Libro e stampa.",
+   "en": "Set the book size to 21 × 21 cm in Book & Print."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 102,
+   "kind": "call",
+   "it": "Aggiungi la copertina dal pannello Pagina.",
+   "en": "Add the cover in the Page inspector."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 105,
+   "kind": "call",
+   "it": "Dorso dal preventivo",
+   "en": "Spine width from the quote"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 107,
+   "kind": "call",
+   "it": "Dorso",
+   "en": "Spine Width"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 114,
+   "kind": "call",
+   "it": "Il PDF usa sRGB. Verifica il profilo colore richiesto nelle istruzioni del preventivo.",
+   "en": "This PDF uses sRGB. Check the color profile in the instructions for your quote."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 129,
+   "kind": "call",
+   "it": "Verifica prima dell’esportazione",
+   "en": "Preflight"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 134,
+   "kind": "call",
+   "it": "Nessun problema trovato",
+   "en": "No problems found"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 140,
+   "kind": "call",
+   "it": "e altri \\($0) problemi da correggere",
+   "en": "and \\($0) more problems to fix"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 141,
+   "kind": "call",
+   "it": "Correggi questi problemi per esportare il PDF.",
+   "en": "Fix these problems to export the PDF."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 148,
+   "kind": "call",
+   "it": "e altri \\($0) avvisi",
+   "en": "and \\($0) more warnings"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 150,
+   "kind": "call",
+   "it": "Puoi esportare comunque: gli stessi avvisi compaiono alla fine dell’esportazione.",
+   "en": "You can still export: the same warnings appear when the export finishes."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 160,
+   "kind": "call",
+   "it": "Controllo testi e file…",
+   "en": "Checking text and files…"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 161,
+   "kind": "call",
+   "it": "Controllo risoluzione e pagine…",
+   "en": "Checking resolution and pages…"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 233,
+   "kind": "call",
+   "it": "PDF da sfogliare",
+   "en": "Viewing PDF"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 234,
+   "kind": "call",
+   "it": "Interni al formato del libro, una facciata per pagina.",
+   "en": "Interior pages at the book’s trim size."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 237,
+   "kind": "call",
+   "it": "Stampa generica",
+   "en": "Generic Print"
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 238,
+   "kind": "call",
+   "it": "Interni e copertina separati con le impostazioni del libro.",
+   "en": "Separate interior and cover files using your book settings."
+  },
+  {
+   "file": "PDFExportChooser.swift",
+   "line": 242,
+   "kind": "call",
+   "it": "PDF unico con copertina rigida stesa e facciate da 216 × 216 mm.",
+   "en": "One PDF with a wraparound hardcover and 216 × 216 mm single pages."
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 26,
+   "kind": "call",
+   "it": "Modello di pagina",
+   "en": "Page Template"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 46,
+   "kind": "call",
+   "it": "Modello di pagina",
+   "en": "Page Template"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 48,
+   "kind": "call",
+   "it": "Scegli un modello per la pagina",
+   "en": "Choose a page template"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 59,
+   "kind": "tuple",
+   "it": "Galleria automatica",
+   "en": "Automatic gallery"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 60,
+   "kind": "tuple",
+   "it": "Foto al vivo",
+   "en": "Full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 61,
+   "kind": "tuple",
+   "it": "Due pagine",
+   "en": "Full Spread"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 62,
+   "kind": "tuple",
+   "it": "Due affiancate",
+   "en": "Two across"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 63,
+   "kind": "tuple",
+   "it": "Due in verticale",
+   "en": "Two stacked"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 64,
+   "kind": "tuple",
+   "it": "Griglia a quattro",
+   "en": "Four-photo grid"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 65,
+   "kind": "tuple",
+   "it": "Grande sopra, due sotto",
+   "en": "Large above two"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 66,
+   "kind": "tuple",
+   "it": "Due sopra, grande sotto",
+   "en": "Two above large"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 67,
+   "kind": "tuple",
+   "it": "Testo sopra la foto",
+   "en": "Text above photo"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 68,
+   "kind": "tuple",
+   "it": "Foto sopra il testo",
+   "en": "Photo above text"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 69,
+   "kind": "tuple",
+   "it": "Testo accanto alla foto",
+   "en": "Text beside photo"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 70,
+   "kind": "tuple",
+   "it": "Testo sulla foto",
+   "en": "Text over photo"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 71,
+   "kind": "tuple",
+   "it": "Solo testo",
+   "en": "Text only"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 72,
+   "kind": "tuple",
+   "it": "Due affiancate al vivo",
+   "en": "Two across, full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 73,
+   "kind": "tuple",
+   "it": "Due in verticale al vivo",
+   "en": "Two stacked, full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 74,
+   "kind": "tuple",
+   "it": "Tre affiancate al vivo",
+   "en": "Three across, full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 75,
+   "kind": "tuple",
+   "it": "Griglia di quattro al vivo",
+   "en": "Four-photo grid, full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 76,
+   "kind": "tuple",
+   "it": "Grande sopra, due sotto al vivo",
+   "en": "Large above two, full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 83,
+   "kind": "tuple",
+   "it": "Galleria automatica",
+   "en": "Automatic gallery"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 84,
+   "kind": "tuple",
+   "it": "Solo testo",
+   "en": "Text only"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 85,
+   "kind": "tuple",
+   "it": "Foto e testo",
+   "en": "Photo and text"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 86,
+   "kind": "tuple",
+   "it": "Foto al vivo",
+   "en": "Full bleed"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 87,
+   "kind": "tuple",
+   "it": "Due pagine",
+   "en": "Full Spread"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 122,
+   "kind": "call",
+   "it": "Modelli di pagina",
+   "en": "Page Layouts"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 125,
+   "kind": "call",
+   "it": "Tipo di modello",
+   "en": "Template group"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 126,
+   "kind": "call",
+   "it": "Con margini",
+   "en": "With margins"
+  },
+  {
+   "file": "PageArrangementPicker.swift",
+   "line": 127,
+   "kind": "call",
+   "it": "Al vivo",
+   "en": "Full bleed"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 33,
+   "kind": "call",
+   "it": "Salva progetto…",
+   "en": "Save Project…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 33,
+   "kind": "call",
+   "it": "Salva progetto",
+   "en": "Save Project"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 108,
+   "kind": "call",
+   "it": "Importo le immagini",
+   "en": "Importing photos"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 111,
+   "kind": "call",
+   "it": "Salvo una copia del libro",
+   "en": "Saving a copy of the book"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 113,
+   "kind": "call",
+   "it": "Esporto il PDF",
+   "en": "Exporting PDF"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 132,
+   "kind": "call",
+   "it": "Nuovo libro da Foto…",
+   "en": "New Book from Photos…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 134,
+   "kind": "call",
+   "it": "Nuovo libro da file…",
+   "en": "New Book from Files…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 135,
+   "kind": "call",
+   "it": "Apri…",
+   "en": "Open…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 137,
+   "kind": "call",
+   "it": "Apri recente",
+   "en": "Open Recent"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 146,
+   "kind": "call",
+   "it": "Torna alla libreria",
+   "en": "Back to Library"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 154,
+   "kind": "call",
+   "it": "Salva con nome…",
+   "en": "Save As…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 160,
+   "kind": "call",
+   "it": "Modelli del libro…",
+   "en": "Book Templates…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 162,
+   "kind": "call",
+   "it": "Libro e stampa…",
+   "en": "Book & Print…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 166,
+   "kind": "call",
+   "it": "Esporta PDF…",
+   "en": "Export PDF…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 169,
+   "kind": "call",
+   "it": "Esporta per la stampa…",
+   "en": "Export for Print…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 176,
+   "kind": "ternary",
+   "it": "Aiuto di Paper & Grain",
+   "en": "Paper & Grain Help"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 196,
+   "kind": "call",
+   "it": "Analisi foto",
+   "en": "Photo analysis"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 199,
+   "kind": "call",
+   "it": "Foto analizzate",
+   "en": "Photos analysed"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 217,
+   "kind": "call",
+   "it": "Chiudi avviso",
+   "en": "Dismiss Message"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 234,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 257,
+   "kind": "ternary",
+   "it": "Modello del libro",
+   "en": "Book Template"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 267,
+   "kind": "ternary",
+   "it": "Libro e stampa",
+   "en": "Book & Print"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 283,
+   "kind": "call",
+   "it": "Lingua dell’interfaccia",
+   "en": "App Language"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 284,
+   "kind": "call",
+   "it": "Come il sistema",
+   "en": "System Default"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 288,
+   "kind": "call",
+   "it": "Puoi scegliere la lingua anche in Impostazioni di Sistema › Generali › Lingua e zona › Applicazioni.",
+   "en": "You can also choose it in System Settings › General › Language & Region › Applications."
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 326,
+   "kind": "call",
+   "it": "I tuoi viaggi, pagina dopo pagina.",
+   "en": "Your travels, page by page."
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 330,
+   "kind": "call",
+   "it": "Nuovo libro da un album di Foto",
+   "en": "New Book from a Photos Album"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 332,
+   "kind": "call",
+   "it": "Nuovo libro da file del Finder",
+   "en": "New Book from Finder Files"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 334,
+   "kind": "call",
+   "it": "Apri il libro dimostrativo",
+   "en": "Open the Sample Book"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 347,
+   "kind": "call",
+   "it": "I tuoi libri",
+   "en": "Your Books"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 350,
+   "kind": "call",
+   "it": "Apri altro…",
+   "en": "Open Other…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 354,
+   "kind": "call",
+   "it": "Ancora nessun libro",
+   "en": "No Books Yet"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 356,
+   "kind": "call",
+   "it": "Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
+   "en": "Choose a Photos album to lay out your first book, or open the sample."
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 368,
+   "kind": "call",
+   "it": "Apri",
+   "en": "Open"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 369,
+   "kind": "call",
+   "it": "Mostra nel Finder",
+   "en": "Show in Finder"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 375,
+   "kind": "call",
+   "it": "Elimina bozza…",
+   "en": "Delete Draft…"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 377,
+   "kind": "call",
+   "it": "Togli dai recenti",
+   "en": "Remove from Recents"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 394,
+   "kind": "call",
+   "it": "Eliminare la bozza?",
+   "en": "Delete This Draft?"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 397,
+   "kind": "call",
+   "it": "Sposta nel Cestino",
+   "en": "Move to Trash"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 398,
+   "kind": "call",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 400,
+   "kind": "call",
+   "it": "Senza titolo",
+   "en": "Untitled"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 401,
+   "kind": "call",
+   "it": "«\\(title)» non è mai stato salvato in un file. La bozza verrà spostata nel Cestino.",
+   "en": "“\\(title)” was never saved to a file. The draft will be moved to the Trash."
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 467,
+   "kind": "call",
+   "it": "Senza titolo",
+   "en": "Untitled"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 486,
+   "kind": "call",
+   "it": "\\(recent.pageCount) pagine",
+   "en": "\\(recent.pageCount) pages"
+  },
+  {
+   "file": "PaperAndGrainApp.swift",
+   "line": 487,
+   "kind": "call",
+   "it": "Bozza",
+   "en": "Draft"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 22,
+   "kind": "tuple",
+   "it": "Luce",
+   "en": "Light"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 23,
+   "kind": "tuple",
+   "it": "Colore",
+   "en": "Color"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 24,
+   "kind": "tuple",
+   "it": "Bianco e nero",
+   "en": "Black & White"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 25,
+   "kind": "tuple",
+   "it": "Dettagli",
+   "en": "Detail"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 26,
+   "kind": "tuple",
+   "it": "Curve",
+   "en": "Curves"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 27,
+   "kind": "tuple",
+   "it": "Livelli",
+   "en": "Levels"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 28,
+   "kind": "tuple",
+   "it": "Colore selettivo",
+   "en": "Selective Color"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 67,
+   "kind": "call",
+   "it": "Confronta con l’originale",
+   "en": "Compare with original"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 86,
+   "kind": "call",
+   "it": "Migliora in automatico",
+   "en": "Auto Enhance"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 100,
+   "kind": "call",
+   "it": "In corso",
+   "en": "In progress"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 101,
+   "kind": "call",
+   "it": "Regola automaticamente luce e colore",
+   "en": "Automatically adjust light and color"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 108,
+   "kind": "call",
+   "it": "Ripristina regolazioni",
+   "en": "Reset adjustments"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 109,
+   "kind": "call",
+   "it": "Ripristina regolazioni",
+   "en": "Reset adjustments"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 144,
+   "kind": "table",
+   "it": "Brillantezza",
+   "en": "Brilliance"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 145,
+   "kind": "table",
+   "it": "Esposizione",
+   "en": "Exposure"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 146,
+   "kind": "table",
+   "it": "Luci",
+   "en": "Highlights"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 147,
+   "kind": "table",
+   "it": "Ombre",
+   "en": "Shadows"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 148,
+   "kind": "table",
+   "it": "Luminosità",
+   "en": "Brightness"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 149,
+   "kind": "table",
+   "it": "Contrasto",
+   "en": "Contrast"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 150,
+   "kind": "table",
+   "it": "Punto di nero",
+   "en": "Black Point"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 152,
+   "kind": "table",
+   "it": "Saturazione",
+   "en": "Saturation"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 153,
+   "kind": "table",
+   "it": "Vividezza",
+   "en": "Vibrance"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 154,
+   "kind": "table",
+   "it": "Temperatura",
+   "en": "Warmth"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 155,
+   "kind": "table",
+   "it": "Tinta",
+   "en": "Tint"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 157,
+   "kind": "table",
+   "it": "Intensità",
+   "en": "Intensity"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 158,
+   "kind": "table",
+   "it": "Toni neutri",
+   "en": "Neutrals"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 159,
+   "kind": "table",
+   "it": "Tonalità",
+   "en": "Tone"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 160,
+   "kind": "table",
+   "it": "Grana",
+   "en": "Grain"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 162,
+   "kind": "table",
+   "it": "Definizione",
+   "en": "Definition"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 163,
+   "kind": "table",
+   "it": "Nitidezza",
+   "en": "Sharpness"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 164,
+   "kind": "table",
+   "it": "Riduzione disturbo",
+   "en": "Noise Reduction"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 165,
+   "kind": "table",
+   "it": "Vignettatura",
+   "en": "Vignette"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 167,
+   "kind": "table",
+   "it": "Ombre",
+   "en": "Shadows"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 168,
+   "kind": "table",
+   "it": "Mezzitoni",
+   "en": "Midtones"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 169,
+   "kind": "table",
+   "it": "Luci",
+   "en": "Highlights"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 171,
+   "kind": "table",
+   "it": "Nero",
+   "en": "Black"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 172,
+   "kind": "table",
+   "it": "Bianco",
+   "en": "White"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 173,
+   "kind": "table",
+   "it": "Gamma",
+   "en": "Gamma"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 175,
+   "kind": "table",
+   "it": "Tonalità",
+   "en": "Hue"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 176,
+   "kind": "table",
+   "it": "Saturazione",
+   "en": "Saturation"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 177,
+   "kind": "table",
+   "it": "Luminosità",
+   "en": "Lightness"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 268,
+   "kind": "call",
+   "it": "Intervallo di colore",
+   "en": "Color range"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 273,
+   "kind": "call",
+   "it": "Rosso",
+   "en": "Red"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 274,
+   "kind": "call",
+   "it": "Arancione",
+   "en": "Orange"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 275,
+   "kind": "call",
+   "it": "Giallo",
+   "en": "Yellow"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 276,
+   "kind": "call",
+   "it": "Verde",
+   "en": "Green"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 277,
+   "kind": "call",
+   "it": "Ciano",
+   "en": "Cyan"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 278,
+   "kind": "call",
+   "it": "Blu",
+   "en": "Blue"
+  },
+  {
+   "file": "PhotoAdjustmentsPanel.swift",
+   "line": 279,
+   "kind": "call",
+   "it": "Magenta",
+   "en": "Magenta"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 40,
+   "kind": "table",
+   "it": "Deserto",
+   "en": "Desert"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 41,
+   "kind": "table",
+   "it": "Sabbia",
+   "en": "Sand"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 42,
+   "kind": "table",
+   "it": "Fauna selvatica",
+   "en": "Wildlife"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 43,
+   "kind": "table",
+   "it": "Acqua",
+   "en": "Water"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 44,
+   "kind": "table",
+   "it": "Città",
+   "en": "Town"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 45,
+   "kind": "table",
+   "it": "In viaggio",
+   "en": "On the road"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 46,
+   "kind": "table",
+   "it": "Persone",
+   "en": "People"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 47,
+   "kind": "table",
+   "it": "All’aperto",
+   "en": "Outdoors"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 48,
+   "kind": "table",
+   "it": "Montagne",
+   "en": "Mountains"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 49,
+   "kind": "table",
+   "it": "Alba o tramonto",
+   "en": "Sunrise or sunset"
+  },
+  {
+   "file": "PhotoAnalysis.swift",
+   "line": 50,
+   "kind": "table",
+   "it": "Uccelli",
+   "en": "Birds"
+  },
+  {
+   "file": "PhotoLibrary.swift",
+   "line": 50,
+   "kind": "ternary",
+   "it": "Recenti",
+   "en": "Recents"
+  },
+  {
+   "file": "PhotoLibrary.swift",
+   "line": 51,
+   "kind": "ternary",
+   "it": "Preferiti",
+   "en": "Favorites"
+  },
+  {
+   "file": "PhotoResolution.swift",
+   "line": 57,
+   "kind": "ternary",
+   "it": "Risoluzione bassa per la stampa: \\(actual) ppi, obiettivo \\(goal) ppi. Rimpicciolisci la foto o usa un originale più grande.",
+   "en": "Low print resolution: \\(actual) ppi, target \\(goal) ppi. Make the photo smaller or use a larger original."
+  },
+  {
+   "file": "PhotoResolution.swift",
+   "line": 103,
+   "kind": "call",
+   "it": "Stampa: \\(value)",
+   "en": "Print: \\(value)"
+  },
+  {
+   "file": "PhotoResolution.swift",
+   "line": 104,
+   "kind": "call",
+   "it": "Stampa: \\(value), sotto i \\(Int(targetPPI.rounded())) ppi consigliati",
+   "en": "Print: \\(value), below the recommended \\(Int(targetPPI.rounded())) ppi"
+  },
+  {
+   "file": "PhotoResolution.swift",
+   "line": 113,
+   "kind": "call",
+   "it": "Pixel della foto rispetto alla dimensione stampata, con il ritaglio.",
+   "en": "The photo's pixels over its printed size, crop included."
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 375,
+   "kind": "ternary",
+   "it": "Nuovo libro",
+   "en": "New Book"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 406,
+   "kind": "ternary",
+   "it": "Foto",
+   "en": "Photo"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 639,
+   "kind": "ternary",
+   "it": "Analisi non riuscita per \\(failures) foto. Puoi riprovare dall’editor.",
+   "en": "Analysis failed for \\(failures) photos. You can retry from the editor."
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 773,
+   "kind": "ternary",
+   "it": "Il libro non si trova più nella sua posizione",
+   "en": "The book is no longer where it was saved"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 776,
+   "kind": "ternary",
+   "it": "Le ultime modifiche non sono salvate. Puoi salvarle in un’altra posizione oppure chiudere senza salvare.",
+   "en": "Your latest changes are not saved. You can save them in another place or close without saving."
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 778,
+   "kind": "ternary",
+   "it": "Salva con nome…",
+   "en": "Save As…"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 779,
+   "kind": "ternary",
+   "it": "Chiudi senza salvare",
+   "en": "Close Without Saving"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 780,
+   "kind": "ternary",
+   "it": "Annulla",
+   "en": "Cancel"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1010,
+   "kind": "ternary",
+   "it": "Sardegna, settembre",
+   "en": "Sardinia in September"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1040,
+   "kind": "ternary",
+   "it": "Scegli dove creare la cartella dei PDF",
+   "en": "Choose where to create the PDF folder"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1041,
+   "kind": "ternary",
+   "it": " – Stampa",
+   "en": " – Print"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1049,
+   "kind": "ternary",
+   "it": "Controllo di stampa",
+   "en": "Print Check"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1053,
+   "kind": "ternary",
+   "it": "Continua",
+   "en": "Continue"
+  },
+  {
+   "file": "Workspace.swift",
+   "line": 1054,
+   "kind": "ternary",
+   "it": "Annulla",
+   "en": "Cancel"
+  }
+ ]
+}

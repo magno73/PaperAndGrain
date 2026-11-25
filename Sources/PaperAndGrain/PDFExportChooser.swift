@@ -6,7 +6,7 @@ enum PDFExportRequest: Sendable {
     case pixart(spineMM: Double)
 }
 
-struct PDFExportChooser: View {
+struct PDFExportChooser: View, Localizing {
     let book: Book
     /// The open package; with it the preflight also checks photo and LUT files on disk.
     let directory: URL?
@@ -38,7 +38,7 @@ struct PDFExportChooser: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(tr("Esporta PDF", "Export PDF"))
+            Text(tr("Export PDF"))
                 .font(.system(size: 23, weight: .semibold, design: .serif))
                 .accessibilityAddTraits(.isHeader)
             VStack(spacing: 6) {
@@ -48,8 +48,8 @@ struct PDFExportChooser: View {
             preflight
             HStack {
                 Spacer()
-                Button(tr("Annulla", "Cancel"), action: cancel).keyboardShortcut(.cancelAction)
-                Button(tr("Continua…", "Continue…")) {
+                Button(tr("Cancel"), action: cancel).keyboardShortcut(.cancelAction)
+                Button(tr("Continue…")) {
                     if let request { export(request) }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -96,23 +96,21 @@ struct PDFExportChooser: View {
     private var pixartOptions: some View {
         VStack(alignment: .leading, spacing: 7) {
             if !PixartPrintProfile.supports(book.format) {
-                Text(tr("Imposta il formato del libro a 21 × 21 cm in Libro e stampa.",
-                        "Set the book size to 21 × 21 cm in Book & Print."))
+                Text(tr("Set the book size to 21 × 21 cm in Book & Print."))
             } else if book.cover == nil {
-                Text(tr("Aggiungi la copertina dal pannello Pagina.", "Add the cover in the Page inspector."))
+                Text(tr("Add the cover in the Page inspector."))
             } else {
                 HStack {
-                    Text(tr("Dorso dal preventivo", "Spine width from the quote"))
+                    Text(tr("Spine width from the quote"))
                     Spacer()
-                    TextField(tr("Dorso", "Spine Width"), text: $spine)
+                    TextField(tr("Spine Width"), text: $spine)
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 61)
                     Text("mm").foregroundStyle(.secondary).accessibilityHidden(true)
                 }
-                Text(tr("Il PDF usa sRGB. Verifica il profilo colore richiesto nelle istruzioni del preventivo.",
-                        "This PDF uses sRGB. Check the color profile in the instructions for your quote."))
+                Text(tr("This PDF uses sRGB. Check the color profile in the instructions for your quote."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -126,29 +124,28 @@ struct PDFExportChooser: View {
     /// stop the export and disable Continue; warnings only describe a weaker print.
     private var preflight: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(tr("Verifica prima dell’esportazione", "Preflight"))
+            Text(tr("Preflight"))
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
             if let report {
                 if report.blockers.isEmpty && report.warnings.isEmpty {
-                    Label(tr("Nessun problema trovato", "No problems found"), systemImage: "checkmark.circle.fill")
+                    Label(tr("No problems found"), systemImage: "checkmark.circle.fill")
                         .font(.callout)
                         .symbolRenderingMode(.multicolor)
                 }
                 if !report.blockers.isEmpty {
                     problems(report.blockers, icon: "xmark.octagon.fill", tint: .red,
-                             more: { tr("e altri \($0) problemi da correggere", "and \($0) more problems to fix") })
-                    Text(tr("Correggi questi problemi per esportare il PDF.", "Fix these problems to export the PDF."))
+                             more: { tr("and %lld more problems to fix", $0) })
+                    Text(tr("Fix these problems to export the PDF."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if !report.warnings.isEmpty {
                     problems(report.warnings, icon: "exclamationmark.triangle.fill", tint: .orange,
-                             more: { tr("e altri \($0) avvisi", "and \($0) more warnings") })
+                             more: { tr("and %lld more warnings", $0) })
                     if report.blockers.isEmpty {
-                        Text(tr("Puoi esportare comunque: gli stessi avvisi compaiono alla fine dell’esportazione.",
-                                "You can still export: the same warnings appear when the export finishes."))
+                        Text(tr("You can still export: the same warnings appear when the export finishes."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -157,8 +154,8 @@ struct PDFExportChooser: View {
             } else {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
-                    Text(profile == .proof ? tr("Controllo testi e file…", "Checking text and files…")
-                                           : tr("Controllo risoluzione e pagine…", "Checking resolution and pages…"))
+                    Text(profile == .proof ? tr("Checking text and files…")
+                                           : tr("Checking resolution and pages…"))
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -183,11 +180,11 @@ struct PDFExportChooser: View {
         }
     }
 
-    private func problems(_ lines: [String], icon: String, tint: Color, more: @escaping (Int) -> String) -> some View {
+    private func problems(_ lines: [BookPDF.PreflightIssue], icon: String, tint: Color, more: @escaping (Int) -> String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             ForEach(Array(lines.prefix(6).enumerated()), id: \.offset) { _, line in
                 Label {
-                    Text(localizedWarning(line)).fixedSize(horizontal: false, vertical: true)
+                    Text(line.message(language: language)).fixedSize(horizontal: false, vertical: true)
                 } icon: {
                     Image(systemName: icon).foregroundStyle(tint)
                 }
@@ -199,18 +196,6 @@ struct PDFExportChooser: View {
                     .foregroundStyle(.secondary)
             }
         }
-    }
-
-    /// Print warnings carry both languages ("Italiano / English"); show only the interface language.
-    private func localizedWarning(_ warning: String) -> String {
-        let italian = language.hasPrefix("it")
-        let parts = warning.components(separatedBy: " · ")
-        if parts.count == 2, parts[0] == "Dimensioni non valide" { return italian ? parts[0] : parts[1] }
-        return parts.map { part in
-            let sides = part.components(separatedBy: " / ")
-            guard sides.count == 2 else { return part }
-            return italian ? sides[0] : sides[1]
-        }.joined(separator: " · ")
     }
 
     private var request: PDFExportRequest? {
@@ -230,20 +215,17 @@ struct PDFExportChooser: View {
     private func labels(_ item: Profile) -> (String, String, String) {
         switch item {
         case .proof:
-            return (tr("PDF da sfogliare", "Viewing PDF"),
-                    tr("Interni al formato del libro, una facciata per pagina.", "Interior pages at the book’s trim size."),
+            return (tr("Viewing PDF"),
+                    tr("Interior pages at the book’s trim size."),
                     "book.closed")
         case .printPackage:
-            return (tr("Stampa generica", "Generic Print"),
-                    tr("Interni e copertina separati con le impostazioni del libro.", "Separate interior and cover files using your book settings."),
+            return (tr("Generic Print"),
+                    tr("Separate interior and cover files using your book settings."),
                     "printer")
         case .pixart:
             return ("Pixartprinting · 21 × 21 cm",
-                    tr("PDF unico con copertina rigida stesa e facciate da 216 × 216 mm.",
-                       "One PDF with a wraparound hardcover and 216 × 216 mm single pages."),
+                    tr("One PDF with a wraparound hardcover and 216 × 216 mm single pages."),
                     "book.pages")
         }
     }
-
-    private func tr(_ it: String, _ en: String) -> String { language == "it" ? it : en }
 }

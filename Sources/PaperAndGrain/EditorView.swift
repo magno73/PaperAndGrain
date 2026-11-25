@@ -3,7 +3,7 @@ import Observation
 import UniformTypeIdentifiers
 import SwiftUI
 
-struct EditorView: View {
+struct EditorView: View, Localizing {
     @Binding var book: Book
 
     let directory: URL
@@ -407,7 +407,7 @@ struct EditorView: View {
             // The window can't shrink below the panes it shows, so the inspector never gets clipped.
             .frame(minWidth: (showsNavigator ? navigatorWidth : 0) + 640 + (showsInspector ? 280 : 0))
             .toolbar(id: "editor") { editorToolbar }
-            .navigationTitle(book.title.isEmpty ? tr("Senza titolo", "Untitled") : book.title)
+            .navigationTitle(book.title.isEmpty ? tr("Untitled") : book.title)
             .navigationSubtitle(toolbarSubtitle)
             .toolbarTitleMenu { bookTitleMenu }
             .focusedSceneValue(\.editorCommands, editorCommands)
@@ -417,12 +417,11 @@ struct EditorView: View {
                     finishFilmEdit()
                 }
             }
-            .alert(tr("Eliminare la pagina?", "Delete the page?"), isPresented: $showDelete) {
-                Button(tr("Annulla", "Cancel"), role: .cancel) {}
-                Button(tr("Elimina", "Delete"), role: .destructive, action: deletePage)
+            .alert(tr("Delete the page?"), isPresented: $showDelete) {
+                Button(tr("Cancel"), role: .cancel) {}
+                Button(tr("Delete"), role: .destructive, action: deletePage)
             } message: {
-                Text(tr("Le foto della pagina resteranno disponibili nel libro.",
-                        "The page’s photos will remain available in the book."))
+                Text(tr("The page’s photos will remain available in the book."))
             }
             .overlay {
                 if let browsing = browsingSpread {
@@ -561,11 +560,6 @@ struct EditorView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    func localized(_ key: String, fallback: String) -> String {
-        let bundle = Bundle.main.url(forResource: language, withExtension: "lproj").flatMap(Bundle.init(url:))
-        return (bundle ?? .main).localizedString(forKey: key, value: fallback, table: nil)
-    }
-
     func action(_ symbol: String, _ label: String, perform: @escaping () -> Void) -> some View {
         Button(action: perform) {
             Image(systemName: symbol)
@@ -576,10 +570,6 @@ struct EditorView: View {
         .buttonStyle(.plain)
         .help(label)
         .accessibilityLabel(label)
-    }
-
-    func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
     }
 
     func conceptName(_ value: String) -> String {
@@ -606,7 +596,7 @@ struct EditorView: View {
     }
 
     func coverName(_ side: CoverSide) -> String {
-        side == .front ? tr("Copertina", "Front Cover") : tr("Retro copertina", "Back Cover")
+        side == .front ? tr("Front Cover") : tr("Back Cover")
     }
 
     func coverPhotoID(_ side: CoverSide) -> UUID? {

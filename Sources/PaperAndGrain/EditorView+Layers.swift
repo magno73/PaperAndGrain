@@ -42,10 +42,10 @@ extension EditorView {
 
     func layerMoveName(_ move: PageLayer.Move) -> String {
         switch move {
-        case .front: tr("Porta in primo piano", "Bring to Front")
-        case .forward: tr("Porta avanti", "Bring Forward")
-        case .backward: tr("Porta indietro", "Send Backward")
-        case .back: tr("Porta in fondo", "Send to Back")
+        case .front: tr("Bring to Front")
+        case .forward: tr("Bring Forward")
+        case .backward: tr("Send Backward")
+        case .back: tr("Send to Back")
         }
     }
 
@@ -64,8 +64,8 @@ extension EditorView {
         if let coverSide {
             if case .photo = canvasTarget(at: point, on: .cover(front: coverSide == .front)) {
                 entries += [
-                    EditorMenuEntry(tr("Ritaglia", "Crop")) { beginCoverCrop(coverSide) },
-                    EditorMenuEntry(tr("Regola foto…", "Adjust Photo…")) { showPhotoSection(film: false) },
+                    EditorMenuEntry(tr("Crop")) { beginCoverCrop(coverSide) },
+                    EditorMenuEntry(tr("Adjust Photo…")) { showPhotoSection(film: false) },
                     .separator
                 ]
             }
@@ -74,9 +74,9 @@ extension EditorView {
             case let .photo(id):
                 let layer = LayerTarget(pageID: leaf.id, layer: .photo(id))
                 entries += [
-                    EditorMenuEntry(tr("Ritaglia", "Crop")) { beginCrop(id, in: leaf) },
-                    EditorMenuEntry(tr("Regola foto…", "Adjust Photo…")) { showPhotoSection(film: false) },
-                    EditorMenuEntry(tr("Migliora in automatico", "Auto Enhance")) {
+                    EditorMenuEntry(tr("Crop")) { beginCrop(id, in: leaf) },
+                    EditorMenuEntry(tr("Adjust Photo…")) { showPhotoSection(film: false) },
+                    EditorMenuEntry(tr("Auto Enhance")) {
                         if let photo = indexedPhoto(id) { autoEnhance(photo) }
                     },
                     .separator
@@ -84,32 +84,32 @@ extension EditorView {
                 entries += layerEntries(layer)
                 entries += [
                     .separator,
-                    EditorMenuEntry(tr("Togli dalla pagina", "Remove from Page")) { _ = remove(id, from: leaf.id) },
+                    EditorMenuEntry(tr("Remove from Page")) { _ = remove(id, from: leaf.id) },
                     .separator
                 ]
             case let .textBox(id):
                 entries += [
-                    EditorMenuEntry(tr("Modifica testo", "Edit Text")) { beginInlineBoxEditing(id, in: leaf) },
-                    EditorMenuEntry(tr("Carattere e paragrafo…", "Font and Paragraph…")) { showInspectorTab(.page) },
+                    EditorMenuEntry(tr("Edit Text", key: "layers.edit_text")) { beginInlineBoxEditing(id, in: leaf) },
+                    EditorMenuEntry(tr("Font and Paragraph…")) { showInspectorTab(.page) },
                     .separator
                 ]
                 entries += layerEntries(LayerTarget(pageID: leaf.id, layer: .textBox(id)))
                 entries += [
                     .separator,
-                    EditorMenuEntry(tr("Rimuovi box", "Remove Box")) {
-                        changeTextBoxes(on: leaf.id, name: tr("Rimuovi box", "Remove Box")) { $0.removeAll { $0.id == id } }
+                    EditorMenuEntry(tr("Remove Box")) {
+                        changeTextBoxes(on: leaf.id, name: tr("Remove Box")) { $0.removeAll { $0.id == id } }
                         if selectedBox == id { selectedBox = nil }
                     },
                     .separator
                 ]
             case let .story(role):
                 entries += [
-                    EditorMenuEntry(tr("Modifica testo", "Edit Text")) {
+                    EditorMenuEntry(tr("Edit Text", key: "layers.edit_text")) {
                         let object = EditorialObject.page(leaf.id, role)
                         selectEditorial(object, on: leaf)
                         editingEditorial = object
                     },
-                    EditorMenuEntry(tr("Carattere e paragrafo…", "Font and Paragraph…")) { showInspectorTab(.page) },
+                    EditorMenuEntry(tr("Font and Paragraph…")) { showInspectorTab(.page) },
                     .separator
                 ]
                 entries += layerEntries(LayerTarget(pageID: leaf.id, layer: .story))
@@ -123,11 +123,11 @@ extension EditorView {
         }
         if coverSide == nil, page != nil {
             entries += [
-                EditorMenuEntry(tr("Inserisci box di testo", "Insert Text Box"), action: insertTextBox),
-                EditorMenuEntry(tr("Modello di pagina…", "Page Layout…")) { showLayoutPopover = true }
+                EditorMenuEntry(tr("Insert Text Box"), action: insertTextBox),
+                EditorMenuEntry(tr("Page Layout…")) { showLayoutPopover = true }
             ]
         }
-        entries.append(EditorMenuEntry(tr("Sfoglia il libro", "Browse the Book"), enabled: !book.pages.isEmpty,
+        entries.append(EditorMenuEntry(tr("Browse the Book"), enabled: !book.pages.isEmpty,
                                        action: openBrowser))
         return entries
     }

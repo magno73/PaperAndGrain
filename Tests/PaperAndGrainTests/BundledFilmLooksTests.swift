@@ -9,13 +9,14 @@ final class BundledFilmLooksTests: XCTestCase {
         .appendingPathComponent("Resources", isDirectory: true)
 
     func testCatalogCoversTheBundledSRGBCubesAndLoadsEachOne() throws {
+        try CompiledCatalog.install()
         let catalog = BundledFilmLook.all
         XCTAssertEqual(catalog.filter { $0.input == .linear }.count, 11)
         XCTAssertEqual(catalog.filter { $0.input == .slide }.count, 3)
         XCTAssertEqual(Set(catalog.map(\.id)).count, catalog.count)
         // Display names describe the look and never name a film stock.
         for look in catalog {
-            for name in [look.english, look.italian, look.filename] {
+            for name in [look.english, look.name(language: "it"), look.filename] {
                 for mark in ["provia", "velvia", "astia", "chrome classic", "classic neg", "pro neg", "eterna", "reala", "nostalgic", "fuji"] {
                     XCTAssertFalse(name.lowercased().contains(mark), name)
                 }

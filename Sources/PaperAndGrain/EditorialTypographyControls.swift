@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-struct EditorialTypographyControls: View {
+struct EditorialTypographyControls: View, Localizing {
     @Binding var style: EditorialTextStyle?
     let inherited: EditorialTextStyle
     let language: String
@@ -41,7 +41,7 @@ struct EditorialTypographyControls: View {
     private var formatPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 7) {
-                rowTitle(tr("Carattere", "Font"))
+                rowTitle(tr("Font"))
                 fontControl
                 HStack(spacing: 8) {
                     sizeControl
@@ -50,12 +50,12 @@ struct EditorialTypographyControls: View {
                 }
             }
             VStack(alignment: .leading, spacing: 7) {
-                rowTitle(tr("Allineamento", "Alignment"))
+                rowTitle(tr("Alignment"))
                 alignmentSegments
             }
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
-                    rowTitle(tr("Interlinea", "Line Spacing"))
+                    rowTitle(tr("Line Spacing"))
                     Spacer()
                     Text(lineSpacingLabel)
                         .font(.system(size: 11).monospacedDigit())
@@ -70,12 +70,12 @@ struct EditorialTypographyControls: View {
                         set(\.lineSpacing, to: abs(draft - 1) < 0.001 ? nil : draft)
                     }
                 }
-                .accessibilityLabel(tr("Interlinea", "Line Spacing"))
+                .accessibilityLabel(tr("Line Spacing"))
                 .accessibilityValue(lineSpacingLabel)
             }
             HStack {
                 Spacer()
-                Button(tr("Ripristina stile del modello", "Reset to Template Style")) {
+                Button(tr("Reset to Template Style")) {
                     sizeDraft = nil
                     lineDraft = nil
                     editingSize = false
@@ -118,9 +118,9 @@ struct EditorialTypographyControls: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(String(format: "#%06X", value))
                 .accessibilityAddTraits(active ? .isSelected : [])
-                .help(value == defaultInk ? tr("Colore del modello", "Template color") : String(format: "#%06X", value))
+                .help(value == defaultInk ? tr("Template color") : String(format: "#%06X", value))
             }
-            ColorPicker(tr("Colore del testo", "Text Color"), selection: Binding(
+            ColorPicker(tr("Text Color"), selection: Binding(
                 get: { Color(cgColor: EditorialStyle.color(resolvedInk)) },
                 set: { color in
                     guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return }
@@ -131,12 +131,12 @@ struct EditorialTypographyControls: View {
                 }
             ), supportsOpacity: false)
             .labelsHidden()
-            .help(tr("Colore del testo", "Text Color"))
+            .help(tr("Text Color"))
         }
     }
 
     private var alignmentSegments: some View {
-        Picker(tr("Allineamento", "Alignment"), selection: Binding(
+        Picker(tr("Alignment"), selection: Binding(
             get: { style?.alignment ?? inherited.alignment ?? .left },
             set: { set(\.alignment, to: $0) }
         )) {
@@ -151,7 +151,7 @@ struct EditorialTypographyControls: View {
     }
 
     private var fontControl: some View {
-        let label = tr("Carattere", "Font")
+        let label = tr("Font")
         let name = EditorialFontBrowser.displayName(style?.fontName ?? inherited.fontName, language: language)
         return Button { showingFonts.toggle() } label: {
             HStack(spacing: 6) {
@@ -183,11 +183,10 @@ struct EditorialTypographyControls: View {
     }
 
     private var sizeControl: some View {
-        let label = tr("Dimensione carattere", "Font Size")
-        let reference = tr("Da 6 a 120 punti. Cancella il valore per usare la dimensione ereditata.",
-                           "6 to 120 points. Clear the value to use the inherited size.")
+        let label = tr("Font Size")
+        let reference = tr("6 to 120 points. Clear the value to use the inherited size.")
         return HStack(spacing: 2) {
-            sizeButton("minus", tr("Riduci dimensione carattere", "Decrease Font Size"), step: -1)
+            sizeButton("minus", tr("Decrease Font Size"), step: -1)
             TextField(label, text: Binding(get: { sizeDraft ?? formattedSize }, set: { draft in
                 sizeDraft = draft
                 if updatesSizeWhileTyping { applySize(draft) }
@@ -217,7 +216,7 @@ struct EditorialTypographyControls: View {
                 .font(.system(size: 10))
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            sizeButton("plus", tr("Aumenta dimensione carattere", "Increase Font Size"), step: 1)
+            sizeButton("plus", tr("Increase Font Size"), step: 1)
         }
     }
 
@@ -261,15 +260,15 @@ struct EditorialTypographyControls: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(tr("Allineamento", "Alignment"))
+        .accessibilityLabel(tr("Alignment"))
         .contextMenu {
-            Button(tr("Usa allineamento ereditato", "Use Inherited Alignment")) { set(\.alignment, to: nil) }
+            Button(tr("Use Inherited Alignment")) { set(\.alignment, to: nil) }
                 .disabled(style?.alignment == nil)
         }
     }
 
     private var resetControl: some View {
-        let label = tr("Ripristina impostazioni ereditate", "Reset to Inherited Settings")
+        let label = tr("Reset to Inherited Settings")
         return Button {
             sizeDraft = nil
             editingSize = false
@@ -323,14 +322,10 @@ struct EditorialTypographyControls: View {
 
     private func alignmentInfo(_ alignment: EditorialAlignment) -> (icon: String, label: String) {
         switch alignment {
-        case .left: ("text.alignleft", tr("Allinea a sinistra", "Align Left"))
-        case .center: ("text.aligncenter", tr("Centra", "Center"))
-        case .right: ("text.alignright", tr("Allinea a destra", "Align Right"))
-        case .justified: ("text.justify", tr("Giustifica", "Justify"))
+        case .left: ("text.alignleft", tr("Align Left"))
+        case .center: ("text.aligncenter", tr("Center"))
+        case .right: ("text.alignright", tr("Align Right"))
+        case .justified: ("text.justify", tr("Justify"))
         }
-    }
-
-    private func tr(_ italian: String, _ english: String) -> String {
-        language.hasPrefix("it") ? italian : english
     }
 }

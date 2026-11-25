@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 extension EditorView {
     var toolbarSubtitle: String {
         let count = physicalPageCount
-        let pages = count == 1 ? tr("1 pagina", "1 page") : tr("\(count) pagine", "\(count) pages")
+        let pages = tr("%lld pages", count)
         return pages + " · " + dimensions
     }
 
@@ -15,37 +15,37 @@ extension EditorView {
                 Button {
                     showsNavigator.toggle()
                 } label: {
-                    Label(tr("Pagine", "Pages"), systemImage: "sidebar.left")
+                    Label(tr("Pages"), systemImage: "sidebar.left")
                 }
-                .help(showsNavigator ? tr("Nascondi pagine", "Hide Pages") : tr("Mostra pagine", "Show Pages"))
+                .help(showsNavigator ? tr("Hide Pages") : tr("Show Pages"))
             }
             ToolbarItem(id: "library", placement: .navigation) {
                 Button(action: actions.closeBook) {
-                    Label(tr("Libreria", "Library"), systemImage: "books.vertical")
+                    Label(tr("Library"), systemImage: "books.vertical")
                 }
-                .help(tr("Torna ai tuoi libri", "Back to your books"))
+                .help(tr("Back to your books"))
             }
             ToolbarItem(id: "insert", placement: .principal) {
                 Menu {
                     insertMenuItems
                 } label: {
-                    Label(tr("Inserisci", "Insert"), systemImage: "plus")
+                    Label(tr("Insert"), systemImage: "plus")
                 }
-                .help(tr("Inserisci pagine, testi e frontespizio", "Insert pages, text and a title page"))
+                .help(tr("Insert pages, text and a title page"))
             }
             ToolbarItem(id: "template", placement: .principal) {
                 Button(action: actions.showTemplates) {
-                    Label(tr("Stile", "Style"), systemImage: "swatchpalette")
+                    Label(tr("Style"), systemImage: "swatchpalette")
                 }
-                .help(tr("Scegli il modello del libro: carta, caratteri e margini", "Choose the book template: paper, type and margins"))
+                .help(tr("Choose the book template: paper, type and margins"))
             }
             ToolbarItem(id: "layout", placement: .principal) {
                 Button {
                     showLayoutPopover = true
                 } label: {
-                    Label(tr("Impagina", "Layout"), systemImage: "rectangle.3.group")
+                    Label(tr("Layout"), systemImage: "rectangle.3.group")
                 }
-                .help(tr("Scegli il modello della pagina", "Choose the page layout"))
+                .help(tr("Choose the page layout"))
                 .disabled(page == nil || coverSide != nil)
                 .popover(isPresented: $showLayoutPopover, arrowEdge: .bottom) {
                     layoutPopover
@@ -55,31 +55,31 @@ extension EditorView {
                 Button {
                     if selectedPhoto != nil { showPhotoSection(film: true) } else { showInspectorTab(.film) }
                 } label: {
-                    Label(tr("Pellicola", "Film"), systemImage: "camera.filters")
+                    Label(tr("Film"), systemImage: "camera.filters")
                 }
-                .help(tr("Look pellicola del libro o della foto", "Film look for the book or photo"))
+                .help(tr("Film look for the book or photo"))
             }
             ToolbarItem(id: "export", placement: .primaryAction) {
                 Button(action: onExport) {
-                    Label(tr("Esporta", "Export"), systemImage: "square.and.arrow.up")
+                    Label(tr("Export"), systemImage: "square.and.arrow.up")
                         .labelStyle(.titleAndIcon)
                 }
                 .prominentToolbarButton()
                 .tint(Theme.accent)
                 .disabled(cropSession != nil || book.pages.isEmpty)
-                .help(tr("Esporta il libro in PDF", "Export the book as PDF"))
+                .help(tr("Export the book as PDF"))
             }
             ToolbarItem(id: "tray", placement: .primaryAction) {
                 Toggle(isOn: $showsTray) {
-                    Label(tr("Fototeca", "Photo Library"), systemImage: "photo.on.rectangle")
+                    Label(tr("Photo Library"), systemImage: "photo.on.rectangle")
                 }
-                .help(showsTray ? tr("Nascondi la fototeca", "Hide Photo Library") : tr("Mostra la fototeca", "Show Photo Library"))
+                .help(showsTray ? tr("Hide Photo Library", key: "toolbar.hide_photo_library") : tr("Show Photo Library", key: "toolbar.show_photo_library"))
             }
             ToolbarItem(id: "inspector", placement: .primaryAction) {
                 Toggle(isOn: $showsInspector) {
-                    Label(tr("Ispettore", "Inspector"), systemImage: "sidebar.right")
+                    Label(tr("Inspector"), systemImage: "sidebar.right")
                 }
-                .help(showsInspector ? tr("Nascondi ispettore", "Hide Inspector") : tr("Mostra ispettore", "Show Inspector"))
+                .help(showsInspector ? tr("Hide Inspector") : tr("Show Inspector"))
             }
         }
     }
@@ -89,15 +89,15 @@ extension EditorView {
     ]
 
     @ViewBuilder var insertMenuItems: some View {
-        Button(tr("Pagina", "Page"), systemImage: "doc.badge.plus") { insert(.gallery) }
-        Button(tr("Box di testo", "Text Box"), systemImage: "character.textbox", action: insertTextBox)
+        Button(tr("Page"), systemImage: "doc.badge.plus") { insert(.gallery) }
+        Button(tr("Text Box"), systemImage: "character.textbox", action: insertTextBox)
             .disabled(page == nil)
-        Button(tr("Titolo di pagina", "Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
+        Button(tr("Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
             .disabled(page == nil)
-        Button(tr("Frontespizio", "Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
+        Button(tr("Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
         Divider()
         // The same page templates as the inspector, so new pages never use the legacy layouts.
-        Menu(tr("Pagina con modello", "Page with Template")) {
+        Menu(tr("Page with Template")) {
             ForEach(Self.insertableTemplates, id: \.self) { arrangement in
                 Button(PageArrangementPicker.name(arrangement, language: language)) { insert(arrangement: arrangement) }
             }
@@ -105,15 +105,15 @@ extension EditorView {
     }
 
     @ViewBuilder var bookTitleMenu: some View {
-        Button(tr("Modelli del libro…", "Book Templates…"), action: actions.showTemplates)
-        Button(tr("Libro e stampa…", "Book & Print…"), action: actions.showBookSettings)
+        Button(tr("Book Templates…"), action: actions.showTemplates)
+        Button(tr("Book & Print…"), action: actions.showBookSettings)
         Divider()
         Button(actions.saveTitle, action: actions.save)
-        Button(tr("Salva con nome…", "Save As…"), action: actions.saveAs)
+        Button(tr("Save As…"), action: actions.saveAs)
         Divider()
-        Button(tr("Esporta PDF…", "Export PDF…"), action: onExport)
+        Button(tr("Export PDF…"), action: onExport)
             .disabled(book.pages.isEmpty)
-        Button(tr("Esporta per la stampa…", "Export for Print…"), action: actions.exportPrint)
+        Button(tr("Export for Print…"), action: actions.exportPrint)
             .disabled(book.pages.isEmpty)
     }
 
@@ -127,8 +127,7 @@ extension EditorView {
                     applyPageArrangement(arrangement, to: page.id)
                     showLayoutPopover = false
                 }
-                Text(tr("Scegliere un modello ridistribuisce le cornici. Testi, foto e ritagli restano nella pagina.",
-                        "Choosing a layout rearranges the frames. Text, photos and crops stay on the page."))
+                Text(tr("Choosing a layout rearranges the frames. Text, photos and crops stay on the page."))
                     .font(.caption)
                     .foregroundStyle(muted)
                     .fixedSize(horizontal: false, vertical: true)

@@ -102,7 +102,7 @@ extension EditorView {
             let limits = CanvasPhotoGeometry.movementBounds(for: frame.size, in: map.bounds)
             let moved = CanvasPhotoGeometry.moved(frame, by: offset, within: limits)
             if moved != frame {
-                changeCoverPhotoPlacement(side, name: tr("Sposta foto di copertina", "Move Cover Photo")) {
+                changeCoverPhotoPlacement(side, name: tr("Move Cover Photo")) {
                     $0.frame = PageRect(moved, in: map.bounds).photoClamped
                 }
             }
@@ -268,7 +268,7 @@ extension EditorView {
         guard cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
         else { return false }
         if let selectedBox, let page, page.textBoxes?.contains(where: { $0.id == selectedBox }) == true {
-            changeTextBoxes(on: page.id, name: tr("Rimuovi box", "Remove Box")) { boxes in
+            changeTextBoxes(on: page.id, name: tr("Remove Box")) { boxes in
                 boxes.removeAll { $0.id == selectedBox }
             }
             self.selectedBox = nil

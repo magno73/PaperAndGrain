@@ -380,6 +380,7 @@ final class DocumentReleaseTests: XCTestCase {
 
     // A9
     func testAppErrorsExistInItalianAndEnglish() async throws {
+        try CompiledCatalog.install()
         let errors: [AppError] = [
             .bookMoved(title: "Trip"), .newerFormat(title: "Trip"), .readOnlyLocation(title: "Trip"),
             .damagedManifest(package: "Trip"), .imageUnavailable(name: "IMG_0001.HEIC"), .imageUnavailable(name: nil),

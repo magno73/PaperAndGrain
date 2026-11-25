@@ -4,22 +4,22 @@ import UniformTypeIdentifiers
 
 extension EditorView {
     var inspectorTabs: [InspectorTab] {
-        var tabs = [InspectorTab(id: .page, title: coverSide == nil ? tr("Pagina", "Page") : tr("Copertina", "Cover"))]
+        var tabs = [InspectorTab(id: .page, title: coverSide == nil ? tr("Page") : tr("Cover"))]
         if selectedText != nil {
-            tabs.append(InspectorTab(id: .text, title: tr("Testo", "Text")))
+            tabs.append(InspectorTab(id: .text, title: tr("Text")))
         }
         if selectedPhoto != nil {
             // The photo's film look is a section of this tab; the Film tab is the book's look.
-            tabs.append(InspectorTab(id: .photo, title: tr("Foto", "Photo")))
+            tabs.append(InspectorTab(id: .photo, title: tr("Photo")))
         } else {
-            tabs.append(InspectorTab(id: .film, title: tr("Pellicola", "Film")))
+            tabs.append(InspectorTab(id: .film, title: tr("Film")))
         }
         return tabs
     }
 
     var sidePanel: some View {
         let tabs = inspectorTabs
-        return InspectorHost(navigation: inspectorNavigation, title: tr("Ispettore", "Inspector"), tabs: tabs,
+        return InspectorHost(navigation: inspectorNavigation, title: tr("Inspector"), tabs: tabs,
                              finishAdjustment: finishPhotoAdjustmentEdit, finishFilm: finishFilmEdit) { tab in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -85,15 +85,15 @@ extension EditorView {
                 }
             }
             if !isOnCurrentPage(photo.id) {
-                Button(tr("Aggiungi alla pagina", "Add to page")) { togglePhoto(photo.id) }
+                Button(tr("Add to page")) { togglePhoto(photo.id) }
                     .disabled(page == nil && coverSide == nil)
             }
-            inspectorSection(tr("Regola", "Adjust"), expanded: $showsAdjustSection) {
+            inspectorSection(tr("Adjust"), expanded: $showsAdjustSection) {
                 photoAdjustmentsInspector
             }
-            inspectorSection(tr("Pellicola", "Film"),
+            inspectorSection(tr("Film"),
                              detail: filmName(book.effectiveFilm(for: photo).preset)
-                                 + (photo.film == nil ? " · " + tr("dal libro", "from book") : ""),
+                                 + (photo.film == nil ? " · " + tr("from book") : ""),
                              expanded: $showsPhotoFilmSection) {
                 photoFilmSection(photo)
             }
@@ -103,7 +103,7 @@ extension EditorView {
             if let analysis = photo.analysis {
                 let labels = (!analysis.labels.isEmpty ? analysis.labels : analysis.concepts).prefix(4)
                 if !labels.isEmpty || analysis.revision >= PhotoAnalysis.currentRevision {
-                    inspectorSection(tr("Analisi", "Analysis"), expanded: $showsAnalysisSection) {
+                    inspectorSection(tr("Analysis"), expanded: $showsAnalysisSection) {
                         VStack(alignment: .leading, spacing: 6) {
                             if !labels.isEmpty { intro(labels.map(conceptName).joined(separator: " · ")) }
                             if analysis.revision >= PhotoAnalysis.currentRevision { photoAnalysisDetails(analysis) }
@@ -112,8 +112,7 @@ extension EditorView {
                 }
             }
         } else {
-            intro(tr("Seleziona una foto nella pagina o nella fototeca.",
-                     "Select a photo on the page or in the photo library."))
+            intro(tr("Select a photo on the page or in the photo library."))
         }
     }
 
@@ -139,7 +138,7 @@ extension EditorView {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityValue(expanded.wrappedValue ? tr("Espanso", "Expanded") : tr("Compresso", "Collapsed"))
+            .accessibilityValue(expanded.wrappedValue ? tr("Expanded") : tr("Collapsed"))
             if expanded.wrappedValue { content() }
         }
     }
@@ -153,12 +152,12 @@ extension EditorView {
                     .foregroundStyle(pine)
                     .frame(width: 35, height: 28)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(tr("Modello del libro", "Book Template")).font(.system(size: 11, weight: .semibold))
-                    Text(book.template?.name(language: language) ?? tr("Base", "Basic"))
+                    Text(tr("Book Template")).font(.system(size: 11, weight: .semibold))
+                    Text(book.template?.name(language: language) ?? tr("Basic"))
                         .font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 3)
-                Text(tr("Cambia…", "Change…")).font(.system(size: 11)).foregroundStyle(pine)
+                Text(tr("Change…")).font(.system(size: 11)).foregroundStyle(pine)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
@@ -168,9 +167,9 @@ extension EditorView {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(tr("Modello del libro", "Book Template"))
-        .accessibilityValue(book.template?.name(language: language) ?? tr("Base", "Basic"))
-        .help(tr("Carta, caratteri e margini di tutto il libro", "Paper, type and margins for the whole book"))
+        .accessibilityLabel(tr("Book Template"))
+        .accessibilityValue(book.template?.name(language: language) ?? tr("Basic"))
+        .help(tr("Paper, type and margins for the whole book"))
     }
 
     @ViewBuilder var pageInspector: some View {
@@ -189,7 +188,7 @@ extension EditorView {
                     applyPageArrangement(arrangement, to: page.id)
                 }
                 if waiting > 0 {
-                    intro(tr("\(waiting) foto in attesa di un riquadro.", "\(waiting) photos waiting for a slot."))
+                    intro(tr("%lld photos waiting for a slot.", waiting))
                 }
             }
             textBoxInspector(page)
@@ -197,28 +196,28 @@ extension EditorView {
             let showsBody = storyLayout || page.storyFrame != nil
             if storyLayout || page.titleFrame != nil || page.storyFrame != nil {
                 VStack(alignment: .leading, spacing: 8) {
-                    caption(tr("Titolo e testo", "Heading and Text"))
+                    caption(tr("Heading and Text"))
                     // Formatting lives in the Text tab only; this tab edits the words.
                     Button {
                         selectEditorial(showsBody ? .storyGroup(page.id) : .page(page.id, .title), on: page)
                         showInspectorTab(.text)
                     } label: {
-                        Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
+                        Label(tr("Font and Paragraph"), systemImage: "textformat")
                     }
                     if page.effectiveLayout == .mixed && page.arrangement == nil {
-                        Picker(tr("Posizione del testo", "Text Position"), selection: Binding(
+                        Picker(tr("Text Position"), selection: Binding(
                             get: { self.page?.textPlacement ?? .below },
                             set: { placement in
                                 guard let index else { return }
                                 book.pages[index].textPlacement = placement
                             }
                         )) {
-                            Text(tr("Sotto", "Below")).tag(PageTextPlacement.below)
-                            Text(tr("A fianco", "Beside")).tag(PageTextPlacement.beside)
+                            Text(tr("Below")).tag(PageTextPlacement.below)
+                            Text(tr("Beside")).tag(PageTextPlacement.beside)
                         }
                         .pickerStyle(.segmented)
                     }
-                    TextField(tr("Titolo della pagina", "Page Heading"), text: Binding(
+                    TextField(tr("Page Heading", key: "inspector.page_heading"), text: Binding(
                         get: { self.page?.heading ?? "" },
                         set: { value in
                             guard let index else { return }
@@ -235,14 +234,14 @@ extension EditorView {
                             .frame(minHeight: 140)
                             .background(paper, in: RoundedRectangle(cornerRadius: 6))
                             .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(writing ? pine : edge) }
-                            .accessibilityLabel(tr("Racconto", "Story"))
+                            .accessibilityLabel(tr("Story"))
                     }
                     if storyLayout && (page.titleFrame != nil || page.storyFrame != nil) {
-                        Button(tr("Ripristina posizione di titolo e testo", "Reset Heading and Text Placement")) {
+                        Button(tr("Reset Heading and Text Placement")) {
                             guard let index = book.pages.firstIndex(where: { $0.id == page.id }) else { return }
                             endInlineTextEditing()
                             selectedEditorial = nil
-                            editPages(tr("Ripristina posizione del testo", "Reset Text Placement")) {
+                            editPages(tr("Reset Text Placement")) {
                                 $0[index].titleFrame = nil
                                 $0[index].storyFrame = nil
                                 $0[index].storyBackdropFrames = nil
@@ -255,18 +254,17 @@ extension EditorView {
             if page.effectiveLayout != .text || !page.photoIDs.isEmpty {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        caption(tr("Foto nella pagina", "Photos on page"))
+                        caption(tr("Photos on page"))
                         Spacer()
                         Button { browsePhotos() } label: {
                             Image(systemName: "plus").font(.system(size: 11, weight: .semibold))
                         }
-                        .help(tr("Apri le foto disponibili", "Browse available photos"))
+                        .help(tr("Browse available photos"))
                     }
                     let pagePhotos = photos(on: page)
                     let destinations = pagePhotos.isEmpty ? [] : photoTransferDestinations(excluding: page.id)
                     if pagePhotos.isEmpty {
-                        intro(tr("Scegli una foto dalla fototeca o trascinala nella pagina.",
-                                 "Choose a photo from the photo library or drag it onto the page."))
+                        intro(tr("Choose a photo from the photo library or drag it onto the page."))
                     }
                     ForEach(pagePhotos) { photo in
                         HStack(spacing: 8) {
@@ -274,18 +272,18 @@ extension EditorView {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(photo.name).font(.system(size: 11)).lineLimit(1)
                                 if !visiblePhotos.contains(photo.id) {
-                                    Text(tr("In attesa", "Waiting")).font(.system(size: 9)).foregroundStyle(muted)
+                                    Text(tr("Waiting")).font(.system(size: 9)).foregroundStyle(muted)
                                 }
                             }
                             Spacer(minLength: 2)
                             Menu {
-                                Button(tr("Sposta prima", "Move earlier")) { reorderPhoto(photo.id, by: -1) }
+                                Button(tr("Move earlier")) { reorderPhoto(photo.id, by: -1) }
                                     .disabled(page.photoIDs.first == photo.id)
-                                Button(tr("Sposta dopo", "Move later")) { reorderPhoto(photo.id, by: 1) }
+                                Button(tr("Move later")) { reorderPhoto(photo.id, by: 1) }
                                     .disabled(page.photoIDs.last == photo.id)
                                 photoTransferMenu(photo.id, from: page.id, destinations: destinations)
                                 if !visiblePhotos.contains(photo.id) {
-                                    Button(tr("Rimuovi dalla pagina", "Remove from page"), role: .destructive) {
+                                    Button(tr("Remove from page"), role: .destructive) {
                                         remove(photo.id, from: page.id)
                                     }
                                 }
@@ -295,27 +293,26 @@ extension EditorView {
                             .menuIndicator(.hidden)
                             .menuStyle(.borderlessButton)
                             .fixedSize()
-                            .help(tr("Opzioni della foto", "Photo options"))
+                            .help(tr("Photo options"))
                         }
                     }
                 }
             }
             if page.effectiveLayout != .fullPage && page.effectiveLayout != .fullSpread,
                page.photoPlacements?.values.contains(where: { $0.frame != nil }) == true {
-                Button(tr("Ripristina posizione automatica delle foto", "Reset automatic photo placement")) {
+                Button(tr("Reset automatic photo placement")) {
                     resetPhotoFrames(page.id)
                 }
             }
             Rectangle().fill(edge).frame(height: 1)
             Button(role: .destructive) { showDelete = true } label: {
-                Label(tr("Elimina pagina…", "Delete page…"), systemImage: "trash")
+                Label(tr("Delete page…"), systemImage: "trash")
                     .font(.system(size: 11))
             }
             .buttonStyle(.plain)
             .foregroundStyle(Theme.destructive)
         } else {
-            intro(tr("Aggiungi una pagina per impaginare foto e racconti.",
-                     "Add a page to arrange photos and stories."))
+            intro(tr("Add a page to arrange photos and stories."))
         }
     }
 
@@ -324,19 +321,19 @@ extension EditorView {
         let active = boxes.first { $0.id == selectedBox }
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
-                caption(tr("Box di testo", "Text Boxes"))
+                caption(tr("Text Boxes"))
                 Spacer()
-                action("plus", tr("Aggiungi box di testo", "Add Text Box"), perform: insertTextBox)
+                action("plus", tr("Add Text Box"), perform: insertTextBox)
             }
             if !boxes.isEmpty {
-                Picker(tr("Box di testo", "Text Box"), selection: Binding(
+                Picker(tr("Text Box"), selection: Binding(
                     get: { selectedBox },
                     set: { if let id = $0 { selectTextBox(id, in: leaf) } else { selectedBox = nil } }
                 )) {
-                    Text(tr("Seleziona un box", "Select a Box")).tag(UUID?.none)
+                    Text(tr("Select a Box")).tag(UUID?.none)
                     ForEach(Array(boxes.enumerated()), id: \.element.id) { offset, box in
                         let firstLine = box.text.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
-                        Text(firstLine.isEmpty ? tr("Box", "Box") + " " + String(offset + 1) : String(firstLine.prefix(24)))
+                        Text(firstLine.isEmpty ? tr("Box") + " " + String(offset + 1) : String(firstLine.prefix(24)))
                             .tag(Optional(box.id))
                     }
                 }
@@ -346,7 +343,7 @@ extension EditorView {
                 Button {
                     showInspectorTab(.text)
                 } label: {
-                    Label(tr("Carattere e paragrafo", "Font and Paragraph"), systemImage: "textformat")
+                    Label(tr("Font and Paragraph"), systemImage: "textformat")
                 }
                 TextEditor(text: textInBox(active.id, on: leaf.id))
                     .font(.system(size: 14, design: .serif))
@@ -356,9 +353,9 @@ extension EditorView {
                     .frame(minHeight: 102)
                     .background(paper, in: RoundedRectangle(cornerRadius: 6))
                     .overlay { RoundedRectangle(cornerRadius: 6).strokeBorder(writingBox ? pine : edge) }
-                    .accessibilityLabel(tr("Testo del box", "Box Text"))
-                Button(tr("Rimuovi box", "Remove Box"), role: .destructive) {
-                    changeTextBoxes(on: leaf.id, name: tr("Rimuovi box", "Remove Box")) { $0.removeAll { $0.id == active.id } }
+                    .accessibilityLabel(tr("Box Text"))
+                Button(tr("Remove Box"), role: .destructive) {
+                    changeTextBoxes(on: leaf.id, name: tr("Remove Box")) { $0.removeAll { $0.id == active.id } }
                     selectedBox = nil
                 }
             }
@@ -398,7 +395,7 @@ extension EditorView {
         case let .box(pageID, boxID)?:
             if let leaf = book.pages.first(where: { $0.id == pageID }),
                let box = leaf.textBoxes?.first(where: { $0.id == boxID }) {
-                caption(tr("Box di testo", "Text Box"))
+                caption(tr("Text Box"))
                 EditorialTypographyControls(style: boxTextStyle(boxID, on: pageID),
                                            inherited: style.defaultBodyStyle.applying(book.typography?.body),
                                            language: language, sampleText: box.text,
@@ -407,14 +404,13 @@ extension EditorView {
                 let frame = box.frame.rect(in: pageComposition(leaf).bounds)
                     .insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
                 if !EditorialTypesetter.fits(PageComposition.boxText(box: box, book: book), in: frame) {
-                    typeOverflow(tr("Ingrandisci il box o riduci la dimensione del testo.",
-                                    "Enlarge the box or reduce the text size."))
+                    typeOverflow(tr("Enlarge the box or reduce the text size."))
                 }
                 Divider()
-                Toggle(tr("Usa tutta la larghezza", "Use Full Width"), isOn: Binding(
+                Toggle(tr("Use Full Width"), isOn: Binding(
                     get: { box.usesFullWidth == true },
                     set: { fullWidth in
-                        changeTextBoxes(on: pageID, name: tr("Modifica margini del box", "Change Text Box Insets")) { boxes in
+                        changeTextBoxes(on: pageID, name: tr("Change Text Box Insets")) { boxes in
                             guard let index = boxes.firstIndex(where: { $0.id == boxID }) else { return }
                             boxes[index].usesFullWidth = fullWidth ? true : nil
                         }
@@ -433,7 +429,7 @@ extension EditorView {
             if let leaf = book.pages.first(where: { $0.id == pageID }) {
                 headingFormat(leaf, palette: palette)
                 Divider()
-                caption(tr("Racconto", "Story"))
+                caption(tr("Story"))
                 EditorialTypographyControls(style: pageTextStyle(\.body, on: pageID),
                                            inherited: style.defaultBodyStyle.applying(book.typography?.body),
                                            language: language, sampleText: leaf.text,
@@ -442,14 +438,14 @@ extension EditorView {
                     .id(pageID)
                 let blocks = pageComposition(leaf).storyDrawingBlocks(page: leaf, book: book)
                 if blocks.contains(where: { !EditorialTypesetter.fits($0.text, in: $0.frame) }) {
-                    typeOverflow(tr("Alcune righe non entrano nel riquadro.", "Some lines exceed the text frame."))
+                    typeOverflow(tr("Some lines exceed the text frame."))
                 }
                 layerButtons(LayerTarget(pageID: pageID, layer: .story))
             }
         case let .cover(side)?:
             let front = side == .front
             let defaultStyle = front && book.template != nil ? style.defaultTitleStyle(mixed: false) : style.defaultBodyStyle
-            caption(front ? tr("Titolo in copertina", "Cover Title") : tr("Testo del retro", "Back Cover Text"))
+            caption(front ? tr("Cover Title") : tr("Back Cover Text"))
             EditorialTypographyControls(style: coverTextStyle(front ? \.title : \.body),
                                        inherited: defaultStyle.applying(front ? book.typography?.title : book.typography?.body),
                                        language: language, sampleText: coverEditorialValue(side).wrappedValue,
@@ -457,11 +453,10 @@ extension EditorView {
                 .id(side)
             let face = BookCoverGeometry(book: book, front: front)
             if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
-                typeOverflow(tr("Il testo supera lo spazio della copertina.", "The text exceeds the cover space."))
+                typeOverflow(tr("The text exceeds the cover space."))
             }
         case nil:
-            intro(tr("Seleziona un box, un titolo o un racconto nella pagina.",
-                     "Select a text box, heading or story on the page."))
+            intro(tr("Select a text box, heading or story on the page."))
         }
     }
 
@@ -477,14 +472,14 @@ extension EditorView {
                 update(&boxes[index])
             }
         }
-        let fillName = tr("Modifica sfondo del box", "Change Box Background")
-        let borderName = tr("Modifica bordo del box", "Change Box Border")
+        let fillName = tr("Change Box Background")
+        let borderName = tr("Change Box Border")
         let borderWidth = box.borderWidth ?? 0
         return VStack(alignment: .leading, spacing: 9) {
             Divider()
-            caption(tr("Riquadro", "Box"))
-            Text(tr("Sfondo", "Background")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-            Picker(tr("Sfondo", "Background"), selection: Binding(
+            caption(tr("Box", key: "inspector.box_frame"))
+            Text(tr("Background")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+            Picker(tr("Background"), selection: Binding(
                 get: { fillChoice },
                 set: { choice in
                     change(fillName) { item in
@@ -500,21 +495,21 @@ extension EditorView {
                     }
                 }
             )) {
-                Text(tr("Nessuno", "None")).tag(BoxFillChoice.none)
-                Text(tr("Carta", "Paper")).tag(BoxFillChoice.paper)
-                Text(tr("Colore", "Color")).tag(BoxFillChoice.color)
+                Text(tr("None")).tag(BoxFillChoice.none)
+                Text(tr("Paper")).tag(BoxFillChoice.paper)
+                Text(tr("Color")).tag(BoxFillChoice.color)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             if fillChoice == .color {
                 ColorSwatches(colors: [style.paper, 0xFFFFFF, style.accent, style.overlayPaper, style.ink] + palette,
                               selected: box.backgroundColor ?? style.paper,
-                              label: tr("Colore di sfondo", "Background Color")) { value in
+                              label: tr("Background Color")) { value in
                     change(fillName) { $0.backgroundColor = value }
                 }
             }
             HStack {
-                Text(tr("Bordo", "Border")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                Text(tr("Border")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
                 Stepper(value: Binding(
                     get: { borderWidth },
@@ -523,17 +518,17 @@ extension EditorView {
                         change(borderName) { $0.borderWidth = width == 0 ? nil : width }
                     }
                 ), in: PageTextBox.borderWidthRange, step: 0.5) {
-                    Text(borderWidth == 0 ? tr("Nessuno", "None")
+                    Text(borderWidth == 0 ? tr("None")
                          : borderWidth.formatted(.number.precision(.fractionLength(0...1))
                              .locale(Locale(identifier: language))) + " pt")
                         .font(.system(size: 11).monospacedDigit())
                 }
-                .accessibilityLabel(tr("Spessore del bordo", "Border Width"))
+                .accessibilityLabel(tr("Border Width"))
             }
             if borderWidth > 0 {
                 ColorSwatches(colors: [style.ink, style.titleInk, style.accent, 0x000000, 0xFFFFFF] + palette,
                               selected: box.borderColor ?? style.ink,
-                              label: tr("Colore del bordo", "Border Color")) { value in
+                              label: tr("Border Color")) { value in
                     change(borderName) { $0.borderColor = value == style.ink ? nil : value }
                 }
             }
@@ -544,8 +539,8 @@ extension EditorView {
     func headingFormat(_ leaf: BookPage, palette: [UInt32]) -> some View {
         let style = book.editorialStyle
         return VStack(alignment: .leading, spacing: 10) {
-            caption(tr("Titolo", "Heading"))
-            TextField(tr("Titolo della pagina", "Page Heading"), text: Binding(
+            caption(tr("Heading"))
+            TextField(tr("Page Heading", key: "inspector.page_heading"), text: Binding(
                 get: { book.pages.first { $0.id == leaf.id }?.heading ?? "" },
                 set: { value in
                     guard let index = book.pages.firstIndex(where: { $0.id == leaf.id }) else { return }
@@ -566,11 +561,11 @@ extension EditorView {
     func layerButtons(_ target: LayerTarget) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Divider()
-            caption(tr("Disposizione", "Arrange"))
+            caption(tr("Arrange", key: "inspector.arrange"))
             HStack(spacing: 6) {
-                Button(tr("In primo piano", "Front")) { moveLayer(target, .front) }
+                Button(tr("Front", key: "layers.front")) { moveLayer(target, .front) }
                     .disabled(!canMoveLayer(target, .front))
-                Button(tr("In fondo", "Back")) { moveLayer(target, .back) }
+                Button(tr("Back", key: "layers.back")) { moveLayer(target, .back) }
                     .disabled(!canMoveLayer(target, .back))
             }
             .controlSize(.small)
@@ -594,7 +589,7 @@ extension EditorView {
                 var type = book.pages[index].typography ?? EditorialTypography()
                 guard type[keyPath: key] != value else { return }
                 type[keyPath: key] = value
-                editPages(tr("Modifica tipografia", "Change Typography")) { pages in
+                editPages(tr("Change Typography")) { pages in
                     pages[index].typography = type.title == nil && type.body == nil ? nil : type
                 }
             }
@@ -605,7 +600,7 @@ extension EditorView {
         Binding(
             get: { book.pages.first { $0.id == pageID }?.textBoxes?.first { $0.id == id }?.typography },
             set: { value in
-                changeTextBoxes(on: pageID, name: tr("Modifica tipografia", "Change Typography")) { boxes in
+                changeTextBoxes(on: pageID, name: tr("Change Typography")) { boxes in
                     guard let index = boxes.firstIndex(where: { $0.id == id }) else { return }
                     boxes[index].typography = value
                 }
@@ -635,14 +630,14 @@ extension EditorView {
                                                 destinations: [PhotoTransferDestination]) -> some View {
         let destinations = destinations.filter { !$0.photoIDs.contains(photo) }
         if !destinations.isEmpty {
-            Menu(tr("Copia nella pagina", "Copy to page")) {
+            Menu(tr("Copy to page")) {
                 ForEach(destinations) { destination in
                     Button(destination.label) {
                         transferPhoto(photo, from: source, to: destination.id, moving: false)
                     }
                 }
             }
-            Menu(tr("Sposta nella pagina", "Move to page")) {
+            Menu(tr("Move to page")) {
                 ForEach(destinations) { destination in
                     Button(destination.label) {
                         transferPhoto(photo, from: source, to: destination.id, moving: true)
@@ -658,13 +653,12 @@ extension EditorView {
                                          assigned: Set(page?.photoIDs ?? []), photos: book.photos)
         let matches = suggestedPhotos.filter { !query.assigned.contains($0.id) }
         return VStack(alignment: .leading, spacing: 8) {
-            caption(tr("Foto suggerite", "Suggested photos"))
+            caption(tr("Suggested photos"))
             if matches.isEmpty {
                 if book.photos.contains(where: { $0.analysis != nil }) {
-                    intro(tr("Scrivi di un luogo, un animale o un soggetto per vedere le foto abbinate.",
-                             "Write about a place, animal, or subject to see matching photos."))
+                    intro(tr("Write about a place, animal, or subject to see matching photos."))
                 } else {
-                    Button(tr("Analizza le foto", "Analyze photos"), action: onAnalyze)
+                    Button(tr("Analyze photos"), action: onAnalyze)
                         .disabled(isAnalyzing || book.photos.isEmpty)
                 }
             } else {
@@ -684,8 +678,8 @@ extension EditorView {
                                 Image(systemName: "plus.circle").foregroundStyle(pine)
                             }
                             .buttonStyle(.plain)
-                            .help(tr("Abbina alla pagina", "Add to the page"))
-                            .accessibilityLabel(tr("Abbina alla pagina", "Add to the page"))
+                            .help(tr("Add to the page"))
+                            .accessibilityLabel(tr("Add to the page"))
                         }
                         .padding(4)
                         .background(.white.opacity(0.34), in: RoundedRectangle(cornerRadius: 5))
@@ -708,27 +702,27 @@ extension EditorView {
     func analysisEvidence(_ evidence: PhotoMatchEvidence) -> String {
         switch evidence.source {
         case "concept": conceptName(evidence.value)
-        case "text": tr("Testo nella foto", "Text in photo") + " · " + evidence.value
+        case "text": tr("Text in photo") + " · " + evidence.value
         default: conceptName(evidence.value)
         }
     }
 
     func photoAnalysisDetails(_ analysis: PhotoAnalysis) -> some View {
-        DisclosureGroup(tr("Dettagli analisi", "Analysis details")) {
+        DisclosureGroup(tr("Analysis details")) {
             VStack(alignment: .leading, spacing: 5) {
                 let detections = analysis.detections ?? []
                 ForEach(["person", "face", "animal"], id: \.self) { kind in
                     let count = detections.filter { $0.kind == kind }.count
                     if count > 0 {
-                        let title = kind == "person" ? tr("Persone", "People")
-                            : kind == "face" ? tr("Volti", "Faces") : tr("Animali", "Animals")
+                        let title = kind == "person" ? tr("People")
+                            : kind == "face" ? tr("Faces") : tr("Animals")
                         intro("\(title) · \(count)")
                     }
                 }
                 if let lines = analysis.recognizedText?.prefix(3), !lines.isEmpty {
                     Label(lines.map(\.text).joined(separator: "\n"), systemImage: "text.viewfinder")
                         .font(.caption).foregroundStyle(muted).lineLimit(4)
-                        .accessibilityLabel(tr("Testo nella foto", "Text in photo") + ": " + lines.map(\.text).joined(separator: " "))
+                        .accessibilityLabel(tr("Text in photo") + ": " + lines.map(\.text).joined(separator: " "))
                 }
                 if let colors = analysis.visual?.dominantColors, !colors.isEmpty {
                     HStack(spacing: 3) {
@@ -741,7 +735,7 @@ extension EditorView {
                         }
                     }
                     .accessibilityElement(children: .contain)
-                    .accessibilityLabel(tr("Colori dominanti", "Dominant colors"))
+                    .accessibilityLabel(tr("Dominant colors"))
                 }
             }
             .padding(.top, 4)

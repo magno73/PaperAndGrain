@@ -23,7 +23,7 @@ extension EditorView {
         let composition = pageComposition(leaf)
         let current = composition.storyBlocks(page: leaf, book: book)
         let backings = composition.storyBackgroundFrames(page: leaf, blocks: current)
-        editPages(tr("Sposta o ridimensiona testo", "Move or Resize Text")) { pages in
+        editPages(tr("Move or Resize Text")) { pages in
             pages[index].freezeStoryBackdrop(backings, in: composition.bounds)
             for block in current where !block.frame.isEmpty {
                 let original = PageRect(block.frame, in: composition.bounds).clamped
@@ -41,7 +41,7 @@ extension EditorView {
         let composition = pageComposition(leaf)
         let blocks = composition.storyBlocks(page: leaf, book: book)
         let backings = composition.storyBackgroundFrames(page: leaf, blocks: blocks)
-        editPages(tr("Sposta blocco di testo", "Move Story Group")) { pages in
+        editPages(tr("Move Story Group", key: "canvas.move_story_group")) { pages in
             pages[index].moveStoryGroup(by: translation, blocks: blocks, backdrops: backings, in: composition.bounds)
         }
     }
@@ -50,7 +50,7 @@ extension EditorView {
         finishCrop()
         endInlineTextEditing()
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
-        editPages(tr("Cambia modello della pagina", "Change Page Template")) { pages in
+        editPages(tr("Change Page Template")) { pages in
             let wasSpread = pages[index].effectiveLayout == .fullSpread
             pages[index].arrangement = arrangement
             if let arrangement {
@@ -77,7 +77,7 @@ extension EditorView {
         var newPage = BookPage(layout: arrangement?.layout ?? layout)
         newPage.arrangement = arrangement
         let insertionIndex = position ?? index.map { $0 + 1 } ?? book.pages.endIndex
-        editPages(tr("Inserisci pagina", "Insert Page")) { $0.insert(newPage, at: insertionIndex) }
+        editPages(tr("Insert Page")) { $0.insert(newPage, at: insertionIndex) }
         select(newPage)
         inspector = .page
     }
@@ -85,7 +85,7 @@ extension EditorView {
     func insertTitlePage() {
         var titlePage = BookPage(layout: .text, heading: book.title)
         titlePage.arrangement = .textOnly
-        editPages(tr("Inserisci frontespizio", "Insert Title Page")) { $0.insert(titlePage, at: 0) }
+        editPages(tr("Insert Title Page")) { $0.insert(titlePage, at: 0) }
         select(titlePage)
         inspector = .page
     }
@@ -98,7 +98,7 @@ extension EditorView {
             let safe = composition.story ?? composition.bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
             let frame = CGRect(x: safe.minX, y: safe.minY, width: safe.width,
                                height: min(safe.height, max(44, composition.bounds.height * 0.16)))
-            editPages(tr("Inserisci titolo", "Insert Heading")) { pages in
+            editPages(tr("Insert Heading")) { pages in
                 pages[index].titleFrame = PageRect(frame, in: composition.bounds).clamped
             }
         }
@@ -118,7 +118,7 @@ extension EditorView {
         let x = min(safe.maxX - width, safe.minX + offset)
         let y = max(safe.minY, safe.maxY - height - offset)
         let box = PageTextBox(frame: PageRect(CGRect(x: x, y: y, width: width, height: height), in: bounds))
-        changeTextBoxes(on: page.id, name: tr("Inserisci box di testo", "Insert Text Box")) { $0.append(box) }
+        changeTextBoxes(on: page.id, name: tr("Insert Text Box")) { $0.append(box) }
         beginInlineBoxEditing(box.id, in: page)
     }
 
@@ -143,7 +143,7 @@ extension EditorView {
     }
 
     func updateTextBoxFrame(_ id: UUID, on pageID: UUID, to frame: PageRect) {
-        changeTextBoxes(on: pageID, name: tr("Sposta o ridimensiona box", "Move or Resize Text Box")) { boxes in
+        changeTextBoxes(on: pageID, name: tr("Move or Resize Text Box")) { boxes in
             guard let index = boxes.firstIndex(where: { $0.id == id }) else { return }
             boxes[index].frame = frame.clamped
         }

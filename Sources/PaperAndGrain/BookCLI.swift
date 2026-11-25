@@ -63,7 +63,19 @@ enum BookCLI {
         var errorDescription: String? { message }
     }
 
+    /// Italian template names for `templates`. The CLI runs without the compiled String Catalog
+    /// (`swift build` puts no resources next to the binary), so it keeps its own copy of these names;
+    /// `L10nTests` checks that they match the catalog.
+    static let italianTemplateNames: [BookTemplate: String] = [
+        .diary: "Diario", .atlas: "Atlante", .gallery: "Galleria", .essential: "Essenziale",
+        .swissGrid: "Griglia svizzera", .berlinQuarter: "Quaderno berlinese",
+        .japaneseInterval: "Intervallo giapponese", .monograph: "Monografia", .postcard: "Cartolina",
+        .nocturne: "Notturno", .kodachrome: "Kodachrome", .roadLog: "Diario di bordo",
+    ]
+
     static func run(_ args: [String]) async -> Int32 {
+        // Messages and errors stay in English whatever Settings › Language says.
+        L10n.useEnglishOnly()
         do {
             let output = try await executeExtended(args)
             FileHandle.standardOutput.write(output + Data([10]))
@@ -150,7 +162,7 @@ enum BookCLI {
                 let defaults = Defaults()
             }
             let templates = BookTemplate.allCases.map {
-                Template(id: $0.rawValue, name: .init(it: $0.name(language: "it"), en: $0.name(language: "en")),
+                Template(id: $0.rawValue, name: .init(it: italianTemplateNames[$0] ?? $0.englishName, en: $0.englishName),
                          family: String(describing: $0.family))
             }
             return try encode(Catalog(templates: templates, layouts: PageLayout.allCases,

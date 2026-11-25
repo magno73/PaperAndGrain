@@ -22,32 +22,32 @@ struct PhotoMatchEvidence: Codable, Hashable, Sendable {
 enum PhotoAnalyzer {
     private struct Topic {
         let key: String
+        /// The English display name, which is also the catalog key.
         let english: String
-        let italian: String
+        /// Vision labels for the topic, and the English and Italian words that name it in a story.
         let visual: [String]
         let aliases: [String]
 
-        init(_ key: String, _ english: String, _ italian: String, _ visual: String, _ aliases: String) {
+        init(_ key: String, _ english: String, _ visual: String, _ aliases: String) {
             self.key = key
             self.english = english
-            self.italian = italian
             self.visual = visual.components(separatedBy: "|")
             self.aliases = aliases.components(separatedBy: "|")
         }
     }
 
     private static let topics = [
-        Topic("desert", "Desert", "Deserto", "desert|dune|dunes|sand dune", "desert|deserts|dune|dunes|deserto|deserti|duna"),
-        Topic("sand", "Sand", "Sabbia", "sand|sandy|dune|dunes|desert", "sand|sandy|sabbia|sabbioso|sabbiose|sabbioso"),
-        Topic("wildlife", "Wildlife", "Fauna selvatica", "wildlife|wild animal|elephant|giraffe|zebra|oryx|antelope|springbok|lion|leopard|cheetah|rhinoceros|rhino|hippopotamus|ostrich|flamingo|hyena|wildebeest|gazelle|buffalo|jackal|baboon", "wildlife|safari|fauna|selvatici|selvatica|animali|animals"),
-        Topic("water", "Water", "Acqua", "water|lake|river|ocean|sea|lagoon|waterfall|pond|waterhole|coast|shore|beach", "water|lake|river|ocean|sea|lagoon|coast|beach|shore|acqua|lago|fiume|oceano|mare|laguna|costa|spiaggia|pozza"),
-        Topic("town", "Town", "Città", "town|city|urban|street|cityscape|village|downtown|skyline", "town|city|village|street|urban|città|paese|villaggio|vie|urbano|centro storico"),
-        Topic("road", "On the road", "In viaggio", "road|highway|car|truck|vehicle|jeep|automobile|freeway", "road|drive|driving|highway|car|jeep|vehicle|strada|strade|auto|macchina|fuoristrada|guidando|in viaggio"),
-        Topic("people", "People", "Persone", "person|people|group of people|human|crowd|portrait|selfie|family", "person|people|together|family|friends|portrait|selfie|persone|persona|insieme|famiglia|amici|ritratto"),
-        Topic("outdoors", "Outdoors", "All’aperto", "outdoor|outdoors|landscape|savanna|savannah|mountain|valley|forest|canyon|grassland|desert|dune", "outdoors|outdoor|landscape|nature|savanna|savannah|all aperto|natura|paesaggio|paesaggi|savana"),
-        Topic("mountains", "Mountains", "Montagne", "mountain|mountains|mountain range|canyon|cliff|valley", "mountain|mountains|canyon|valley|cliff|montagna|montagne|valle|gola|parete"),
-        Topic("sunset", "Sunrise or sunset", "Alba o tramonto", "sunset|sunrise|dusk|dawn", "sunset|sunrise|dawn|dusk|alba|tramonto|crepuscolo"),
-        Topic("birds", "Birds", "Uccelli", "bird|birds|flamingo|ostrich|eagle|vulture|pelican", "bird|birds|uccello|uccelli|avifauna")
+        Topic("desert", "Desert", "desert|dune|dunes|sand dune", "desert|deserts|dune|dunes|deserto|deserti|duna"),
+        Topic("sand", "Sand", "sand|sandy|dune|dunes|desert", "sand|sandy|sabbia|sabbioso|sabbiose|sabbioso"),
+        Topic("wildlife", "Wildlife", "wildlife|wild animal|elephant|giraffe|zebra|oryx|antelope|springbok|lion|leopard|cheetah|rhinoceros|rhino|hippopotamus|ostrich|flamingo|hyena|wildebeest|gazelle|buffalo|jackal|baboon", "wildlife|safari|fauna|selvatici|selvatica|animali|animals"),
+        Topic("water", "Water", "water|lake|river|ocean|sea|lagoon|waterfall|pond|waterhole|coast|shore|beach", "water|lake|river|ocean|sea|lagoon|coast|beach|shore|acqua|lago|fiume|oceano|mare|laguna|costa|spiaggia|pozza"),
+        Topic("town", "Town", "town|city|urban|street|cityscape|village|downtown|skyline", "town|city|village|street|urban|città|paese|villaggio|vie|urbano|centro storico"),
+        Topic("road", "On the road", "road|highway|car|truck|vehicle|jeep|automobile|freeway", "road|drive|driving|highway|car|jeep|vehicle|strada|strade|auto|macchina|fuoristrada|guidando|in viaggio"),
+        Topic("people", "People", "person|people|group of people|human|crowd|portrait|selfie|family", "person|people|together|family|friends|portrait|selfie|persone|persona|insieme|famiglia|amici|ritratto"),
+        Topic("outdoors", "Outdoors", "outdoor|outdoors|landscape|savanna|savannah|mountain|valley|forest|canyon|grassland|desert|dune", "outdoors|outdoor|landscape|nature|savanna|savannah|all aperto|natura|paesaggio|paesaggi|savana"),
+        Topic("mountains", "Mountains", "mountain|mountains|mountain range|canyon|cliff|valley", "mountain|mountains|canyon|valley|cliff|montagna|montagne|valle|gola|parete"),
+        Topic("sunset", "Sunrise or sunset", "sunset|sunrise|dusk|dawn", "sunset|sunrise|dawn|dusk|alba|tramonto|crepuscolo"),
+        Topic("birds", "Birds", "bird|birds|flamingo|ostrich|eagle|vulture|pelican", "bird|birds|uccello|uccelli|avifauna")
     ]
 
     static func analyze(url: URL) async throws -> PhotoAnalysis {
@@ -246,6 +246,6 @@ enum PhotoAnalyzer {
 
     static func displayName(for concept: String, language: String) -> String {
         guard let topic = topics.first(where: { $0.key == concept }) else { return concept }
-        return language.lowercased().hasPrefix("it") ? topic.italian : topic.english
+        return L10n.string(topic.english, language: language)
     }
 }

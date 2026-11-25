@@ -108,8 +108,10 @@ final class PrintReleaseTests: XCTestCase {
         book.cover = BookCover(title: "Overflow", backText: String(repeating: "Troppo testo sul retro. ", count: 400))
         XCTAssertThrowsError(try BookPDF.writePrint(book, directory: folder, to: folder.appendingPathComponent("print"))) {
             guard case BookPDF.ExportError.coverTextOverflow = $0 else { return XCTFail("Expected a cover overflow, got \($0)") }
-            XCTAssertTrue($0.localizedDescription.contains("copertina"))
-            XCTAssertTrue($0.localizedDescription.contains("cover"))
+            // One language per message: the interface language, English without the compiled catalog.
+            XCTAssertEqual($0.localizedDescription,
+                           L10n.string("Text overflows on the cover", language: L10n.interfaceLanguage))
+            XCTAssertFalse($0.localizedDescription.contains(" · "))
         }
     }
 
@@ -226,13 +228,15 @@ final class PrintReleaseTests: XCTestCase {
             BookPage(layout: .gallery, photoIDs: [tinted.id]),
         ])
         let report = BookPDF.preflight(book, directory: folder, profile: .print)
-        XCTAssertEqual(report.blockers.count, 4, "\(report.blockers)")
-        XCTAssertTrue(report.blockers.contains("p. 2 · Il testo eccede lo spazio / Text overflows"), "\(report.blockers)")
-        XCTAssertTrue(report.blockers.contains("p. 3 · Foto mancante / Missing photo"), "\(report.blockers)")
-        XCTAssertTrue(report.blockers.contains("p. 3 · lost.png · File della foto mancante / Photo file missing"))
-        XCTAssertTrue(report.blockers.contains("p. 4 · broken.cube · LUT illeggibile / Unreadable LUT"))
+        let blockers = report.blockers.map { $0.message(language: "en") }
+        XCTAssertEqual(blockers.count, 4, "\(blockers)")
+        XCTAssertTrue(blockers.contains("p. 2 · Text overflows"), "\(blockers)")
+        XCTAssertTrue(blockers.contains("p. 3 · Missing photo"), "\(blockers)")
+        XCTAssertTrue(blockers.contains("p. 3 · lost.png · Photo file missing"))
+        XCTAssertTrue(blockers.contains("p. 4 · broken.cube · Unreadable LUT"))
+        XCTAssertTrue(report.blockers.contains(.init(location: .page(4), problem: .unreadableLUT("broken.cube"))))
         XCTAssertEqual(report.warnings.count, 1)
-        XCTAssertTrue(report.warnings[0].hasPrefix("p. 1 · small.png ·"), "\(report.warnings)")
+        XCTAssertTrue(report.warnings[0].message(language: "en").hasPrefix("p. 1 · small.png ·"), "\(report.warnings)")
 
         // The viewing PDF has no print warnings, but the same blockers stop it.
         let proof = BookPDF.preflight(book, directory: folder, profile: .proof)
