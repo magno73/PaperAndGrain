@@ -528,14 +528,15 @@ struct BookCoverGeometry {
         let custom = manual == nil && override != EditorialTextStyle()
         let placement = front ? book.cover?.frontPhotoPlacement : book.cover?.backPhotoPlacement
         photoCrop = placement?.crop ?? PhotoCrop()
-        let photoBleed = placement?.frame != nil || placement?.crop != nil ? 0 : bleed
+        // Photos stop at the trim. The exporter carries a photo that reaches it into the bleed
+        // without changing its crop, so print and editor show the same picture inside the trim.
         let automaticPhotoFrame: CGRect
         let automaticTitleFrame: CGRect?
         if book.template == nil {
             title = style.typography(titleText, heading: nil, mixed: false, bodyStyle: override)
             background = 0x292929
             fills = true
-            automaticPhotoFrame = CGRect(x: front ? 0 : -photoBleed, y: -photoBleed, width: w + photoBleed, height: h + 2 * photoBleed)
+            automaticPhotoFrame = CGRect(x: 0, y: 0, width: w, height: h)
             var bandTop = h * 0.63
             if custom {
                 bandTop = max(0, min(bandTop, panel.maxY - EditorialTypesetter.requiredHeight(title, width: panel.width) - inset))
@@ -563,7 +564,7 @@ struct BookCoverGeometry {
                                                        mixed: false, override: override)
                     title = base.typography("", heading: titleText, mixed: false, titleStyle: fitted)
                 }
-                var picture = style.coverPicture(in: panel, bleed: photoBleed)
+                var picture = style.coverPicture(in: panel, bleed: 0)
                 let needed = custom ? EditorialTypesetter.requiredHeight(title, width: panel.width) : 0
                 if style.coverTitleBelow {
                     if needed > defaultHeight {

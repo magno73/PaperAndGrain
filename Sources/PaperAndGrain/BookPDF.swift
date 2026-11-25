@@ -94,7 +94,7 @@ enum BookPDF {
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
                 warnings.append(loc + " · Foto mancante / Missing photo")
             }
-            for slot in PageComposition(page: page, book: book, bleed: bleed).photos {
+            for slot in PageComposition(page: page, book: book).photos {
                 check(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, location: loc)
             }
         }
@@ -201,14 +201,12 @@ enum BookPDF {
             for front in [false, true] {
                 // The faces are laid out on the real Pixart panel, so the title is fitted where it is drawn.
                 let face = BookCoverGeometry(book: book, front: front, size: CGSize(width: panelW, height: panelH))
-                let panel = CGRect(x: 0, y: 0, width: panelW, height: panelH)
                 let outer = CGRect(x: front ? -hinge : -wrap, y: -wrap,
                                    width: panelW + hinge + wrap, height: panelH + 2*wrap)
                 ctx.saveGState()
                 if front { ctx.translateBy(x: width - panelW, y: 0) }
                 try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
-                             ppi: ppi, book: book, directory: directory, context: ctx,
-                             trim: panel, outer: outer)
+                             ppi: ppi, book: book, directory: directory, context: ctx, outer: outer)
                 ctx.restoreGState()
             }
             ctx.endPDFPage()
@@ -221,13 +219,13 @@ enum BookPDF {
             ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
             let backOuter = CGRect(x: -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
             try drawFace(back, photoID: cover.backPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
-                         trim: cover.backPhotoPlacement == nil ? nil : back.bounds, outer: backOuter)
+                         outer: backOuter)
             drawSpine(book, in: CGRect(x: w, y: 0, width: spine, height: h), context: ctx)
             ctx.translateBy(x: w + spine, y: 0)
             let front = BookCoverGeometry(book: book, front: true, bleed: bleed)
             let frontOuter = CGRect(x: 0, y: -bleed, width: w + bleed, height: h + 2 * bleed)
             try drawFace(front, photoID: cover.frontPhotoID, ppi: ppi, book: book, directory: directory, context: ctx,
-                         trim: cover.frontPhotoPlacement == nil ? nil : front.bounds, outer: frontOuter)
+                         outer: frontOuter)
             ctx.endPDFPage()
         } else {
             let slots = leaves(book.pages, settings: settings, pixart: pixartSpineMM != nil)
@@ -245,7 +243,7 @@ enum BookPDF {
                     ctx.clip(to: CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed))
                     ctx.translateBy(x: -Double(leaf.half)*w, y: 0)
                     try draw(leaf.page, pageNumber: leaf.number, book: book, directory: directory,
-                             context: ctx, bleed: bleed, ppi: ppi, preserveTrimCrop: pixartSpineMM != nil)
+                             context: ctx, bleed: bleed, ppi: ppi)
                     ctx.restoreGState()
                 }
                 ctx.endPDFPage()
@@ -257,8 +255,9 @@ enum BookPDF {
     }
 
     private static func draw(_ page: BookPage, pageNumber: Int, book: Book, directory: URL,
-                             context: CGContext, bleed: Double, ppi: Double, preserveTrimCrop: Bool) throws {
-        let composition = PageComposition(page: page, book: book, bleed: preserveTrimCrop ? 0 : bleed)
+                             context: CGContext, bleed: Double, ppi: Double) throws {
+        // Frames stay at the editor's size; photos reaching the trim are carried into the bleed by paint.
+        let composition = PageComposition(page: page, book: book)
         let style = book.editorialStyle
         context.setFillColor(EditorialStyle.color(style.paper))
         context.fill(composition.bounds.insetBy(dx: -bleed, dy: -bleed))
@@ -281,8 +280,7 @@ enum BookPDF {
                 let underlap = stitchedSlots ? tileUnderlap(at: index, in: composition.arrangementPhotoSlots) : .zero
                 try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, ppi: ppi,
                           book: book, directory: directory, context: context, underlap: underlap,
-                          trim: preserveTrimCrop ? composition.bounds : nil,
-                          outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
+                          trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
             case .story:
                 if !backgrounds.isEmpty {
                     context.saveGState()
@@ -339,34 +337,35 @@ enum BookPDF {
 
     private static func paint(_ photo: BookPhoto, rect: CGRect, fills: Bool, crop: PhotoCrop, ppi: Double,
                               book: Book, directory: URL, context: CGContext, underlap: CGSize = .zero,
-                              trim: CGRect? = nil, outer: CGRect? = nil) throws {
+                              trim: CGRect, outer: CGRect) throws {
         guard !rect.isEmpty else { return }
         let source = BookStorage.assetURL(filename: photo.filename, in: directory)
         let settings = book.effectiveFilm(for: photo)
         let lut = settings.lutFilename.map { BookStorage.lutURL(filename: $0, in: directory) }
         let pixels = CGSize(width: max(1, photo.pixelWidth), height: max(1, photo.pixelHeight))
-        let placement = crop.imageRect(for: pixels, in: rect, fills: fills)
-        let desired = ceil(max(placement.width, placement.height) * ppi / 72)
+        let cropped = crop.imageRect(for: pixels, in: rect, fills: fills)
+        let desired = ceil(max(cropped.width, cropped.height) * ppi / 72)
         let maxPixels = Int(min(max(pixels.width, pixels.height), max(1, desired)))
-        guard let image = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
-                                             adjustments: photo.adjustments)
+        guard let rendered = FilmRenderer.image(from: source, maxPixelSize: maxPixels, settings: settings, lutURL: lut,
+                                                adjustments: photo.adjustments)
         else { throw ExportError.missingImage(photo.name) }
-        if let trim, let outer {
-            drawEdgeExtensions(image, placement: placement, frame: rect, trim: trim, outer: outer, context: context)
-        }
+        let area = fills ? bleedArea(of: rect, trim: trim, outer: outer) : rect
+        let (image, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
         if underlap != .zero {
             let seams = CGMutablePath()
+            // The seams run through the bleed too, where the neighbors are also carried out.
             if underlap.width > 0 {
-                seams.addRect(CGRect(x: rect.maxX - underlap.width, y: rect.minY, width: 2 * underlap.width,
-                                     height: rect.height + underlap.height))
+                seams.addRect(CGRect(x: area.maxX - underlap.width, y: area.minY, width: 2 * underlap.width,
+                                     height: area.height + underlap.height))
             }
             if underlap.height > 0 {
-                seams.addRect(CGRect(x: rect.minX, y: rect.maxY - underlap.height, width: rect.width,
+                seams.addRect(CGRect(x: area.minX, y: area.maxY - underlap.height, width: area.width,
                                      height: 2 * underlap.height))
             }
-            let extended = CGRect(x: placement.minX, y: placement.minY,
-                                  width: max(placement.width, rect.maxX + underlap.width - placement.minX),
-                                  height: max(placement.height, rect.maxY + underlap.height - placement.minY))
+            let low = CGPoint(x: min(placement.minX, area.minX), y: min(placement.minY, area.minY))
+            let extended = CGRect(x: low.x, y: low.y,
+                                  width: max(placement.maxX, area.maxX + underlap.width) - low.x,
+                                  height: max(placement.maxY, area.maxY + underlap.height) - low.y)
             context.saveGState()
             context.addPath(seams)
             context.clip()
@@ -374,43 +373,60 @@ enum BookPDF {
             context.restoreGState()
         }
         context.saveGState()
-        context.clip(to: rect)
+        context.clip(to: area)
         drawImage(image, at: placement, in: context)
         context.restoreGState()
     }
 
-    /// Reflect the visible edge into the binding and bleed without resizing the photograph inside trim.
-    private static func drawEdgeExtensions(_ image: CGImage, placement: CGRect, frame: CGRect, trim: CGRect,
-                                           outer: CGRect, context: CGContext) {
-        let visible = placement.intersection(frame).intersection(trim)
-        guard !visible.isEmpty else { return }
-        func stretches(_ low: CGFloat, _ high: CGFloat, trimLow: CGFloat, trimHigh: CGFloat,
-                       outerLow: CGFloat, outerHigh: CGFloat) -> [(CGFloat, CGFloat, Bool)] {
-            var parts = [(low, high, false)]
-            if abs(low - trimLow) < 0.01 && outerLow < low { parts.append((outerLow, low, true)) }
-            if abs(high - trimHigh) < 0.01 && high < outerHigh { parts.append((high, outerHigh, true)) }
-            return parts
+    /// The area a photo prints in: its frame, carried out to `outer` on every side where it reaches `trim`.
+    /// The crop is computed for the frame alone, so the photo inside the trim matches the editor.
+    static func bleedArea(of frame: CGRect, trim: CGRect, outer: CGRect) -> CGRect {
+        let tolerance: CGFloat = 0.01
+        let minX = frame.minX <= trim.minX + tolerance ? min(frame.minX, outer.minX) : frame.minX
+        let minY = frame.minY <= trim.minY + tolerance ? min(frame.minY, outer.minY) : frame.minY
+        let maxX = frame.maxX >= trim.maxX - tolerance ? max(frame.maxX, outer.maxX) : frame.maxX
+        let maxY = frame.maxY >= trim.maxY - tolerance ? max(frame.maxY, outer.maxY) : frame.maxY
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
+
+    /// Where the crop leaves no spare image for the bleed, extends the image by reflecting it at its own edge.
+    /// The reflection is built in pixels, so the print shows no seam where it meets the photograph.
+    private static func mirrorPadded(_ image: CGImage, placement: CGRect, toCover area: CGRect) -> (CGImage, CGRect) {
+        guard !placement.isEmpty, image.width > 0, image.height > 0 else { return (image, placement) }
+        let w = image.width, h = image.height
+        let scaleX = CGFloat(w) / placement.width, scaleY = CGFloat(h) / placement.height
+        func pad(_ points: CGFloat, _ scale: CGFloat, _ limit: Int) -> Int {
+            points > 0.001 ? min(limit, Int(ceil(points * scale)) + 1) : 0
         }
-        let xs = stretches(visible.minX, visible.maxX, trimLow: trim.minX, trimHigh: trim.maxX,
-                           outerLow: outer.minX, outerHigh: outer.maxX)
-        let ys = stretches(visible.minY, visible.maxY, trimLow: trim.minY, trimHigh: trim.maxY,
-                           outerLow: outer.minY, outerHigh: outer.maxY)
-        for (x, endX, flipX) in xs {
-            for (y, endY, flipY) in ys where flipX || flipY {
+        let left = pad(placement.minX - area.minX, scaleX, w), right = pad(area.maxX - placement.maxX, scaleX, w)
+        let top = pad(placement.minY - area.minY, scaleY, h), bottom = pad(area.maxY - placement.maxY, scaleY, h)
+        guard left + right + top + bottom > 0,
+              let context = CGContext(data: nil, width: w + left + right, height: h + top + bottom, bitsPerComponent: 8,
+                                      bytesPerRow: 0, space: rgb,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return (image, placement) }
+        context.interpolationQuality = .none
+        // Bitmap rows run bottom up: the page's bottom padding is at y = 0.
+        let xs: [(axis: CGFloat?, used: Bool)] = [(CGFloat(left), left > 0), (nil, true), (CGFloat(left + w), right > 0)]
+        let ys: [(axis: CGFloat?, used: Bool)] = [(CGFloat(bottom), bottom > 0), (nil, true), (CGFloat(bottom + h), top > 0)]
+        for x in xs where x.used {
+            for y in ys where y.used {
                 context.saveGState()
-                context.clip(to: CGRect(x: x, y: y, width: endX-x, height: endY-y))
-                if flipX {
-                    context.translateBy(x: 2 * (x < visible.minX ? visible.minX : visible.maxX), y: 0)
+                if let axis = x.axis {
+                    context.translateBy(x: 2 * axis, y: 0)
                     context.scaleBy(x: -1, y: 1)
                 }
-                if flipY {
-                    context.translateBy(x: 0, y: 2 * (y < visible.minY ? visible.minY : visible.maxY))
+                if let axis = y.axis {
+                    context.translateBy(x: 0, y: 2 * axis)
                     context.scaleBy(x: 1, y: -1)
                 }
-                drawImage(image, at: placement, in: context)
+                context.draw(image, in: CGRect(x: left, y: bottom, width: w, height: h))
                 context.restoreGState()
             }
         }
+        guard let padded = context.makeImage() else { return (image, placement) }
+        return (padded, CGRect(x: placement.minX - CGFloat(left) / scaleX, y: placement.minY - CGFloat(top) / scaleY,
+                               width: CGFloat(padded.width) / scaleX, height: CGFloat(padded.height) / scaleY))
     }
 
     private static func drawImage(_ image: CGImage, at placement: CGRect, in context: CGContext) {
@@ -420,15 +436,14 @@ enum BookPDF {
     }
 
     private static func drawFace(_ face: BookCoverGeometry, photoID: UUID?, ppi: Double, book: Book,
-                                 directory: URL, context: CGContext,
-                                 trim: CGRect? = nil, outer: CGRect? = nil) throws {
+                                 directory: URL, context: CGContext, outer: CGRect) throws {
         if let id = photoID {
             guard let photo = book.photo(id) else { throw ExportError.missingImage(id.uuidString) }
             context.saveGState()
             defer { context.restoreGState() }
-            if let outer { context.clip(to: outer) }
+            context.clip(to: outer)
             try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop, ppi: ppi,
-                      book: book, directory: directory, context: context, trim: trim, outer: outer)
+                      book: book, directory: directory, context: context, trim: face.bounds, outer: outer)
         }
         if let band = face.band {
             context.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))

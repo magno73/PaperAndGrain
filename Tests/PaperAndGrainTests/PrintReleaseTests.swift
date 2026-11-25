@@ -112,6 +112,63 @@ final class PrintReleaseTests: XCTestCase {
             XCTAssertTrue($0.localizedDescription.contains("cover"))
         }
     }
+
+    // MARK: B3 bleed without re-crop
+
+    func testPrintBleedKeepsTheEditorCropInsideTheTrim() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        // 900 × 600 with a blue stripe change every 112 px; the page shows the middle of it.
+        let photo = try PrintFixtures.photo(in: folder, width: 900, height: 600)
+        let page = BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)
+        var book = Book(title: "Bleed", photos: [photo], pages: [page])
+        book.printSettings = PrintSettings(bleedMM: 3, targetPPI: 72)
+        let editor = try XCTUnwrap(PageComposition(page: page, book: book).photos.first)
+        let placement = editor.crop.imageRect(for: CGSize(width: 900, height: 600), in: editor.frame, fills: true)
+        let trim = PageComposition(page: page, book: book).bounds
+        let stripe = CGFloat(900 / 8) * placement.width / 900
+        let stripes: [CGFloat] = (1..<8).map { CGFloat($0) * stripe + placement.minX }
+        let expected = stripes
+            .filter { $0 > trim.minX + 2 && $0 < trim.maxX - 2 }
+        XCTAssertFalse(expected.isEmpty)
+        let sourcePixel = placement.width / 900
+
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let scale: CGFloat = 3
+        let raster = try PrintFixtures.raster(package.appendingPathComponent("Interior.pdf"), page: 1, scale: scale)
+        let bleed = 3 * 72 / 25.4
+        let row = raster.height / 2
+        func blue(atPagePoint x: CGFloat) -> UInt8 {
+            let column = min(raster.width - 1, max(0, Int(((x + bleed) * scale).rounded(.down))))
+            return raster.bytes[(row * raster.width + column) * 4 + 2]
+        }
+        var found: [CGFloat] = []
+        var previous = blue(atPagePoint: trim.minX) > 120
+        for column in Int((bleed + trim.minX) * scale)..<Int((bleed + trim.maxX) * scale) {
+            let high = raster.bytes[(row * raster.width + column) * 4 + 2] > 120
+            if high != previous { found.append(CGFloat(column) / scale - bleed) }
+            previous = high
+        }
+        XCTAssertEqual(found.count, expected.count, "\(found) vs \(expected)")
+        for (actual, wanted) in zip(found, expected) {
+            XCTAssertEqual(actual, wanted, accuracy: sourcePixel + 1 / scale)
+        }
+        // The crop has spare image on the left, so the bleed shows the real continuation, not a mirror.
+        let outside = raster.bytes[(row * raster.width + Int(bleed * 0.5 * scale)) * 4]
+        let inside = raster.bytes[(row * raster.width + Int(bleed * 1.5 * scale)) * 4]
+        XCTAssertLessThan(Int(outside), Int(inside))
+
+        // With the photo aligned to its left edge there is no spare image: the bleed mirrors the trim edge.
+        book.pages[0].photoPlacements = [photo.id: PhotoPlacement(crop: PhotoCrop(x: 0, y: 0.5))]
+        let aligned = folder.appendingPathComponent("aligned")
+        try BookPDF.writePrint(book, directory: folder, to: aligned)
+        let mirrored = try PrintFixtures.raster(aligned.appendingPathComponent("Interior.pdf"), page: 1, scale: scale)
+        let left = mirrored.bytes[(row * mirrored.width + Int(bleed * 0.5 * scale)) * 4]
+        let right = mirrored.bytes[(row * mirrored.width + Int(bleed * 1.5 * scale)) * 4]
+        XCTAssertEqual(Int(left), Int(right), accuracy: 3)
+        XCTAssertNotEqual(mirrored.bytes[(row * mirrored.width + 1) * 4 + 1], 0, "bleed left unpainted")
+    }
 }
 
 enum PrintFixtures {
