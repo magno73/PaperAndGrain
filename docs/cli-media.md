@@ -16,6 +16,8 @@ Esegui i comandi che accedono a Foto con il binario nel bundle firmato di Paper 
 
 La specifica contiene `version: 1` e una o entrambe le selezioni seguenti. I file locali sono relativi alla specifica e precedono la selezione da Foto. Gli originali da Foto possono essere scaricati da iCloud da macOS. Scegli gli ID dopo aver consultato l’album. Per importarlo tutto, includi esplicitamente tutti gli ID desiderati.
 
+La specifica accetta solo `version`, `files` e `photos`, e `photos` solo `albumID` e `assetIDs`. Una chiave sconosciuta interrompe il comando con un errore che la nomina insieme alle chiavi valide.
+
 ```json
 {
   "version": 1,
@@ -40,4 +42,6 @@ La specifica contiene `version: 1` e una o entrambe le selezioni seguenti. I fil
 
 - `proof` salva la bozza dell’interno in un singolo `.pdf`.
 - `print` salva `Interior.pdf` e, se presente la copertina, `Cover.pdf` in una nuova cartella.
-- `pixart` salva un unico `.pdf` con la copertina prima delle pagine interne secondo il profilo cartonato 21 × 21 cm. Usa la misura del dorso salvata nel progetto oppure specifica `--spine-mm` con un valore maggiore di 0 e al massimo 100.
+- `pixart` salva un unico `.pdf` con la copertina prima delle pagine interne secondo il profilo cartonato 21 × 21 cm e richiede un libro di 210 × 210 mm. Usa la misura del dorso salvata nel progetto oppure specifica `--spine-mm` con un valore maggiore di 0 e al massimo 100.
+
+Prima di creare file, il comando rifiuta con un errore specifico un libro senza pagine, un formato con un lato di 17,6 mm o meno e una pagina troppo piccola per i suoi margini. `import-lut` indica se il file non è un `.cube` o un `.png` oppure se la dimensione non è compresa fra 1 byte e 50 MB.

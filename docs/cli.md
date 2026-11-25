@@ -37,7 +37,7 @@ PaperAndGrain cli similar Viaggio-analizzato.papergrain UUID --by near-duplicate
 ```
 
 - `photos` restituisce UUID, percorso locale, data ISO 8601, dimensioni, pagine, associazioni in copertina, etichette e temi. `--photo UUID` seleziona un’immagine e restituisce i dati completi. `--details` restituisce i dati completi per l’elenco. `--filter QUERY` cerca nel nome e nei dati dell’analisi.
-- `analyze` elabora sul Mac le immagini senza analisi recente. Accetta `--photo UUID` più volte e `--force` per ripetere l’analisi. Il risultato contiene esito, dati ed eventuale errore per foto. Per registrare i risultati nel progetto, usa `--output`. Con il solo report puoi conservare i dati nel processo che ha lanciato il comando.
+- `analyze` elabora sul Mac le immagini senza analisi recente. Accetta `--photo UUID` più volte e `--force` per ripetere l’analisi. Il risultato contiene esito, dati ed eventuale errore per foto. Per registrare i risultati nel progetto, usa `--output`: la destinazione viene verificata prima dell’analisi. Con il solo report puoi conservare i dati nel processo che ha lanciato il comando.
 - `rank` restituisce solo candidati con riscontro e include `evidence` con la voce riconosciuta, la fonte (`subject`, `text` o `concept`) e il contributo al punteggio. Il punteggio ordina i candidati. `--unused` esclude foto assegnate a pagine o copertina. Lo stesso filtro vale per `photos` e `similar`.
 - `similar --by subjects` confronta le etichette ponderate dalla confidenza. `--by near-duplicate` ordina in base alla distanza tra le impronte visive. I risultati espongono entrambi i valori quando disponibili. Usa le anteprime per valutare gli scatti vicini.
 
@@ -53,23 +53,35 @@ Il rilevatore animali di Apple Vision localizza cani e gatti. Per la fauna selva
   "title": "Quaderno di viaggio",
   "format": { "widthMM": 210, "heightMM": 210 },
   "template": "atlas",
+  "typography": { "body": { "fontName": "Georgia", "pointSize": 11, "lineSpacing": 1.3 } },
   "assets": [{ "id": "orizzonte", "path": "foto/orizzonte.jpg" }],
   "pages": [
-    { "arrangement": "textBesidePhoto", "photos": ["orizzonte"], "heading": "Partenza", "text": "Attraversiamo la pianura al mattino." },
-    { "layout": "fullSpread", "photos": ["orizzonte"] }
+    { "arrangement": "textBesidePhoto", "photos": ["orizzonte"], "heading": "Partenza", "text": "Attraversiamo la pianura al mattino.",
+      "typography": { "title": { "color": 9109504, "alignment": "left" } } },
+    { "layout": "fullSpread", "photos": ["orizzonte"],
+      "textBoxes": [{ "id": "6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77", "text": "Etosha, ore 6",
+                      "frame": { "x": 0.06, "y": 0.82, "width": 0.3, "height": 0.1 },
+                      "backgroundColor": 16777215, "borderColor": 0, "borderWidth": 1 }],
+      "layerOrder": ["photo:orizzonte", "story", "box:6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77"] }
   ],
-  "cover": { "frontPhoto": "orizzonte", "title": "Quaderno di viaggio", "backText": "Appunti dal campo", "spineMM": 4 }
+  "cover": { "frontPhoto": "orizzonte", "title": "Quaderno di viaggio", "backText": "Appunti dal campo", "spineMM": 4,
+             "typography": { "title": { "color": 16777215 } } }
 }
 ```
 
 - Sono obbligatori `version`, un `title` con contenuto, `assets` (anche vuoto) e almeno una voce in `pages`. Il formato predefinito misura 210 × 210 mm. L’assenza di `template` usa lo stile classico dell’app. `showPageNumbers` è un booleano facoltativo che abilita o disabilita la numerazione sulle pagine interne con margini. Se è assente, vale l’impostazione del modello.
-- Ogni asset ha un ID univoco e un percorso file assoluto o relativo alla specifica. Il comando copia gli originali nel pacchetto. Gli ID della specifica valgono durante la composizione. L’app assegna UUID alle foto importate.
+- Ogni asset ha un ID univoco e un percorso file assoluto o relativo alla specifica. Un collegamento simbolico viene risolto. Il comando copia gli originali nel pacchetto. Gli ID della specifica valgono durante la composizione. L’app assegna UUID alle foto importate.
 - L’ordine di `pages` è quello del libro. L’ordine di `photos` assegna gli slot sulla pagina. Una foto può ricorrere su più pagine e in copertina. Ogni pagina accetta una sola occorrenza dello stesso ID.
 - `templates` elenca ID dei modelli del libro, tipi di pagina e composizioni con capacità e layout corrispondente. Una pagina priva di `layout` e `arrangement` usa `gallery`. La composizione determina il layout. Con `mixed` e `text` si possono includere `heading` e `text`. `fullSpread` dispone una foto su due facciate. Si può indicare anche come `arrangement` per selezionarla come modello della pagina.
-- La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText` e un dorso `spineMM` in millimetri.
+- La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText`, un dorso `spineMM` in millimetri e `typography` per il titolo sul fronte e il testo sul retro.
+- `typography` vale per il libro (radice della specifica), per la pagina e per la copertina, con gli stessi campi del manifest: `title` e `body`, ciascuno con `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` e `lineSpacing` (multiplo dell’interlinea da 0.8 a 2). Uno stile di pagina eredita i campi assenti da quello del libro.
+- `textBoxes` aggiunge box di testo alla pagina con i campi del manifest: `frame` obbligatorio (`x`, `y`, `width`, `height` in proporzione alla pagina, origine in alto a sinistra, larghezza e altezza maggiori di 0), `text`, `typography` (uno stile con i campi sopra), `usesFullWidth` (il testo occupa il box senza margine interno), `backgroundColor`, `hidesBackground` (box trasparente), `borderColor` e `borderWidth` in punti da 0 a 12. `id` è facoltativo: un UUID scelto dall’agente, utile per `layerOrder`; se manca, il comando ne assegna uno nuovo.
+- I colori sono interi `0xRRGGBB` scritti in decimale nel JSON, da 0 (nero) a 16777215 (`0xFFFFFF`, bianco); per esempio `0x8B0000` è `9109504`. Senza colore valgono l’inchiostro e la carta del modello.
+- `layerOrder` elenca gli oggetti della pagina dal fondo verso l’alto: `story` (titolo, racconto e sfondo insieme), `photo:<ID asset>` per una foto della stessa pagina e `box:<UUID>` per un box della stessa pagina. Nel manifest le foto diventano `photo:<UUID>`. Una voce che non corrisponde a un oggetto della pagina è un errore in `build`. Gli oggetti non elencati mantengono la posizione predefinita: foto sotto, box sopra.
+- Ogni oggetto accetta solo le chiavi elencate. Una chiave sconosciuta o scritta male interrompe il comando con un errore che nomina la chiave, l’oggetto (per esempio `pages[0]`) e le chiavi valide.
 
 ## Contratto dei comandi
 
 `build` richiede una cartella padre esistente e un nuovo percorso con estensione `.papergrain`. Prepara tutto in una cartella temporanea sorella e pubblica il risultato con una rinomina esclusiva. Un errore di importazione o una destinazione già occupata lascia intatti i progetti esistenti. Per rigenerare una variante, scegliere un nuovo nome.
 
-In caso di successo il processo termina con codice 0 e scrive un documento JSON su stdout. `build` restituisce `project` (percorso assoluto) e `id`. `inspect` valida e restituisce il manifest originale, mantenendo gli indici esatti necessari a `patch`. Gli errori di comando terminano con codice 1 e scrivono su stderr un oggetto JSON con il campo `error`. Gli esiti parziali dell’analisi compaiono nel report. Per separare i messaggi di compilazione di SwiftPM dall’output della CLI, invocare il binario già compilato.
+In caso di successo il processo termina con codice 0 e scrive un documento JSON su stdout. `build` restituisce `project` (percorso assoluto), `id` e `photos`, una mappa dall’ID asset della specifica all’UUID della foto nel libro, da usare nelle patch successive. `patch` restituisce `project`, `id` e `warnings`. `templates` restituisce in `templates` un oggetto per modello con `id` (il valore da usare in `template`), `name` con `it` ed `en` e `family` (`classic`, `studio` o `photobook`), oltre a `layouts`, `arrangements` e `defaults`. `inspect` valida e restituisce il manifest originale, mantenendo gli indici esatti necessari a `patch`. Gli errori di comando terminano con codice 1 e scrivono su stderr un oggetto JSON con il campo `error`. Il messaggio è in inglese e nomina il controllo fallito, per esempio `Page 2 (pages[1]) references unknown photo <UUID> in photoIDs`, `format.widthMM must be greater than 0` oppure `Output parent directory does not exist: <percorso>`. Gli stessi messaggi compaiono nell’app quando un pacchetto è danneggiato. Gli esiti parziali dell’analisi compaiono nel report. Per separare i messaggi di compilazione di SwiftPM dall’output della CLI, invocare il binario già compilato.

@@ -98,52 +98,61 @@ enum BookCLIPhotoIndex {
         var force = false
         var unused = false
 
-        init(_ args: ArraySlice<String>, allowed: Set<String>, relativeTo directory: URL) throws {
+        enum Option: String {
+            case photo = "--photo", filter = "--filter", limit = "--limit", details = "--details", unused = "--unused"
+            case force = "--force", output = "--output", by = "--by"
+        }
+
+        init(_ args: ArraySlice<String>, allowed: Set<Option>, relativeTo directory: URL) throws {
             var arguments = args.makeIterator()
-            var used: Set<String> = []
-            while let option = arguments.next() {
-                guard allowed.contains(option), used.insert(option).inserted || option == "--photo" else {
-                    throw BookCLI.Failure("Unexpected or repeated option: \(option)")
+            var used: Set<Option> = []
+            while let argument = arguments.next() {
+                guard let option = Option(rawValue: argument), allowed.contains(option),
+                      used.insert(option).inserted || option == .photo else {
+                    throw BookCLI.Failure("Unexpected or repeated option: \(argument)")
+                }
+                func value() throws -> String {
+                    guard let value = arguments.next(), !value.hasPrefix("--") else {
+                        throw BookCLI.Failure("Missing value for \(argument)")
+                    }
+                    return value
                 }
                 switch option {
-                case "--details": details = true
-                case "--force": force = true
-                case "--unused": unused = true
-                default:
-                    guard let value = arguments.next(), !value.hasPrefix("--") else {
-                        throw BookCLI.Failure("Missing value for \(option)")
+                case .details: details = true
+                case .force: force = true
+                case .unused: unused = true
+                case .limit:
+                    guard let number = Int(try value()), (1...500).contains(number) else {
+                        throw BookCLI.Failure("--limit must be between 1 and 500")
                     }
-                    switch option {
-                    case "--limit":
-                        guard let number = Int(value), (1...500).contains(number) else {
-                            throw BookCLI.Failure("--limit must be between 1 and 500")
-                        }
-                        limit = number
-                    case "--photo":
-                        guard let id = UUID(uuidString: value), photoIDs.insert(id).inserted else {
-                            throw BookCLI.Failure("Invalid or duplicate photo UUID: \(value)")
-                        }
-                    case "--filter": query = value
-                    case "--output": output = BookCLI.url(value, relativeTo: directory)
-                    case "--by":
-                        guard ["subjects", "near-duplicate"].contains(value) else {
-                            throw BookCLI.Failure("Expected --by subjects or near-duplicate")
-                        }
-                        by = value
-                    default: break
+                    limit = number
+                case .photo:
+                    let text = try value()
+                    guard let id = UUID(uuidString: text), photoIDs.insert(id).inserted else {
+                        throw BookCLI.Failure("Invalid or duplicate photo UUID: \(text)")
                     }
+                case .filter: query = try value()
+                case .output: output = BookCLI.url(try value(), relativeTo: directory)
+                case .by:
+                    let text = try value()
+                    guard ["subjects", "near-duplicate"].contains(text) else {
+                        throw BookCLI.Failure("Expected --by subjects or near-duplicate")
+                    }
+                    by = text
                 }
             }
         }
     }
 
-    static func run(command: String, arguments: [String], currentDirectory: URL) async throws -> Data? {
-        guard ["photos", "analyze", "rank", "similar"].contains(command) else { return nil }
+    private enum Command: String { case photos, analyze, rank, similar }
+
+    static func run(command name: String, arguments: [String], currentDirectory: URL) async throws -> Data? {
+        guard let command = Command(rawValue: name) else { return nil }
         guard let source = arguments.first, !source.hasPrefix("--") else { throw BookCLI.Failure("Expected a project path") }
         let index = try Index(BookCLI.url(source, relativeTo: currentDirectory))
         switch command {
-        case "photos":
-            let options = try Options(arguments.dropFirst(), allowed: ["--photo", "--filter", "--limit", "--details", "--unused"],
+        case .photos:
+            let options = try Options(arguments.dropFirst(), allowed: [.photo, .filter, .limit, .details, .unused],
                                       relativeTo: currentDirectory)
             let selection = try selected(options, in: index).filter { photo in
                 guard let query = options.query, !query.isEmpty else { return true }
@@ -153,23 +162,22 @@ enum BookCLIPhotoIndex {
             return try BookCLI.encode(selection.prefix(options.limit ?? selection.count).map {
                 index.record($0, details: options.details || !options.photoIDs.isEmpty)
             })
-        case "analyze":
-            let options = try Options(arguments.dropFirst(), allowed: ["--photo", "--force", "--output"], relativeTo: currentDirectory)
+        case .analyze:
+            let options = try Options(arguments.dropFirst(), allowed: [.photo, .force, .output], relativeTo: currentDirectory)
             return try BookCLI.encode(await analyze(index, options: options))
-        case "rank":
+        case .rank:
             guard arguments.count >= 2, !arguments[1].hasPrefix("--"),
                   !arguments[1].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw BookCLI.Failure("Expected a non-empty query after the project path")
             }
-            let options = try Options(arguments.dropFirst(2), allowed: ["--limit", "--unused"], relativeTo: currentDirectory)
+            let options = try Options(arguments.dropFirst(2), allowed: [.limit, .unused], relativeTo: currentDirectory)
             return try BookCLI.encode(rank(index, query: arguments[1], options: options))
-        case "similar":
+        case .similar:
             guard arguments.count >= 2, let id = UUID(uuidString: arguments[1]) else {
                 throw BookCLI.Failure("Expected a photo UUID after the project path")
             }
-            let options = try Options(arguments.dropFirst(2), allowed: ["--limit", "--by", "--unused"], relativeTo: currentDirectory)
+            let options = try Options(arguments.dropFirst(2), allowed: [.limit, .by, .unused], relativeTo: currentDirectory)
             return try BookCLI.encode(similar(index, id: id, options: options))
-        default: return nil
         }
     }
 
@@ -183,6 +191,8 @@ enum BookCLIPhotoIndex {
     }
 
     private static func analyze(_ index: Index, options: Options) async throws -> AnalysisReport {
+        // Check the destination before the slow part, so a typo does not cost a full analysis.
+        if let output = options.output { try BookCLIEditing.checkOutput(output, source: index.directory) }
         let photos = try selected(options, in: index)
         var results: [AnalysisResult] = []
         var revisions: [UUID: (filename: String, analysis: PhotoAnalysis)] = [:]

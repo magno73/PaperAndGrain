@@ -10,22 +10,14 @@ enum BookCLIEditing {
         let input = source.standardizedFileURL.resolvingSymlinksInPath()
         let target = output.standardizedFileURL
         let parent = target.deletingLastPathComponent().resolvingSymlinksInPath()
-        guard target.pathExtension.lowercased() == "papergrain", !files.fileExists(atPath: target.path) else {
-            throw Failure("Expected a new .papergrain output")
-        }
-        var ancestor = parent
-        while true {
-            guard !BookStorage.sameLocation(ancestor, input) else { throw Failure("Output lies inside the source") }
-            let next = ancestor.deletingLastPathComponent()
-            if ancestor.path == "/" || next.path == ancestor.path { break }
-            ancestor = next
-        }
+        try checkOutput(target, source: input)
         try checkTree(input)
         let sourceManifest = input.appendingPathComponent("manifest.json")
         let original = try Data(contentsOf: sourceManifest)
         let stage = parent.appendingPathComponent(".papergrain-" + UUID().uuidString)
-        defer { try? files.removeItem(at: stage) }
+        defer { BookStorage.removeStaged(stage) }
         try files.copyItem(at: input, to: stage)
+        BookStorage.addOwnerWrite(stage)
         let copied = try snapshot(source: stage)
         var book = copied.book
         guard copied.raw == original, try Data(contentsOf: sourceManifest) == original else {
@@ -33,13 +25,27 @@ enum BookCLIEditing {
         }
         try mutate(&book, stage)
         book.id = UUID()
-        try validate(book, in: stage)
+        try validatePackage(book, in: stage)
         try BookStorage.writeExisting(book, to: stage)
         guard try BookStorage.read(from: stage) == book else { throw Failure("Output verification failed") }
         guard renamex_np(stage.path, target.path, UInt32(RENAME_EXCL)) == 0 else {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSFilePathErrorKey: target.path])
         }
         return book
+    }
+
+    /// The output of a derived package: a new .papergrain in an existing folder outside the source.
+    static func checkOutput(_ output: URL, source: URL) throws {
+        let input = source.standardizedFileURL.resolvingSymlinksInPath()
+        let target = output.standardizedFileURL
+        try BookCLI.checkNewPackage(target)
+        var ancestor = target.deletingLastPathComponent().resolvingSymlinksInPath()
+        while true {
+            guard !BookStorage.sameLocation(ancestor, input) else { throw Failure("Output lies inside the source") }
+            let next = ancestor.deletingLastPathComponent()
+            if ancestor.path == "/" || next.path == ancestor.path { break }
+            ancestor = next
+        }
     }
 
     static func read(source: URL) throws -> Book {
@@ -57,7 +63,7 @@ enum BookCLIEditing {
         let book = try BookStorage.read(from: directory)
         guard try JSONDecoder().decode(Book.self, from: raw) == book else { throw Failure("Manifest changed while reading") }
         try checkFields(JSONSerialization.jsonObject(with: raw), against: json(book))
-        try validate(book, in: directory)
+        try validatePackage(book, in: directory)
         return (book, raw)
     }
 
@@ -99,7 +105,86 @@ enum BookCLIEditing {
         }
     }
 
+    /// Page rules shared by `build` and `patch`. A layout that contradicts the arrangement or a photo listed twice
+    /// is an error. Photos beyond the capacity and story text on a layout without a story stay stored, as in the
+    /// app, but are not shown; they come back as warnings.
+    static func checkPage(_ page: BookPage, at index: Int) throws -> [String] {
+        let name = "Page \(index + 1) (pages[\(index)])"
+        if let arrangement = page.arrangement, arrangement.layout != page.layout {
+            throw Failure("\(name) has layout \"\(page.layout.rawValue)\", but arrangement \"\(arrangement.rawValue)\" "
+                + "needs layout \"\(arrangement.layout.rawValue)\"")
+        }
+        if let duplicate = page.photoIDs.first(where: { id in page.photoIDs.filter { $0 == id }.count > 1 }) {
+            throw Failure("\(name) lists photo \(duplicate.uuidString) more than once")
+        }
+        var warnings: [String] = []
+        let capacity: Int
+        let shape: String
+        if let arrangement = page.arrangement {
+            capacity = arrangement.photoCapacity
+            shape = "arrangement \"\(arrangement.rawValue)\""
+        } else {
+            switch page.layout {
+            case .text: capacity = 0
+            case .fullPage, .fullSpread: capacity = 1
+            case .mixed, .gallery: capacity = Int.max
+            }
+            shape = "layout \"\(page.layout.rawValue)\""
+        }
+        if page.photoIDs.count > capacity {
+            warnings.append("\(name) has \(page.photoIDs.count) photos; \(shape) shows \(capacity). "
+                + "The others stay stored but are not shown")
+        }
+        if page.hasStoryText, page.layout != .mixed, page.layout != .text {
+            warnings.append("\(name) has a heading or text that \(shape) does not show. Use layout \"mixed\" or \"text\"")
+        }
+        return warnings
+    }
+
+    /// Range checks for the text fields that `build` and `patch` write. Colors are 0xRRGGBB integers.
+    static func checkTextStyles(_ book: Book) throws {
+        func color(_ value: UInt32?, _ path: String) throws {
+            if let value, value > 0xFFFFFF {
+                throw Failure("\(path) must be a 0xRRGGBB color from 0 to 16777215 (found \(value))")
+            }
+        }
+        func style(_ style: EditorialTextStyle?, _ path: String) throws {
+            guard let style else { return }
+            try color(style.color, path + ".color")
+            if let spacing = style.lineSpacing, !EditorialTextStyle.lineSpacingRange.contains(spacing) {
+                throw Failure("\(path).lineSpacing must be between 0.8 and 2 (found \(spacing))")
+            }
+        }
+        func typography(_ value: EditorialTypography?, _ path: String) throws {
+            try style(value?.title, path + ".title")
+            try style(value?.body, path + ".body")
+        }
+        try typography(book.typography, "typography")
+        try typography(book.cover?.typography, "cover.typography")
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            try typography(page.typography, name + " typography")
+            for (offset, box) in (page.textBoxes ?? []).enumerated() {
+                let path = "\(name) textBoxes[\(offset)]"
+                try style(box.typography, path + ".typography")
+                try color(box.backgroundColor, path + ".backgroundColor")
+                try color(box.borderColor, path + ".borderColor")
+                if let width = box.borderWidth, !PageTextBox.borderWidthRange.contains(width) {
+                    throw Failure("\(path).borderWidth must be between 0 and 12 (found \(width))")
+                }
+            }
+        }
+    }
+
     static func patch(source: URL, patchURL: URL, output: URL) throws -> Book {
+        var warnings: [String] = []
+        return try patch(source: source, patchURL: patchURL, output: output, warnings: &warnings)
+    }
+
+    /// Applies the patch; `warnings` lists the page states the app keeps but does not show, for changed pages only.
+    static func patch(source: URL, patchURL: URL, output: URL, warnings: inout [String]) throws -> Book {
+        var found: [String] = []
+        defer { warnings = found }
         guard let edits = try JSONSerialization.jsonObject(with: Data(contentsOf: patchURL)) as? [[String: Any]] else {
             throw Failure("Expected an array of JSON Patch operations")
         }
@@ -122,6 +207,12 @@ enum BookCLIEditing {
                       photo.sourceID == old.sourceID, photo.capturedAt == old.capturedAt else {
                     throw Failure("Use media import to change the asset inventory")
                 }
+            }
+            guard !result.pages.isEmpty else { throw Failure("The book must keep at least one page") }
+            try checkTextStyles(result)
+            let original = Dictionary(book.pages.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+            for (index, page) in result.pages.enumerated() where original[page.id] != page {
+                found += try checkPage(page, at: index)
             }
             book = result
         }
@@ -148,6 +239,7 @@ enum BookCLIEditing {
                 throw Failure("Cannot move a parent into a child")
             }
             value = try visit(&root, path: from[...], op: op == "move" ? "remove" : "read", value: nil)
+            if op == "copy", let copied = value { value = freshIDs(copied) }
             action = "add"
         }
         if op != "test", path.last == "id" { throw Failure("Object IDs are immutable") }
@@ -160,6 +252,34 @@ enum BookCLIEditing {
             throw Failure("Unknown operation or missing value")
         }
         _ = try visit(&root, path: path[...], op: action, value: value)
+    }
+
+    /// A copied page or text box is a new object: every `id` inside it gets a new UUID, and references to those ids
+    /// inside the copy (such as `box:<UUID>` in `layerOrder`) follow. References to photos stay unchanged.
+    private static func freshIDs(_ value: Any) -> Any {
+        var renamed: [String: String] = [:]
+        func collect(_ node: Any) {
+            if let object = node as? [String: Any] {
+                if let id = object["id"] as? String, UUID(uuidString: id) != nil {
+                    renamed[id.uppercased()] = UUID().uuidString
+                }
+                object.values.forEach(collect)
+            } else if let array = node as? [Any] {
+                array.forEach(collect)
+            }
+        }
+        func rewrite(_ node: Any) -> Any {
+            if let object = node as? [String: Any] { return object.mapValues(rewrite) }
+            if let array = node as? [Any] { return array.map(rewrite) }
+            guard let text = node as? String else { return node }
+            if let new = renamed[text.uppercased()] { return new }
+            for prefix in ["box:", "photo:"] where text.hasPrefix(prefix) {
+                if let new = renamed[String(text.dropFirst(prefix.count)).uppercased()] { return prefix + new }
+            }
+            return text
+        }
+        collect(value)
+        return renamed.isEmpty ? value : rewrite(value)
     }
 
     private static func comparable(_ value: Any) throws -> Data {
@@ -212,49 +332,75 @@ enum BookCLIEditing {
         throw Failure("Cannot traverse a scalar")
     }
 
-    private static func validate(_ book: Book, in package: URL) throws {
-        func checkFile(_ url: URL) throws {
+    static func validatePackage(_ book: Book, in package: URL) throws {
+        func checkFile(_ url: URL, _ owner: String) throws {
             guard try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
-                throw Failure("Missing resource: " + url.lastPathComponent)
+                throw Failure("\(owner) refers to a missing file in the package: " + url.lastPathComponent)
             }
         }
-        for photo in book.photos { try checkFile(BookStorage.assetURL(filename: photo.filename, in: package)) }
-        for film in book.photos.compactMap(\.film) + [book.film].compactMap({ $0 }) {
-            if let lut = film.lutFilename { try checkFile(BookStorage.lutURL(filename: lut, in: package)) }
-            guard [film.strength, film.grain, film.grainSize].allSatisfy({ (0...1).contains($0) }) else {
-                throw Failure("Film strength, grain and grainSize must be between 0 and 1")
+        for photo in book.photos {
+            try checkFile(BookStorage.assetURL(filename: photo.filename, in: package), "Photo \(photo.id.uuidString)")
+        }
+        let looks = book.photos.compactMap { photo in photo.film.map { ("Photo \(photo.id.uuidString) film", $0) } }
+            + [book.film].compactMap { $0 }.map { ("film", $0) }
+        for (owner, film) in looks {
+            if let lut = film.lutFilename { try checkFile(BookStorage.lutURL(filename: lut, in: package), owner + ".lutFilename") }
+            for (field, value) in [("strength", film.strength), ("grain", film.grain), ("grainSize", film.grainSize)]
+            where !(0...1).contains(value) {
+                throw Failure("\(owner).\(field) must be between 0 and 1 (found \(value))")
             }
         }
-        func checkFrame(_ frame: PageRect) throws {
-            guard frame.width > 0, frame.height > 0 else { throw Failure("Frame dimensions must be positive") }
+        func checkFrame(_ frame: PageRect, _ owner: String) throws {
+            guard frame.width > 0, frame.height > 0 else {
+                throw Failure("\(owner) must have a positive width and height")
+            }
         }
-        func checkPlacement(_ placement: PhotoPlacement) throws {
-            if let frame = placement.frame { try checkFrame(frame) }
+        func checkPlacement(_ placement: PhotoPlacement, _ owner: String) throws {
+            if let frame = placement.frame { try checkFrame(frame, owner + ".frame") }
             if let crop = placement.crop {
-                guard (0...1).contains(crop.x), (0...1).contains(crop.y), (1...12).contains(crop.zoom) else {
-                    throw Failure("Invalid crop center or zoom")
+                guard (0...1).contains(crop.x), (0...1).contains(crop.y) else {
+                    throw Failure("\(owner).crop x and y must be between 0 and 1")
                 }
+                guard (1...12).contains(crop.zoom) else { throw Failure("\(owner).crop.zoom must be between 1 and 12") }
             }
         }
-        for placement in [book.cover?.frontPhotoPlacement, book.cover?.backPhotoPlacement].compactMap({ $0 }) {
-            try checkPlacement(placement)
-        }
-        for page in book.pages {
-            if let framing = page.framing, !(0...1).contains(framing) { throw Failure("Invalid page framing") }
-            let ids = Set(page.photoIDs)
-            guard ids.count == page.photoIDs.count,
-                  Set(page.photoPlacements?.keys.map { $0 } ?? []).isSubset(of: ids),
-                  Set((page.textBoxes ?? []).map(\.id)).count == (page.textBoxes ?? []).count else {
-                throw Failure("Invalid page placements or duplicate IDs")
+        if let placement = book.cover?.frontPhotoPlacement { try checkPlacement(placement, "cover.frontPhotoPlacement") }
+        if let placement = book.cover?.backPhotoPlacement { try checkPlacement(placement, "cover.backPhotoPlacement") }
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            if let framing = page.framing, !(0...1).contains(framing) {
+                throw Failure("\(name) framing must be between 0 and 1")
             }
-            for placement in page.photoPlacements?.values.map({ $0 }) ?? [] { try checkPlacement(placement) }
-            for frame in [page.titleFrame, page.storyFrame].compactMap({ $0 }) + (page.storyBackdropFrames ?? [])
-                + (page.textBoxes ?? []).map(\.frame) { try checkFrame(frame) }
+            if let duplicate = page.photoIDs.first(where: { id in page.photoIDs.filter { $0 == id }.count > 1 }) {
+                throw Failure("\(name) lists photo \(duplicate.uuidString) more than once in photoIDs")
+            }
+            for (id, placement) in page.photoPlacements ?? [:] {
+                guard page.photoIDs.contains(id) else {
+                    throw Failure("\(name) has a photoPlacements entry for \(id.uuidString), which is not in photoIDs")
+                }
+                try checkPlacement(placement, "\(name) photoPlacements[\(id.uuidString)]")
+            }
+            var boxIDs: Set<UUID> = []
+            for box in page.textBoxes ?? [] where !boxIDs.insert(box.id).inserted {
+                throw Failure("\(name) has a duplicate text box id \(box.id.uuidString)")
+            }
+            for (field, frame) in [("titleFrame", page.titleFrame), ("storyFrame", page.storyFrame)] {
+                if let frame { try checkFrame(frame, "\(name) \(field)") }
+            }
+            for (offset, frame) in (page.storyBackdropFrames ?? []).enumerated() {
+                try checkFrame(frame, "\(name) storyBackdropFrames[\(offset)]")
+            }
+            for (offset, box) in (page.textBoxes ?? []).enumerated() {
+                try checkFrame(box.frame, "\(name) textBoxes[\(offset)].frame")
+            }
         }
-        for frame in [book.cover?.frontTitleFrame, book.cover?.backTextFrame].compactMap({ $0 }) { try checkFrame(frame) }
+        if let frame = book.cover?.frontTitleFrame { try checkFrame(frame, "cover.frontTitleFrame") }
+        if let frame = book.cover?.backTextFrame { try checkFrame(frame, "cover.backTextFrame") }
         if let print = book.printSettings {
-            guard print.bleedMM >= 0, print.safeMM >= 0, print.targetPPI > 0 else { throw Failure("Invalid print dimensions") }
+            guard print.bleedMM >= 0 else { throw Failure("printSettings.bleedMM must be 0 or more") }
+            guard print.safeMM >= 0 else { throw Failure("printSettings.safeMM must be 0 or more") }
+            guard print.targetPPI > 0 else { throw Failure("printSettings.targetPPI must be greater than 0") }
         }
-        guard (book.cover?.spineMM ?? 0) >= 0 else { throw Failure("Invalid cover spine") }
+        guard (book.cover?.spineMM ?? 0) >= 0 else { throw Failure("cover.spineMM must be 0 or more") }
     }
 }

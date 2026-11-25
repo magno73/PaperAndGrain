@@ -1,5 +1,6 @@
-import Foundation
 import CryptoKit
+import Darwin
+import Foundation
 
 enum BookStorage {
     private static let files = FileManager.default
@@ -60,8 +61,9 @@ enum BookStorage {
         let destinationIdentity = destinationExists ? identity(of: destination) : nil
         let staging = destination.deletingLastPathComponent()
             .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
-        defer { try? files.removeItem(at: staging) }
+        defer { removeStaged(staging) }
         try files.copyItem(at: from, to: staging)
+        addOwnerWrite(staging)
         guard try read(from: staging).id == book.id else {
             throw CocoaError(.fileReadCorruptFile, userInfo: [NSURLErrorKey: source])
         }
@@ -74,6 +76,34 @@ enum BookStorage {
         } else {
             try files.moveItem(at: staging, to: destination)
         }
+    }
+
+    /// Copies keep the source permissions; a staged copy of a read-only package must become writable
+    /// before its manifest is rewritten or the copy is removed. Symbolic links are left untouched.
+    @discardableResult
+    static func addOwnerWrite(_ root: URL) -> Bool {
+        var succeeded = true
+        func visit(_ path: String) {
+            var entry = stat()
+            guard lstat(path, &entry) == 0 else { succeeded = false; return }
+            let type = entry.st_mode & S_IFMT
+            guard type == S_IFDIR || type == S_IFREG else { return }
+            let mode = entry.st_mode & 0o7777
+            let wanted = mode | S_IWUSR | (type == S_IFDIR ? S_IRUSR | S_IXUSR : 0)
+            if wanted != mode, chmod(path, wanted) != 0 { succeeded = false }
+            if type == S_IFDIR, let children = try? files.contentsOfDirectory(atPath: path) {
+                for child in children { visit((path as NSString).appendingPathComponent(child)) }
+            }
+        }
+        visit(root.path)
+        return succeeded
+    }
+
+    /// Removes a staged package, making it writable first so a read-only copy does not linger.
+    static func removeStaged(_ url: URL) {
+        guard files.fileExists(atPath: url.path) else { return }
+        addOwnerWrite(url)
+        try? files.removeItem(at: url)
     }
 
     static func sameLocation(_ first: URL, _ second: URL) -> Bool {
@@ -96,9 +126,13 @@ enum BookStorage {
 
     static func importLUT(_ source: URL, in directory: URL) throws -> String {
         let suffix = source.pathExtension.lowercased()
-        guard ["cube", "png"].contains(suffix) else { throw CocoaError(.fileReadUnknown) }
+        guard ["cube", "png"].contains(suffix) else {
+            throw ValidationError("LUT file must be a 3D .cube or a Hald CLUT .png: " + source.lastPathComponent)
+        }
         let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard (1...50_000_000).contains(size) else { throw CocoaError(.fileReadTooLarge) }
+        guard (1...50_000_000).contains(size) else {
+            throw ValidationError("LUT file must be 1 byte to 50 MB (found \(size) bytes): " + source.lastPathComponent)
+        }
         try FilmRenderer.validateLUT(at: source)
         return try installLUT(Data(contentsOf: source), named: source.lastPathComponent, in: directory)
     }
@@ -152,19 +186,57 @@ enum BookStorage {
             !name.contains("\u{0000}") && !name.contains(":")
     }
 
+    /// A manifest check that failed, named so that an agent or the author can find the field.
+    struct ValidationError: LocalizedError, Equatable {
+        let message: String
+        init(_ message: String) { self.message = message }
+        var errorDescription: String? { message }
+    }
+
+    static let pixelDimensionRange = 1...1_000_000
+
+    /// Checks the references and values every reader relies on. Each failure names the field, so a damaged
+    /// package can be repaired by hand. Layer order entries that name unknown objects are ignored, not errors.
     private static func validate(_ book: Book) throws {
-        let ids = Set(book.photos.map(\.id))
-        let looks = book.photos.compactMap(\.film) + [book.film].compactMap { $0 }
-        let coverIDs = [book.cover?.frontPhotoID, book.cover?.backPhotoID].compactMap { $0 }
-        guard book.schemaVersion == 1,
-              book.format.widthMM.isFinite, book.format.widthMM > 0,
-              book.format.heightMM.isFinite, book.format.heightMM > 0,
-              ids.count == book.photos.count,
-              Set(book.pages.map(\.id)).count == book.pages.count,
-              book.photos.allSatisfy({ validFilename($0.filename) }),
-              book.pages.allSatisfy({ ids.isSuperset(of: $0.photoIDs) }),
-              looks.allSatisfy({ $0.lutFilename.map(validFilename) ?? true }),
-              ids.isSuperset(of: coverIDs)
-        else { throw CocoaError(.fileReadCorruptFile) }
+        guard book.schemaVersion == 1 else {
+            throw ValidationError("Unsupported schemaVersion \(book.schemaVersion); expected 1")
+        }
+        for (field, value) in [("widthMM", book.format.widthMM), ("heightMM", book.format.heightMM)]
+        where !(value.isFinite && value > 0) {
+            throw ValidationError("format.\(field) must be greater than 0 (found \(value))")
+        }
+        var ids: Set<UUID> = []
+        for (index, photo) in book.photos.enumerated() {
+            let name = "Photo \(photo.id.uuidString) (photos[\(index)])"
+            guard ids.insert(photo.id).inserted else { throw ValidationError("\(name) has a duplicate id") }
+            guard validFilename(photo.filename) else {
+                throw ValidationError("\(name) has an invalid filename \"\(photo.filename)\"")
+            }
+            for (field, value) in [("pixelWidth", photo.pixelWidth), ("pixelHeight", photo.pixelHeight)]
+            where !pixelDimensionRange.contains(value) {
+                throw ValidationError("\(name) has \(field) \(value); expected 1 to 1000000")
+            }
+            if let lut = photo.film?.lutFilename, !validFilename(lut) {
+                throw ValidationError("\(name) has an invalid film.lutFilename \"\(lut)\"")
+            }
+        }
+        if let lut = book.film?.lutFilename, !validFilename(lut) {
+            throw ValidationError("film.lutFilename \"\(lut)\" is not a valid file name")
+        }
+        var pageIDs: Set<UUID> = []
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            guard pageIDs.insert(page.id).inserted else {
+                throw ValidationError("\(name) has a duplicate id \(page.id.uuidString)")
+            }
+            if let unknown = page.photoIDs.first(where: { !ids.contains($0) }) {
+                throw ValidationError("\(name) references unknown photo \(unknown.uuidString) in photoIDs")
+            }
+        }
+        for (field, id) in [("frontPhotoID", book.cover?.frontPhotoID), ("backPhotoID", book.cover?.backPhotoID)] {
+            if let id, !ids.contains(id) {
+                throw ValidationError("cover.\(field) references unknown photo \(id.uuidString)")
+            }
+        }
     }
 }
