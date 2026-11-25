@@ -126,9 +126,13 @@ enum BookStorage {
 
     static func importLUT(_ source: URL, in directory: URL) throws -> String {
         let suffix = source.pathExtension.lowercased()
-        guard ["cube", "png"].contains(suffix) else { throw CocoaError(.fileReadUnknown) }
+        guard ["cube", "png"].contains(suffix) else {
+            throw ValidationError("LUT file must be a 3D .cube or a Hald CLUT .png: " + source.lastPathComponent)
+        }
         let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard (1...50_000_000).contains(size) else { throw CocoaError(.fileReadTooLarge) }
+        guard (1...50_000_000).contains(size) else {
+            throw ValidationError("LUT file must be 1 byte to 50 MB (found \(size) bytes): " + source.lastPathComponent)
+        }
         try FilmRenderer.validateLUT(at: source)
         return try installLUT(Data(contentsOf: source), named: source.lastPathComponent, in: directory)
     }
@@ -191,25 +195,48 @@ enum BookStorage {
 
     static let pixelDimensionRange = 1...1_000_000
 
+    /// Checks the references and values every reader relies on. Each failure names the field, so a damaged
+    /// package can be repaired by hand. Layer order entries that name unknown objects are ignored, not errors.
     private static func validate(_ book: Book) throws {
-        for photo in book.photos {
+        guard book.schemaVersion == 1 else {
+            throw ValidationError("Unsupported schemaVersion \(book.schemaVersion); expected 1")
+        }
+        for (field, value) in [("widthMM", book.format.widthMM), ("heightMM", book.format.heightMM)]
+        where !(value.isFinite && value > 0) {
+            throw ValidationError("format.\(field) must be greater than 0 (found \(value))")
+        }
+        var ids: Set<UUID> = []
+        for (index, photo) in book.photos.enumerated() {
+            let name = "Photo \(photo.id.uuidString) (photos[\(index)])"
+            guard ids.insert(photo.id).inserted else { throw ValidationError("\(name) has a duplicate id") }
+            guard validFilename(photo.filename) else {
+                throw ValidationError("\(name) has an invalid filename \"\(photo.filename)\"")
+            }
             for (field, value) in [("pixelWidth", photo.pixelWidth), ("pixelHeight", photo.pixelHeight)]
             where !pixelDimensionRange.contains(value) {
-                throw ValidationError("Photo \(photo.id.uuidString) has \(field) \(value); expected 1 to 1000000")
+                throw ValidationError("\(name) has \(field) \(value); expected 1 to 1000000")
+            }
+            if let lut = photo.film?.lutFilename, !validFilename(lut) {
+                throw ValidationError("\(name) has an invalid film.lutFilename \"\(lut)\"")
             }
         }
-        let ids = Set(book.photos.map(\.id))
-        let looks = book.photos.compactMap(\.film) + [book.film].compactMap { $0 }
-        let coverIDs = [book.cover?.frontPhotoID, book.cover?.backPhotoID].compactMap { $0 }
-        guard book.schemaVersion == 1,
-              book.format.widthMM.isFinite, book.format.widthMM > 0,
-              book.format.heightMM.isFinite, book.format.heightMM > 0,
-              ids.count == book.photos.count,
-              Set(book.pages.map(\.id)).count == book.pages.count,
-              book.photos.allSatisfy({ validFilename($0.filename) }),
-              book.pages.allSatisfy({ ids.isSuperset(of: $0.photoIDs) }),
-              looks.allSatisfy({ $0.lutFilename.map(validFilename) ?? true }),
-              ids.isSuperset(of: coverIDs)
-        else { throw CocoaError(.fileReadCorruptFile) }
+        if let lut = book.film?.lutFilename, !validFilename(lut) {
+            throw ValidationError("film.lutFilename \"\(lut)\" is not a valid file name")
+        }
+        var pageIDs: Set<UUID> = []
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            guard pageIDs.insert(page.id).inserted else {
+                throw ValidationError("\(name) has a duplicate id \(page.id.uuidString)")
+            }
+            if let unknown = page.photoIDs.first(where: { !ids.contains($0) }) {
+                throw ValidationError("\(name) references unknown photo \(unknown.uuidString) in photoIDs")
+            }
+        }
+        for (field, id) in [("frontPhotoID", book.cover?.frontPhotoID), ("backPhotoID", book.cover?.backPhotoID)] {
+            if let id, !ids.contains(id) {
+                throw ValidationError("cover.\(field) references unknown photo \(id.uuidString)")
+            }
+        }
     }
 }

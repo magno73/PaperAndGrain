@@ -147,4 +147,114 @@ final class CLIReleaseTests: XCTestCase {
         }
         XCTAssertFalse(try entries(root).contains { $0.hasPrefix(".papergrain") || $0 == "Out.pdf" })
     }
+
+    // MARK: C4
+
+    func testDamagedManifestsNameTheFailingCheck() throws {
+        let root = try temporaryDirectory()
+        let project = try build(baseSpec(pages: [["layout": "fullPage", "photos": ["a"]], ["layout": "fullPage", "photos": ["a"]]]),
+                                in: root)
+        let pristine = try Data(contentsOf: project.appendingPathComponent("manifest.json"))
+        let unknown = UUID().uuidString
+        let cases: [(String, (inout [String: Any]) -> Void)] = [
+            ("schemaVersion 2", { $0["schemaVersion"] = 2 }),
+            ("format.widthMM must be greater than 0", { $0["format"] = ["widthMM": 0, "heightMM": 210] }),
+            ("Page 2 (pages[1]) references unknown photo \(unknown)", { manifest in
+                var pages = manifest["pages"] as! [[String: Any]]
+                pages[1]["photoIDs"] = [unknown]
+                manifest["pages"] = pages
+            }),
+            ("Page 2 (pages[1]) has a duplicate id", { manifest in
+                var pages = manifest["pages"] as! [[String: Any]]
+                pages[1]["id"] = pages[0]["id"]
+                manifest["pages"] = pages
+            }),
+            ("has a duplicate id", { manifest in
+                let photos = manifest["photos"] as! [[String: Any]]
+                manifest["photos"] = photos + photos
+            }),
+            ("invalid filename \"../x\"", { manifest in
+                var photos = manifest["photos"] as! [[String: Any]]
+                photos[0]["filename"] = "../x"
+                manifest["photos"] = photos
+            }),
+            ("cover.backPhotoID references unknown photo \(unknown)", { $0["cover"] = ["title": "T", "spineMM": 0, "backPhotoID": unknown] }),
+            ("film.lutFilename", { $0["film"] = ["preset": "custom", "strength": 1, "grain": 0, "grainSize": 0.5, "lutFilename": "a/b"] }),
+        ]
+        for (expected, edit) in cases {
+            try pristine.write(to: project.appendingPathComponent("manifest.json"))
+            try editManifest(project, edit)
+            let text = message(try BookStorage.read(from: project))
+            XCTAssertTrue(text.contains(expected), "\(expected) not in: \(text)")
+            XCTAssertFalse(text.contains("correct format"), text)
+        }
+    }
+
+    func testLayerOrderEntriesForUnknownObjectsAreIgnored() throws {
+        let root = try temporaryDirectory()
+        let project = try build(baseSpec(), in: root)
+        try editManifest(project) { manifest in
+            var pages = manifest["pages"] as! [[String: Any]]
+            pages[0]["layerOrder"] = ["photo:\(UUID().uuidString)", "story", "box:\(UUID().uuidString)"]
+            manifest["pages"] = pages
+        }
+        XCTAssertEqual(try BookStorage.read(from: project).pages[0].layerOrder?.count, 3)
+        XCTAssertNoThrow(try BookCLIEditing.read(source: project))
+    }
+
+    func testOutputPathErrorsAreSpecific() throws {
+        let root = try temporaryDirectory()
+        let source = try build(baseSpec(), in: root, name: "Source.papergrain")
+        let spec = root.appendingPathComponent("spec.json")
+        try JSONSerialization.data(withJSONObject: baseSpec()).write(to: spec)
+        let missing = root.appendingPathComponent("missing/Out.papergrain")
+        XCTAssertTrue(message(try BookCLI.build(specURL: spec, output: missing)).contains("parent directory does not exist"))
+        XCTAssertTrue(message(try BookCLI.build(specURL: spec, output: root.appendingPathComponent("Out.book")))
+            .contains("must end in .papergrain"))
+        let patch = try writePatch("[]", in: root)
+        XCTAssertTrue(message(try BookCLIEditing.patch(source: source, patchURL: patch, output: missing))
+            .contains("parent directory does not exist"))
+        XCTAssertTrue(message(try BookCLIEditing.patch(source: source, patchURL: patch, output: root.appendingPathComponent("Out.json")))
+            .contains("must end in .papergrain"))
+        XCTAssertTrue(message(try BookCLIEditing.patch(source: source, patchURL: patch, output: source))
+            .contains("already exists"))
+    }
+
+    func exportMessage(_ arguments: [String], in root: URL) async -> String {
+        do {
+            _ = try await BookCLIMedia.run(command: "export-pdf", arguments: arguments, currentDirectory: root)
+            XCTFail("Export succeeded")
+            return ""
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func testExportProblemsAreSpecific() async throws {
+        let root = try temporaryDirectory()
+        var spec = baseSpec()
+        spec["format"] = ["widthMM": 300, "heightMM": 200]
+        try build(spec, in: root, name: "Wide.papergrain")
+        var text = await exportMessage(["Wide.papergrain", "--profile", "pixart", "--output", "Out.pdf", "--spine-mm", "4"], in: root)
+        XCTAssertTrue(text.contains("210 × 210 mm") && text.contains("300 × 200 mm"), text)
+        try BookStorage.write(Book(title: "Empty"), to: root.appendingPathComponent("Empty.papergrain"))
+        text = await exportMessage(["Empty.papergrain", "--profile", "proof", "--output", "Out.pdf"], in: root)
+        XCTAssertTrue(text.contains("no pages"), text)
+        var small = Book(title: "Small", format: BookFormat(widthMM: 25, heightMM: 25), pages: [BookPage(layout: .text)])
+        small.printSettings = PrintSettings(bleedMM: 3, safeMM: 15)
+        try BookStorage.write(small, to: root.appendingPathComponent("Small.papergrain"))
+        text = await exportMessage(["Small.papergrain", "--profile", "print", "--output", "Press"], in: root)
+        XCTAssertTrue(text.contains("too small for its 15 mm margins"), text)
+        XCTAssertFalse(try entries(root).contains { $0.hasPrefix(".papergrain-media") || $0 == "Out.pdf" || $0 == "Press" })
+    }
+
+    func testLUTFileErrorsNameTheProblem() throws {
+        let root = try temporaryDirectory()
+        let text = root.appendingPathComponent("look.txt")
+        try Data("x".utf8).write(to: text)
+        XCTAssertTrue(message(try BookStorage.importLUT(text, in: root)).contains(".cube"))
+        let empty = root.appendingPathComponent("empty.cube")
+        try Data().write(to: empty)
+        XCTAssertTrue(message(try BookStorage.importLUT(empty, in: root)).contains("1 byte to 50 MB"))
+    }
 }

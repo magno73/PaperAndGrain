@@ -10,9 +10,7 @@ enum BookCLIEditing {
         let input = source.standardizedFileURL.resolvingSymlinksInPath()
         let target = output.standardizedFileURL
         let parent = target.deletingLastPathComponent().resolvingSymlinksInPath()
-        guard target.pathExtension.lowercased() == "papergrain", !files.fileExists(atPath: target.path) else {
-            throw Failure("Expected a new .papergrain output")
-        }
+        try BookCLI.checkNewPackage(target)
         var ancestor = parent
         while true {
             guard !BookStorage.sameLocation(ancestor, input) else { throw Failure("Output lies inside the source") }
@@ -214,48 +212,74 @@ enum BookCLIEditing {
     }
 
     private static func validate(_ book: Book, in package: URL) throws {
-        func checkFile(_ url: URL) throws {
+        func checkFile(_ url: URL, _ owner: String) throws {
             guard try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
-                throw Failure("Missing resource: " + url.lastPathComponent)
+                throw Failure("\(owner) refers to a missing file in the package: " + url.lastPathComponent)
             }
         }
-        for photo in book.photos { try checkFile(BookStorage.assetURL(filename: photo.filename, in: package)) }
-        for film in book.photos.compactMap(\.film) + [book.film].compactMap({ $0 }) {
-            if let lut = film.lutFilename { try checkFile(BookStorage.lutURL(filename: lut, in: package)) }
-            guard [film.strength, film.grain, film.grainSize].allSatisfy({ (0...1).contains($0) }) else {
-                throw Failure("Film strength, grain and grainSize must be between 0 and 1")
+        for photo in book.photos {
+            try checkFile(BookStorage.assetURL(filename: photo.filename, in: package), "Photo \(photo.id.uuidString)")
+        }
+        let looks = book.photos.compactMap { photo in photo.film.map { ("Photo \(photo.id.uuidString) film", $0) } }
+            + [book.film].compactMap { $0 }.map { ("film", $0) }
+        for (owner, film) in looks {
+            if let lut = film.lutFilename { try checkFile(BookStorage.lutURL(filename: lut, in: package), owner + ".lutFilename") }
+            for (field, value) in [("strength", film.strength), ("grain", film.grain), ("grainSize", film.grainSize)]
+            where !(0...1).contains(value) {
+                throw Failure("\(owner).\(field) must be between 0 and 1 (found \(value))")
             }
         }
-        func checkFrame(_ frame: PageRect) throws {
-            guard frame.width > 0, frame.height > 0 else { throw Failure("Frame dimensions must be positive") }
+        func checkFrame(_ frame: PageRect, _ owner: String) throws {
+            guard frame.width > 0, frame.height > 0 else {
+                throw Failure("\(owner) must have a positive width and height")
+            }
         }
-        func checkPlacement(_ placement: PhotoPlacement) throws {
-            if let frame = placement.frame { try checkFrame(frame) }
+        func checkPlacement(_ placement: PhotoPlacement, _ owner: String) throws {
+            if let frame = placement.frame { try checkFrame(frame, owner + ".frame") }
             if let crop = placement.crop {
-                guard (0...1).contains(crop.x), (0...1).contains(crop.y), (1...12).contains(crop.zoom) else {
-                    throw Failure("Invalid crop center or zoom")
+                guard (0...1).contains(crop.x), (0...1).contains(crop.y) else {
+                    throw Failure("\(owner).crop x and y must be between 0 and 1")
                 }
+                guard (1...12).contains(crop.zoom) else { throw Failure("\(owner).crop.zoom must be between 1 and 12") }
             }
         }
-        for placement in [book.cover?.frontPhotoPlacement, book.cover?.backPhotoPlacement].compactMap({ $0 }) {
-            try checkPlacement(placement)
-        }
-        for page in book.pages {
-            if let framing = page.framing, !(0...1).contains(framing) { throw Failure("Invalid page framing") }
-            let ids = Set(page.photoIDs)
-            guard ids.count == page.photoIDs.count,
-                  Set(page.photoPlacements?.keys.map { $0 } ?? []).isSubset(of: ids),
-                  Set((page.textBoxes ?? []).map(\.id)).count == (page.textBoxes ?? []).count else {
-                throw Failure("Invalid page placements or duplicate IDs")
+        if let placement = book.cover?.frontPhotoPlacement { try checkPlacement(placement, "cover.frontPhotoPlacement") }
+        if let placement = book.cover?.backPhotoPlacement { try checkPlacement(placement, "cover.backPhotoPlacement") }
+        for (index, page) in book.pages.enumerated() {
+            let name = "Page \(index + 1) (pages[\(index)])"
+            if let framing = page.framing, !(0...1).contains(framing) {
+                throw Failure("\(name) framing must be between 0 and 1")
             }
-            for placement in page.photoPlacements?.values.map({ $0 }) ?? [] { try checkPlacement(placement) }
-            for frame in [page.titleFrame, page.storyFrame].compactMap({ $0 }) + (page.storyBackdropFrames ?? [])
-                + (page.textBoxes ?? []).map(\.frame) { try checkFrame(frame) }
+            if let duplicate = page.photoIDs.first(where: { id in page.photoIDs.filter { $0 == id }.count > 1 }) {
+                throw Failure("\(name) lists photo \(duplicate.uuidString) more than once in photoIDs")
+            }
+            for (id, placement) in page.photoPlacements ?? [:] {
+                guard page.photoIDs.contains(id) else {
+                    throw Failure("\(name) has a photoPlacements entry for \(id.uuidString), which is not in photoIDs")
+                }
+                try checkPlacement(placement, "\(name) photoPlacements[\(id.uuidString)]")
+            }
+            var boxIDs: Set<UUID> = []
+            for box in page.textBoxes ?? [] where !boxIDs.insert(box.id).inserted {
+                throw Failure("\(name) has a duplicate text box id \(box.id.uuidString)")
+            }
+            for (field, frame) in [("titleFrame", page.titleFrame), ("storyFrame", page.storyFrame)] {
+                if let frame { try checkFrame(frame, "\(name) \(field)") }
+            }
+            for (offset, frame) in (page.storyBackdropFrames ?? []).enumerated() {
+                try checkFrame(frame, "\(name) storyBackdropFrames[\(offset)]")
+            }
+            for (offset, box) in (page.textBoxes ?? []).enumerated() {
+                try checkFrame(box.frame, "\(name) textBoxes[\(offset)].frame")
+            }
         }
-        for frame in [book.cover?.frontTitleFrame, book.cover?.backTextFrame].compactMap({ $0 }) { try checkFrame(frame) }
+        if let frame = book.cover?.frontTitleFrame { try checkFrame(frame, "cover.frontTitleFrame") }
+        if let frame = book.cover?.backTextFrame { try checkFrame(frame, "cover.backTextFrame") }
         if let print = book.printSettings {
-            guard print.bleedMM >= 0, print.safeMM >= 0, print.targetPPI > 0 else { throw Failure("Invalid print dimensions") }
+            guard print.bleedMM >= 0 else { throw Failure("printSettings.bleedMM must be 0 or more") }
+            guard print.safeMM >= 0 else { throw Failure("printSettings.safeMM must be 0 or more") }
+            guard print.targetPPI > 0 else { throw Failure("printSettings.targetPPI must be greater than 0") }
         }
-        guard (book.cover?.spineMM ?? 0) >= 0 else { throw Failure("Invalid cover spine") }
+        guard (book.cover?.spineMM ?? 0) >= 0 else { throw Failure("cover.spineMM must be 0 or more") }
     }
 }

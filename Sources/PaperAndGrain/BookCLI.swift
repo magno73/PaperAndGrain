@@ -131,6 +131,20 @@ enum BookCLI {
         }
     }
 
+    /// A new package needs the .papergrain extension, an existing parent folder and a free name.
+    static func checkNewPackage(_ output: URL) throws {
+        guard output.pathExtension.lowercased() == "papergrain" else {
+            throw Failure("Output must end in .papergrain: " + output.path)
+        }
+        let parent = output.deletingLastPathComponent().resolvingSymlinksInPath()
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: parent.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw Failure("Output parent directory does not exist: " + parent.path)
+        }
+        var entry = stat()
+        guard lstat(output.path, &entry) != 0 else { throw Failure("Output already exists: " + output.path) }
+    }
+
     /// Decodable ignores unknown keys; reject them so a misspelled field does not silently change the result.
     static func checkKeys(_ value: Any?, _ allowed: [String], at path: String) throws {
         guard let value, !(value is NSNull) else { return }
@@ -170,10 +184,7 @@ enum BookCLI {
 
     static func build(specURL: URL, output: URL) throws -> Book {
         let files = FileManager.default
-        guard output.pathExtension.lowercased() == "papergrain" else {
-            throw Failure("Output must end in .papergrain")
-        }
-        guard !files.fileExists(atPath: output.path) else { throw Failure("Output already exists: " + output.path) }
+        try checkNewPackage(output)
         let specData = try Data(contentsOf: specURL)
         try checkSpecKeys(specData)
         let spec = try JSONDecoder().decode(Spec.self, from: specData)

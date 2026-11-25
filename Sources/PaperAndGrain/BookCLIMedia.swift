@@ -324,6 +324,7 @@ enum BookCLIMedia {
         }
         try validateOutput(output, extension: profile == .print ? nil : "pdf", outside: source)
         let book = try BookCLIEditing.read(source: source)
+        try checkExportable(book, profile: profile)
         let spineOption = options["--spine-mm"]
         guard profile == .pixart || spineOption == nil else {
             throw BookCLI.Failure("--spine-mm is only supported for Pixart exports")
@@ -350,6 +351,26 @@ enum BookCLIMedia {
         }
         let warnings = profile == .proof ? [] : BookPDF.printWarnings(book, pixart: profile == .pixart)
         return try encode(PDFResult(output: output.path, profile: profile, warnings: warnings))
+    }
+
+    /// Names the reason the PDF renderer would refuse the book, before any scratch folder is created.
+    private static func checkExportable(_ book: Book, profile: PDFProfile) throws {
+        func mm(_ value: Double) -> String { String(format: "%g", (value * 10).rounded() / 10) }
+        guard !book.pages.isEmpty else { throw BookCLI.Failure("The book has no pages to export") }
+        let format = book.format
+        let minimum = 50 * 25.4 / 72
+        for (field, value) in [("widthMM", format.widthMM), ("heightMM", format.heightMM)] where !(value > minimum) {
+            throw BookCLI.Failure("format.\(field) must be more than \(mm(minimum)) mm for PDF export (found \(mm(value)))")
+        }
+        let margin = book.contentInsetPoints * 25.4 / 72
+        guard margin * 2 < min(format.widthMM, format.heightMM) else {
+            throw BookCLI.Failure("The \(mm(format.widthMM)) × \(mm(format.heightMM)) mm page is too small for its "
+                + "\(mm(margin)) mm margins. Lower printSettings.safeMM or enlarge the format")
+        }
+        if profile == .pixart, !PixartPrintProfile.supports(format) {
+            throw BookCLI.Failure("Pixart export requires a 210 × 210 mm book; this book is "
+                + "\(mm(format.widthMM)) × \(mm(format.heightMM)) mm")
+        }
     }
 
     private static func writePNG(_ image: CGImage, to output: URL) throws -> Data {
