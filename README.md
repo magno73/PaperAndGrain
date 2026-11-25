@@ -147,4 +147,4 @@ The developer documentation is written in Italian:
 
 The Fujifilm-style LUTs in `Resources/FujifilmFilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FujifilmFilmLooks/CREDITS.md). The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
 
-The source code has no open-source license yet, so all rights are reserved until one is added.
+The source code is released under the [MIT License](LICENSE). The LUTs are not covered by the MIT License and keep their own license.
