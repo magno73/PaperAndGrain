@@ -837,7 +837,7 @@ final class Workspace: ObservableObject {
             }
             guard openRequest == request else { return }
             guard await saveBeforeLeaving() else {
-                if locationLost { confirmLeavingLostBook { [weak self] in self?.open(restored, in: url) } }
+                if locationLost { confirmLeavingLostBook { self.open(restored, in: url) } }
                 return
             }
             guard openRequest == request else { return }
@@ -850,7 +850,7 @@ final class Workspace: ObservableObject {
         let session = editorSession
         return Task {
             guard await saveBeforeLeaving() else {
-                if locationLost { confirmLeavingLostBook { [weak self] in self?.finishClosing() } }
+                if locationLost { confirmLeavingLostBook { self.finishClosing() } }
                 return
             }
             guard editorSession == session, directory != nil else { return }
