@@ -33,7 +33,7 @@ struct EditorView: View {
     @State private var zoom: CanvasZoom = .fitPage
     @State private var dropFrames = [EditorDropTarget: CGRect]()
     @State private var canvasHits = CanvasHitStorage()
-    @State private var canvasInput = CanvasInput()
+    @State private var editorInput = EditorInput()
     @AppStorage("editorShowsPages") private var showsNavigator = true
     @AppStorage("editorShowsInspector") private var showsInspector = true
     @State private var libraryHitFrames = LibraryHitFrames()
@@ -80,8 +80,8 @@ struct EditorView: View {
         var photos: PhotoPanelMode = .library
     }
 
-    private final class CanvasInput {
-        var ownsKeyboard = false
+    private final class EditorInput {
+        var target: EditorKeyboardTarget = .none
     }
 
     private final class LibraryHitFrames {
@@ -312,11 +312,11 @@ struct EditorView: View {
         }
         .background(panel)
         .background(alignment: .topLeading) {
-            CanvasDeleteShortcut(onDelete: deleteSelectedCanvasObject, onDeselect: deselectCanvas,
+            CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
                                  onNudge: nudgeCanvasSelection, onClick: selectObject(at:),
                                  onPointerDown: { point in
-                canvasInput.ownsKeyboard = dropFrames[.canvasViewport]?.contains(point) == true
-            }, onKeyboardTraversal: { canvasInput.ownsKeyboard = false })
+                editorInput.target = dropFrames[.canvasViewport]?.contains(point) == true ? .canvas : .none
+            }, onKeyboardTraversal: { editorInput.target = .none })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -527,6 +527,8 @@ struct EditorView: View {
         let label = first && !paired ? tr("Prima pagina", "First Page") : number
         return navigatorCard(label, active: active) {
             select(leaf)
+            clearCanvasSelection()
+            editorInput.target = .navigatorPage(leaf.id)
         } preview: {
             navigatorPreview(for: .navigatorPage(leaf.id)) {
                 mini(leaf)
@@ -535,6 +537,10 @@ struct EditorView: View {
         }
         .accessibilityLabel(first ? tr("Prima pagina", "First Page") : tr("Pagina", "Page") + " " + number)
         .help(tr("Trascina per riordinare la pagina", "Drag to reorder the page"))
+        .onKeyPress(keys: [.delete, .deleteForward], phases: .down) { press in
+            guard press.modifiers.intersection([.command, .shift, .control, .option]).isEmpty else { return .ignored }
+            return deleteNavigatorPage(leaf.id) ? .handled : .ignored
+        }
         .editorDropFrame(.navigatorPage(leaf.id))
         .simultaneousGesture(editorDrag(.page(leaf.id)))
         .overlay(alignment: navigatorInsertionAlignment(paired: paired, after: insertionAfter == true)) {
@@ -2358,7 +2364,6 @@ struct EditorView: View {
 
     private func selectObject(at point: CGPoint) {
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
-        canvasInput.ownsKeyboard = insideCanvas
         guard insideCanvas else {
             if inspector == .photos, photoPanelMode == .library,
                let id = libraryHitFrames.frames.photo(at: point) {
@@ -2366,6 +2371,7 @@ struct EditorView: View {
             }
             return
         }
+        editorInput.target = .canvas
         if let coverSide {
             switch canvasTarget(at: point, on: .cover(front: coverSide == .front)) {
             case let .photo(id): selectCoverPhoto(id)
@@ -2416,7 +2422,7 @@ struct EditorView: View {
     }
 
     private func deselectCanvas() -> Bool {
-        guard canvasInput.ownsKeyboard else { return false }
+        guard editorInput.target == .canvas else { return false }
         if cropSession != nil {
             cropSession = nil
             return true
@@ -2431,7 +2437,7 @@ struct EditorView: View {
     }
 
     private func activateCanvas(_ select: () -> Void) {
-        canvasInput.ownsKeyboard = true
+        editorInput.target = .canvas
         select()
     }
 
@@ -2441,7 +2447,7 @@ struct EditorView: View {
     }
 
     private func nudgeCanvasSelection(_ offset: CGSize) -> Bool {
-        guard canvasInput.ownsKeyboard, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
+        guard editorInput.target == .canvas, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
         else { return false }
         if let side = coverSide, let selection = canvasPhotoSelection,
            selection.surface == .cover(front: side == .front),
@@ -3347,6 +3353,8 @@ struct EditorView: View {
         endInlineTextEditing()
         editPages(tr("Elimina pagina", "Delete Page")) { $0.remove(at: index) }
         selection = book.pages.isEmpty ? nil : book.pages[min(index, book.pages.count - 1)].id
+        editorInput.target = .none
+        canvasPhotoSelection = nil
         selectedPhoto = nil
         selectedBox = nil
         selectedEditorial = nil
@@ -3733,8 +3741,23 @@ struct EditorView: View {
         return true
     }
 
+    private func deleteEditorSelection() -> Bool {
+        switch editorInput.target.deletionTarget(selectedPageID: page?.id) {
+        case .none: return false
+        case .canvas: return deleteSelectedCanvasObject()
+        case let .navigatorPage(id): return deleteNavigatorPage(id)
+        }
+    }
+
+    private func deleteNavigatorPage(_ id: UUID) -> Bool {
+        guard showsNavigator, !showDelete, cropSession == nil, selection == id, page?.id == id,
+              !writing, !writingBox, inlineBoxFocus == nil, editorialFocus == nil, !searchingPhotos else { return false }
+        deletePage()
+        return true
+    }
+
     private func deleteSelectedCanvasObject() -> Bool {
-        guard canvasInput.ownsKeyboard, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
+        guard cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
         else { return false }
         if let selectedBox, let page, page.textBoxes?.contains(where: { $0.id == selectedBox }) == true {
             changeTextBoxes(on: page.id, name: tr("Rimuovi box", "Remove Box")) { boxes in

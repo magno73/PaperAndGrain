@@ -8,7 +8,7 @@ Con Xcode selezionato come toolchain, dalla radice del repository:
 
 ```sh
 ./scripts/build-app.sh
-open 'dist/0.9.6/Paper & Grain.app'
+open 'dist/0.9.7/Paper & Grain.app'
 ```
 
 Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
@@ -18,7 +18,7 @@ Un agente può comporre, analizzare e modificare un libro dal terminale, poi esp
 ## Fare un primo libro
 
 1. Apri **Scegli un album da Foto** e, al primo accesso, autorizza l’app nelle finestre di macOS. Scegli **Namibia**, seleziona le immagini, imposta il formato e premi **Impagina**. **Importa file** accetta immagini dal Finder. Il libro dimostrativo si apre senza accedere alla libreria.
-2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Il **+** inserisce una pagina nel punto indicato, anche tra due pagine affiancate. Una panoramica rimane un solo elemento. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
+2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Il **+** inserisce una pagina nel punto indicato, anche tra due pagine affiancate. Una panoramica rimane un solo elemento. Seleziona una miniatura e premi **Canc** o **⌫** per eliminare la pagina. **⌘Z** la ripristina. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
 3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. Nella scheda **Foto → Libreria**, usa **Ordina per** per sfogliare gli scatti per **Data** (dalle prime giornate alle ultime), **Luogo**, **Argomento** o **Non usate prima**. La ricerca e il filtro per tema si combinano con l’ordinamento. Per i luoghi si usano i nomi nei metadati o le zone GPS, con **Senza luogo** in fondo. Rilascia immagini dal Finder o da Foto su **Trascina foto qui** per aggiungerle alla libreria del libro.
    Su un libro già analizzato usa **Aggiorna analisi** in **Foto** per aggiungere etichette con confidenza, rilevamenti, testo letto nell’immagine e dati visivi. Seleziona una foto e apri **Dettagli analisi**.
 4. **Salva progetto** chiede la posizione al primo salvataggio e aggiorna il pacchetto `.papergrain` già aperto nelle volte successive. **Salva con nome…** crea una copia. **Esporta PDF** apre il selettore di profilo. Il globo sceglie lingua di sistema, italiano o inglese.

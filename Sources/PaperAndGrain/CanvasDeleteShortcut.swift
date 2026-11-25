@@ -1,6 +1,15 @@
 import AppKit
 import SwiftUI
 
+enum EditorKeyboardTarget: Equatable {
+    case none, canvas, navigatorPage(UUID)
+
+    func deletionTarget(selectedPageID: UUID?) -> Self {
+        if case let .navigatorPage(id) = self, id != selectedPageID { return .none }
+        return self
+    }
+}
+
 /// Routes editor commands and observes completed clicks without intercepting pointer events.
 struct CanvasDeleteShortcut: NSViewRepresentable {
     let onDelete: () -> Bool
@@ -85,7 +94,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 return
             }
             if monitor == nil {
-                let mask: NSEvent.EventTypeMask = [.keyDown, .leftMouseDown, .leftMouseDragged, .leftMouseUp]
+                let mask: NSEvent.EventTypeMask = [
+                    .keyDown, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .otherMouseDown
+                ]
                 monitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
                     guard let self else { return event }
                     return self.handle(event)
@@ -111,7 +122,7 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 return event
             }
             guard window.isKeyWindow, event.window == nil || event.window === window else { return event }
-            if event.keyCode == 48 { onKeyboardTraversal() } // Tab can move focus from the canvas to a control.
+            if event.keyCode == 48 { onKeyboardTraversal() } // Tab can move focus to a different control.
             guard !(window.firstResponder is NSText), !(window.firstResponder is NSTextField) else { return event }
             if CanvasDeleteShortcut.isDeleteKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
                 return onDelete() ? nil : event
@@ -142,6 +153,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 } else {
                     pressOrigin = nil
                 }
+            case .rightMouseDown, .otherMouseDown:
+                pressOrigin = nil
+                onKeyboardTraversal()
             case .leftMouseDragged:
                 if let origin = pressOrigin, !CanvasDeleteShortcut.isWithinClickDistance(from: origin, to: location) {
                     pressOrigin = nil

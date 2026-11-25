@@ -1,5 +1,9 @@
 # Stato dello sviluppo
 
+## 0.9.7 · 25 novembre 2026
+
+**Canc** e **⌫** eliminano la pagina selezionata nel navigatore. **⌘Z** la ripristina. Il comando segue la selezione attiva, con copertine e campi di testo esclusi dall’eliminazione di pagine. La prova automatica verifica i due tasti e il controllo della pagina selezionata. La build risiede in `dist/0.9.7/`.
+
 ## 0.9.6 · 25 novembre 2026
 
 Le miniature della libreria mostrano l’orientamento e conservano l’inquadratura originale. Il navigatore offre un **+** fra le pagine e mantiene il riordino per trascinamento nelle stesse posizioni. **Due pagine** è disponibile nel selettore dei modelli. Quando si trascina uno scatto da Foto sulla doppia, la cornice occupa entrambe le facciate. Le prove automatiche coprono l’inserimento ai confini della doppia e la sostituzione di una cornice piccola con una foto a tutta doppia. La build risiede in `dist/0.9.6/`.
