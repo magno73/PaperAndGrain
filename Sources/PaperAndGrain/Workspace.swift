@@ -12,6 +12,8 @@ final class Workspace: ObservableObject {
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
     @Published private(set) var exporting = false
     @Published var problem: String?
+    /// The open package was moved or removed and could not be found again. Edits stay in memory until Save As.
+    @Published private(set) var locationLost = false
     /// Set when a new book opens, so the window can ask for its template first.
     @Published var newBookNeedsTemplate = false
     @Published private(set) var recentBooks: [RecentBook] = []
@@ -104,7 +106,13 @@ final class Workspace: ObservableObject {
                 }
             } catch {
                 guard !Task.isCancelled, documentLocation == origin else { return }
-                problem = error.localizedDescription
+                saveTask = nil
+                if case AppError.bookMoved = error, relocate() {
+                    scheduleSave()
+                } else {
+                    reportSaveFailure(error)
+                }
+                return
             }
             guard !Task.isCancelled, documentLocation == origin else { return }
             saveTask = nil
@@ -115,18 +123,36 @@ final class Workspace: ObservableObject {
     func flushSave() -> Bool {
         saveTask?.cancel()
         saveTask = nil
-        guard let directory else { return true }
+        guard directory != nil else { return true }
         do {
-            let snapshot = book
-            let identity = directoryIdentity
-            try saveQueue.sync {
-                try Self.writeManifest(snapshot, in: directory, identity: identity)
-            }
+            try writeNow()
             return true
+        } catch AppError.bookMoved where relocate() {
+            do {
+                try writeNow()
+                return true
+            } catch {
+                reportSaveFailure(error)
+                return false
+            }
         } catch {
-            problem = error.localizedDescription
+            reportSaveFailure(error)
             return false
         }
+    }
+
+    private func writeNow() throws {
+        guard let directory else { return }
+        let snapshot = book
+        let identity = directoryIdentity
+        try saveQueue.sync {
+            try Self.writeManifest(snapshot, in: directory, identity: identity)
+        }
+    }
+
+    private func reportSaveFailure(_ error: Error) {
+        if case AppError.bookMoved = error { locationLost = true }
+        problem = error.localizedDescription
     }
 
     func applyBookPrintSettings(title: String, format: BookFormat, printSettings: PrintSettings,
@@ -441,6 +467,8 @@ final class Workspace: ObservableObject {
         saveTask?.cancel()
         saveTask = nil
         documentSession = UUID()
+        if locationLost { problem = nil }
+        locationLost = false
         directoryIdentity = folder.flatMap { BookStorage.identity(of: $0) }
         directory = folder
         if let folder {
@@ -451,19 +479,80 @@ final class Workspace: ObservableObject {
         }
     }
 
+    /// Follows the open package after a rename or a move in Finder. It stays the same document:
+    /// pending imports, panels and undo history keep working, and saves continue in the new place.
+    private func adoptMovedPackage(_ folder: URL) {
+        if let previous = directory {
+            let path = previous.standardizedFileURL.path
+            recentBooks.removeAll { $0.path == path }
+        }
+        if locationLost { problem = nil }
+        locationLost = false
+        directoryIdentity = BookStorage.identity(of: folder) ?? directoryIdentity
+        directory = folder
+        defaults.set(folder.path, forKey: "lastBook")
+        noteRecentBook()
+    }
+
+    /// Finds the open package again by its volume and file number.
+    @discardableResult
+    func relocate() -> Bool {
+        guard let identity = directoryIdentity, let found = Self.locate(identity) else { return false }
+        adoptMovedPackage(found)
+        return true
+    }
+
+    nonisolated static func locate(_ identity: BookStorage.DirectoryIdentity) -> URL? {
+        var fileSystem = fsid_t(val: (Int32(truncatingIfNeeded: identity.volume), 0))
+        var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
+        guard fsgetpath(&buffer, buffer.count, &fileSystem, identity.inode) > 0 else { return nil }
+        let url = URL(fileURLWithPath: String(cString: buffer), isDirectory: true)
+        // A package in the Trash counts as gone: the author chooses where to keep the edits.
+        guard BookStorage.identity(of: url) == identity,
+              !url.pathComponents.contains(where: { $0 == ".Trash" || $0 == ".Trashes" }),
+              FileManager.default.fileExists(atPath: url.appendingPathComponent("manifest.json").path)
+        else { return nil }
+        return url
+    }
+
     private func validateLocation(_ folder: URL) throws {
-        try Self.validateLocation(folder, identity: directoryIdentity)
+        try Self.validateLocation(folder, identity: directoryIdentity, title: book.title)
     }
 
     private nonisolated static func writeManifest(_ snapshot: Book, in folder: URL,
                                                   identity: BookStorage.DirectoryIdentity?) throws {
-        try validateLocation(folder, identity: identity)
+        try validateLocation(folder, identity: identity, title: snapshot.title)
         try BookStorage.writeExisting(snapshot, to: folder)
     }
 
-    private nonisolated static func validateLocation(_ folder: URL, identity: BookStorage.DirectoryIdentity?) throws {
+    private nonisolated static func validateLocation(_ folder: URL, identity: BookStorage.DirectoryIdentity?,
+                                                     title: String) throws {
         if let identity, BookStorage.identity(of: folder) != identity {
-            throw CocoaError(.fileNoSuchFile, userInfo: [NSURLErrorKey: folder])
+            throw AppError.bookMoved(title: title)
+        }
+    }
+
+    /// The open book could not be saved because its package is gone. Ask before leaving it.
+    private func confirmLeavingLostBook(then leave: @escaping () -> Void) {
+        let italian = AppError.interfaceLanguage == "it"
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = italian ? "Il libro non si trova più nella sua posizione"
+            : "The book is no longer where it was saved"
+        alert.informativeText = italian
+            ? "Le ultime modifiche non sono salvate. Puoi salvarle in un’altra posizione oppure chiudere senza salvare."
+            : "Your latest changes are not saved. You can save them in another place or close without saving."
+        alert.addButton(withTitle: italian ? "Salva con nome…" : "Save As…")
+        alert.addButton(withTitle: italian ? "Chiudi senza salvare" : "Close Without Saving")
+        alert.addButton(withTitle: italian ? "Annulla" : "Cancel")
+        let origin = documentLocation
+        EditorFilePanels.present(alert) { [weak self] response in
+            guard let self, self.documentLocation == origin else { return }
+            switch response {
+            case .alertFirstButtonReturn: self.saveProjectAs()
+            case .alertSecondButtonReturn: leave()
+            default: break
+            }
         }
     }
 
@@ -492,19 +581,29 @@ final class Workspace: ObservableObject {
         }
         if let directoryIdentity, BookStorage.identity(of: url) == directoryIdentity {
             // The same package was moved while open. Continue saving in its new location.
-            rememberLocation(url)
+            adoptMovedPackage(url)
             flushSave()
             return
         }
         do {
             let restored = try BookStorage.read(from: url)
-            guard flushSave() else { return }
+            guard flushSave() else {
+                if locationLost { confirmLeavingLostBook { [weak self] in self?.open(restored, in: url) } }
+                return
+            }
             open(restored, in: url)
         } catch { problem = error.localizedDescription }
     }
 
     func closeBook() {
-        guard flushSave() else { return }
+        guard flushSave() else {
+            if locationLost { confirmLeavingLostBook { [weak self] in self?.finishClosing() } }
+            return
+        }
+        finishClosing()
+    }
+
+    private func finishClosing() {
         noteRecentBook()
         settingsUndoManager?.removeAllActions(withTarget: self)
         analysisTask?.cancel()
@@ -534,20 +633,50 @@ final class Workspace: ObservableObject {
         }
     }
 
-    private func saveProjectCopy(from directory: URL, to destination: URL) {
+    func saveProjectCopy(from directory: URL, to destination: URL) {
         guard !BookStorage.sameLocation(directory, destination) else {
             flushSave()
             return
         }
+        var directory = directory
+        if let identity = directoryIdentity, BookStorage.identity(of: directory) != identity {
+            guard relocate(), let found = self.directory else {
+                saveDetachedCopy(to: destination)
+                return
+            }
+            directory = found
+        }
         do {
             let snapshot = book
             let identity = directoryIdentity
+            let title = book.title
             try saveQueue.sync {
-                try Self.validateLocation(directory, identity: identity)
+                try Self.validateLocation(directory, identity: identity, title: title)
                 try BookStorage.copy(snapshot, from: directory, to: destination)
             }
             // An in-flight classifier keeps reading the old asset directory.
             // Its results still update this document and are saved to the new location.
+            rememberLocation(destination)
+        } catch { problem = error.localizedDescription }
+    }
+
+    /// Save As for a book whose package is gone, for example on an ejected disk: writes the current
+    /// manifest so no edit is lost. Photos that were only in the old package stay missing until it returns.
+    private func saveDetachedCopy(to destination: URL) {
+        do {
+            let snapshot = book
+            try saveQueue.sync {
+                let files = FileManager.default
+                let staging = destination.deletingLastPathComponent()
+                    .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
+                defer { try? files.removeItem(at: staging) }
+                try BookStorage.write(snapshot, to: staging)
+                if files.fileExists(atPath: destination.path) {
+                    _ = try files.replaceItemAt(destination, withItemAt: staging)
+                } else {
+                    try files.moveItem(at: staging, to: destination)
+                }
+            }
             rememberLocation(destination)
         } catch { problem = error.localizedDescription }
     }

@@ -29,12 +29,14 @@ final class ProjectSaveTests: XCTestCase {
             let replacement = Book(title: "Different project")
             try BookStorage.write(replacement, to: original)
             workspace.book.title = "Continue after move"
-            XCTAssertFalse(workspace.flushSave())
+            // The open package is found again by its file identity; the new book at the old path is untouched.
+            XCTAssertTrue(workspace.flushSave())
             XCTAssertEqual(try BookStorage.read(from: original), replacement)
+            XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), moved))
 
             workspace.openProject(at: moved)
             XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), moved))
-            XCTAssertEqual(defaults.string(forKey: "lastBook"), moved.path)
+            XCTAssertTrue(BookStorage.sameLocation(URL(fileURLWithPath: try XCTUnwrap(defaults.string(forKey: "lastBook"))), moved))
             XCTAssertEqual(try BookStorage.read(from: moved).title, "Continue after move")
         }
     }

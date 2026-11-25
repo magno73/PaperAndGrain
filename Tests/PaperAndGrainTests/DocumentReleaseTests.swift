@@ -52,6 +52,52 @@ final class DocumentReleaseTests: XCTestCase {
         }
     }
 
+    // A2
+    func testRenamedOpenPackageKeepsItsEditsAfterQuitAndReopen() throws {
+        let package = scratch.appendingPathComponent("Trip.papergrain", isDirectory: true)
+        let renamed = scratch.appendingPathComponent("Trip renamed.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Trip"), to: package)
+        let defaults = MemoryDefaults()
+
+        let workspace = Workspace(defaults: defaults)
+        workspace.openProject(at: package)
+        try FileManager.default.moveItem(at: package, to: renamed)
+        workspace.book.title = "Edited after the rename"
+        // Quitting flushes the open book.
+        XCTAssertTrue(workspace.flushSave())
+        XCTAssertFalse(workspace.locationLost)
+        XCTAssertNil(workspace.problem)
+        XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), renamed))
+        XCTAssertFalse(workspace.recentBooks.contains { $0.path == package.standardizedFileURL.path })
+
+        let relaunched = Workspace(defaults: defaults)
+        relaunched.reopenLastBook()
+        XCTAssertEqual(relaunched.book.title, "Edited after the rename")
+        XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(relaunched.directory), renamed))
+    }
+
+    func testMissingPackageReportsTheMoveAndCanStillBeSavedElsewhere() throws {
+        let package = scratch.appendingPathComponent("Ejected.papergrain", isDirectory: true)
+        let rescue = scratch.appendingPathComponent("Rescued.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Ejected", pages: [BookPage(text: "Kept")]), to: package)
+
+        let workspace = Workspace(defaults: MemoryDefaults())
+        workspace.openProject(at: package)
+        try FileManager.default.removeItem(at: package)
+        workspace.book.pages[0].text = "Written after the eject"
+
+        XCTAssertFalse(workspace.flushSave())
+        XCTAssertTrue(workspace.locationLost)
+        XCTAssertEqual(workspace.problem, AppError.bookMoved(title: "Ejected").errorDescription)
+
+        workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: rescue)
+        XCTAssertFalse(workspace.locationLost)
+        XCTAssertNil(workspace.problem)
+        XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), rescue))
+        XCTAssertEqual(try BookStorage.read(from: rescue).pages.first?.text, "Written after the eject")
+        XCTAssertTrue(workspace.flushSave())
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {
