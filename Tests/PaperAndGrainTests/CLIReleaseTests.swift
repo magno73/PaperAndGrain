@@ -418,4 +418,85 @@ final class CLIReleaseTests: XCTestCase {
             XCTAssertTrue(text.contains(expected), "\(expected) not in: \(text)")
         }
     }
+
+    // MARK: C8
+
+    func testBuildReturnsThePhotoIDForEachAsset() async throws {
+        let root = try temporaryDirectory()
+        try Self.pixel.write(to: root.appendingPathComponent("pixel.png"))
+        let spec = root.appendingPathComponent("spec.json")
+        try JSONSerialization.data(withJSONObject: [
+            "version": 1, "title": "T", "assets": [["id": "a", "path": "pixel.png"], ["id": "b", "path": "pixel.png"]],
+            "pages": [["layout": "gallery", "photos": ["b", "a"]]],
+        ]).write(to: spec)
+        let output = try await BookCLI.executeExtended(["build", spec.path, root.appendingPathComponent("B.papergrain").path])
+        let report = try XCTUnwrap(JSONSerialization.jsonObject(with: output) as? [String: Any])
+        let photos = try XCTUnwrap(report["photos"] as? [String: String])
+        let book = try BookStorage.read(from: root.appendingPathComponent("B.papergrain"))
+        XCTAssertEqual(photos, ["a": book.photos[0].id.uuidString, "b": book.photos[1].id.uuidString])
+        XCTAssertEqual(book.pages[0].photoIDs.map(\.uuidString), [photos["b"], photos["a"]])
+    }
+
+    func testTemplatesListIDNameAndFamily() async throws {
+        let output = try await BookCLI.executeExtended(["templates"])
+        let catalog = try XCTUnwrap(JSONSerialization.jsonObject(with: output) as? [String: Any])
+        let templates = try XCTUnwrap(catalog["templates"] as? [[String: Any]])
+        XCTAssertEqual(templates.compactMap { $0["id"] as? String }, BookTemplate.allCases.map(\.rawValue))
+        let swiss = try XCTUnwrap(templates.first { $0["id"] as? String == "swissGrid" })
+        XCTAssertEqual(swiss["name"] as? [String: String], ["it": "Griglia svizzera", "en": "Swiss Grid"])
+        XCTAssertEqual(swiss["family"] as? String, "studio")
+        XCTAssertEqual(templates.first { $0["id"] as? String == "roadLog" }?["family"] as? String, "photobook")
+    }
+
+    func testAnalyzeValidatesTheOutputBeforeAnalysing() async throws {
+        let root = try temporaryDirectory()
+        let source = try build(baseSpec(), in: root, name: "Source.papergrain")
+        for (output, expected) in [("missing/Out.papergrain", "parent directory does not exist"),
+                                   ("Out.pdf", "must end in .papergrain"),
+                                   ("Source.papergrain", "already exists"),
+                                   ("Source.papergrain/Inner.papergrain", "inside the source")] {
+            do {
+                _ = try await BookCLIPhotoIndex.run(command: "analyze", arguments: [source.path, "--output", output],
+                                                    currentDirectory: root)
+                XCTFail("Analysed with output \(output)")
+            } catch {
+                XCTAssertTrue(error.localizedDescription.contains(expected), error.localizedDescription)
+            }
+        }
+        XCTAssertNil(try BookStorage.read(from: source).photos[0].analysis)
+    }
+
+    func testBuildFollowsSymlinksAndNamesUnreadableImages() throws {
+        let root = try temporaryDirectory()
+        try Self.pixel.write(to: root.appendingPathComponent("pixel.png"))
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("link.png"),
+                                                   withDestinationURL: root.appendingPathComponent("pixel.png"))
+        try Data("not an image".utf8).write(to: root.appendingPathComponent("broken.png"))
+        let spec = root.appendingPathComponent("spec.json")
+        try JSONSerialization.data(withJSONObject: [
+            "version": 1, "title": "T", "assets": [["id": "a", "path": "link.png"]], "pages": [["photos": ["a"]]],
+        ]).write(to: spec)
+        let book = try BookCLI.build(specURL: spec, output: root.appendingPathComponent("Linked.papergrain"))
+        XCTAssertEqual(book.photos.count, 1)
+        try JSONSerialization.data(withJSONObject: [
+            "version": 1, "title": "T", "assets": [["id": "a", "path": "broken.png"]], "pages": [["photos": ["a"]]],
+        ]).write(to: spec)
+        let text = message(try BookCLI.build(specURL: spec, output: root.appendingPathComponent("Broken.papergrain")))
+        XCTAssertTrue(text.contains("broken.png") && text.contains("Image unavailable"), text)
+    }
+
+    func testImportPhotosNamesUnreadableImages() async throws {
+        let root = try temporaryDirectory()
+        try build(baseSpec(), in: root, name: "Source.papergrain")
+        try Data("not an image".utf8).write(to: root.appendingPathComponent("broken.png"))
+        try Data(#"{"version":1,"files":["broken.png"]}"#.utf8).write(to: root.appendingPathComponent("import.json"))
+        do {
+            _ = try await BookCLIMedia.run(command: "import-photos",
+                                           arguments: ["Source.papergrain", "--spec", "import.json", "--output", "Out.papergrain"],
+                                           currentDirectory: root)
+            XCTFail("Imported a broken image")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("broken.png"), error.localizedDescription)
+        }
+    }
 }

@@ -183,6 +183,8 @@ enum BookCLIPhotoIndex {
     }
 
     private static func analyze(_ index: Index, options: Options) async throws -> AnalysisReport {
+        // Check the destination before the slow part, so a typo does not cost a full analysis.
+        if let output = options.output { try BookCLIEditing.checkOutput(output, source: index.directory) }
         let photos = try selected(options, in: index)
         var results: [AnalysisResult] = []
         var revisions: [UUID: (filename: String, analysis: PhotoAnalysis)] = [:]

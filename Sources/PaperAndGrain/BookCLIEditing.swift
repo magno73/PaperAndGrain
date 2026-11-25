@@ -10,14 +10,7 @@ enum BookCLIEditing {
         let input = source.standardizedFileURL.resolvingSymlinksInPath()
         let target = output.standardizedFileURL
         let parent = target.deletingLastPathComponent().resolvingSymlinksInPath()
-        try BookCLI.checkNewPackage(target)
-        var ancestor = parent
-        while true {
-            guard !BookStorage.sameLocation(ancestor, input) else { throw Failure("Output lies inside the source") }
-            let next = ancestor.deletingLastPathComponent()
-            if ancestor.path == "/" || next.path == ancestor.path { break }
-            ancestor = next
-        }
+        try checkOutput(target, source: input)
         try checkTree(input)
         let sourceManifest = input.appendingPathComponent("manifest.json")
         let original = try Data(contentsOf: sourceManifest)
@@ -39,6 +32,20 @@ enum BookCLIEditing {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSFilePathErrorKey: target.path])
         }
         return book
+    }
+
+    /// The output of a derived package: a new .papergrain in an existing folder outside the source.
+    static func checkOutput(_ output: URL, source: URL) throws {
+        let input = source.standardizedFileURL.resolvingSymlinksInPath()
+        let target = output.standardizedFileURL
+        try BookCLI.checkNewPackage(target)
+        var ancestor = target.deletingLastPathComponent().resolvingSymlinksInPath()
+        while true {
+            guard !BookStorage.sameLocation(ancestor, input) else { throw Failure("Output lies inside the source") }
+            let next = ancestor.deletingLastPathComponent()
+            if ancestor.path == "/" || next.path == ancestor.path { break }
+            ancestor = next
+        }
     }
 
     static func read(source: URL) throws -> Book {

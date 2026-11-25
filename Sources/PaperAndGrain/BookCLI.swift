@@ -130,13 +130,23 @@ enum BookCLI {
                 let printSettings = PrintSettings()
                 let crop = PhotoCrop()
             }
+            struct Template: Encodable {
+                struct Name: Encodable { let it: String; let en: String }
+                let id: String
+                let name: Name
+                let family: String
+            }
             struct Catalog: Encodable {
-                let templates: [BookTemplate]
+                let templates: [Template]
                 let layouts: [PageLayout]
                 let arrangements: [Arrangement]
                 let defaults = Defaults()
             }
-            return try encode(Catalog(templates: BookTemplate.allCases, layouts: PageLayout.allCases,
+            let templates = BookTemplate.allCases.map {
+                Template(id: $0.rawValue, name: .init(it: $0.name(language: "it"), en: $0.name(language: "en")),
+                         family: String(describing: $0.family))
+            }
+            return try encode(Catalog(templates: templates, layouts: PageLayout.allCases,
                                       arrangements: PageArrangement.allCases.map {
                 Arrangement(id: $0.rawValue, layout: $0.layout.rawValue, capacity: $0.photoCapacity)
             }))
@@ -145,8 +155,10 @@ enum BookCLI {
         case ("build", 3):
             let source = URL(fileURLWithPath: args[1]).standardizedFileURL
             let output = URL(fileURLWithPath: args[2]).standardizedFileURL
-            let book = try build(specURL: source, output: output)
-            return try encode(["project": output.path, "id": book.id.uuidString])
+            var photos: [String: UUID] = [:]
+            let book = try build(specURL: source, output: output, photos: &photos)
+            struct BuildResult: Encodable { let project: String; let id: UUID; let photos: [String: UUID] }
+            return try encode(BuildResult(project: output.path, id: book.id, photos: photos))
         default:
             throw Failure("Usage: PaperAndGrain cli " + usage.joined(separator: " | "))
         }
@@ -227,6 +239,12 @@ enum BookCLI {
     }
 
     static func build(specURL: URL, output: URL) throws -> Book {
+        var photos: [String: UUID] = [:]
+        return try build(specURL: specURL, output: output, photos: &photos)
+    }
+
+    /// Builds the book; `photos` maps each spec asset id to the UUID of its photo, for later patches.
+    static func build(specURL: URL, output: URL, photos: inout [String: UUID]) throws -> Book {
         let files = FileManager.default
         try checkNewPackage(output)
         let specData = try Data(contentsOf: specURL)
@@ -245,12 +263,19 @@ enum BookCLI {
             guard !asset.id.isEmpty, ids[asset.id] == nil, !asset.path.isEmpty else {
                 throw Failure("Expected unique, non-empty asset id and path: " + asset.id)
             }
-            let url = URL(fileURLWithPath: asset.path, relativeTo: specURL.deletingLastPathComponent()).standardizedFileURL
-            guard try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
-                throw Failure("Expected a local image file: " + asset.path)
+            let url = URL(fileURLWithPath: asset.path, relativeTo: specURL.deletingLastPathComponent())
+                .standardizedFileURL.resolvingSymlinksInPath()
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
+                throw Failure("Expected a local image file for asset \"\(asset.id)\": " + asset.path)
             }
-            let photo = try LocalImages.store(Data(contentsOf: url), preferredExtension: nil,
-                                              name: url.lastPathComponent, sourceID: nil, date: nil, in: staging)
+            let photo: BookPhoto
+            do {
+                photo = try LocalImages.store(Data(contentsOf: url), preferredExtension: nil,
+                                              name: URL(fileURLWithPath: asset.path).lastPathComponent, sourceID: nil,
+                                              date: nil, in: staging)
+            } catch PhotoImportError.unreadableImage {
+                throw Failure("Image unavailable or unreadable for asset \"\(asset.id)\": " + asset.path)
+            }
             book.photos.append(photo)
             ids[asset.id] = photo.id
         }
@@ -258,6 +283,7 @@ enum BookCLI {
             guard let id = ids[key] else { throw Failure("Unknown asset: " + key) }
             return id
         }
+        photos = ids
         book.typography = spec.typography
         for (index, page) in spec.pages.enumerated() {
             let boxes = page.textBoxes?.map { box in

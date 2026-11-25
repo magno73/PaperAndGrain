@@ -212,7 +212,14 @@ enum BookCLIMedia {
         for path in spec.files ?? [] {
             try Task.checkCancellation()
             let url = resolve(path, relativeTo: specURL.deletingLastPathComponent())
-            photos.append(try await LocalImages.importFile(url, into: scratch))
+            guard (try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
+                throw BookCLI.Failure("Expected a local image file: " + path)
+            }
+            do {
+                photos.append(try await LocalImages.importFile(url, into: scratch))
+            } catch PhotoImportError.unreadableImage {
+                throw BookCLI.Failure("Image unavailable or unreadable: " + path)
+            }
         }
         if let selection = spec.photos {
             try await requirePhotosAccess(request: options.has("--request-access"))
