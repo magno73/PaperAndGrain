@@ -298,7 +298,14 @@ final class Workspace: ObservableObject {
     }
 
     private func reportSaveFailure(_ error: Error) {
-        if case AppError.bookMoved = error { locationLost = true }
+        let error = AppError.saving(error, title: book.title)
+        switch error {
+        case AppError.bookMoved: locationLost = true
+        case let reason as AppError where reason == .readOnlyLocation(title: book.title):
+            // Stop retrying a package that cannot be written; Save As stays available.
+            readOnlyReason = reason
+        default: break
+        }
         problem = error.localizedDescription
     }
 
@@ -414,7 +421,6 @@ final class Workspace: ObservableObject {
         }
         // A slow drop survives Save As and a move in Finder: it follows the session, not the folder.
         let session = editorSession
-        let italian = language == "it"
         let drop: DroppedPhotos
         do {
             guard let started = try start() else { return false }
@@ -444,16 +450,20 @@ final class Workspace: ObservableObject {
                 }
                 try Task.checkCancellation()
                 guard editorSession == session else { return }
-                let photos = results.sorted { $0.index < $1.index }.compactMap(\.photo)
-                guard let first = photos.first else { throw PhotoImportError.unreadableImage }
+                let ordered = results.sorted { $0.index < $1.index }
+                let photos = ordered.compactMap(\.photo)
+                // Outcomes that never arrived (a cancelled promise) count as unavailable without a name.
+                let unavailable = ordered.filter { $0.photo == nil }.map(\.name)
+                    + Array(repeating: nil, count: max(0, drop.count - ordered.count))
+                guard let first = photos.first else {
+                    throw unavailable.count == 1 ? AppError.imageUnavailable(name: unavailable[0])
+                        : AppError.someImagesUnavailable(imported: 0, unavailable: unavailable)
+                }
                 try await appendDroppedPhotos(photos, from: drop.directory, session: session)
                 onImported(first.id)
                 analyze(language: language, photos: photos)
-                let failures = drop.count - photos.count
-                if failures > 0 {
-                    problem = italian
-                        ? "Importate \(photos.count) foto. \(failures) immagini non erano disponibili."
-                        : "Imported \(photos.count) photos. \(failures) images were unavailable."
+                if !unavailable.isEmpty {
+                    problem = AppError.someImagesUnavailable(imported: photos.count, unavailable: unavailable).localizedDescription
                 }
             } catch is CancellationError {
                 return
@@ -526,7 +536,7 @@ final class Workspace: ObservableObject {
                 var keepFolder = false
                 defer { if !keepFolder { try? FileManager.default.removeItem(at: folder) } }
                 var newBook = Book(title: title, format: format)
-                var failures = 0
+                var unavailable: [String?] = []
                 for index in 0..<count {
                     try Task.checkCancellation()
                     do {
@@ -535,13 +545,18 @@ final class Workspace: ObservableObject {
                         newBook.photos.append(photo)
                     } catch is CancellationError {
                         throw CancellationError()
+                    } catch let AppError.imageUnavailable(name) {
+                        unavailable.append(name)
                     } catch {
-                        failures += 1
+                        unavailable.append(nil)
                     }
                     importProgress = "\(index + 1) / \(count)"
                 }
                 try Task.checkCancellation()
-                guard !newBook.photos.isEmpty else { throw PhotoImportError.unreadableImage }
+                guard !newBook.photos.isEmpty else {
+                    throw unavailable.count == 1 ? AppError.imageUnavailable(name: unavailable[0])
+                        : AppError.someImagesUnavailable(imported: 0, unavailable: unavailable)
+                }
                 newBook.autoLayout()
                 let firstManifest = Self.stamped(newBook)
                 try await Task.detached(priority: .userInitiated) { try BookStorage.write(firstManifest, to: folder) }.value
@@ -550,10 +565,9 @@ final class Workspace: ObservableObject {
                 open(newBook, in: folder)
                 newBookNeedsTemplate = true
                 analyze(language: language)
-                if failures > 0 {
-                    problem = language == "it"
-                        ? "Importate \(newBook.photos.count) foto. \(failures) immagini non erano disponibili."
-                        : "Imported \(newBook.photos.count) photos. \(failures) images were unavailable."
+                if !unavailable.isEmpty {
+                    problem = AppError.someImagesUnavailable(imported: newBook.photos.count,
+                                                            unavailable: unavailable).localizedDescription
                 }
             } catch is CancellationError {
                 return
@@ -818,7 +832,7 @@ final class Workspace: ObservableObject {
             do {
                 restored = try await Self.readBook(at: url)
             } catch {
-                if openRequest == request { problem = error.localizedDescription }
+                if openRequest == request { problem = AppError.opening(error, at: url).localizedDescription }
                 return
             }
             guard openRequest == request else { return }

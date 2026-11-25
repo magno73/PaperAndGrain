@@ -20,14 +20,11 @@ struct LibraryPhoto: Identifiable, Hashable, Sendable {
     let height: Int
 }
 
+/// Kept for the command line; the app reports `AppError.imageUnavailable` with the file name.
 enum PhotoImportError: LocalizedError {
     case unreadableImage
 
-    var errorDescription: String? {
-        switch self {
-        case .unreadableImage: "Immagine non disponibile · Image unavailable"
-        }
-    }
+    var errorDescription: String? { AppError.imageUnavailable(name: nil).errorDescription }
 }
 
 enum PhotoLibrary {
@@ -127,7 +124,7 @@ enum PhotoLibrary {
 
     static func importPhoto(_ photo: LibraryPhoto, into directory: URL) async throws -> BookPhoto {
         guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [photo.id], options: nil).firstObject else {
-            throw PhotoImportError.unreadableImage
+            throw AppError.imageUnavailable(name: nil)
         }
         let options = PHImageRequestOptions()
         options.version = .current
@@ -139,7 +136,7 @@ enum PhotoLibrary {
                 if let error = info?[PHImageErrorKey] as? Error {
                     complete(.failure(error))
                 } else if info?[PHImageResultIsDegradedKey] as? Bool != true {
-                    complete(data.map { .success(($0, type)) } ?? .failure(PhotoImportError.unreadableImage))
+                    complete(data.map { .success(($0, type)) } ?? .failure(AppError.imageUnavailable(name: nil)))
                 }
             }
         }
@@ -212,7 +209,7 @@ enum LocalImages {
     ) throws -> BookPhoto {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = ImageHeader(source, preferredExtension: preferredExtension)
-        else { throw PhotoImportError.unreadableImage }
+        else { throw AppError.imageUnavailable(name: name) }
         let filename = UUID().uuidString + "." + image.suffix
         try data.write(to: BookStorage.assetURL(filename: filename, in: directory), options: .atomic)
         return image.photo(name: name, sourceID: sourceID, date: date, filename: filename)
@@ -223,7 +220,7 @@ enum LocalImages {
         let suffix = url.pathExtension.isEmpty ? nil : url.pathExtension.lowercased()
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let image = ImageHeader(source, preferredExtension: suffix)
-        else { throw PhotoImportError.unreadableImage }
+        else { throw AppError.imageUnavailable(name: name) }
         let filename = UUID().uuidString + "." + image.suffix
         let destination = BookStorage.assetURL(filename: filename, in: directory)
         try FileManager.default.copyItem(at: url, to: destination)

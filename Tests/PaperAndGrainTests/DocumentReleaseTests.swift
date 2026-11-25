@@ -378,6 +378,72 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertEqual(try BookStorage.read(from: package).title, "Flushed at quit")
     }
 
+    // A9
+    func testAppErrorsExistInItalianAndEnglish() async throws {
+        let errors: [AppError] = [
+            .bookMoved(title: "Trip"), .newerFormat(title: "Trip"), .readOnlyLocation(title: "Trip"),
+            .damagedManifest(package: "Trip"), .imageUnavailable(name: "IMG_0001.HEIC"), .imageUnavailable(name: nil),
+            .someImagesUnavailable(imported: 2, unavailable: ["a.heic", nil]),
+        ]
+        let defaults = UserDefaults.standard
+        let previous = defaults.object(forKey: "interfaceLanguage")
+        defer { defaults.set(previous, forKey: "interfaceLanguage") }
+
+        defaults.set("it", forKey: "interfaceLanguage")
+        let italian = errors.map { $0.localizedDescription }
+        defaults.set("en", forKey: "interfaceLanguage")
+        let english = errors.map { $0.localizedDescription }
+
+        for (it, en) in zip(italian, english) {
+            XCTAssertNotEqual(it, en)
+            XCTAssertFalse(it.contains(" · "), "One language per message")
+        }
+        XCTAssertTrue(italian[4].contains("«IMG_0001.HEIC»"))
+        XCTAssertTrue(english[4].contains("“IMG_0001.HEIC”"))
+        XCTAssertEqual(english[6], "Imported 2 photos. 2 images were unavailable: a.heic.")
+        XCTAssertEqual(italian[6], "Importate 2 foto. 2 immagini non erano disponibili: a.heic.")
+        XCTAssertEqual(PhotoImportError.unreadableImage.localizedDescription, english[5])
+    }
+
+    func testUnreadableDroppedImageIsReportedByName() async throws {
+        let package = scratch.appendingPathComponent("Names.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Names"), to: package)
+        let good = scratch.appendingPathComponent("Good.png")
+        try Self.png(width: 20, height: 20).write(to: good)
+        let bad = scratch.appendingPathComponent("Broken.jpg")
+        try Data("not a jpeg".utf8).write(to: bad)
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+
+        XCTAssertTrue(workspace.addPhotoFiles([bad], language: "en"))
+        try await waitUntil { !workspace.importing }
+        XCTAssertEqual(workspace.problem, AppError.imageUnavailable(name: "Broken.jpg").localizedDescription)
+
+        XCTAssertTrue(workspace.addPhotoFiles([good, bad], language: "en"))
+        try await waitUntil { !workspace.importing }
+        XCTAssertEqual(workspace.problem,
+                       AppError.someImagesUnavailable(imported: 1, unavailable: ["Broken.jpg"]).localizedDescription)
+        XCTAssertEqual(workspace.book.photos.map(\.name), ["Good.png"])
+    }
+
+    func testDamagedManifestAndWriteFailuresHaveSpecificMessages() async throws {
+        let package = scratch.appendingPathComponent("Damaged.papergrain", isDirectory: true)
+        try FileManager.default.createDirectory(at: package, withIntermediateDirectories: true)
+        try Data("{ not json".utf8).write(to: package.appendingPathComponent("manifest.json"))
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+        XCTAssertNil(workspace.directory)
+        XCTAssertEqual(workspace.problem, AppError.damagedManifest(package: "Damaged").localizedDescription)
+
+        let readOnly = NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteVolumeReadOnly.rawValue)
+        XCTAssertEqual(AppError.saving(readOnly, title: "T") as? AppError, .readOnlyLocation(title: "T"))
+        let denied = NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteUnknown.rawValue,
+                             userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(EACCES))])
+        XCTAssertEqual(AppError.saving(denied, title: "T") as? AppError, .readOnlyLocation(title: "T"))
+        let other = NSError(domain: NSCocoaErrorDomain, code: CocoaError.fileWriteOutOfSpace.rawValue)
+        XCTAssertNil(AppError.saving(other, title: "T") as? AppError)
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {
