@@ -377,13 +377,19 @@ enum BookPDF {
                 begin(width: Double(sheet.count)*w, height: h, bleed: bleed)
                 try autoreleasepool {
                     for (index,slot) in sheet.enumerated() {
-                        guard let leaf = slot else { continue }
                         ctx.saveGState()
                         defer { ctx.restoreGState() }
                         ctx.translateBy(x: Double(index)*w, y: 0)
                         let left = index == 0 ? bleed : 0
                         let right = index == sheet.count-1 ? bleed : 0
-                        ctx.clip(to: CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed))
+                        let leafArea = CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed)
+                        guard let leaf = slot else {
+                            // A compensation blank is still a page of the book: print it on the template's paper.
+                            ctx.setFillColor(EditorialStyle.color(book.editorialStyle.paper))
+                            ctx.fill(leafArea)
+                            continue
+                        }
+                        ctx.clip(to: leafArea)
                         ctx.translateBy(x: -Double(leaf.half)*w, y: 0)
                         try draw(leaf.page, pageNumber: leaf.number, book: book, directory: directory,
                                  context: ctx, bleed: bleed, images: images)

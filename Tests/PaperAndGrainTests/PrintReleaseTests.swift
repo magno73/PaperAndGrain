@@ -349,6 +349,31 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertLessThan(sides.right, 60, "the front photo covers its neighbor")
     }
 
+    // MARK: B8 compensation blanks
+
+    func testCompensationBlanksUseTheTemplatePaperIncludingTheBleed() throws {
+        let folder = try PrintFixtures.folder()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var book = Book(title: "Night", pages: [BookPage(layout: .text, text: "Notte")], template: .nocturne)
+        book.printSettings = PrintSettings(bleedMM: 3, spreads: false, firstPageOnRight: true)
+        let package = folder.appendingPathComponent("print")
+        try BookPDF.writePrint(book, directory: folder, to: package)
+        let paper = book.editorialStyle.paper
+        let expected = [UInt8(paper >> 16 & 0xFF), UInt8(paper >> 8 & 0xFF), UInt8(paper & 0xFF)]
+        let blank = try PrintFixtures.raster(package.appendingPathComponent("Interior.pdf"), page: 1, scale: 1)
+        for (x, y) in [(blank.width / 2, blank.height / 2), (1, 1), (blank.width - 2, blank.height - 2)] {
+            let i = (y * blank.width + x) * 4
+            XCTAssertEqual(Array(blank.bytes[i..<(i + 3)]).map(Int.init), expected.map(Int.init), accuracy: 2, "\(x),\(y)")
+        }
+        let pixart = folder.appendingPathComponent("pixart.pdf")
+        book.printSettings?.firstPageOnRight = false
+        book.cover = BookCover(title: "Night")
+        try BookPDF.writePixart(book, directory: folder, spineMM: 6, to: pixart)
+        let opening = try PrintFixtures.raster(pixart, page: 2, scale: 1)
+        let i = (opening.height / 2 * opening.width + opening.width / 2) * 4
+        XCTAssertEqual(Array(opening.bytes[i..<(i + 3)]).map(Int.init), expected.map(Int.init), accuracy: 2)
+    }
+
     func testJPEGPrintKeepsSmoothGradientsWithoutBanding() throws {
         let folder = try PrintFixtures.folder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -391,6 +416,12 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertLessThanOrEqual(worst, 3)
         XCTAssertEqual(reversals, 0)
     }
+}
+
+func XCTAssertEqual(_ lhs: [Int], _ rhs: [Int], accuracy: Int, _ message: String = "",
+                    file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertTrue(lhs.count == rhs.count && zip(lhs, rhs).allSatisfy { abs($0 - $1) <= accuracy },
+                  "\(lhs) is not within \(accuracy) of \(rhs) \(message)", file: file, line: line)
 }
 
 enum PrintFixtures {
