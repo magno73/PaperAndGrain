@@ -99,7 +99,9 @@ enum BookCLI {
         case "inspect":
             guard arguments.count == 1 else { throw Failure("Usage: inspect PROJECT.papergrain") }
             return try execute([command, url(arguments[0], relativeTo: currentDirectory).path])
-        case "templates": return try execute(args)
+        case "templates":
+            guard arguments.isEmpty else { throw Failure("Usage: templates") }
+            return try execute(args)
         default:
             if let output = try await BookCLIPhotoIndex.run(command: command, arguments: arguments, currentDirectory: currentDirectory) {
                 return output
@@ -117,11 +119,9 @@ enum BookCLI {
             + BookCLIPhotoIndex.usage + BookCLIMedia.usage
     }
 
+    /// The three commands that need no options; `executeExtended` resolves paths and handles help.
     static func execute(_ args: [String]) throws -> Data {
-        let usage = ["templates", "build SPEC.json OUTPUT.papergrain", "inspect PROJECT.papergrain"]
         switch (args.first, args.count) {
-        case ("help", 1), ("--help", 1), (nil, 0):
-            return try encode(["commands": usage])
         case ("templates", 1):
             struct Arrangement: Encodable { let id: String; let layout: String; let capacity: Int }
             struct Defaults: Encodable {
@@ -231,6 +231,7 @@ enum BookCLI {
     static func encode<Value: Encodable>(_ value: Value) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
         return try encoder.encode(value)
     }
 

@@ -485,6 +485,28 @@ final class CLIReleaseTests: XCTestCase {
         XCTAssertTrue(text.contains("broken.png") && text.contains("Image unavailable"), text)
     }
 
+    // MARK: C9
+
+    func testHelpAndUsageStillAnswerAfterTheCleanUp() async throws {
+        for args in [[], ["help"], ["--help"]] {
+            let output = try await BookCLI.executeExtended(args)
+            let commands = try XCTUnwrap((JSONSerialization.jsonObject(with: output) as? [String: Any])?["commands"] as? [String])
+            XCTAssertTrue(commands.contains("templates") && commands.contains { $0.hasPrefix("export-pdf") })
+        }
+        do {
+            _ = try await BookCLI.executeExtended(["templates", "extra"])
+            XCTFail("Accepted an extra argument")
+        } catch {
+            XCTAssertEqual(error.localizedDescription, "Usage: templates")
+        }
+        do {
+            _ = try await BookCLI.executeExtended(["photos", "Book.papergrain", "--bogus"])
+            XCTFail("Accepted an unknown option")
+        } catch {
+            XCTAssertFalse(error.localizedDescription.isEmpty)
+        }
+    }
+
     func testImportPhotosNamesUnreadableImages() async throws {
         let root = try temporaryDirectory()
         try build(baseSpec(), in: root, name: "Source.papergrain")

@@ -24,12 +24,12 @@ enum BookCLIMedia {
         case "albums":
             options = try Options(arguments, flags: ["--request-access"])
             try await requirePhotosAccess(request: options.has("--request-access"))
-            return try encode(PhotoLibrary.albums().map(AlbumResult.init))
+            return try BookCLI.encode(PhotoLibrary.albums().map(AlbumResult.init))
         case "album-assets":
             options = try Options(arguments, positional: true, flags: ["--request-access"])
             try await requirePhotosAccess(request: options.has("--request-access"))
             let album = try findAlbum(options.subject())
-            return try encode(PhotoLibrary.photos(in: album).map(AssetResult.init))
+            return try BookCLI.encode(PhotoLibrary.photos(in: album).map(AssetResult.init))
         case "album-preview":
             options = try Options(arguments, positional: true, values: ["--asset", "--output"],
                                   flags: ["--request-access"])
@@ -56,7 +56,7 @@ enum BookCLIMedia {
             return try enhance(options, currentDirectory: currentDirectory)
         case "film-looks":
             _ = try Options(arguments)
-            return try encode(FilmCatalog(presets: FilmPreset.allCases, fujifilm: FujifilmFilmLook.all.map {
+            return try BookCLI.encode(FilmCatalog(presets: FilmPreset.allCases, fujifilm: FujifilmFilmLook.all.map {
                 .init(id: $0.id, name: $0.name, input: $0.input == .linear ? "linear" : "provia")
             }))
         case "import-lut":
@@ -211,7 +211,7 @@ enum BookCLIMedia {
         var photos: [BookPhoto] = []
         for path in spec.files ?? [] {
             try Task.checkCancellation()
-            let url = resolve(path, relativeTo: specURL.deletingLastPathComponent())
+            let url = BookCLI.url(path, relativeTo: specURL.deletingLastPathComponent())
             guard (try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
                 throw BookCLI.Failure("Expected a local image file: " + path)
             }
@@ -239,7 +239,7 @@ enum BookCLIMedia {
             }
             book.photos.append(contentsOf: photos)
         }
-        return try encode(ProjectResult(book, output: output, photos: photos))
+        return try BookCLI.encode(ProjectResult(book, output: output, photos: photos))
     }
 
     private static func preview(_ options: Options, currentDirectory: URL) throws -> Data {
@@ -279,14 +279,14 @@ enum BookCLIMedia {
             let adjusted = (photo.adjustments ?? PhotoAdjustments()).applyingAutomatic(suggestion)
             book.photos[index].adjustments = adjusted == PhotoAdjustments() ? nil : adjusted
         }
-        return try encode(ProjectResult(book, output: output, photos: book.photo(photoID).map { [$0] }))
+        return try BookCLI.encode(ProjectResult(book, output: output, photos: book.photo(photoID).map { [$0] }))
     }
 
     private static func importLUT(_ options: Options, currentDirectory: URL) throws -> Data {
         let source = try options.source(relativeTo: currentDirectory)
         let output = try options.url("--output", relativeTo: currentDirectory)
         let photoID = try options["--photo"].map { _ in try options.uuid("--photo") }
-        let file = options["--file"].map { resolve($0, relativeTo: currentDirectory) }
+        let file = options["--file"].map { BookCLI.url($0, relativeTo: currentDirectory) }
         let lookID = options["--fujifilm"]
         guard (file != nil) != (lookID != nil) else {
             throw BookCLI.Failure("Specify exactly one of --file and --fujifilm")
@@ -320,7 +320,7 @@ enum BookCLIMedia {
                 book.film = settings
             }
         }
-        return try encode(ProjectResult(book, output: output, lutFilename: imported))
+        return try BookCLI.encode(ProjectResult(book, output: output, lutFilename: imported))
     }
 
     private static func exportPDF(_ options: Options, currentDirectory: URL) throws -> Data {
@@ -357,7 +357,7 @@ enum BookCLIMedia {
             }
         }
         let warnings = profile == .proof ? [] : BookPDF.printWarnings(book, pixart: profile == .pixart)
-        return try encode(PDFResult(output: output.path, profile: profile, warnings: warnings))
+        return try BookCLI.encode(PDFResult(output: output.path, profile: profile, warnings: warnings))
     }
 
     /// Names the reason the PDF renderer would refuse the book, before any scratch folder is created.
@@ -389,7 +389,7 @@ enum BookCLIMedia {
             CGImageDestinationAddImage(destination, image, nil)
             guard CGImageDestinationFinalize(destination) else { throw BookCLI.Failure("Could not write PNG") }
         }
-        return try encode(ImageResult(output: output.path, width: image.width, height: image.height))
+        return try BookCLI.encode(ImageResult(output: output.path, width: image.width, height: image.height))
     }
 
     private static func publish(_ output: URL, write: (URL) throws -> Void) throws {
@@ -426,17 +426,6 @@ enum BookCLIMedia {
 
     private static func unknownPhoto(_ id: UUID) -> BookCLI.Failure {
         BookCLI.Failure("Unknown photo UUID: " + id.uuidString)
-    }
-
-    private static func resolve(_ path: String, relativeTo directory: URL) -> URL {
-        URL(fileURLWithPath: path, relativeTo: directory).standardizedFileURL
-    }
-
-    private static func encode<T: Encodable>(_ result: T) throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        encoder.dateEncodingStrategy = .iso8601
-        return try encoder.encode(result)
     }
 
     private struct Options {
@@ -484,11 +473,11 @@ enum BookCLIMedia {
         }
 
         func url(_ name: String, relativeTo directory: URL) throws -> URL {
-            try BookCLIMedia.resolve(required(name), relativeTo: directory)
+            BookCLI.url(try required(name), relativeTo: directory)
         }
 
         func source(relativeTo directory: URL) throws -> URL {
-            try BookCLIMedia.resolve(subject(), relativeTo: directory)
+            BookCLI.url(try subject(), relativeTo: directory)
         }
 
         func uuid(_ name: String) throws -> UUID {
