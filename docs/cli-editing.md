@@ -1,57 +1,57 @@
-# Modificare un progetto dal terminale
+# Editing a project from the terminal
 
-Il comando lavora su una copia del pacchetto e pubblica la variante solo dopo averla riletta. Ogni variante ha un nuovo UUID libro. La copia contiene gli originali delle immagini, le LUT e gli altri file del progetto. Il percorso di destinazione deve essere nuovo, con estensione `.papergrain`, in una cartella esistente esterna al progetto sorgente.
+The command works on a copy of the package and publishes the variant only after reading it back. Every variant has a new book UUID. The copy holds the original images, the LUTs and the other project files. The destination path must be new, with the `.papergrain` extension, in an existing folder outside the source project.
 
 ```sh
-PaperAndGrain cli inspect originale.papergrain > manifest.json
-PaperAndGrain cli patch originale.papergrain modifiche.json variante.papergrain
-PaperAndGrain cli inspect variante.papergrain
+PaperAndGrain cli inspect original.papergrain > manifest.json
+PaperAndGrain cli patch original.papergrain changes.json variant.papergrain
+PaperAndGrain cli inspect variant.papergrain
 ```
 
-## Formato della patch
+## Patch format
 
-Il file contiene un array di operazioni JSON Patch eseguite nell’ordine indicato. I percorsi JSON Pointer iniziano con `/` e identificano un campo o un elemento del manifest nativo. Gli indici degli array partono da zero. `~1` rappresenta uno slash nel nome del campo e `~0` una tilde. La radice del documento è riservata.
+The file holds an array of JSON Patch operations, run in the given order. JSON Pointer paths start with `/` and identify a field or an element of the native manifest. Array indices start at zero. `~1` stands for a slash in a field name and `~0` for a tilde. The document root is reserved.
 
-| Operazione | Campi | Effetto |
+| Operation | Fields | Effect |
 | --- | --- | --- |
-| `test` | `path`, `value` | Richiede che il valore corrisponda. Un test fallito annulla l’intera patch. |
-| `add` | `path`, `value` | Imposta un campo o inserisce un elemento nell’array. Il suffisso `/-` accoda. |
-| `replace` | `path`, `value` | Sostituisce un valore esistente. |
-| `remove` | `path` | Elimina un campo facoltativo o un elemento. |
-| `move` | `from`, `path` | Rimuove un valore e lo inserisce alla destinazione, valutata dopo la rimozione. |
-| `copy` | `from`, `path` | Copia il valore alla destinazione. Ogni oggetto copiato con un campo `id` (una pagina, un box di testo e quelli che contiene) riceve un nuovo UUID; i riferimenti a quegli ID dentro la copia, come `box:<UUID>` in `layerOrder`, lo seguono. I riferimenti alle foto restano invariati. |
+| `test` | `path`, `value` | Requires the value to match. A failed test cancels the whole patch. |
+| `add` | `path`, `value` | Sets a field or inserts an element into the array. The `/-` suffix appends. |
+| `replace` | `path`, `value` | Replaces an existing value. |
+| `remove` | `path` | Deletes an optional field or an element. |
+| `move` | `from`, `path` | Removes a value and inserts it at the destination, evaluated after the removal. |
+| `copy` | `from`, `path` | Copies the value to the destination. Every copied object with an `id` field (a page, a text box and those it contains) gets a new UUID; references to those IDs inside the copy, such as `box:<UUID>` in `layerOrder`, follow it. Photo references stay unchanged. |
 
-Questa patch richiede una prima pagina con testo «Partenza», modifica il racconto, imposta lo stile del corpo e sposta la pagina in fondo.
+This patch requires a first page whose text is "Departure", changes the story, sets the body style and moves the page to the end.
 
 ```json
 [
-  {"op":"test","path":"/pages/0/text","value":"Partenza"},
-  {"op":"replace","path":"/pages/0/text","value":"Siamo partiti prima dell’alba."},
+  {"op":"test","path":"/pages/0/text","value":"Departure"},
+  {"op":"replace","path":"/pages/0/text","value":"We left before dawn."},
   {"op":"add","path":"/pages/0/typography","value":{"body":{"pointSize":15,"alignment":"left"}}},
   {"op":"move","from":"/pages/0","path":"/pages/-"}
 ]
 ```
 
-## Regole delle pagine ed esito
+## Page rules and result
 
-`patch` e `build` condividono le regole delle pagine. Sono errori un `layout` diverso da quello richiesto da `arrangement` (per esempio `gallery` per `twoAcross`), una foto ripetuta nella stessa pagina e una patch che lascia il libro senza pagine. Come nell’app, le foto oltre la capacità della composizione e il testo su un layout che non lo mostra (`gallery`, `fullPage`, `fullSpread`) restano salvati ma non compaiono: `build` li rifiuta, `patch` li accetta e li segnala.
+`patch` and `build` share the page rules. These are errors: a `layout` different from the one `arrangement` requires (for example `gallery` for `twoAcross`), a photo repeated on the same page, and a patch that leaves the book without pages. As in the app, photos beyond the capacity of the page template and text on a layout that does not show it (`gallery`, `fullPage`, `fullSpread`) stay stored but do not appear: `build` rejects them, `patch` accepts them and reports them.
 
-In caso di successo `patch` restituisce `project`, `id` e `warnings`, un array di messaggi in inglese che riguardano solo le pagine nuove o modificate dalla patch, per esempio `Page 1 (pages[0]) has 3 photos; arrangement "twoAcross" shows 2. The others stay stored but are not shown`.
+On success `patch` returns `project`, `id` and `warnings`, an array of English messages about the pages that the patch added or changed only, for example `Page 1 (pages[0]) has 3 photos; arrangement "twoAcross" shows 2. The others stay stored but are not shown`.
 
-Prima delle modifiche posizionali, usare `test` su `/pages/0/id` o `/photos/0/id` con il corrispondente UUID ottenuto da `inspect`. Eseguire nuovamente `inspect` sulla variante prima di generare una patch successiva.
+Before positional changes, use `test` on `/pages/0/id` or `/photos/0/id` with the matching UUID from `inspect`. Run `inspect` again on the variant before you generate the next patch.
 
-## Percorsi del modello
+## Model paths
 
-- `/pages` determina l’ordine delle pagine. Per inserire una pagina fornire almeno `id` (un nuovo UUID), `layout`, `photoIDs` e `text`. Per cambiare impaginazione si possono modificare insieme `layout` e `arrangement`. `photoIDs` contiene UUID della libreria del libro nell’ordine degli slot.
-- `/pages/0/photoPlacements` segue la rappresentazione nativa Swift delle mappe con chiavi UUID. È un array alternato `["UUID", {"frame": {...}, "crop": {...}}, ...]`. Usare `inspect` per leggere l’ordine e `test` sulla chiave prima di modificare la voce seguente. Ogni chiave deve comparire anche in `photoIDs`. `crop` contiene `x` e `y` tra 0 e 1 e `zoom` tra 1 e 12.
-- Le cornici hanno `x`, `y`, `width` e `height` in proporzione alla pagina, con origine in alto a sinistra. Le stesse coordinate si applicano a `titleFrame`, `storyFrame`, `storyBackdropFrames`, ai `textBoxes` e ai due riquadri della copertina. Ogni box di testo ha `id`, `text` e `frame`, con stile tipografico locale facoltativo.
-- `/typography`, `/pages/0/typography` e `/cover/typography` accettano `title` e `body`. Ogni stile può specificare `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` e `lineSpacing` (multiplo dell’interlinea da 0.8 a 2).
-- Un box di testo in `/pages/0/textBoxes` ha `id`, `text`, `frame` e i campi facoltativi `typography` (uno stile), `usesFullWidth` (testo senza margine interno), `backgroundColor`, `hidesBackground` (box trasparente), `borderColor` e `borderWidth` in punti da 0 a 12.
-- I colori sono interi `0xRRGGBB` scritti in decimale, da 0 a 16777215 (`0xFFFFFF`). Senza colore valgono l’inchiostro e la carta del modello. La patch rifiuta colori, `borderWidth` e `lineSpacing` fuori intervallo.
-- `/pages/0/layerOrder` elenca gli oggetti della pagina dal fondo verso l’alto come stringhe `story`, `photo:<UUID>` e `box:<UUID>`. Le voci che non corrispondono a un oggetto della pagina vengono ignorate. Gli oggetti non elencati mantengono la posizione predefinita: foto sotto, box sopra.
-- `/cover` raccoglie `title`, `spineMM`, `frontPhotoID`, `backPhotoID`, `backText`, `typography`, `frontTitleFrame` e `backTextFrame`. I riferimenti foto devono appartenere al libro.
-- `/cover/frontPhotoPlacement` e `/cover/backPhotoPlacement` possono specificare `frame` (coordinate normalizzate `x`, `y`, `width`, `height`) e `crop` (`x` e `y` da 0 a 1, `zoom` da 1 a 12). Se il campo è assente, si usa il posizionamento del modello per la faccia.
-- `/film` e `/photos/0/film` contengono `preset`, `strength`, `grain`, `grainSize` e l’eventuale `lutFilename` già presente in `looks`. `/photos/0/adjustments` contiene i valori di sviluppo. Per cambiare un singolo parametro già presente usare ad esempio `replace /photos/0/adjustments/exposure`.
-- `/format` imposta `widthMM` e `heightMM`. `/printSettings` raccoglie `bleedMM`, `safeMM`, `targetPPI`, `spreads` e il facoltativo `firstPageOnRight`. `/template` accetta gli identificatori del catalogo `templates`. `/showPageNumbers` accetta un booleano. Rimuovere il campo per ripristinare l’impostazione del modello.
+- `/pages` sets the page order. To insert a page, give at least `id` (a new UUID), `layout`, `photoIDs` and `text`. To change the layout you can change `layout` and `arrangement` together. `photoIDs` holds UUIDs from the book library in slot order.
+- `/pages/0/photoPlacements` follows the native Swift representation of maps with UUID keys. It is an alternating array `["UUID", {"frame": {...}, "crop": {...}}, ...]`. Use `inspect` to read the order and `test` on the key before you change the entry that follows it. Every key must also appear in `photoIDs`. `crop` holds `x` and `y` between 0 and 1 and `zoom` between 1 and 12.
+- Frames have `x`, `y`, `width` and `height` as fractions of the page, with the origin at the top left. The same coordinates apply to `titleFrame`, `storyFrame`, `storyBackdropFrames`, the `textBoxes` and the two cover frames. Each text box has `id`, `text` and `frame`, with an optional local type style.
+- `/typography`, `/pages/0/typography` and `/cover/typography` accept `title` and `body`. Each style can set `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` and `lineSpacing` (a multiple of the line height, from 0.8 to 2).
+- A text box in `/pages/0/textBoxes` has `id`, `text`, `frame` and the optional fields `typography` (one style), `usesFullWidth` (text with no inner margin), `backgroundColor`, `hidesBackground` (transparent box), `borderColor` and `borderWidth` in points from 0 to 12.
+- Colors are `0xRRGGBB` integers written in decimal, from 0 to 16777215 (`0xFFFFFF`). Without a color, the template's ink and paper apply. The patch rejects colors, `borderWidth` and `lineSpacing` out of range.
+- `/pages/0/layerOrder` lists the objects on the page from bottom to top as the strings `story`, `photo:<UUID>` and `box:<UUID>`. Entries that do not match an object on the page are ignored. Objects not listed keep their default position: photos below, boxes above.
+- `/cover` holds `title`, `spineMM`, `frontPhotoID`, `backPhotoID`, `backText`, `typography`, `frontTitleFrame` and `backTextFrame`. Photo references must belong to the book.
+- `/cover/frontPhotoPlacement` and `/cover/backPhotoPlacement` can set `frame` (normalized coordinates `x`, `y`, `width`, `height`) and `crop` (`x` and `y` from 0 to 1, `zoom` from 1 to 12). When the field is missing, the template's placement for that face is used.
+- `/film` and `/photos/0/film` hold `preset`, `strength`, `grain`, `grainSize` and the optional `lutFilename` already present in `looks`. `/photos/0/adjustments` holds the development values. To change a single parameter that is already present, use for example `replace /photos/0/adjustments/exposure`.
+- `/format` sets `widthMM` and `heightMM`. `/printSettings` holds `bleedMM`, `safeMM`, `targetPPI`, `spreads` and the optional `firstPageOnRight`. `/template` accepts the IDs from the `templates` catalog. `/showPageNumbers` accepts a boolean. Remove the field to restore the template's setting.
 
-Il catalogo `templates` include i valori iniziali in `defaults.film`, `defaults.adjustments` e `defaults.printSettings`. Si può copiare l’oggetto completo e cambiare i valori desiderati. Per creare un oggetto facoltativo assente, usare `add` sull’intero oggetto con i campi obbligatori del modello. Per ripristinare l’ereditarietà, usare `remove` sul campo facoltativo. La patch verifica i campi e i riferimenti prima della pubblicazione. I comandi di importazione gestiscono le immagini e le LUT. Gli ID foto, i nomi file, le dimensioni originali, le date di acquisizione, gli ID Foto di origine e la versione dello schema sono riservati. Alla lettura, `pixelWidth` e `pixelHeight` devono essere compresi fra 1 e 1.000.000.
+The `templates` catalog includes the starting values in `defaults.film`, `defaults.adjustments` and `defaults.printSettings`. You can copy the whole object and change the values you need. To create a missing optional object, use `add` on the whole object with the fields the model requires. To restore inheritance, use `remove` on the optional field. The patch checks fields and references before publishing. The import commands handle images and LUTs. Photo IDs, file names, original dimensions, capture dates, source Photos IDs and the schema version are reserved. On reading, `pixelWidth` and `pixelHeight` must be between 1 and 1,000,000.

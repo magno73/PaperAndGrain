@@ -1,87 +1,87 @@
-# Comporre un fotolibro dal terminale
+# Building a photobook from the terminal
 
-Su macOS 14 o successivo, un agente può creare un libro, importare e analizzare immagini, cambiare l’impaginato, vedere anteprime ed esportare un PDF. I comandi usano lo stesso pacchetto modificabile dell’editor.
+On macOS 14 or later, an agent can create a book, import and analyse images, change the layout, look at previews and export a PDF. The commands use the same editable package as the editor.
 
-Dalla radice del repository:
+From the repository root:
 
 ```sh
 swift run PaperAndGrain cli templates
-swift run PaperAndGrain cli build viaggio.json Viaggio.papergrain
-swift run PaperAndGrain cli inspect Viaggio.papergrain
+swift run PaperAndGrain cli build trip.json Trip.papergrain
+swift run PaperAndGrain cli inspect Trip.papergrain
 swift run PaperAndGrain cli help
 ```
 
-Con l’app installata si può invocare direttamente il binario, anche da un’altra directory:
+With the app installed you can call the binary directly, from any directory. A build from `scripts/build-app.sh` is in `~/Applications`; a downloaded release is usually in `/Applications`:
 
 ```sh
 "/Applications/Paper & Grain.app/Contents/MacOS/PaperAndGrain" cli templates
 ```
 
-## Flusso per gli agenti
+## Workflow for agents
 
-1. Usa `templates` per leggere modelli, composizioni, capacità e valori iniziali di pellicola, ritaglio, regolazioni e stampa. Usa `build` con una specifica JSON oppure parti da un progetto esistente.
-2. Se le foto sono in Apple Foto, usa il binario del bundle firmato. `albums` elenca gli album, `album-assets` le immagini. `import-photos` aggiunge una selezione esplicita alla libreria del progetto. Puoi creare un progetto iniziale con `assets: []` e `pages: [{"layout":"gallery"}]`. [Comandi di importazione e media](cli-media.md)
-3. Usa `analyze` per ottenere i dati visuali, `rank` per trovare scatti legati a un brano e `similar` per confrontare due scene o individuare quasi duplicati. `photo-preview` consente di esaminare i candidati.
-4. Usa `auto-layout SOURCE.papergrain OUTPUT.papergrain` per rigenerare le pagine in base al giorno di acquisizione e all’ordine delle foto. Quando il libro ha già un impaginato da conservare, parti da `inspect` e usa `patch` per cambiare i campi desiderati. [Modifiche e coordinate](cli-editing.md)
-5. Usa `auto-enhance`, `film-looks` e `import-lut` per lo sviluppo colore. Usa `export-pdf` con il profilo `proof`, `print` o `pixart`. [Comandi di sviluppo ed esportazione](cli-media.md)
+1. Use `templates` to read templates, layouts, capacities and the starting values of film, crop, adjustments and print. Use `build` with a JSON spec, or start from an existing project.
+2. If the photos are in Apple Photos, use the binary inside the signed bundle. `albums` lists the albums, `album-assets` the images. `import-photos` adds an explicit selection to the project library. You can create a starting project with `assets: []` and `pages: [{"layout":"gallery"}]`. [Import and media commands](cli-media.md)
+3. Use `analyze` to get the visual data, `rank` to find photos that relate to a passage of text, and `similar` to compare two scenes or find near-duplicates. `photo-preview` lets you look at the candidates.
+4. Use `auto-layout SOURCE.papergrain OUTPUT.papergrain` to rebuild the pages from capture day and photo order. When the book already has a layout to keep, start from `inspect` and use `patch` to change the fields you want. [Editing and coordinates](cli-editing.md)
+5. Use `auto-enhance`, `film-looks` and `import-lut` for color development. Use `export-pdf` with the `proof`, `print` or `pixart` profile. [Development and export commands](cli-media.md)
 
-I comandi di modifica scrivono in una nuova destinazione `.papergrain`. Gli UUID delle immagini e delle pagine già presenti identificano gli stessi elementi nelle varianti, salvo una rimozione o la rigenerazione delle pagine con `auto-layout`. L’ID del libro cambia.
+Editing commands write to a new `.papergrain` destination. The UUIDs of existing images and pages identify the same items in the variants, unless an item is removed or the pages are rebuilt with `auto-layout`. The book ID changes.
 
-## Catalogo e ricerca delle foto
+## Photo catalog and search
 
 ```sh
-PaperAndGrain cli analyze Viaggio.papergrain --output Viaggio-analizzato.papergrain
-PaperAndGrain cli photos Viaggio-analizzato.papergrain --details --limit 10
-PaperAndGrain cli rank Viaggio-analizzato.papergrain "elefanti alla pozza di Etosha" --unused --limit 8
-PaperAndGrain cli similar Viaggio-analizzato.papergrain UUID --by near-duplicate --limit 5
+PaperAndGrain cli analyze Trip.papergrain --output Trip-analysed.papergrain
+PaperAndGrain cli photos Trip-analysed.papergrain --details --limit 10
+PaperAndGrain cli rank Trip-analysed.papergrain "elephants at the Etosha waterhole" --unused --limit 8
+PaperAndGrain cli similar Trip-analysed.papergrain UUID --by near-duplicate --limit 5
 ```
 
-- `photos` restituisce UUID, percorso locale, data ISO 8601, dimensioni, pagine, associazioni in copertina, etichette e temi. `--photo UUID` seleziona un’immagine e restituisce i dati completi. `--details` restituisce i dati completi per l’elenco. `--filter QUERY` cerca nel nome e nei dati dell’analisi.
-- `analyze` elabora sul Mac le immagini senza analisi recente. Accetta `--photo UUID` più volte e `--force` per ripetere l’analisi. Il risultato contiene esito, dati ed eventuale errore per foto. Per registrare i risultati nel progetto, usa `--output`: la destinazione viene verificata prima dell’analisi. Con il solo report puoi conservare i dati nel processo che ha lanciato il comando.
-- `rank` restituisce solo candidati con riscontro e include `evidence` con la voce riconosciuta, la fonte (`subject`, `text` o `concept`) e il contributo al punteggio. Il punteggio ordina i candidati. `--unused` esclude foto assegnate a pagine o copertina. Lo stesso filtro vale per `photos` e `similar`.
-- `similar --by subjects` confronta le etichette ponderate dalla confidenza. `--by near-duplicate` ordina in base alla distanza tra le impronte visive. I risultati espongono entrambi i valori quando disponibili. Usa le anteprime per valutare gli scatti vicini.
+- `photos` returns UUID, local path, ISO 8601 date, dimensions, pages, cover assignments, labels and themes. `--photo UUID` selects one image and returns its full data. `--details` returns the full data for the whole list. `--filter QUERY` searches the name and the analysis data.
+- `analyze` processes on the Mac the images that have no recent analysis. It accepts `--photo UUID` several times and `--force` to repeat the analysis. The result holds the outcome, the data and any error per photo. To store the results in the project, use `--output`: the destination is checked before the analysis starts. With the report alone, you can keep the data in the process that ran the command.
+- `rank` returns only candidates with a match and includes `evidence` with the recognized term, its source (`subject`, `text` or `concept`) and its contribution to the score. The score orders the candidates. `--unused` excludes photos assigned to pages or the cover. The same filter works for `photos` and `similar`.
+- `similar --by subjects` compares labels weighted by confidence. `--by near-duplicate` orders by the distance between visual fingerprints. The results show both values when available. Use the previews to judge close shots.
 
-L’analisi di revisione 2 comprende fino a 48 classificazioni con confidenza, persone, volti e animali rilevati, testo riconosciuto con confidenza e riquadro, palette sRGB, orientamento, luminosità, contrasto, dettaglio e impronta visiva. I riquadri Vision sono normalizzati e partono dal basso a sinistra. `unavailableSignals` distingue un modulo indisponibile da una rilevazione vuota. Luminosità, contrasto e dettaglio sono misure sul campione ridotto. Il dettaglio approssima la variazione locale e risente anche della grana. Candidati e rilevamenti sono stime. Il rilevamento dei volti registra la presenza e la posizione.
+Revision 2 of the analysis includes up to 48 classifications with confidence, detected people, faces and animals, recognized text with confidence and bounding box, sRGB palette, orientation, brightness, contrast, detail and a visual fingerprint. Vision bounding boxes are normalized and start from the bottom left. `unavailableSignals` tells an unavailable module apart from an empty detection. Brightness, contrast and detail are measured on the reduced sample. Detail approximates local variation and is also affected by grain. Candidates and detections are estimates. Face detection records presence and position.
 
-Il rilevatore animali di Apple Vision localizza cani e gatti. Per la fauna selvatica, `rank` usa le etichette del classificatore dell’intera immagine e i temi associati. [Apple Vision · VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier)
+The Apple Vision animal detector locates dogs and cats. For wildlife, `rank` uses the labels of the whole-image classifier and the related themes. [Apple Vision · VNAnimalIdentifier](https://developer.apple.com/documentation/vision/vnanimalidentifier)
 
-## Specifica versione 1
+## Spec version 1
 
 ```json
 {
   "version": 1,
-  "title": "Quaderno di viaggio",
+  "title": "Travel Notebook",
   "format": { "widthMM": 210, "heightMM": 210 },
   "template": "atlas",
   "typography": { "body": { "fontName": "Georgia", "pointSize": 11, "lineSpacing": 1.3 } },
-  "assets": [{ "id": "orizzonte", "path": "foto/orizzonte.jpg" }],
+  "assets": [{ "id": "horizon", "path": "photos/horizon.jpg" }],
   "pages": [
-    { "arrangement": "textBesidePhoto", "photos": ["orizzonte"], "heading": "Partenza", "text": "Attraversiamo la pianura al mattino.",
+    { "arrangement": "textBesidePhoto", "photos": ["horizon"], "heading": "Departure", "text": "We cross the plain in the morning.",
       "typography": { "title": { "color": 9109504, "alignment": "left" } } },
-    { "layout": "fullSpread", "photos": ["orizzonte"],
-      "textBoxes": [{ "id": "6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77", "text": "Etosha, ore 6",
+    { "layout": "fullSpread", "photos": ["horizon"],
+      "textBoxes": [{ "id": "6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77", "text": "Etosha, 6 am",
                       "frame": { "x": 0.06, "y": 0.82, "width": 0.3, "height": 0.1 },
                       "backgroundColor": 16777215, "borderColor": 0, "borderWidth": 1 }],
-      "layerOrder": ["photo:orizzonte", "story", "box:6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77"] }
+      "layerOrder": ["photo:horizon", "story", "box:6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77"] }
   ],
-  "cover": { "frontPhoto": "orizzonte", "title": "Quaderno di viaggio", "backText": "Appunti dal campo", "spineMM": 4,
+  "cover": { "frontPhoto": "horizon", "title": "Travel Notebook", "backText": "Field notes", "spineMM": 4,
              "typography": { "title": { "color": 16777215 } } }
 }
 ```
 
-- Sono obbligatori `version`, un `title` con contenuto, `assets` (anche vuoto) e almeno una voce in `pages`. Il formato predefinito misura 210 × 210 mm. L’assenza di `template` usa lo stile classico dell’app. `showPageNumbers` è un booleano facoltativo che abilita o disabilita la numerazione sulle pagine interne con margini. Se è assente, vale l’impostazione del modello.
-- Ogni asset ha un ID univoco e un percorso file assoluto o relativo alla specifica. Un collegamento simbolico viene risolto. Il comando copia gli originali nel pacchetto. Gli ID della specifica valgono durante la composizione. L’app assegna UUID alle foto importate.
-- L’ordine di `pages` è quello del libro. L’ordine di `photos` assegna gli slot sulla pagina. Una foto può ricorrere su più pagine e in copertina. Ogni pagina accetta una sola occorrenza dello stesso ID.
-- `templates` elenca ID dei modelli del libro, tipi di pagina e composizioni con capacità e layout corrispondente. Una pagina priva di `layout` e `arrangement` usa `gallery`. La composizione determina il layout. Con `mixed` e `text` si possono includere `heading` e `text`. `fullSpread` dispone una foto su due facciate. Si può indicare anche come `arrangement` per selezionarla come modello della pagina.
-- La copertina è facoltativa. Accetta `title`, `frontPhoto`, `backPhoto`, `backText`, un dorso `spineMM` in millimetri e `typography` per il titolo sul fronte e il testo sul retro.
-- `typography` vale per il libro (radice della specifica), per la pagina e per la copertina, con gli stessi campi del manifest: `title` e `body`, ciascuno con `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` e `lineSpacing` (multiplo dell’interlinea da 0.8 a 2). Uno stile di pagina eredita i campi assenti da quello del libro.
-- `textBoxes` aggiunge box di testo alla pagina con i campi del manifest: `frame` obbligatorio (`x`, `y`, `width`, `height` in proporzione alla pagina, origine in alto a sinistra, larghezza e altezza maggiori di 0), `text`, `typography` (uno stile con i campi sopra), `usesFullWidth` (il testo occupa il box senza margine interno), `backgroundColor`, `hidesBackground` (box trasparente), `borderColor` e `borderWidth` in punti da 0 a 12. `id` è facoltativo: un UUID scelto dall’agente, utile per `layerOrder`; se manca, il comando ne assegna uno nuovo.
-- I colori sono interi `0xRRGGBB` scritti in decimale nel JSON, da 0 (nero) a 16777215 (`0xFFFFFF`, bianco); per esempio `0x8B0000` è `9109504`. Senza colore valgono l’inchiostro e la carta del modello.
-- `layerOrder` elenca gli oggetti della pagina dal fondo verso l’alto: `story` (titolo, racconto e sfondo insieme), `photo:<ID asset>` per una foto della stessa pagina e `box:<UUID>` per un box della stessa pagina. Nel manifest le foto diventano `photo:<UUID>`. Una voce che non corrisponde a un oggetto della pagina è un errore in `build`. Gli oggetti non elencati mantengono la posizione predefinita: foto sotto, box sopra.
-- Ogni oggetto accetta solo le chiavi elencate. Una chiave sconosciuta o scritta male interrompe il comando con un errore che nomina la chiave, l’oggetto (per esempio `pages[0]`) e le chiavi valide.
+- `version`, a non-empty `title`, `assets` (possibly empty) and at least one entry in `pages` are required. The default size is 210 × 210 mm. Without `template`, the app's classic style is used. `showPageNumbers` is an optional boolean that turns the numbering on the interior pages with margins on or off. When it is missing, the template's setting applies.
+- Each asset has a unique ID and a file path, absolute or relative to the spec. A symbolic link is resolved. The command copies the originals into the package. The spec IDs are valid during the build. The app assigns UUIDs to the imported photos.
+- The order of `pages` is the book order. The order of `photos` assigns the slots on the page. A photo can appear on several pages and on the cover. Each page accepts only one occurrence of the same ID.
+- `templates` lists the book template IDs, page types and page templates with their capacity and matching layout. A page with neither `layout` nor `arrangement` uses `gallery`. The arrangement determines the layout. `mixed` and `text` can include `heading` and `text`. `fullSpread` places one photo across two pages. It can also be given as `arrangement` to select it as the page template.
+- The cover is optional. It accepts `title`, `frontPhoto`, `backPhoto`, `backText`, a spine width `spineMM` in millimeters and `typography` for the title on the front and the text on the back.
+- `typography` applies to the book (the root of the spec), to a page and to the cover, with the same fields as the manifest: `title` and `body`, each with `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` and `lineSpacing` (a multiple of the line height, from 0.8 to 2). A page style inherits the missing fields from the book style.
+- `textBoxes` adds text boxes to the page with the manifest fields: a required `frame` (`x`, `y`, `width`, `height` as fractions of the page, origin at the top left, width and height greater than 0), `text`, `typography` (one style with the fields above), `usesFullWidth` (the text fills the box with no inner margin), `backgroundColor`, `hidesBackground` (transparent box), `borderColor` and `borderWidth` in points from 0 to 12. `id` is optional: a UUID chosen by the agent, useful for `layerOrder`; when it is missing, the command assigns a new one.
+- Colors are `0xRRGGBB` integers written in decimal in the JSON, from 0 (black) to 16777215 (`0xFFFFFF`, white); for example `0x8B0000` is `9109504`. Without a color, the template's ink and paper apply.
+- `layerOrder` lists the objects on the page from bottom to top: `story` (heading, story and background together), `photo:<asset ID>` for a photo on the same page and `box:<UUID>` for a box on the same page. In the manifest, photos become `photo:<UUID>`. An entry that does not match an object on the page is an error in `build`. Objects not listed keep their default position: photos below, boxes above.
+- Each object accepts only the keys listed. An unknown or misspelled key stops the command with an error that names the key, the object (for example `pages[0]`) and the valid keys.
 
-## Contratto dei comandi
+## Command contract
 
-`build` richiede una cartella padre esistente e un nuovo percorso con estensione `.papergrain`. Prepara tutto in una cartella temporanea sorella e pubblica il risultato con una rinomina esclusiva. Un errore di importazione o una destinazione già occupata lascia intatti i progetti esistenti. Per rigenerare una variante, scegliere un nuovo nome.
+`build` needs an existing parent folder and a new path with the `.papergrain` extension. It prepares everything in a temporary sibling folder and publishes the result with an exclusive rename. An import error or an occupied destination leaves existing projects untouched. To regenerate a variant, choose a new name.
 
-In caso di successo il processo termina con codice 0 e scrive un documento JSON su stdout. `build` restituisce `project` (percorso assoluto), `id` e `photos`, una mappa dall’ID asset della specifica all’UUID della foto nel libro, da usare nelle patch successive. `patch` restituisce `project`, `id` e `warnings`. `templates` restituisce in `templates` un oggetto per modello con `id` (il valore da usare in `template`), `name` con `it` ed `en` e `family` (`classic`, `studio` o `photobook`), oltre a `layouts`, `arrangements` e `defaults`. `inspect` valida e restituisce il manifest originale, mantenendo gli indici esatti necessari a `patch`. Gli errori di comando terminano con codice 1 e scrivono su stderr un oggetto JSON con il campo `error`. Il messaggio è in inglese e nomina il controllo fallito, per esempio `Page 2 (pages[1]) references unknown photo <UUID> in photoIDs`, `format.widthMM must be greater than 0` oppure `Output parent directory does not exist: <percorso>`. Gli stessi messaggi compaiono nell’app quando un pacchetto è danneggiato. Gli esiti parziali dell’analisi compaiono nel report. Per separare i messaggi di compilazione di SwiftPM dall’output della CLI, invocare il binario già compilato.
+On success the process exits with code 0 and writes one JSON document to stdout. `build` returns `project` (absolute path), `id` and `photos`, a map from the spec asset ID to the photo UUID in the book, for use in later patches. `patch` returns `project`, `id` and `warnings`. `templates` returns in `templates` one object per template with `id` (the value to use in `template`), `name` with `it` and `en`, and `family` (`classic`, `studio` or `photobook`), plus `layouts`, `arrangements` and `defaults`. `inspect` validates and returns the original manifest, keeping the exact indices that `patch` needs. Command errors exit with code 1 and write to stderr a JSON object with an `error` field. The message is in English and names the failed check, for example `Page 2 (pages[1]) references unknown photo <UUID> in photoIDs`, `format.widthMM must be greater than 0` or `Output parent directory does not exist: <path>`. The app shows the same messages when a package is damaged. Partial analysis outcomes appear in the report. To keep SwiftPM build messages apart from the CLI output, call the already built binary.
