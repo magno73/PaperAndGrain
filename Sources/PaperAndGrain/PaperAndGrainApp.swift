@@ -65,7 +65,8 @@ struct PaperAndGrainApp: App {
                                },
                                onExport: { showPDFExport = true },
                                actions: editorActions)
-                        .id(workspace.book.id)
+                        // A Save As copy and its original share the book id: key on the session instead.
+                        .id(workspace.editorSession)
                 } else {
                     WelcomeView(language: language, recents: workspace.libraryBooks,
                                 onAlbums: { showAlbums = true },

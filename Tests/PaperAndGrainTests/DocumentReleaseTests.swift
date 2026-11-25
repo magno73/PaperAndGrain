@@ -241,6 +241,33 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertTrue(workspace.drafts.isEmpty)
     }
 
+    // A5
+    func testEditorSessionChangesForAnotherPackageWithTheSameBookIDButNotOnSaveAs() throws {
+        let original = scratch.appendingPathComponent("Trip.papergrain", isDirectory: true)
+        let copy = scratch.appendingPathComponent("Trip v2.papergrain", isDirectory: true)
+        let book = Book(title: "Trip", pages: [BookPage(text: "Original")])
+        try BookStorage.write(book, to: original)
+        let workspace = Workspace(defaults: MemoryDefaults())
+        let undoManager = UndoManager()
+        undoManager.groupsByEvent = false
+
+        workspace.openProject(at: original)
+        let first = workspace.editorSession
+        workspace.saveProjectCopy(from: original, to: copy)
+        XCTAssertEqual(workspace.editorSession, first, "Save As keeps editing the same document")
+
+        undoManager.beginUndoGrouping()
+        workspace.applyBookTemplate(.atlas, showPageNumbers: nil, undoManager: undoManager, actionName: "Template")
+        undoManager.endUndoGrouping()
+        XCTAssertTrue(undoManager.canUndo)
+
+        workspace.openProject(at: original)
+        XCTAssertEqual(workspace.book.id, book.id)
+        XCTAssertNotEqual(workspace.editorSession, first, "The original is another document")
+        XCTAssertFalse(undoManager.canUndo)
+        XCTAssertNil(try BookStorage.read(from: original).template)
+    }
+
     // MARK: - Helpers
 
     func waitUntil(timeout: TimeInterval = 10, _ condition: @escaping @MainActor () -> Bool) async throws {

@@ -30,6 +30,10 @@ final class Workspace: ObservableObject {
     @Published private(set) var recentBooks: [RecentBook] = []
     /// Unsaved books found in the Drafts folder, whether or not they are still in the recents list.
     @Published private(set) var drafts: [RecentBook] = []
+    /// Identifies the editing session of one opened package. It changes when another package is opened
+    /// or the book is closed, not on Save As or when a moved package is found again. The editor is keyed
+    /// on it, so undo history never crosses into another package that shares the same book id.
+    @Published private(set) var editorSession = UUID()
 
     private var analysisTask: Task<Void, Never>?
     private var importTask: Task<Void, Never>?
@@ -554,6 +558,7 @@ final class Workspace: ObservableObject {
 
     private func open(_ incoming: Book, in folder: URL) {
         settingsUndoManager?.removeAllActions(withTarget: self)
+        editorSession = UUID()
         analysisTask?.cancel()
         analysisTask = nil
         analysisRun = nil
@@ -730,6 +735,7 @@ final class Workspace: ObservableObject {
 
     private func finishClosing() {
         noteRecentBook()
+        editorSession = UUID()
         settingsUndoManager?.removeAllActions(withTarget: self)
         analysisTask?.cancel()
         analysisTask = nil
