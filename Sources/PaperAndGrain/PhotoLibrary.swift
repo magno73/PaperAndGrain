@@ -22,12 +22,10 @@ struct LibraryPhoto: Identifiable, Hashable, Sendable {
 
 enum PhotoImportError: LocalizedError {
     case unreadableImage
-    case cancelled
 
     var errorDescription: String? {
         switch self {
         case .unreadableImage: "Immagine non disponibile · Image unavailable"
-        case .cancelled: "Operazione annullata · Operation cancelled"
         }
     }
 }

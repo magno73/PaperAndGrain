@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -318,6 +319,63 @@ final class DocumentReleaseTests: XCTestCase {
         XCTAssertEqual(AlbumPicker.initialAlbum(in: albums, last: "deleted"), "recents")
         XCTAssertEqual(AlbumPicker.initialAlbum(in: albums, last: ""), "recents")
         XCTAssertNil(AlbumPicker.initialAlbum(in: [], last: "trip"))
+    }
+
+    // A8
+    func testDropDuringSaveAsLandsInTheNewPackage() async throws {
+        let package = scratch.appendingPathComponent("Before.papergrain", isDirectory: true)
+        let copy = scratch.appendingPathComponent("After.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Moving"), to: package)
+        let files = try (1...3).map { index in
+            let url = scratch.appendingPathComponent("Drop \(index).png")
+            try Self.png(width: 30, height: 20 + index).write(to: url)
+            return url
+        }
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+
+        XCTAssertTrue(workspace.addPhotoFiles(files, language: "en"))
+        await workspace.saveProjectCopy(from: try XCTUnwrap(workspace.directory), to: copy).value
+        try await waitUntil { !workspace.importing }
+
+        XCTAssertNil(workspace.problem)
+        XCTAssertTrue(BookStorage.sameLocation(try XCTUnwrap(workspace.directory), copy))
+        XCTAssertEqual(workspace.book.photos.count, 3)
+        try await waitUntil { (try? BookStorage.read(from: copy).photos.count) == 3 }
+        for photo in try BookStorage.read(from: copy).photos {
+            XCTAssertTrue(FileManager.default.fileExists(atPath: BookStorage.assetURL(filename: photo.filename, in: copy).path))
+        }
+    }
+
+    func testPhotosDroppedDuringAnAnalysisAreAnalysedAfterIt() async throws {
+        let package = scratch.appendingPathComponent("Analysis.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Analysis"), to: package)
+        let images = try (1...3).map { index in
+            let url = scratch.appendingPathComponent("Analyse \(index).png")
+            try Self.png(width: 160 + index, height: 120).write(to: url)
+            return url
+        }
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+
+        XCTAssertTrue(workspace.addPhotoFiles(Array(images.prefix(2)), language: "en"))
+        try await waitUntil { !workspace.importing }
+        XCTAssertTrue(workspace.isAnalyzing)
+        XCTAssertTrue(workspace.addPhotoFiles([images[2]], language: "en"))
+        try await waitUntil(timeout: 60) {
+            !workspace.importing && !workspace.isAnalyzing && workspace.book.photos.count == 3
+        }
+        XCTAssertEqual(workspace.book.photos.filter { $0.analysis?.revision == PhotoAnalysis.currentRevision }.count, 3)
+    }
+
+    func testQuittingFlushesTheBookWithoutAWindow() async throws {
+        let package = scratch.appendingPathComponent("Quit.papergrain", isDirectory: true)
+        try BookStorage.write(Book(title: "Before quitting"), to: package)
+        let workspace = Workspace(defaults: MemoryDefaults())
+        await workspace.openProject(at: package).value
+        workspace.book.title = "Flushed at quit"
+        NotificationCenter.default.post(name: NSApplication.willTerminateNotification, object: nil)
+        XCTAssertEqual(try BookStorage.read(from: package).title, "Flushed at quit")
     }
 
     // MARK: - Helpers

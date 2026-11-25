@@ -51,7 +51,7 @@ struct PaperAndGrainApp: App {
     }
 
     var body: some Scene {
-        Window("Paper & Grain", id: "book") {
+        Window("Paper & Grain", id: EditorFilePanels.bookWindowID) {
             Group {
                 if let directory = workspace.directory {
                     EditorView(book: $workspace.book, directory: directory, language: language,
@@ -115,9 +115,6 @@ struct PaperAndGrainApp: App {
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if let problem = workspace.problem { errorBanner(problem) }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                workspace.flushSave()
             }
             .onOpenURL { workspace.openProject(at: $0) }
             .onAppear {
@@ -351,22 +348,19 @@ private struct WelcomeView: View {
                     Button(s("Apri altro…", "Open Other…"), action: onOpen)
                 }
                 if recents.isEmpty {
-                    if #available(macOS 14.0, *) {
-                        ContentUnavailableView {
-                            Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
-                        } description: {
-                            Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
-                                   "Choose a Photos album to lay out your first book, or open the sample."))
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ContentUnavailableView {
+                        Label(s("Ancora nessun libro", "No Books Yet"), systemImage: "books.vertical")
+                    } description: {
+                        Text(s("Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo.",
+                               "Choose a Photos album to lay out your first book, or open the sample."))
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 24, alignment: .top)],
                                   alignment: .leading, spacing: 28) {
                             ForEach(recents) { recent in
                                 RecentBookCard(recent: recent, language: language)
-                                    .onTapGesture(count: 2) { onOpenRecent(recent) }
                                     .onTapGesture { onOpenRecent(recent) }
                                     .contextMenu {
                                         Button(s("Apri", "Open")) { onOpenRecent(recent) }

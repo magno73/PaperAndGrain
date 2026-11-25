@@ -44,6 +44,9 @@ final class Workspace: ObservableObject {
     private var exportTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
     private var copyTask: Task<Void, Never>?
+    private nonisolated(unsafe) var terminationObserver: NSObjectProtocol?
+    /// Photos added while an analysis runs; analysed when that run ends.
+    private var queuedAnalysis: [UUID] = []
     private var openRequest: UUID?
     // Order autosaves before durable writes and package copies.
     private let saveQueue = DispatchQueue(label: "local.paperandgrain.manifest", qos: .utility)
@@ -61,6 +64,16 @@ final class Workspace: ObservableObject {
         self.draftsRoot = draftsRoot ?? (try? BookStorage.draftsDirectory(create: false))
         self.moveToTrash = moveToTrash
         recentBooks = RecentBook.load(from: defaults)
+        // Quitting flushes the open book even when its window is already closed.
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { _ = self?.flushSave() }
+        }
+    }
+
+    deinit {
+        if let terminationObserver { NotificationCenter.default.removeObserver(terminationObserver) }
     }
 
     /// Books shown in the welcome window and in File › Open Recent.
@@ -394,12 +407,13 @@ final class Workspace: ObservableObject {
 
     private func enqueueDroppedPhotos(language: String, onImported: @escaping (UUID) -> Void,
                                       start: () throws -> DroppedPhotos?) -> Bool {
-        guard let directory, !importing else { return false }
+        guard directory != nil, !importing else { return false }
         if let readOnlyReason {
             problem = readOnlyReason.localizedDescription
             return false
         }
-        let origin = documentLocation
+        // A slow drop survives Save As and a move in Finder: it follows the session, not the folder.
+        let session = editorSession
         let italian = language == "it"
         let drop: DroppedPhotos
         do {
@@ -423,16 +437,16 @@ final class Workspace: ObservableObject {
                 var results: [DroppedPhotos.Outcome] = []
                 for await outcome in drop.outcomes {
                     try Task.checkCancellation()
-                    guard documentLocation == origin else { return }
+                    guard editorSession == session else { return }
                     completed += 1
                     results.append(outcome)
                     importProgress = "\(completed) / \(drop.count)"
                 }
                 try Task.checkCancellation()
-                guard documentLocation == origin else { return }
+                guard editorSession == session else { return }
                 let photos = results.sorted { $0.index < $1.index }.compactMap(\.photo)
                 guard let first = photos.first else { throw PhotoImportError.unreadableImage }
-                try await appendDroppedPhotos(photos, from: drop.directory, to: directory)
+                try await appendDroppedPhotos(photos, from: drop.directory, session: session)
                 onImported(first.id)
                 analyze(language: language, photos: photos)
                 let failures = drop.count - photos.count
@@ -450,12 +464,20 @@ final class Workspace: ObservableObject {
         return true
     }
 
-    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, to directory: URL) async throws {
+    /// Installs the photos in the session's current package, after any Save As copy in progress.
+    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, session: UUID) async throws {
+        while let copyTask {
+            await copyTask.value
+        }
+        guard editorSession == session else { throw CancellationError() }
+        if let identity = directoryIdentity, let current = directory, BookStorage.identity(of: current) != identity {
+            relocate()
+        }
+        guard let directory else { throw CancellationError() }
         var updated = book
         updated.photos.append(contentsOf: photos)
         let snapshot = updated
         let identity = directoryIdentity
-        let session = editorSession
         try await onSaveQueue {
             try Self.validateLocation(directory, identity: identity, title: snapshot.title)
             let files = FileManager.default
@@ -546,8 +568,13 @@ final class Workspace: ObservableObject {
     }
 
     private func analyze(language: String, photos pending: [BookPhoto]) {
-        guard let directory, !isReadOnly, analysisTask == nil, !pending.isEmpty else { return }
-        let documentID = book.id
+        guard let directory, !isReadOnly, !pending.isEmpty else { return }
+        guard analysisTask == nil else {
+            // Photos dropped during a run are analysed when it ends.
+            queuedAnalysis.append(contentsOf: pending.map(\.id).filter { !queuedAnalysis.contains($0) })
+            return
+        }
+        let session = editorSession
         let runID = UUID()
         analysisRun = runID
         analysisProgress = (0, pending.count)
@@ -555,7 +582,7 @@ final class Workspace: ObservableObject {
             var failures = 0
             var updated: [UUID: PhotoAnalysis] = [:]
             for (offset, photo) in pending.enumerated() {
-                if Task.isCancelled || book.id != documentID { break }
+                if Task.isCancelled || editorSession != session { break }
                 // Read from the current package: Save As may adopt a new one and retire a draft mid-run.
                 let folder = self.directory ?? directory
                 do {
@@ -567,7 +594,7 @@ final class Workspace: ObservableObject {
                             url: BookStorage.assetURL(filename: photo.filename, in: self.directory ?? folder)
                         )
                     }
-                    if Task.isCancelled || book.id != documentID { break }
+                    if Task.isCancelled || editorSession != session { break }
                     updated[photo.id] = result
                 } catch {
                     if Task.isCancelled { break }
@@ -584,6 +611,13 @@ final class Workspace: ObservableObject {
             analysisProgress = nil
             analysisTask = nil
             analysisRun = nil
+            let queued = Set(queuedAnalysis)
+            queuedAnalysis.removeAll()
+            if !queued.isEmpty {
+                analyze(language: language, photos: book.photos.filter {
+                    queued.contains($0.id) && ($0.analysis?.revision ?? 0) < PhotoAnalysis.currentRevision
+                })
+            }
             await save()
             if failures > 0 {
                 problem = language == "it" ? "Analisi non riuscita per \(failures) foto. Puoi riprovare dall’editor."
@@ -591,6 +625,9 @@ final class Workspace: ObservableObject {
             }
         }
     }
+
+    /// Lets tests wait for the photo analysis, including runs started for queued photos.
+    var isAnalyzing: Bool { analysisTask != nil }
 
     private func applyPhotoAnalysis(_ updated: [UUID: PhotoAnalysis]) {
         guard !updated.isEmpty else { return }
@@ -610,6 +647,7 @@ final class Workspace: ObservableObject {
         analysisTask = nil
         analysisRun = nil
         analysisProgress = nil
+        queuedAnalysis.removeAll()
         let reason = Self.readOnlyReason(for: incoming, in: folder)
         // The writer version is stamped in memory too, so the open book equals what the next save writes.
         // `lastSaved` is the same value: opening alone never rewrites the manifest.
@@ -815,6 +853,7 @@ final class Workspace: ObservableObject {
         analysisTask = nil
         analysisRun = nil
         analysisProgress = nil
+        queuedAnalysis.removeAll()
         rememberLocation(nil)
     }
 
