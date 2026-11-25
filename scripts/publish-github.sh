@@ -11,7 +11,7 @@ private_email="${PAPERGRAIN_PRIVATE_EMAIL:-$(git config user.email)}"
 public_email="${PAPERGRAIN_PUBLIC_EMAIL:-175606015+magno73@users.noreply.github.com}"
 branch="$(git rev-parse --abbrev-ref HEAD)"
 # Files that must never appear in the public history, not even in old commits.
-removed_paths=(docs/layout-comparison.md)
+removed_paths=(docs/layout-comparison.md docs/release-plan.md)
 force=""
 if [ "${1:-}" = "--force" ]; then
     # Overwrite only the commit GitHub has now, never work pushed from elsewhere in the meantime.
