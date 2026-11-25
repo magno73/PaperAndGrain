@@ -8,7 +8,7 @@ final class CLIReleaseTests: XCTestCase {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aHukAAAAASUVORK5CYII=")!
 
     func temporaryDirectory() throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("papergrain-cli-\(UUID())")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("papergrain-cli-\(UUID())", isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         addTeardownBlock {
             _ = try? BookStorage.addOwnerWrite(url)
@@ -72,5 +72,46 @@ final class CLIReleaseTests: XCTestCase {
         XCTAssertThrowsError(try BookCLIEditing.patch(source: source, patchURL: bad,
                                                       output: root.appendingPathComponent("Bad.papergrain")))
         XCTAssertFalse(try entries(root).contains { $0.hasPrefix(".papergrain-") })
+    }
+
+    // MARK: C2
+
+    func testBuildRejectsUnknownKeysNamingTheKeyAndTheValidOnes() throws {
+        let root = try temporaryDirectory()
+        var spec = baseSpec()
+        spec["templte"] = "atlas"
+        var text = message(try self.build(spec, in: root))
+        XCTAssertTrue(text.contains("\"templte\""), text)
+        XCTAssertTrue(text.contains("template"), text)
+        spec = baseSpec(pages: [["layout": "fullPage", "photo": ["a"]]])
+        text = message(try self.build(spec, in: root))
+        XCTAssertTrue(text.contains("\"photo\"") && text.contains("pages[0]") && text.contains("photos"), text)
+        spec = baseSpec()
+        spec["assets"] = [["id": "a", "path": "pixel.png", "name": "x"]]
+        XCTAssertTrue(message(try self.build(spec, in: root)).contains("assets[0]"))
+        spec = baseSpec()
+        spec["cover"] = ["frontPhotos": "a"]
+        XCTAssertTrue(message(try self.build(spec, in: root)).contains("cover"))
+        spec = baseSpec()
+        spec["format"] = ["width": 210, "heightMM": 210]
+        XCTAssertTrue(message(try self.build(spec, in: root)).contains("format"))
+        XCTAssertFalse(try entries(root).contains { $0.hasSuffix(".papergrain") || $0.hasPrefix(".papergrain-") })
+    }
+
+    func testImportSpecRejectsUnknownKeys() async throws {
+        let root = try temporaryDirectory()
+        try build(baseSpec(), in: root, name: "Source.papergrain")
+        for spec in [#"{"version":1,"file":["pixel.png"]}"#,
+                     #"{"version":1,"photos":{"albumID":"x","assetIDs":["y"],"asset":1}}"#] {
+            try Data(spec.utf8).write(to: root.appendingPathComponent("import.json"))
+            do {
+                _ = try await BookCLIMedia.run(command: "import-photos",
+                                               arguments: ["Source.papergrain", "--spec", "import.json", "--output", "Out.papergrain"],
+                                               currentDirectory: root)
+                XCTFail("Accepted \(spec)")
+            } catch {
+                XCTAssertTrue(error.localizedDescription.contains("Unknown key"), error.localizedDescription)
+            }
+        }
     }
 }

@@ -16,6 +16,8 @@ Esegui i comandi che accedono a Foto con il binario nel bundle firmato di Paper 
 
 La specifica contiene `version: 1` e una o entrambe le selezioni seguenti. I file locali sono relativi alla specifica e precedono la selezione da Foto. Gli originali da Foto possono essere scaricati da iCloud da macOS. Scegli gli ID dopo aver consultato l’album. Per importarlo tutto, includi esplicitamente tutti gli ID desiderati.
 
+La specifica accetta solo `version`, `files` e `photos`, e `photos` solo `albumID` e `assetIDs`. Una chiave sconosciuta interrompe il comando con un errore che la nomina insieme alle chiavi valide.
+
 ```json
 {
   "version": 1,

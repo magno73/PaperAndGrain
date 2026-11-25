@@ -192,7 +192,11 @@ enum BookCLIMedia {
         let output = try options.url("--output", relativeTo: currentDirectory)
         try validateOutput(output, extension: "papergrain", outside: source)
         _ = try BookCLIEditing.read(source: source)
-        let spec = try JSONDecoder().decode(ImportSpec.self, from: Data(contentsOf: specURL))
+        let specData = try Data(contentsOf: specURL)
+        let specObject = try JSONSerialization.jsonObject(with: specData)
+        try BookCLI.checkKeys(specObject, ["version", "files", "photos"], at: "import spec")
+        try BookCLI.checkKeys((specObject as? [String: Any])?["photos"], ["albumID", "assetIDs"], at: "photos")
+        let spec = try JSONDecoder().decode(ImportSpec.self, from: specData)
         guard spec.version == 1, spec.files != nil || spec.photos != nil,
               (spec.files?.allSatisfy { !$0.isEmpty } ?? true),
               spec.files?.isEmpty != true else {

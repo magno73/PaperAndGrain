@@ -131,6 +131,33 @@ enum BookCLI {
         }
     }
 
+    /// Decodable ignores unknown keys; reject them so a misspelled field does not silently change the result.
+    static func checkKeys(_ value: Any?, _ allowed: [String], at path: String) throws {
+        guard let value, !(value is NSNull) else { return }
+        guard let object = value as? [String: Any] else { throw Failure("Expected an object at \(path)") }
+        if let key = object.keys.sorted().first(where: { !allowed.contains($0) }) {
+            throw Failure("Unknown key \"\(key)\" at \(path). Valid keys: " + allowed.sorted().joined(separator: ", "))
+        }
+    }
+
+    /// Checks every object of an array with `checkKeys`, naming elements as `path[index]`.
+    static func checkEachKeys(_ value: Any?, _ allowed: [String], at path: String) throws {
+        guard let value, !(value is NSNull) else { return }
+        guard let array = value as? [Any] else { throw Failure("Expected an array at \(path)") }
+        for (index, element) in array.enumerated() { try checkKeys(element, allowed, at: "\(path)[\(index)]") }
+    }
+
+    private static func checkSpecKeys(_ data: Data) throws {
+        let root = try JSONSerialization.jsonObject(with: data)
+        try checkKeys(root, ["version", "title", "format", "template", "showPageNumbers", "assets", "pages", "cover"],
+                      at: "spec")
+        guard let spec = root as? [String: Any] else { return }
+        try checkKeys(spec["format"], ["widthMM", "heightMM"], at: "format")
+        try checkEachKeys(spec["assets"], ["id", "path"], at: "assets")
+        try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text"], at: "pages")
+        try checkKeys(spec["cover"], ["title", "frontPhoto", "backPhoto", "backText", "spineMM"], at: "cover")
+    }
+
     static func encode<Value: Encodable>(_ value: Value) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]
@@ -147,7 +174,9 @@ enum BookCLI {
             throw Failure("Output must end in .papergrain")
         }
         guard !files.fileExists(atPath: output.path) else { throw Failure("Output already exists: " + output.path) }
-        let spec = try JSONDecoder().decode(Spec.self, from: Data(contentsOf: specURL))
+        let specData = try Data(contentsOf: specURL)
+        try checkSpecKeys(specData)
+        let spec = try JSONDecoder().decode(Spec.self, from: specData)
         guard spec.version == 1, !spec.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !spec.pages.isEmpty else { throw Failure("Expected version 1, a title and at least one page") }
         let staging = output.deletingLastPathComponent().appendingPathComponent(".papergrain-" + UUID().uuidString)
