@@ -1,5 +1,6 @@
-import Foundation
 import CryptoKit
+import Darwin
+import Foundation
 
 enum BookStorage {
     private static let files = FileManager.default
@@ -60,8 +61,9 @@ enum BookStorage {
         let destinationIdentity = destinationExists ? identity(of: destination) : nil
         let staging = destination.deletingLastPathComponent()
             .appendingPathComponent(".\(UUID().uuidString).papergrain", isDirectory: true)
-        defer { try? files.removeItem(at: staging) }
+        defer { removeStaged(staging) }
         try files.copyItem(at: from, to: staging)
+        addOwnerWrite(staging)
         guard try read(from: staging).id == book.id else {
             throw CocoaError(.fileReadCorruptFile, userInfo: [NSURLErrorKey: source])
         }
@@ -74,6 +76,34 @@ enum BookStorage {
         } else {
             try files.moveItem(at: staging, to: destination)
         }
+    }
+
+    /// Copies keep the source permissions; a staged copy of a read-only package must become writable
+    /// before its manifest is rewritten or the copy is removed. Symbolic links are left untouched.
+    @discardableResult
+    static func addOwnerWrite(_ root: URL) -> Bool {
+        var succeeded = true
+        func visit(_ path: String) {
+            var entry = stat()
+            guard lstat(path, &entry) == 0 else { succeeded = false; return }
+            let type = entry.st_mode & S_IFMT
+            guard type == S_IFDIR || type == S_IFREG else { return }
+            let mode = entry.st_mode & 0o7777
+            let wanted = mode | S_IWUSR | (type == S_IFDIR ? S_IRUSR | S_IXUSR : 0)
+            if wanted != mode, chmod(path, wanted) != 0 { succeeded = false }
+            if type == S_IFDIR, let children = try? files.contentsOfDirectory(atPath: path) {
+                for child in children { visit((path as NSString).appendingPathComponent(child)) }
+            }
+        }
+        visit(root.path)
+        return succeeded
+    }
+
+    /// Removes a staged package, making it writable first so a read-only copy does not linger.
+    static func removeStaged(_ url: URL) {
+        guard files.fileExists(atPath: url.path) else { return }
+        addOwnerWrite(url)
+        try? files.removeItem(at: url)
     }
 
     static func sameLocation(_ first: URL, _ second: URL) -> Bool {

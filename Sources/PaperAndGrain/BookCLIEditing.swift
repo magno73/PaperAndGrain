@@ -24,8 +24,9 @@ enum BookCLIEditing {
         let sourceManifest = input.appendingPathComponent("manifest.json")
         let original = try Data(contentsOf: sourceManifest)
         let stage = parent.appendingPathComponent(".papergrain-" + UUID().uuidString)
-        defer { try? files.removeItem(at: stage) }
+        defer { BookStorage.removeStaged(stage) }
         try files.copyItem(at: input, to: stage)
+        BookStorage.addOwnerWrite(stage)
         let copied = try snapshot(source: stage)
         var book = copied.book
         guard copied.raw == original, try Data(contentsOf: sourceManifest) == original else {
