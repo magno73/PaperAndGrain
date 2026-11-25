@@ -91,6 +91,7 @@ enum L10n {
 }
 
 /// Views and commands that carry the interface language get `tr` for their strings.
+@MainActor
 protocol Localizing {
     var language: String { get }
 }

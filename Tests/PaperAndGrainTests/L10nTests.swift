@@ -102,6 +102,7 @@ final class L10nTests: XCTestCase {
         XCTAssertEqual(L10n.format("Print: %@", language: "it", ["300 ppi"]), "Print: 300 ppi")
     }
 
+    @MainActor
     func testViewHelpersUseTheChosenLanguage() {
         struct Probe: Localizing { let language: String }
         XCTAssertEqual(Probe(language: "it").tr("Cancel"), "Annulla")
