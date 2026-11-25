@@ -34,7 +34,7 @@ L’ispettore calcola i suggerimenti fuori dal thread dell’interfaccia quando 
 
 ## Geometria e PDF
 
-Le dimensioni del libro sono in millimetri. La geometria della galleria passa per `BookLayoutGeometry` e conserva proporzioni, ordine e interspazi. La prima bozza raggruppa per giorno di scatto. Il [confronto con Fotobuch](layout-comparison.md) documenta la decisione di tenere il layout interno nella 0.2.
+Le dimensioni del libro sono in millimetri. La geometria della galleria passa per `BookLayoutGeometry` e conserva proporzioni, ordine e interspazi. La prima bozza raggruppa per giorno di scatto.
 
 Per una foto al vivo, `framing` va da 0 a 1 sull’asse che viene tagliato quando la foto riempie la pagina. Un valore assente equivale a 0,5. Questo campo continua a essere letto quando manca il nuovo ritaglio a due assi. La doppia pagina usa lo stesso rettangolo immagine per entrambi i lati. Il PDF disegna quel rettangolo attraverso due finestre di ritaglio e omette le guide. Core Text mantiene il testo selezionabile. Una foto mancante o un testo che eccede lo spazio interrompono l’export prima della sostituzione del file esistente.
 

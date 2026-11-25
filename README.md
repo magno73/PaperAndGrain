@@ -141,7 +141,6 @@ The developer documentation is written in Italian:
 - [Testing log and feature status](docs/status.md)
 - [Templates](docs/templates.md)
 - [CLI](docs/cli.md), [editing commands](docs/cli-editing.md) and [media commands](docs/cli-media.md)
-- [Layout engine compared with Fotobuch](docs/layout-comparison.md)
 
 ## Licensing
 
