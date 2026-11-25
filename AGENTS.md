@@ -1,46 +1,52 @@
 # Paper & Grain
 
-Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’app sono in italiano e inglese. Il progetto pilota è Namibia. Lavora dalla radice del repository e consulta il [README](README.md) per il flusso utente.
+Paper & Grain is a native Mac editor for travel photobooks. The interface is in English and Italian. Work from the repository root and read the [README](README.md) for the user flow. These instructions apply to people and to coding agents alike.
 
-## Punti di ingresso
+## Entry points
 
-- `PaperAndGrainApp.swift` e `Workspace.swift` collegano finestre, apertura, autosalvataggio e attività in corso.
-- `BookCLI.swift` collega composizione e comandi terminale. `BookCLIEditing.swift` applica patch e crea varianti, `BookCLIMedia.swift` gestisce importazione ed export, `BookCLIPhotoIndex.swift` espone il catalogo e la ricerca. Aggiorna il contratto in [CLI](docs/cli.md) quando cambiano argomenti, input o output.
-- `AlbumPicker.swift` e `PhotoLibrary.swift` collegano selezione, PhotoKit e copia delle immagini. `DroppedPhotos.swift` importa file nella libreria del libro aperto. `PhotoPromiseDropTarget.swift` riceve i file promessi dalle app macOS.
-- `BookModel.swift` e `BookStorage.swift` definiscono i dati, la geometria e il formato dei progetti.
-- `EditorView.swift` contiene lo stato del libro aperto, la struttura della finestra e gli strumenti condivisi. Le estensioni `EditorView+*.swift` lo dividono per area: `Navigator` (pagine e riordino), `Canvas` (doppia, HUD, controlli di vista), `Cover`, `Inspector`, `PhotoTray` (fototeca), `Film`, `Adjustments`, `Selection` (clic, tastiera, eliminazione), `PageEditing` (modelli e testi), `PhotoPlacement` (trascinamento, ritaglio, spostamento delle foto), `Commands` (barra, menu del titolo, comandi di menu) e `Browser` (Sfoglia). Lo stato resta nella struttura principale, quindi le estensioni non dichiarano proprietà memorizzate.
-- `EditorCommands.swift` definisce le azioni dell’app passate all’editor, i menu Inserisci, Pagina, Foto e Vista (tramite `focusedSceneValue`) e il divisore ridimensionabile. `Theme.swift` raccoglie i colori semantici chiaro/scuro e i pannelli in Liquid Glass con il ripiego a materiali. `BookFormatPresets.swift` elenca i formati predefiniti dei fotolibri senza cambiare lo schema del documento.
-- `PageComposition.swift` risolve cornici, ritagli, testo e copertina in punti tipografici. `CanvasObjectControls.swift` gestisce lo spostamento e il ridimensionamento e `CanvasCropControl.swift` la modifica dell’immagine e della cornice durante il ritaglio. Le due facce della copertina usano gli stessi controlli del canvas e conservano separatamente posizione e ritaglio nel documento. `CanvasStoryGroup.swift` sposta insieme titolo, racconto e sfondo.
-- `PhotoDrop.swift` decide cosa succede quando una foto della fototeca viene rilasciata su una foto, su uno spazio vuoto o su una pagina vuota, senza ritagli nascosti. `ColorSwatches.swift` è il selettore di colori dei pannelli. `AboutAndHelp.swift` contiene la finestra Informazioni e l’aiuto.
-- `CanvasAlignment.swift` calcola l’aggancio fra foto e box. `CanvasAlignmentGuides.swift` disegna le guide temporanee sul canvas. `CanvasPhotoSwap.swift` individua la foto sotto il puntatore durante il trascinamento e scambia le due cornici.
-- `CanvasDeleteShortcut.swift` osserva clic, rotella e tasto destro e inoltra i comandi della tastiera nella finestra del libro. `EditorView+Layers.swift` costruisce il menu contestuale del canvas e cambia l’ordine dei livelli salvato in `BookPage.layerOrder`. La mappa in `EditorPhotoHitTest.swift` usa la geometria di disegno per selezionare l’oggetto visibile. `EditorPreviewLoader.swift` separa il carico delle anteprime e delle miniature.
-- `EditorFilePanels.swift` presenta i selettori file e il controllo di stampa come schede asincrone della finestra. Gli errori operativi rimangono visibili nella finestra senza richiederne l’attivazione.
-- `InspectorPhotoLibraryCache.swift` filtra la libreria. `PhotoLibraryOrdering.swift` raggruppa le foto per data, luogo, argomento e utilizzo. I luoghi provengono dai metadati locali o dalle foto originali già autorizzate.
-- `PhotoAnalysis.swift` produce etichette, rilevamenti e OCR con Vision e ordina i risultati compatibili con un racconto. `PhotoVisualSignals.swift` misura palette, luminosità, contrasto, dettaglio e somiglianza di pixel.
-- `BookTemplate.swift` definisce carta, geometria editoriale e tipi condivisi tra anteprima ed esportazione. `EditorialTypography.swift` risolve gli stili del libro e le modifiche locali. `PageArrangement.swift` definisce le composizioni della singola pagina. [Modelli](docs/templates.md) documenta le scelte visive.
-- `FilmPipeline.swift` condivide sviluppo colore, LUT e grana tra editor e stampa.
-- `PhotoAdjustments.swift` analizza la foto e applica le regolazioni prima del look pellicola. `PhotoAdjustmentsPanel.swift` espone gli stessi valori nell’ispettore.
-- `BundledFilmLooks.swift` elenca le LUT di emulazione pellicola incluse in `Resources/FilmLooks`, con nomi descrittivi senza marchi di pellicole o fotocamere. Aggiorna catalogo, verifiche di integrità e [attribuzione](Resources/FilmLooks/CREDITS.md) insieme alle risorse.
-- `BookSettingsView.swift`, `PDFExportChooser.swift`, `PixartPrintProfile.swift` e `BookPDF.swift` gestiscono impostazioni, selezione del profilo, formato e stampa. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
+- `PaperAndGrainApp.swift` and `Workspace.swift` connect windows, opening, autosave and running tasks.
+- `BookCLI.swift` connects composition and terminal commands. `BookCLIEditing.swift` applies patches and creates variants, `BookCLIMedia.swift` handles import and export, and `BookCLIPhotoIndex.swift` exposes the catalog and search. Update the contract in [CLI](docs/cli.md) when arguments, input or output change.
+- `AlbumPicker.swift` and `PhotoLibrary.swift` connect the selection, PhotoKit and the copying of images. `DroppedPhotos.swift` imports files into the library of the open book. `PhotoPromiseDropTarget.swift` receives files promised by macOS apps.
+- `BookModel.swift` and `BookStorage.swift` define the data, the geometry and the project format. `AppErrors.swift` holds the errors shown to the author (book moved, newer format, read-only location, damaged manifest, image unavailable).
+- `EditorView.swift` holds the state of the open book, the window structure and the shared tools. The `EditorView+*.swift` extensions split it by area: `Navigator` (pages and reordering), `Canvas` (spread, HUD, view controls), `Cover`, `Inspector`, `PhotoTray` (photo library), `Film`, `Adjustments`, `Selection` (clicks, keyboard, deletion), `PageEditing` (templates and text), `PhotoPlacement` (dragging, cropping and moving photos), `Commands` (toolbar, title menu, menu commands), `Layers` and `Browser` (Browse the Book). State stays in the main structure, so the extensions declare no stored properties.
+- `EditorCommands.swift` defines the app actions passed to the editor, the Insert, Page, Photo, Arrange and View menus (through `focusedSceneValue`) and the resizable divider. `Theme.swift` gathers the light and dark semantic colors and the Liquid Glass panels with their fallback to materials. `BookFormatPresets.swift` lists the preset photobook sizes without changing the document schema.
+- `PageComposition.swift` resolves frames, crops, text and cover into typographic points. `CanvasObjectControls.swift` handles moving and resizing, and `CanvasCropControl.swift` edits the image and the frame while cropping. Both cover faces use the same canvas controls and keep position and crop separately in the document. `CanvasStoryGroup.swift` moves heading, story and background together.
+- `PhotoDrop.swift` decides what happens when a photo from the photo library is dropped on a photo, on an empty slot or on an empty page, with no hidden cropping. `PhotoResolution.swift` measures the print resolution of a placed photo, crop and zoom included; the preflight warnings, the canvas badge and the Photo tab share it. `ColorSwatches.swift` is the color picker of the panels. `AboutAndHelp.swift` contains the About window and the in-app help (`HelpView`).
+- `CanvasAlignment.swift` computes snapping between photos and boxes. `CanvasAlignmentGuides.swift` draws the temporary guides on the canvas. `CanvasPhotoSwap.swift` finds the photo under the pointer during a drag and swaps the two frames.
+- `CanvasDeleteShortcut.swift` observes clicks, scroll wheel and right-clicks and forwards keyboard commands in the book window. `EditorView+Layers.swift` builds the canvas context menu and changes the layer order saved in `BookPage.layerOrder`. The map in `EditorPhotoHitTest.swift` uses the drawing geometry to select the visible object. `EditorPreviewLoader.swift` separates the loading of previews and thumbnails.
+- `EditorFilePanels.swift` presents the file panels and the print dialog as asynchronous sheets of the window. Operational errors stay visible in the window without needing to activate it.
+- `InspectorPhotoLibraryCache.swift` filters the library. `PhotoLibraryOrdering.swift` groups photos by date, place, subject and usage. Places come from local metadata or from original photos the user already authorized.
+- `PhotoAnalysis.swift` produces labels, detections and OCR with Vision and ranks the results that match a story. `PhotoVisualSignals.swift` measures palette, brightness, contrast, detail and pixel similarity.
+- `BookTemplate.swift` defines paper, editorial geometry and the types shared by preview and export. `EditorialTypography.swift` resolves the book styles and local changes. `PageArrangement.swift` defines the single-page layouts. [Templates](docs/templates.md) documents the visual choices.
+- `FilmPipeline.swift` shares color development, LUTs and grain between editor and print.
+- `PhotoAdjustments.swift` analyses the photo and applies the adjustments before the film look. `PhotoAdjustmentsPanel.swift` exposes the same values in the inspector.
+- `BundledFilmLooks.swift` lists the film-emulation LUTs bundled in `Resources/FilmLooks`, with descriptive names and no film or camera trademarks. Update the catalog, the integrity checks and the [attribution](Resources/FilmLooks/CREDITS.md) together with the resources.
+- `BookSettingsView.swift`, `PDFExportChooser.swift`, `PixartPrintProfile.swift` and `BookPDF.swift` handle settings, profile selection, format and printing. [Architecture](docs/architecture.md) describes the contracts between these components.
+- `L10n.swift` is the localization lookup: it resolves a key from the String Catalog in the interface language chosen in **Settings**, and falls back to the key.
 
-I sorgenti Swift sono in `Sources/PaperAndGrain/`. `scripts/build-app.sh` compila e prepara il bundle da collaudare e lo copia sempre in `~/Applications/Paper & Grain.app`. Indica all’utente quel percorso dopo ogni build.
+The Swift sources are in `Sources/PaperAndGrain/`. `scripts/build-app.sh` builds and prepares the bundle for testing and always copies it to `~/Applications/Paper & Grain.app`. Tell the user that path after every build.
 
-## Lavorare per incrementi
+## Working in increments
 
-Prima di modificare un flusso, leggi la parte pertinente della documentazione e guarda quali viste e file chiamano il codice. Mantieni compatibili i progetti salvati. Una modifica dello schema richiede una strategia di lettura dei progetti precedenti. Controlla gli ID delle pagine e il mantenimento degli elementi quando una foto si sposta o cambia l’impaginazione.
+Before changing a flow, read the relevant part of the documentation and look at which views and files call the code. Keep saved projects compatible. A schema change needs a strategy for reading older projects. Check page IDs and that items are kept when a photo moves or the layout changes.
 
-Usa i temi e le etichette come suggerimenti che l’autore può scegliere. L’analisi deve restare sul Mac. Usa immagini sintetiche o materiale di prova autorizzato per commit, screenshot e verifiche ripetibili. Apri gli album reali solo durante un collaudo in cui l’utente può scegliere le foto. Le copie private, i progetti locali e le bozze di testo restano fuori da Git.
+Use themes and labels as suggestions the author can choose from. Analysis must stay on the Mac. Use synthetic images or authorized test material for commits, screenshots and repeatable checks. Open real albums only during a test session in which the user can choose the photos. Private copies, local projects and draft texts stay out of Git.
 
-Verifica ogni nuova etichetta visibile in IT e EN. Usa il catalogo `Resources/Localizable.xcstrings` quando integri nuovi testi condivisi e verifica anche le etichette di accessibilità. La prima build contiene anche traduzioni nelle viste.
+## Strings and localization
 
-## Verifica e documentazione
+- Every new user-visible string goes into the String Catalog `Resources/Localizable.xcstrings` with English and Italian. Accessibility labels count.
+- English is the source language and the English text is the key. When the same English text needs different Italian translations, use an explicit key with a comment in the catalog.
+- Never inline Italian text in Swift. Look strings up through `L10n`.
+- Command-line output stays in English and is not localized.
+- Check every new visible label in English and in Italian.
 
-- Compila con `./scripts/build-app.sh`, esegui `swift test` e prova il percorso a cui appartiene il cambiamento. Usa il libro dimostrativo per i collaudi senza permessi Foto.
-- Per una modifica all’esportazione, apri il PDF risultante e controlla dimensioni, testo lungo, foto a tutta pagina e continuità delle doppie pagine.
-- Per una modifica ai gesti, prova una doppia pagina con un box di testo e due foto. Verifica trascinamento, selezione, ridimensionamento, riordino dal navigatore e riapertura del progetto.
-- Per una modifica all’analisi, prova almeno un racconto italiano, uno inglese e un testo senza corrispondenze. Verifica che i match suggeriti siano spiegabili dalle etichette e che rimangano modificabili.
-- Nello stesso commit di una modifica al percorso utente aggiorna sia il README sia l’aiuto dell’app (`HelpView` in `AboutAndHelp.swift`, in italiano e inglese). Tienili sempre allineati all’app.
-- Il README è in inglese e usa le etichette inglesi dell’app. Descrive soltanto com’è l’app adesso: niente «ora», «non più», «nuovo» o confronti con versioni precedenti. La cronologia delle modifiche va in `docs/status.md`. La documentazione in `docs/` resta in italiano. Aggiorna architettura se cambia un contratto. In `docs/status.md` annota cosa hai verificato e che cosa resta da provare.
-- Per il passaggio di consegne registra il risultato osservato e la prossima azione concreta. Inserisci nella documentazione i dettagli tecnici durevoli.
+## Verification and documentation
 
-Dai ad Astra decisioni trasversali su modello, colore e stampa. Usa Sol per viste o integrazioni con contratti definiti e verifiche ripetibili.
+- Build with `./scripts/build-app.sh`, run `swift test` and try the path the change belongs to. Use the sample book for tests that need no Photos permission.
+- For a change to export, open the resulting PDF and check size, long text, full-page photos and the continuity of spreads.
+- For a change to gestures, try a spread with a text box and two photos. Check dragging, selection, resizing, reordering from the navigator and reopening the project.
+- For a change to analysis, try at least one Italian story, one English story and one text with no matches. Check that the suggested matches can be explained by the labels and that they stay editable.
+- In the same commit as any user-visible change, update both the README and the in-app help (`HelpView` in `AboutAndHelp.swift`). Keep them aligned with the app.
+- The README is in English and uses the app's English labels. It describes only the current state of the app: no "now", "no longer", "new" or comparisons with earlier versions. The history of changes goes in [CHANGELOG.md](CHANGELOG.md).
+- Update [Architecture](docs/architecture.md) when a contract changes. In [Status](docs/status.md), record what you verified and what remains to be tested.
+- For a handover, record the observed result and the next concrete action. Put durable technical details in the documentation.
