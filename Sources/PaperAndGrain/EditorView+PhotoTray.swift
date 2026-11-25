@@ -61,7 +61,12 @@ extension EditorView {
                 Button(hasOlderAnalysis ? tr("Aggiorna analisi", "Update Analysis") : tr("Analizza foto", "Analyze Photos"),
                        systemImage: "viewfinder", action: onAnalyze)
                     .disabled(isAnalyzing || !needsAnalysis)
-                Button(tr("Importa file…", "Import Files…"), systemImage: "folder", action: actions.importFiles)
+                Button(tr("Importa file…", "Import Files…"), systemImage: "folder") {
+                    actions.addPhotoFiles { id in
+                        _ = acceptPhotoDrop(true)
+                        importedPhotoToReveal = id
+                    }
+                }
                 if !analysisStatus.isEmpty {
                     Divider()
                     Text(analysisStatus)

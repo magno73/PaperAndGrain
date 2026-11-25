@@ -198,6 +198,27 @@ final class Workspace: ObservableObject {
         }
     }
 
+    /// Photo library › Import Files…: adds the chosen images to the open book.
+    /// New books from files start only from File › New Book from Files and the welcome window.
+    func addPhotoFiles(language: String, onImported: @escaping (UUID) -> Void = { _ in }) {
+        guard directory != nil, !importing else { return }
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = true
+        let origin = documentLocation
+        EditorFilePanels.present(panel) { [weak self] response in
+            guard let self, self.documentLocation == origin, response == .OK, !panel.urls.isEmpty else { return }
+            _ = self.addPhotoFiles(panel.urls, language: language, onImported: onImported)
+        }
+    }
+
+    @discardableResult
+    func addPhotoFiles(_ urls: [URL], language: String, onImported: @escaping (UUID) -> Void = { _ in }) -> Bool {
+        enqueueDroppedPhotos(language: language, onImported: onImported) {
+            try DroppedPhotos.start(files: urls)
+        }
+    }
+
     func addDroppedPhotos(_ providers: [NSItemProvider], language: String,
                           onImported: @escaping (UUID) -> Void = { _ in }) -> Bool {
         enqueueDroppedPhotos(language: language, onImported: onImported) {

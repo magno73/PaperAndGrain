@@ -96,6 +96,27 @@ struct DroppedPhotos {
         }
     }
 
+    /// Finder files chosen in an open panel, imported into the open book's library.
+    static func start(files: [URL]) throws -> Self? {
+        guard !files.isEmpty else { return nil }
+        let directory = try stagingDirectory()
+        let (outcomes, continuation) = AsyncStream<Outcome>.makeStream()
+        let queue = OperationQueue()
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 2
+        for (index, url) in files.enumerated() {
+            queue.addOperation {
+                let photo = try? importFile(url, named: url.lastPathComponent, into: directory)
+                continuation.yield(Outcome(index: index, photo: photo))
+            }
+        }
+        queue.addBarrierBlock { continuation.finish() }
+        return Self(directory: directory, count: files.count, outcomes: outcomes) {
+            continuation.finish()
+            queue.cancelAllOperations()
+        }
+    }
+
     func cleanUp() {
         cancelRequests()
         try? FileManager.default.removeItem(at: directory)

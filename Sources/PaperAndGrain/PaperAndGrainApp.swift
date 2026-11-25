@@ -47,7 +47,7 @@ struct PaperAndGrainApp: App {
                          saveTitle: saveProjectTitle,
                          saveAs: workspace.saveProjectAs,
                          exportPrint: { workspace.exportPrint(language: language) },
-                         importFiles: { workspace.importFiles(language: language) })
+                         addPhotoFiles: { reveal in workspace.addPhotoFiles(language: language, onImported: reveal) })
     }
 
     var body: some Scene {
