@@ -1,87 +1,150 @@
 # Paper & Grain
 
-Paper & Grain è un’app Mac per trasformare un album di viaggio in un fotolibro che alterna foto e racconti. Il primo libro di prova è Namibia. La prima build è per macOS 14 o successivo e usa SwiftUI, PhotoKit, Vision e Core Graphics.
+Paper & Grain is a native Mac app that turns a travel album into a printed photobook. It mixes photos and stories, film looks and editorial page templates. It also exports print-ready PDFs.
 
-## Compilare e aprire
+It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision and the PDF output uses Core Graphics and Core Text. Everything runs on your Mac: photos are copied into the book and analysed locally, and nothing is uploaded. The interface is available in English and Italian.
 
-Con Xcode selezionato come toolchain, dalla radice del repository:
+> **Status:** a working prototype that is used to build real books. The first test book was a trip to Namibia. Expect rough edges, and check every PDF with your print shop before ordering.
+
+## Features
+
+- **Start from an album.** Pick an album in Photos, or files in Finder. Choose a book size from 21 common photobook formats or a custom one. A first draft is laid out in shooting order.
+- **Twelve book templates in three families.** **Classics**, **Studio** and **Photobook**, the last drawn from award-winning photobooks. A template sets paper, type, margins, page rhythm, cover and spine.
+- **Page layouts.** An automatic gallery, fixed layouts with margins or full bleed, full spreads and text-over-photo pages. Photos, text boxes and stories can be moved, resized, cropped, aligned with guides and stacked in front of or behind each other.
+- **Stories.** Write next to your photos. **Suggested photos** finds pictures that match the text, using on-device labels in English and Italian.
+- **Photo editing.** Auto enhance, light, color, black & white, detail, curves, levels and selective color. Film looks: built-in presets, 14 Fujifilm-style LUTs and your own `.cube` or HaldCLUT files, for the whole book or a single photo.
+- **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and a Pixartprinting 21 × 21 cm profile. A preflight check flags photos below the target resolution.
+- **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
+
+## Requirements
+
+- macOS 14 Sonoma or later. On macOS 26 and later the panels use Liquid Glass.
+- Xcode, or the Swift toolchain that comes with it (Swift 5.10 or later), to build.
+
+## Build and run
+
+From the repository root:
 
 ```sh
-./scripts/build-app.sh
-open 'dist/0.10.0-redesign/Paper & Grain Redesign.app'
+./scripts/build-app.sh            # debug build
+./scripts/build-app.sh release    # optimised build
+open ~/Applications/"Paper & Grain Redesign.app"
 ```
 
-Lo script raccoglie eseguibile, risorse, traduzioni e configurazione di Foto in un bundle con firma locale. Il percorso include la versione. Sul branch `redesign/mac-ui` l’app si chiama «Paper & Grain Redesign» e tiene le bozze in una cartella propria. Se hai già un libro aperto, completa e salva il lavoro nella build corrente prima di aprire un altro bundle. Per la build ottimizzata usare `./scripts/build-app.sh release`. Il progetto SwiftPM si può aprire da Xcode per lavorare sui sorgenti. Usare il bundle per il collaudo di Foto.
+The script builds the executable, bundles resources and translations, signs the app locally and copies it to **`~/Applications/Paper & Grain Redesign.app`**. Every build replaces that copy, so the latest one is always in the same place. A versioned copy also stays in `dist/<version>/`. Set `PAPERGRAIN_INSTALL_DIR` to install somewhere else.
 
-Un agente può comporre, analizzare e modificare un libro dal terminale, poi esportare un PDF. La [guida della CLI](docs/cli.md) contiene i comandi e le specifiche JSON.
+This branch builds **Paper & Grain Redesign** (`local.paperandgrain.mac.redesign`). It keeps its drafts in its own folder, separate from any other Paper & Grain build. Use the bundle, not `swift run`, when you test access to Photos: macOS grants that permission to the signed app.
 
-## Fare un primo libro
+Run the tests with:
 
-1. Apri **Scegli un album da Foto** e, al primo accesso, autorizza l’app nelle finestre di macOS. Scegli **Namibia**, seleziona le immagini, imposta il formato e premi **Impagina**. **Importa file** accetta immagini dal Finder. Il nuovo libro si apre sulla scelta del modello: **Applica** imposta carta, caratteri e margini, **Annulla** tiene lo stile di base. Il libro dimostrativo si apre senza accedere alla libreria.
-2. A sinistra vedi le miniature delle doppie con tutte le foto nella loro posizione. Trascina una singola miniatura per riordinare la sua pagina. Il **+** inserisce una pagina nel punto indicato, anche tra due pagine affiancate. Una panoramica rimane un solo elemento. Seleziona una miniatura e premi **Canc** o **⌫** per eliminare la pagina. **⌘Z** la ripristina. Sopra la pagina puoi scegliere la vista singola o doppia e uno zoom da 25% a 200%.
-3. Scrivi o incolla un racconto nell’ispettore. **Foto suggerite** mostra gli scatti ancora disponibili per la pagina che corrispondono al testo. Nella **Fototeca**, usa il menu di ordinamento per sfogliare gli scatti per **Data** (dalle prime giornate alle ultime), **Luogo**, **Argomento** o **Non usate prima**. La ricerca e il filtro per tema si combinano con l’ordinamento. Per i luoghi si usano i nomi nei metadati o le zone GPS, con **Senza luogo** in fondo. Rilascia immagini dal Finder o da Foto su **Trascina foto qui** per aggiungerle alla libreria del libro.
-   Su un libro già analizzato usa **Aggiorna analisi** dal menu **…** della fototeca per aggiungere etichette con confidenza, rilevamenti, testo letto nell’immagine e dati visivi. Seleziona una foto e apri **Dettagli analisi** nella scheda **Foto** dell’ispettore.
-4. **Salva progetto** chiede la posizione al primo salvataggio e aggiorna il pacchetto `.papergrain` già aperto nelle volte successive. **Salva con nome…** crea una copia. **Esporta PDF** apre il selettore di profilo con la verifica di prestampa. La lingua (sistema, italiano o inglese) si sceglie in **Paper & Grain › Impostazioni** (⌘,).
+```sh
+swift test
+```
 
-## La finestra
+`scripts/publish-github.sh` publishes the current branch to GitHub as `main`. It replaces the author email with the GitHub noreply address on a temporary copy, so the local history is left untouched.
 
-- A sinistra le **Pagine**: trascina il bordo per allargare il navigatore e ingrandire le miniature. Il **+** fra due pagine compare al passaggio del puntatore. Il menu contestuale inserisce, sposta o elimina una pagina. Dopo un clic su una miniatura, **←** e **→** passano alla pagina precedente o successiva, **↑** e **↓** alla doppia. **⌃⌘S** mostra o nasconde il pannello.
-- In alto la barra di sistema: titolo e numero di pagine, **Inserisci**, **Stile** (il modello del libro), **Impagina** (il modello della pagina), **Pellicola**, **Esporta**, **Fototeca** e **Ispettore**. Un clic sul titolo apre **Libro e stampa**, **Modelli del libro**, i salvataggi e le esportazioni.
-- In fondo la **Fototeca** (⌥⌘L): filtri **Tutte**, **Non usate**, **In pagina**, ordinamento, temi e ricerca. Trascina uno scatto sulla pagina o rilascia file dal Finder o da Foto nel cassetto. In una finestra stretta i filtri diventano un menu.
-- A destra l’**Ispettore** (⌥⌘I). Le schede seguono la selezione: **Pagina** o **Copertina**, **Testo** con un titolo, un racconto o un box selezionato, **Foto** con una foto selezionata. Senza foto selezionata compare **Pellicola**, il look di tutto il libro. La finestra non si stringe oltre lo spazio dei pannelli aperti.
-- Sotto una foto selezionata compaiono **Ritaglia**, **Regola**, **Pellicola** e **Togli dalla pagina**. Gli stessi comandi sono nel menu **Foto**.
-- Il tasto destro, o il clic con **⌃**, su una foto, un box o un testo apre il menu di quell’elemento: ritaglio e regolazioni, modifica del testo, **Porta in primo piano**, **Porta avanti**, **Porta indietro** e **Porta in fondo**. Gli stessi comandi sono nel menu **Disponi** (⇧⌘F, ⌥⇧⌘F, ⌥⇧⌘B, ⇧⌘B).
-- Con la pagina intera a schermo, la rotella o lo scorrimento con due dita sfogliano il libro: in giù o a destra in avanti, in su o a sinistra indietro. Con lo zoom il canvas scorre normalmente. A canvas attivo e senza selezione, **←** e **→** girano pagina.
-- **Vista** contiene pagina singola o doppia (⌘1, ⌘2), lo zoom (⌘+, ⌘−, ⌘0), la guida della piega e **Sfoglia il libro** (⌥⌘↩). In Sfoglia, le frecce cambiano doppia ed **Esc** chiude.
-- La cornice dell’app segue la modalità chiara o scura del Mac. Le pagine mantengono i colori del modello.
+## Make your first book
 
-## Montare le pagine
+1. Choose **New Book from a Photos Album** and allow access when macOS asks. Pick an album, select the pictures, set the size and press **Auto-Layout**. **New Book from Finder Files** works without Photos. **Open the Sample Book** needs no permissions at all.
+2. A new book opens on the **Book Templates** chooser. **Apply** sets paper, type and margins. **Cancel** keeps the basic style. You can change the template later from **Style** in the toolbar.
+3. Arrange the pages. Drag photos from the **Photo Library** tray at the bottom onto a page, drag thumbnails in the **Pages** sidebar to reorder pages, and pick a layout with **Layout** in the toolbar.
+4. Select a heading, story or text box to write and format it. Select a photo to adjust it or give it a film look.
+5. Choose **Save Project** to keep a `.papergrain` package, then **Export PDF** or **Export for Print**.
 
-- Un clic seleziona l’elemento visibile più in alto. Clicca sulla carta libera o fuori dalla pagina per deselezionare, oppure usa **Esc** o **⇧⌘A**. Le frecce spostano l’oggetto selezionato di un punto. Tieni premuto **⇧** per spostarlo di dieci punti.
-- Con il canvas attivo, premi **Canc** o **⌫** per rimuovere la foto o il box selezionato. **⌘Z** ripristina l’elemento. I pulsanti ai lati della barra mostrano o nascondono **Pagine** e **Ispettore**. Gli scatti in attesa di un riquadro si gestiscono nell’elenco **Foto nella pagina**.
+## The window
 
-- In **Foto**, le miniature mostrano l’intero scatto e un’icona indica se è verticale, orizzontale o quadrato. Il bollino indica la prima pagina in cui compare uno scatto. **C** e **R** indicano copertina e retro. Se la foto è usata più volte, passa il puntatore sulla miniatura per vedere tutte le posizioni. Fai doppio clic su uno scatto per inserirlo o toglierlo dalla pagina corrente. Trascinalo dal riquadro direttamente nel punto in cui vuoi posizionarlo. Sulla pagina puoi selezionarlo e premere **⌫** o **Canc** per rimuoverlo dalla composizione. Lo scatto resta nella libreria del libro. Le maniglie agli angoli permettono di ingrandirlo anche oltre il bordo. La parte oltre il taglio rimane fuori dalla pagina. Fai doppio clic sulla foto in pagina per modificarne il ritaglio e premi **Fine** per applicare.
-- In **Pagina → Modello di pagina** scegli una composizione **Con margini** o **Al vivo**. È l’unico selettore del tipo di pagina: **Galleria automatica** dispone le foto da sola, gli altri modelli fissano le cornici, **Solo testo** e i modelli con testo sostituiscono le vecchie pagine di testo e miste. Scegli **Due pagine** e trascina una foto sulla doppia per riempirla. I modelli al vivo comprendono anche due foto affiancate o una sopra l’altra, tre colonne, una griglia di quattro e una foto grande sopra due più piccole. Scegliere un modello ridistribuisce le cornici. Testo, box, scatti e ritagli restano associati alla pagina. Gli scatti che eccedono la capienza del modello sono indicati nella lista della pagina e tornano visibili quando c’è posto.
-- Per scambiare due foto della stessa pagina, trascina una foto all’interno dell’altra e rilascia quando vedi il bordo con le frecce. I ritagli seguono i rispettivi scatti. Tieni premuto **⌥** per sovrapporre liberamente le foto. **⌘Z** annulla lo scambio.
-- **Inserisci → Box di testo** crea un riquadro indipendente. **Inserisci → Titolo di pagina** aggiunge un titolo anche su una pagina fotografica. Clicca un titolo, un racconto o un box e trascinalo per spostarlo. Usa le maniglie laterali per allargarlo e gli angoli per cambiarne anche l’altezza. Fai doppio clic per scrivere nella pagina. Titolo e racconto si adattano alla larghezza impostata. **Usa tutta la larghezza** elimina i margini interni di un box.
-- Trascina lo sfondo del racconto o la maniglia **Sposta blocco** per muovere insieme titolo, testo e sfondo. Trascina direttamente il titolo o il testo per spostare solo quel riquadro.
-- In **Tipografia**, usa **−** e **+** per cambiare la dimensione di un punto o digita il valore nel campo.
-- Quando sposti una foto o un box, le guide colorate indicano l’aggancio a bordi e centri degli altri elementi nella pagina. Le guide compaiono anche trascinando una foto dalla scheda **Foto** o usando le maniglie della foto e del riquadro di ritaglio. Continua oltre la soglia o tieni premuto **⌥** mentre trascini per posizionare liberamente.
-- **Copertina**, **Prima pagina** e **Retro copertina** si aprono dal navigatore. **Inserisci → Frontespizio** aggiunge una pagina iniziale con il titolo del libro. Su fronte e retro puoi trascinare una foto, spostarla, ridimensionarla con le maniglie e fare doppio clic per ritagliarla. Seleziona un testo per spostarne o allargarne il riquadro e aprire i controlli tipografici. Fai doppio clic per scrivere nel canvas. Se la faccia è vuota, usa **Aggiungi testo**.
+| Area | What it does |
+|---|---|
+| **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
+| **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
+| **Canvas** | One page or a spread (⌘1, ⌘2), zoom (⌘+, ⌘−, ⌘0). When the whole page fits, scroll or swipe to turn pages. **Browse the Book** (⌥⌘↩) shows the book full screen. |
+| **Photo Library** (bottom, ⌥⌘L) | Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here to add them. |
+| **Inspector** (right, ⌥⌘I) | Tabs follow the selection. **Page** or **Cover**. **Text** for a heading, story or box. **Photo** for a selected photo. **Film** for the book look when no photo is selected. |
 
-## Modelli del libro
+The app frame follows the Mac's light or dark appearance. Pages always keep their template colors.
 
-Da **Stile** nella barra, da **Pagina → Modello del libro** o da **File › Modelli del libro…** scegli fra dodici modelli in tre famiglie: **Classici** (Diario, Atlante, Galleria, Essenziale), **Studio** (Griglia svizzera, Quaderno berlinese, Intervallo giapponese) e **Fotolibro d’autore** (Monografia, Cartolina, Notturno, Kodachrome, Diario di bordo), ispirati ai fotolibri premiati. Il modello imposta carta, tipografia, ritmo della pagina e copertina. Nella stessa finestra, **Mostra numeri di pagina** controlla la numerazione stampata sulle pagine con margini. Puoi inserire un titolo dall’ispettore nelle pagine con testo. [Dettagli dei modelli](docs/templates.md).
+## Laying out pages
 
-## Formattare titoli e testi
+- **Select and move.** A click selects the topmost object. Click blank paper, or press Esc or ⇧⌘A, to deselect. Arrow keys nudge the selection by 1 pt, or 10 pt with ⇧. Delete removes it from the page, and ⌘Z brings it back.
+- **Page layouts.** **Page → Page Template**, or **Layout** in the toolbar, is the single control for the page type. **Automatic gallery** arranges the photos for you. Fixed layouts, with margins or full bleed, place frames, and **Full Spread** fills both pages. Photos that do not fit a layout stay listed on the page until there is room.
+- **Photos.** Drag a photo from the tray to where you want it. Use the corner handles to resize, even past the trim. Double-click to crop, then press **Done**. Drop a photo inside another one to swap them; hold ⌥ to overlap freely instead. Guides show alignment with edges and centers; hold ⌥ to ignore them.
+- **Layers.** Right-click, or Control-click, a photo, box or story for its own menu. It includes **Bring to Front**, **Bring Forward**, **Send Backward** and **Send to Back**. The same commands are in the **Arrange** menu (⇧⌘F, ⌥⇧⌘F, ⌥⇧⌘B, ⇧⌘B). The order is saved and used in the PDF.
+- **Text.** **Insert → Text Box** adds a free text frame. **Insert → Page Heading** adds a heading to any page. Drag text to move it; use the side handles for width and the corners for height. Double-click to type on the page. Drag the story's background, or its **Move Story Group** handle, to move heading, story and background together.
+- **Cover.** **Cover**, **First Page** and **Back Cover** open from the Pages sidebar. **Insert → Title Page** adds an opening page with the book title. Both cover faces take a photo and text that you can move, resize and crop.
 
-Seleziona un titolo, un racconto o un box: l’ispettore apre la scheda **Testo**, come il pannello Formato di Keynote. **Carattere** sceglie famiglia e variante, la dimensione si cambia con **−**, **+** o digitando i punti, e il colore con i campioni del modello o il selettore di sistema. Seguono **Allineamento** e **Interlinea**. **Ripristina stile del modello** toglie le modifiche locali. **Disposizione** porta l’elemento in primo piano o in fondo. In **Libro e stampa → Tipografia del libro** imposti font, dimensione in punti e allineamento predefiniti per tutti i titoli e tutti i testi. Anche copertina e retro hanno controlli propri. Il selettore cerca fra i caratteri installati sul Mac, permette di scegliere famiglia e variante e mostra l’anteprima con il testo selezionato. Preferiti e recenti restano sul Mac. Il ripristino riporta il testo ai valori ereditati. Anteprima, miniature e PDF condividono lo stile del progetto.
+## Book templates
 
-## Pellicole e stampa
+Choose **Style** in the toolbar, the **Book Template** row in the Page tab, or **File › Book Templates…**:
 
-Seleziona una foto: la scheda **Foto** riunisce **Regola**, **Pellicola** e **Analisi** in sezioni chiuse all’apertura. Accanto al titolo della sezione **Pellicola** compare il look in uso. La bacchetta **Migliora in automatico** analizza la foto sul Mac e propone valori modificabili di luce e colore. I controlli comprendono luce, colore e bilanciamento del bianco, bianco e nero, dettagli e nitidezza, riduzione del rumore, vignettatura, curve, livelli e colore selettivo. Il confronto mostra il file di partenza. Le modifiche seguono lo scatto in ogni pagina e nel PDF.
+- **Classics:** Diary, Atlas, Gallery and Essential.
+- **Studio:** Swiss Grid, Berlin Notebook and Japanese Interval.
+- **Photobook:** Monograph, Postcard, Nocturne, Kodachrome and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's *Kodachrome* and *American Surfaces*.
 
-Con una foto selezionata, la sezione **Pellicola** cambia solo quella foto. Spunta **Cambia in tutto il libro** per cambiare invece il look del libro: la foto torna a seguirlo. **Segui il libro** toglie a una foto il look proprio. Senza foto selezionata, la scheda **Pellicola** imposta il look di tutto il libro e indica quante foto hanno un look proprio, con **Uniforma** per riallinearle. Ogni look ha intensità, grana e dimensione regolabili. **Originale** permette il confronto. Si possono importare LUT fotografiche 3D CUBE e HaldCLUT PNG. Il pacchetto conserva una copia dei file importati e ogni foto può ereditare il look del libro. Ogni scelta di look o trascinamento di un cursore forma una singola azione per **⌘Z**. Anche **Applica** in **Libro e stampa** o in **Modelli del libro** si annulla con una sola azione.
+Each template sets paper color, typefaces, margins, the automatic gallery, text-over-photo panels and a cover title scaled to the template. From a spine width of 5 mm, the spine carries the book title. **Show Page Numbers** turns printed folios on or off. [Template notes](docs/templates.md).
 
-Il menu **Scegli LUT** mostra il nome della LUT attiva e contiene le 14 LUT sRGB di abpy. Da qui puoi anche importare una LUT personale. Le undici LUT in **Base a contrasto lineare** richiedono uno sviluppo con contrasto lineare. Le tre in **Da Provia** sono pensate per immagini già sviluppate con Provia. Il file che scegli viene copiato nel progetto. [Crediti e licenza delle LUT](Resources/FujifilmFilmLooks/CREDITS.md).
+## Formatting text
 
-In **Libro e stampa** si possono cambiare formato (scegliendo fra 21 misure tipiche di fotolibro o una misura personalizzata), bleed, margine, risoluzione desiderata, tipo di PDF e lato della prima pagina. Imposta la copertina con foto di fronte e retro e la larghezza del dorso. **Esporta per la stampa** produce `Interior.pdf` e, se attivata, `Cover.pdf`. L’esportazione segnala foto sotto la risoluzione obiettivo e pagine di compensazione necessarie per i panorami. Usa le misure del prodotto scelto presso la tipografia.
+Select a heading, story or text box and the **Text** tab opens, like Keynote's Format panel:
 
-Da **Esporta PDF** puoi scegliere **PDF da sfogliare**, **Stampa generica** o **Pixartprinting · 21 × 21 cm**. Il profilo Pixartprinting richiede un libro di quel formato con copertina e il dorso in millimetri dal preventivo. Produce un PDF unico in scala 1:1 con copertina rigida stesa e facciate interne singole da 216 × 216 mm, inclusi 3 mm di abbondanza per lato. La foliazione segue il libro e le eventuali pagine di compensazione. Il profilo del PDF è sRGB. I requisiti colore del prodotto si verificano nelle istruzioni del preventivo. [Pixartprinting · Fotolibri](https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/fotolibri/)
+- **Font:** choose a family and style from the fonts installed on your Mac, with a live preview. Favorites and recent fonts are kept.
+- **Size:** −, + or type the size in points.
+- **Color:** the template's swatches or any color.
+- **Alignment** and **Line Spacing.**
+- **Reset to Template Style** removes local changes. **Arrange** brings the object to the front or sends it to the back.
 
-## Foto e dati del progetto
+Book-wide defaults for headings and body text are in **Book & Print → Book Typography**. The editor, thumbnails and PDF share the same Core Text layout, so what you see is what prints.
 
-L’app copia le immagini selezionate nel progetto. Foto può recuperare da iCloud gli originali selezionati quando servono. Vision esegue sul Mac l’analisi delle copie orientate, usando immagini ridotte fino a 640 pixel. Il pacchetto conserva le etichette e i temi. Il confronto col racconto usa etichette e parole in italiano e inglese. In caso di analisi incompleta, l’editor consente di riprovare.
+## Photo adjustments and film looks
 
-Il libro nasce come bozza nell’area Application Support dell’utente. Il pacchetto che si salva esplicitamente contiene le immagini, l’analisi e il documento. Trattarlo come l’album originale quando lo si condivide. Le foto e gli appunti privati del viaggio Namibia si tengono fuori dal repository.
+Select a photo. The **Photo** tab groups **Adjust**, **Film** and **Analysis** in sections that start collapsed. The current look is shown next to **Film**.
 
-## Stato e sviluppo
+- **Adjust:** **Auto Enhance** analyses the photo on your Mac and proposes values you can edit. Then come light, color and white balance, black & white, detail and sharpness, noise reduction, vignette, curves, levels and selective color. **Compare with original** shows the untouched file. Adjustments follow the photo everywhere it is used, and into the PDF.
+- **Film for one photo:** with a photo selected, a film choice changes **only that photo**. Tick **Change the whole book** to change the book look instead; the photo then follows the book again. **Follow Book** removes a photo's own look.
+- **Film for the whole book:** with nothing selected, the **Film** tab sets the look for every photo that follows the book. It also tells you how many photos have their own look, and **Match Book** brings them back.
+- **LUTs:** **Choose LUT** lists 14 sRGB Fujifilm-style LUTs by abpy and imports your own 3D `.cube` or HaldCLUT `.png`. Imported LUTs are copied into the project.
 
-L’impaginazione iniziale resta in ordine di scatto e in righe che rispettano le proporzioni. Il PDF di prova e il pacchetto di stampa condividono colore e composizione. La produzione va collaudata sul formato scelto presso la tipografia.
+Every look choice or slider drag is a single ⌘Z step.
 
-- [Architettura e formato del documento](docs/architecture.md)
-- [Collaudi e stato delle funzionalità](docs/status.md)
-- [Confronto del motore con Fotobuch](docs/layout-comparison.md)
-- [Istruzioni per chi lavora al codice](AGENTS.md)
+## Printing
 
-`swift test` verifica la riapertura dei documenti, il trasferimento delle LUT e la geometria dei PDF.
+**Book & Print** sets the format, bleed, safe margin, target resolution, PDF type, the side of the first page and the cover with spine width.
+
+- **Export for Print** writes `Interior.pdf` and, if enabled, `Cover.pdf`. It flags photos below the target resolution and the filler pages that panoramas need.
+- **Export PDF** offers **Viewing PDF**, **Generic Print** and **Pixartprinting · 21 × 21 cm**. The Pixartprinting profile writes one 1:1 PDF: a flat hardcover with the spine width from your quote, then single 216 × 216 mm pages with 3 mm bleed. PDFs are sRGB.
+
+Always use the exact dimensions and color requirements of the product you order.
+
+## Command line
+
+The app binary includes a CLI. It can build a book from a JSON spec, list and search photos, apply patches, create variants, import LUTs and export PDFs:
+
+```sh
+swift run PaperAndGrain cli build trip.json Trip.papergrain
+"Paper & Grain Redesign.app/Contents/MacOS/PaperAndGrain" cli export-pdf Trip.papergrain --profile print --output Trip.pdf
+```
+
+See the [CLI guide](docs/cli.md) for every command and the JSON formats.
+
+## Privacy and project files
+
+- **Photos:** selected photos are copied into the book. Photos may download originals from iCloud when they are needed.
+- **Analysis:** Vision runs on the Mac on copies of up to 640 pixels. Labels and themes are stored in the project.
+- **Drafts and packages:** a new book starts as a draft in your user's Application Support folder. A saved `.papergrain` package holds the images, the analysis and the document; share it only as you would share the original album.
+- **This repository:** it contains only synthetic or authorised test images. Keep personal albums, local projects and private text out of Git.
+
+## Documentation
+
+The developer documentation is written in Italian:
+
+- [AGENTS.md](AGENTS.md): instructions for people and coding agents working on the code. Entry points, how to work in increments and how to verify changes.
+- [Architecture and document format](docs/architecture.md)
+- [Testing log and feature status](docs/status.md)
+- [Templates](docs/templates.md)
+- [CLI](docs/cli.md), [editing commands](docs/cli-editing.md) and [media commands](docs/cli-media.md)
+- [Layout engine compared with Fotobuch](docs/layout-comparison.md)
+
+## Licensing
+
+The Fujifilm-style LUTs in `Resources/FujifilmFilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FujifilmFilmLooks/CREDITS.md). The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
+
+The source code has no open-source license yet, so all rights are reserved until one is added.

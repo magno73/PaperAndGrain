@@ -22,7 +22,7 @@ Paper & Grain è un editor nativo per fotolibri di viaggio. Le schermate dell’
 - `FujifilmFilmLooks.swift` identifica le LUT Fujifilm incluse. Aggiorna catalogo, verifiche di integrità e [attribuzione](Resources/FujifilmFilmLooks/CREDITS.md) insieme alle risorse.
 - `BookSettingsView.swift`, `PDFExportChooser.swift`, `PixartPrintProfile.swift` e `BookPDF.swift` gestiscono impostazioni, selezione del profilo, formato e stampa. [Architettura](docs/architecture.md) descrive i contratti fra questi componenti.
 
-I sorgenti Swift sono in `Sources/PaperAndGrain/`. `scripts/build-app.sh` compila e prepara il bundle da collaudare.
+I sorgenti Swift sono in `Sources/PaperAndGrain/`. `scripts/build-app.sh` compila e prepara il bundle da collaudare e lo copia sempre in `~/Applications/Paper & Grain Redesign.app`. Indica all’utente quel percorso dopo ogni build.
 
 ## Lavorare per incrementi
 
@@ -38,7 +38,7 @@ Verifica ogni nuova etichetta visibile in IT e EN. Usa il catalogo `Resources/Lo
 - Per una modifica all’esportazione, apri il PDF risultante e controlla dimensioni, testo lungo, foto a tutta pagina e continuità delle doppie pagine.
 - Per una modifica ai gesti, prova una doppia pagina con un box di testo e due foto. Verifica trascinamento, selezione, ridimensionamento, riordino dal navigatore e riapertura del progetto.
 - Per una modifica all’analisi, prova almeno un racconto italiano, uno inglese e un testo senza corrispondenze. Verifica che i match suggeriti siano spiegabili dalle etichette e che rimangano modificabili.
-- Nello stesso commit di una modifica rilevante, aggiorna il README se cambiano avvio o percorso utente. Aggiorna architettura se cambia un contratto. In `docs/status.md` annota cosa hai verificato e che cosa resta da provare.
+- Nello stesso commit di una modifica rilevante, aggiorna il README se cambiano avvio o percorso utente. Il README è in inglese e usa le etichette inglesi dell’app. La documentazione in `docs/` resta in italiano. Aggiorna architettura se cambia un contratto. In `docs/status.md` annota cosa hai verificato e che cosa resta da provare.
 - Per il passaggio di consegne registra il risultato osservato e la prossima azione concreta. Inserisci nella documentazione i dettagli tecnici durevoli.
 
 Dai ad Astra decisioni trasversali su modello, colore e stampa. Usa Sol per viste o integrazioni con contratti definiti e verifiche ripetibili.
