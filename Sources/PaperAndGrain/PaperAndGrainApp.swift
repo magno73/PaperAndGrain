@@ -170,6 +170,7 @@ struct PaperAndGrainApp: App, Localizing {
                 Button(tr("Export for Print…")) { workspace.exportPrint(language: language) }
                     .disabled(workspace.directory == nil || workspace.book.pages.isEmpty || workspace.exporting)
             }
+            TextEditingCommands()
             EditorMenus(language: language)
             AboutHelpCommands(language: language)
         }
@@ -294,9 +295,15 @@ private struct BookSettingsSheets: ViewModifier, Localizing {
 private struct AppSettingsView: View, Localizing {
     let language: String
     @Binding var preferredLanguage: String
+    @AppStorage("checkSpellingInIssues") private var checksSpelling = true
 
     var body: some View {
         Form {
+            Toggle(tr("Check spelling in the issues list"), isOn: $checksSpelling)
+            Text(tr("Possible misspellings are listed as warnings. Place names from your photos, words in capitals and words you taught the Mac are left out."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Picker(tr("App Language"), selection: $preferredLanguage) {
                 Text(tr("System Default")).tag("system")
                 Text("Italiano").tag("it")

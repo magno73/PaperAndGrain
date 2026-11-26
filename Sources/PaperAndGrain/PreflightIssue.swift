@@ -114,6 +114,8 @@ extension BookPDF {
             case missingMeasure(PrintMeasure, tableLimit: Int?)
             /// A caption on its photo taller than half the photo, or a caption that crosses the trim.
             case captionDoesNotFit
+            /// A word the spell checker does not know, with a few words around it.
+            case possibleMisspelling(word: String, context: String)
 
             /// The kind without its details, for the issue's id.
             var kind: String {
@@ -131,7 +133,13 @@ extension BookPDF {
                 case let .pageCount(limit, _, _): "pageCount." + limit.key
                 case let .missingMeasure(measure, _): "missingMeasure." + measure.rawValue
                 case .captionDoesNotFit: "captionDoesNotFit"
+                case .possibleMisspelling: "possibleMisspelling"
                 }
+            }
+
+            /// What tells two problems of one kind on one object apart, for the issue's id.
+            var idDetail: String? {
+                if case let .possibleMisspelling(word, _) = self { word.lowercased() } else { nil }
             }
 
             /// An SF Symbol name for the kind of problem.
@@ -150,6 +158,7 @@ extension BookPDF {
                 case .pageCount: "book.pages"
                 case .missingMeasure: "ruler"
                 case .captionDoesNotFit: "text.below.photo"
+                case .possibleMisspelling: "textformat.abc"
                 }
             }
         }
@@ -189,7 +198,7 @@ extension BookPDF {
 
         /// Built from the kind, the page and the object, so a list keeps its rows between runs.
         var id: String {
-            [problem.kind, pageID?.uuidString ?? "-", target?.key ?? "-"]
+            [problem.kind + (problem.idDetail.map { ":" + $0 } ?? ""), pageID?.uuidString ?? "-", target?.key ?? "-"]
                 .joined(separator: "|") + (occurrence > 0 ? "|" + String(occurrence) : "")
         }
 
@@ -261,6 +270,8 @@ extension BookPDF {
             case let .missingMeasure(measure, nil):
                 [place, L10n.format("%@ missing: enter it from the printer’s quote", language: language,
                                     [measure.label(language)])]
+            case let .possibleMisspelling(word, context):
+                [place, "“" + word + "”", context.isEmpty ? nil : context]
             case .captionDoesNotFit: [place, excerpt.map { "“" + $0 + "”" }, L10n.string("Caption does not fit", language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")

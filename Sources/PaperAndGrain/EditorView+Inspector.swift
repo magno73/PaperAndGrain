@@ -231,11 +231,13 @@ extension EditorView {
                     ))
                     .textFieldStyle(.roundedBorder)
                     .focused($headingFocused)
+                    .checksSpelling()
                     if showsBody {
                         TextEditor(text: text)
                             .font(.system(size: 14, design: .serif))
                             .scrollContentBackground(.hidden)
                             .focused($writing)
+                            .checksSpelling()
                             .padding(5)
                             .frame(minHeight: 140)
                             .background(paper, in: RoundedRectangle(cornerRadius: 6))
@@ -355,6 +357,7 @@ extension EditorView {
                     .font(.system(size: 14, design: .serif))
                     .scrollContentBackground(.hidden)
                     .focused($writingBox)
+                    .checksSpelling()
                     .padding(5)
                     .frame(minHeight: 102)
                     .background(paper, in: RoundedRectangle(cornerRadius: 6))
@@ -555,6 +558,7 @@ extension EditorView {
             ))
             .textFieldStyle(.roundedBorder)
             .focused($headingFocused)
+            .checksSpelling()
             EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
                                        inherited: style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
                                            .applying(book.typography?.title),

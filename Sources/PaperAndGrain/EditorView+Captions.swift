@@ -121,6 +121,7 @@ extension EditorView {
                       prompt: Text(tr("Place, date or a few words")), axis: .vertical)
                 .lineLimit(2...6)
                 .textFieldStyle(.roundedBorder)
+                .checksSpelling()
                 .accessibilityLabel(tr("Caption"))
                 .help(tr("Printed with the photo on every page where it appears"))
             if let selection = canvasPhotoSelection, selection.photoID == photo.id, let pageID = selection.pageID {
@@ -214,6 +215,7 @@ extension EditorView {
                     .background(Color(cgColor: EditorialStyle.color(onPhoto ? style.overlayPaper : style.paper)))
                     .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
                     .focused($editorialFocus, equals: object)
+                    .checksSpelling()
                     .accessibilityLabel(tr("Caption"))
                     .onExitCommand(perform: endInlineTextEditing)
                     .task(id: object) {

@@ -32,6 +32,10 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
 - Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
 
+### Spelling
+
+- **Edit › Spelling and Grammar** and spell checking while typing in every book text. **Issues** lists possible misspellings (Italian and English), without place names of your photos, capitals, numbers and short words; **Ignore in This Book** and **Learn Spelling** on each row. **Settings › Check spelling in the issues list** switches it off. A book saved by 0.10 opens unchanged.
+
 ### Similar photos
 
 - **Stack Similar Photos** in the Photo Library menu groups near-duplicate photos under one thumbnail with a count. Click the count to open the group; **Compare…** shows the photos side by side, and **Use This One** swaps the others for it wherever they are placed, in one undo step.

@@ -150,6 +150,8 @@ struct Book: Identifiable, Codable, Hashable, Sendable {
     var template: BookTemplate? = nil
     var typography: EditorialTypography? = nil
     var showPageNumbers: Bool? = nil
+    /// Words the author told the spelling check to leave alone in this book (**Ignore in This Book**).
+    var ignoredSpellings: [String]? = nil
     /// Manifest revision of the app that last wrote the book (`Workspace.writerVersion`); absent in older books.
     var writerVersion: Int? = nil
 

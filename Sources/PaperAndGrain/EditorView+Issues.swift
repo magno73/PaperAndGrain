@@ -68,12 +68,48 @@ extension EditorView {
         .frame(width: 360, alignment: .leading)
     }
 
+    /// The check the live list runs: the preflight, and the spelling of the book's texts when Settings allows it.
+    nonisolated static let liveCheck: IssueMonitor.Check = { book, directory, profile in
+        var report = BookPDF.preflight(book, directory: directory, profile: profile)
+        if UserDefaults.standard.object(forKey: "checkSpellingInIssues") as? Bool ?? true {
+            report.warnings += BookSpelling.shared.issues(in: book)
+        }
+        return report
+    }
+
+    /// **Ignore in This Book** (one undo step) with **Learn Spelling** next to it.
+    func spellingFix(for word: String) -> IssueFix {
+        let learn = IssueFix(title: tr("Learn Spelling"),
+                             help: tr("Add the word to the Mac’s dictionary, for every app"),
+                             systemImage: "character.book.closed") {
+            BookSpelling.shared.learn(word)
+            recheckIssues(immediately: true)
+        }
+        return IssueFix(title: tr("Ignore in This Book"),
+                        help: tr("Stop flagging this word in this book"),
+                        systemImage: "eye.slash", perform: { ignoreSpelling(word) }, alternates: [learn])
+    }
+
+    func ignoreSpelling(_ word: String) {
+        let previous = book.ignoredSpellings
+        var words = previous ?? []
+        guard !words.contains(where: { $0.caseInsensitiveCompare(word) == .orderedSame }) else { return }
+        words.append(word)
+        book.ignoredSpellings = words
+        if let undoManager {
+            undoTarget.registerIgnoredSpellings(undoManager, binding: $book, bookID: book.id,
+                                                previous: previous, name: tr("Ignore Spelling"))
+        }
+    }
+
     /// The remedy a row offers. Every kind is listed, so a new one cannot be forgotten: it stops
     /// compiling here until it says whether it has a fix.
     func issueFix(for issue: BookPDF.PreflightIssue) -> IssueFix? {
         switch issue.problem {
         case .missingFile:
             relinkFix(for: issue)
+        case let .possibleMisspelling(word, _):
+            spellingFix(for: word)
         case .invalidDimensions, .missingPhoto, .unreadableLUT, .lowResolution, .textOverflows,
              .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure,
              .captionDoesNotFit:
@@ -105,6 +141,32 @@ extension EditorView {
             case .cover:
                 break
             }
+        }
+        if case let .possibleMisspelling(word, _) = issue.problem { openForEditing(issue, word: word) }
+    }
+
+    /// A spelling row opens its text for typing, so the word can be corrected where it is.
+    private func openForEditing(_ issue: BookPDF.PreflightIssue, word: String) {
+        switch (issue.destination(in: book), issue.target) {
+        case let (.cover(front)?, _):
+            editingEditorial = .cover(front ? .front : .back)
+        case let (.page(id)?, target?):
+            guard let leaf = book.pages.first(where: { $0.id == id }) else { return }
+            switch target {
+            case .story:
+                let wanted: PageComposition.TextRole = leaf.heading?.localizedCaseInsensitiveContains(word) == true ? .title : .body
+                let roles = PageComposition(page: leaf, book: book).storyDrawingBlocks(page: leaf, book: book).map(\.role)
+                guard let role = roles.contains(wanted) ? wanted : storyRole(of: leaf) else { return }
+                editingEditorial = .page(leaf.id, role)
+            case let .textBox(boxID):
+                if leaf.textBoxes?.contains(where: { $0.id == boxID }) == true { beginInlineBoxEditing(boxID, in: leaf) }
+            case let .caption(photoID):
+                beginCaptionEditing(photoID, in: leaf)
+            case .photo, .cover:
+                break
+            }
+        default:
+            break
         }
     }
 

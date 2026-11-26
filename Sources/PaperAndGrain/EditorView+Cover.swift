@@ -124,6 +124,7 @@ extension EditorView {
                 ))
                 .textFieldStyle(.roundedBorder)
                 .focused($writing)
+                .checksSpelling()
             } else {
                 TextEditor(text: Binding(
                     get: { book.cover?.backText ?? "" },
@@ -132,6 +133,7 @@ extension EditorView {
                 .font(.system(size: 14, design: .serif))
                 .scrollContentBackground(.hidden)
                 .focused($writing)
+                .checksSpelling()
                 .padding(5)
                 .frame(minHeight: 100)
                 .background(paper, in: RoundedRectangle(cornerRadius: 6))

@@ -668,6 +668,7 @@ extension EditorView {
                 .background(Color(cgColor: EditorialStyle.color(textPaper ?? style.paper)))
                 .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }
                 .focused($editorialFocus, equals: object)
+                .checksSpelling()
                 .accessibilityLabel(label)
                 .onExitCommand(perform: endInlineTextEditing)
                 .task(id: object) {
@@ -760,6 +761,7 @@ extension EditorView {
             .foregroundStyle(Color(cgColor: EditorialStyle.color(type.color ?? style.ink)))
             .scrollContentBackground(.hidden)
             .focused($inlineBoxFocus, equals: box.id)
+            .checksSpelling()
             .padding(max(0, box.textInsetPoints * scale - 4))
             .background(Color(cgColor: EditorialStyle.color(box.fill(paper: style.paper) ?? style.paper)).opacity(box.hidesBackground == true ? 0.7 : 1))
             .overlay { Rectangle().strokeBorder(pine, lineWidth: 1.5).allowsHitTesting(false) }

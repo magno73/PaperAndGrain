@@ -7,6 +7,8 @@ struct IssueFix {
     let help: String
     var systemImage: String?
     let perform: () -> Void
+    /// Further remedies for the same row, shown as extra buttons.
+    var alternates: [IssueFix] = []
 }
 
 /// The rows of a preflight result: problems, then warnings, each under the page it belongs to.
@@ -86,10 +88,12 @@ struct IssueList: View, Localizing {
                     .accessibilityLabel(kind + ": " + spoken)
             }
             if let fix = fix(issue) {
-                Button(fix.title) { fix.perform() }
-                    .controlSize(.small)
-                    .help(fix.help)
-                    .accessibilityHint(fix.help)
+                ForEach(Array(([fix] + fix.alternates).enumerated()), id: \.offset) { _, option in
+                    Button(option.title) { option.perform() }
+                        .controlSize(.small)
+                        .help(option.help)
+                        .accessibilityHint(option.help)
+                }
             }
         }
     }

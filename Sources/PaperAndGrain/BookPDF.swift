@@ -400,7 +400,7 @@ enum BookPDF {
     }
 
     /// The first words of a box's text, short enough for a list row; nil for an empty box.
-    private static func excerpt(of text: String) -> String? {
+    static func excerpt(of text: String) -> String? {
         let words = text.split(whereSeparator: \.isWhitespace).prefix(4).joined(separator: " ")
         guard !words.isEmpty else { return nil }
         return words.count > 28 ? String(words.prefix(28)) + "…" : words

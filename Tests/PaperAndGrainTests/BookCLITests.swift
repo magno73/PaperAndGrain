@@ -37,4 +37,15 @@ final class BookCLITests: XCTestCase {
         XCTAssertThrowsError(try BookCLI.execute(["build", spec.path, root.appendingPathComponent("demo.papergrain").path]))
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), ["spec.json"])
     }
+
+    func testBuildSpecAcceptsIgnoredSpellings() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let spec = root.appendingPathComponent("spec.json")
+        let project = root.appendingPathComponent("demo.papergrain")
+        try Data(#"{"version":1,"title":"Test","assets":[],"pages":[{"layout":"text","text":"Swakopmund"}],"ignoredSpellings":["Swakopmund","Etosha"]}"#.utf8).write(to: spec)
+        _ = try BookCLI.execute(["build", spec.path, project.path])
+        XCTAssertEqual(try BookStorage.read(from: project).ignoredSpellings, ["Swakopmund", "Etosha"])
+    }
 }

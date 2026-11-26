@@ -67,6 +67,8 @@ enum BookCLI {
         let pages: [Page]
         let cover: Cover?
         let printService: PrintService?
+        /// `Book.ignoredSpellings`: words the spelling check leaves alone.
+        let ignoredSpellings: [String]?
     }
 
     struct Failure: LocalizedError {
@@ -272,7 +274,7 @@ enum BookCLI {
     private static func checkSpecKeys(_ data: Data) throws {
         let root = try JSONSerialization.jsonObject(with: data)
         try checkKeys(root, ["version", "title", "format", "template", "showPageNumbers", "typography", "assets", "pages",
-                             "cover", "printService"], at: "spec")
+                             "cover", "printService", "ignoredSpellings"], at: "spec")
         guard let spec = root as? [String: Any] else { return }
         try checkKeys(spec["format"], ["widthMM", "heightMM"], at: "format")
         try checkKeys(spec["printService"], ["profile", "size", "paper"], at: "printService")
@@ -372,6 +374,7 @@ enum BookCLI {
         }
         photos = ids
         book.typography = spec.typography
+        book.ignoredSpellings = spec.ignoredSpellings?.isEmpty == false ? spec.ignoredSpellings : nil
         for (index, page) in spec.pages.enumerated() {
             let boxes = page.textBoxes?.map { box in
                 PageTextBox(id: box.id ?? UUID(), text: box.text ?? "", frame: box.frame, typography: box.typography,

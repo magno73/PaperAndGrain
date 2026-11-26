@@ -99,6 +99,18 @@ Unit tests cover the copy (only the page id and box ids differ, the layer order 
 5. Italian: **Pagina › Duplica pagina**, and the undo item reads "Annulla Duplica pagina".
 6. Close and reopen the book: the copy is still there.
 
+### Spelling (T9)
+
+Unit tests (`SpellingTests`, with a fake checker) cover the page and target of each row (story, text box, caption, back cover), skipped words (ignored, learned, place names, capitals, digits, short), one row per word, stable unique ids, re-checking only the changed text, captions checked once and only when placed, the context text, and a 0.10 book decoding without `ignoredSpellings`. A smoke test with the real `NSSpellChecker` found "bellisima" in an Italian sentence and "markett" in an English one on this Mac (skipped where the dictionaries are missing). `BookCLITests` builds a book with `ignoredSpellings`. Not seen on screen:
+
+1. In a book, double-click a story on the canvas and type "una giornata bellisima": the word gets a red underline while typing; type "the markett" in a text box: underlined too. Do the same in the Page tab's story field, a text box in the Text tab, the page heading field, a photo's caption (Photo tab and in place), the cover title and the back cover text. If a field shows no underline, **Edit › Spelling and Grammar › Check Spelling While Typing** must be ticked; report which field ignored `checksSpelling()`.
+2. Repeat with **Settings › App Language** on Italian and on English: the Edit menu reads "Ortografia e grammatica" in Italian, and both languages are underlined in both.
+3. **Issues** lists both words as warnings ("p. 1 · “bellisima” · … a few words …") within a second of stopping to type. Click the row: the text opens for editing with the caret in it.
+4. **Ignore in This Book** on the row: it goes; ⌘Z brings it back; ignore again, save, quit and reopen the book: the row stays away. **Learn Spelling** on another word: it goes, and the word is accepted in other apps too (remove it with System Settings › Keyboard › Text Replacements is not needed; use Edit › Spelling and Grammar › Show Spelling and Grammar › Forget).
+5. A place name from the photos' metadata (for example a town in the Photo Library's place sort) and a word in capitals do not appear.
+6. **Settings › Check spelling in the issues list** off: the rows disappear at once; on: they return.
+7. Typing stays smooth in a 50-page book (the check runs off the main thread and only the changed text is asked again).
+
 ### Similar photos (T8)
 
 Unit tests (`SimilarPhotosTests`) cover transitive groups, the time rule at 9, 10 and 11 bits and at 119 s, 121 s and without dates, photos without a hash, stable results for shuffled input, the choice of the shown photo, `substitutePhoto` (frame, crop, layer, duplicate on the page), generated pictures (a brightened copy always groups, 2 % shifts mostly, different scenes never) and the 1,000-photo timing: about 0.3 ms release, 40 ms debug. Not seen on screen. With the sample book (it has few near-duplicates: add a copy of a photo by importing the same file twice, and a slightly brightened or cropped copy exported from Preview):

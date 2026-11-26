@@ -173,7 +173,10 @@ struct EditorView: View, Localizing {
 
     @State var cropSession: CropSession?
 
-    @State var issues = IssueMonitor()
+    @State var issues = IssueMonitor(check: EditorView.liveCheck)
+
+    /// Whether the issues list checks spelling (Settings); on unless switched off.
+    @AppStorage("checkSpellingInIssues") var checksSpellingInIssues = true
 
     @State var showsIssues = false
 
@@ -512,6 +515,7 @@ struct EditorView: View, Localizing {
         .onChange(of: book) { recheckIssues() }
         // A package renamed or moved in Finder changes where the photo files are looked up.
         .onChange(of: directory) { recheckIssues(immediately: true) }
+        .onChange(of: checksSpellingInIssues) { recheckIssues(immediately: true) }
         .onChange(of: book.photos.map(\.filename), initial: true) { refreshMissingFiles() }
         // A file that disappears (or comes back) while the book is open shows up in the live check.
         .onChange(of: issues.report) { _, report in
@@ -748,6 +752,17 @@ final class EditorUndo {
             binding.wrappedValue = restoring
             target.registerSelection(manager, binding: binding, book: book, bookID: bookID, restoring: next, then: restoring)
         }
+    }
+
+    func registerIgnoredSpellings(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                                  previous: [String]?, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID else { return }
+            let current = binding.wrappedValue.ignoredSpellings
+            binding.wrappedValue.ignoredSpellings = previous
+            target.registerIgnoredSpellings(manager, binding: binding, bookID: bookID, previous: current, name: name)
+        }
+        manager.setActionName(name)
     }
 
     func registerBookFilm(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,

@@ -992,6 +992,23 @@
         }
       }
     },
+    "Add the word to the Mac’s dictionary, for every app": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add the word to the Mac’s dictionary, for every app"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi la parola al dizionario del Mac, per tutte le app"
+          }
+        }
+      }
+    },
     "Add to Favorites": {
       "extractionState": "manual",
       "localizations": {
@@ -2704,6 +2721,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fondo carbone e margini larghi. Una foto alla volta."
+          }
+        }
+      }
+    },
+    "Check spelling in the issues list": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check spelling in the issues list"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla l’ortografia nell’elenco dei problemi"
           }
         }
       }
@@ -5475,6 +5509,40 @@
         }
       }
     },
+    "Ignore Spelling": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignore Spelling"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignora ortografia"
+          }
+        }
+      }
+    },
+    "Ignore in This Book": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignore in This Book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ignora in questo libro"
+          }
+        }
+      }
+    },
     "Import Files…": {
       "extractionState": "manual",
       "localizations": {
@@ -6144,6 +6212,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Impagina"
+          }
+        }
+      }
+    },
+    "Learn Spelling": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Learn Spelling"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impara parola"
           }
         }
       }
@@ -8485,6 +8570,23 @@
         }
       }
     },
+    "Possible misspellings are listed as warnings. Place names from your photos, words in capitals and words you taught the Mac are left out.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible misspellings are listed as warnings. Place names from your photos, words in capitals and words you taught the Mac are left out."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le possibili parole errate sono elencate come avvisi. Restano esclusi i nomi di luogo delle foto, le parole in maiuscolo e quelle insegnate al Mac."
+          }
+        }
+      }
+    },
     "Postcard": {
       "extractionState": "manual",
       "localizations": {
@@ -10361,6 +10463,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Raggruppa foto simili"
+          }
+        }
+      }
+    },
+    "Stop flagging this word in this book": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop flagging this word in this book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non segnalare più questa parola in questo libro"
           }
         }
       }
