@@ -81,6 +81,32 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertNil(try XCTUnwrap(catalog.profile("peecho-hardcover")).cover.spine, "Peecho draws no spine")
     }
 
+    func testWhiteWallTakesEveryMeasureFromTheOrder() throws {
+        try verify([Facts(id: "whitewall-coffee-table-book", service: "WhiteWall", binding: .hardcover, minimum: 28, maximum: 200,
+                          multiple: 4, coverKind: .flat, interiorBleed: .zero,
+                          sizes: ["27x35.6", "38.2x29", "29x29", "20.5x27", "27x20.5", "20.5x20.5"], colors: [.srgb])])
+        let profile = try XCTUnwrap(catalog.profile("whitewall-coffee-table-book"))
+        XCTAssertEqual(profile.interior.safe.fixedValues, PrintProfile.EdgeValues(top: 5, bottom: 5, outer: 5, inner: 5))
+        XCTAssertTrue(profile.interior.bleed.top.isTyped && profile.interior.bleed.bottom.isTyped && profile.interior.bleed.outer.isTyped)
+        XCTAssertEqual(profile.interior.bleed.inner, .fixed(PrintProfile.Length(0)), "no bleed on the binding edge")
+        XCTAssertEqual(profile.separateFiles, true)
+        let cover = profile.cover
+        XCTAssertTrue(cover.panel?.widthMM.isTyped == true && cover.panel?.heightMM.isTyped == true)
+        XCTAssertTrue(cover.spine?.isTyped == true && cover.wrap?.isTyped == true && cover.hinge?.isTyped == true)
+        XCTAssertEqual(cover.hinge?.nominal, 11, "the fold takes 10 to 12 mm from the spine")
+        XCTAssertTrue(cover.hinge?.accepts(10) == true && cover.hinge?.accepts(12) == true && cover.hinge?.accepts(13) == false)
+        // Every size is a range around the printer's nominal size, and the nominal size is what a menu proposes.
+        let size = try XCTUnwrap(profile.size("20.5x27"))
+        XCTAssertEqual(size.format, BookFormat(widthMM: 205, heightMM: 270))
+        XCTAssertTrue(size.matches(BookFormat(widthMM: 207, heightMM: 272)))
+        XCTAssertFalse(size.matches(BookFormat(widthMM: 220, heightMM: 270)))
+        // Photo papers stop at 112 pages, inkjet papers at 200.
+        for paper in profile.papers ?? [] {
+            XCTAssertEqual(profile.pageRules(for: size, paper: paper).maximum, paper.id.hasPrefix("photo") ? 112 : 200, paper.id)
+        }
+        XCTAssertEqual(profile.papers?.count, 6)
+    }
+
     // MARK: Text keeps inside the safe margin
 
     /// A page of text in every size of every entry stays inside the product's margin on the edges that are cut.

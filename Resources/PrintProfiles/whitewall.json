@@ -1,0 +1,289 @@
+[
+  {
+    "id": "whitewall-coffee-table-book",
+    "service": "WhiteWall",
+    "product": {
+      "en": "Coffee Table Book, hardcover",
+      "it": "Coffee Table Book, copertina rigida"
+    },
+    "binding": "hardcover",
+    "regions": [
+      "EU",
+      "GB",
+      "US"
+    ],
+    "sourceURL": "https://www.whitewall.com/eu/coffee-table-book/pdf-upload",
+    "verifiedOn": "2026-11-26",
+    "notes": {
+      "en": "WhiteWall gives the exact page and cover sizes, the bleed, the spine and the fold only after the book is configured (Create now › PDF upload on whitewall.com, or the InDesign template): type them in the export sheet. Content pages have bleed on the top, bottom and outer edge, none on the binding edge. The cover is one spread in its own PDF. Keep text and images 5 mm inside the edges and text at least 2 mm from the spine edges (11 pt or larger is recommended). The cover fold takes 10 to 12 mm from the spine onto the front and back. sRGB, PDF 1.4 or later, images 180 to 300 ppi, fonts embedded, no marks. The cover file may be 250 MB at most; the content file 1 GB (one WhiteWall page says 1.5 GB): keep it under 1 GB. Photo papers take at most 112 pages.",
+      "it": "WhiteWall indica le misure esatte di pagina e copertina, l'abbondanza, il dorso e la piega solo dopo aver configurato il libro (Crea ora › Caricamento PDF su whitewall.com, o il modello InDesign): inseriscile nella finestra di esportazione. Le pagine interne hanno abbondanza in alto, in basso e sul lato esterno, nessuna sul lato rilegato. La copertina è una doppia pagina in un PDF a parte. Tieni testo e immagini a 5 mm dai bordi e il testo ad almeno 2 mm dai bordi del dorso (si consigliano 11 pt o più). La piega della copertina prende da 10 a 12 mm dal dorso sul fronte e sul retro. sRGB, PDF 1.4 o successivo, immagini a 180–300 ppi, caratteri incorporati, nessun segno. Il file della copertina può pesare al massimo 250 MB, quello dei contenuti 1 GB (una pagina di WhiteWall dice 1,5 GB): restare sotto 1 GB. Le carte fotografiche arrivano a 112 pagine."
+    },
+    "papers": [
+      {
+        "id": "inkjet-glossy",
+        "name": {
+          "en": "Inkjet glossy",
+          "it": "Inkjet lucida"
+        }
+      },
+      {
+        "id": "inkjet-silk-matt",
+        "name": {
+          "en": "Inkjet silk-matt",
+          "it": "Inkjet satinata opaca"
+        }
+      },
+      {
+        "id": "inkjet-high-gloss",
+        "name": {
+          "en": "Inkjet high gloss",
+          "it": "Inkjet extra lucida"
+        }
+      },
+      {
+        "id": "photo-glossy",
+        "name": {
+          "en": "Photo glossy (Fuji Crystal Archive)",
+          "it": "Fotografica lucida (Fuji Crystal Archive)"
+        },
+        "pages": {
+          "maximum": 112
+        }
+      },
+      {
+        "id": "photo-silk-matt",
+        "name": {
+          "en": "Photo silk-matt (Fuji Crystal Archive Lustre)",
+          "it": "Fotografica satinata (Fuji Crystal Archive Lustre)"
+        },
+        "pages": {
+          "maximum": 112
+        }
+      },
+      {
+        "id": "photo-deep-matt",
+        "name": {
+          "en": "Photo deep matt (Fuji Crystal Archive Velvet)",
+          "it": "Fotografica opaca profonda (Fuji Crystal Archive Velvet)"
+        },
+        "pages": {
+          "maximum": 112
+        }
+      }
+    ],
+    "interior": {
+      "layout": "single",
+      "bleed": {
+        "top": {
+          "quote": {
+            "minMM": 0,
+            "maxMM": 10
+          }
+        },
+        "bottom": {
+          "quote": {
+            "minMM": 0,
+            "maxMM": 10
+          }
+        },
+        "outer": {
+          "quote": {
+            "minMM": 0,
+            "maxMM": 10
+          }
+        },
+        "inner": 0
+      },
+      "safe": 5,
+      "firstPage": "right",
+      "ends": "pages",
+      "targetPPI": 300,
+      "pages": {
+        "minimum": 28,
+        "maximum": 200,
+        "multiple": 4
+      }
+    },
+    "cover": {
+      "kind": "flat",
+      "panel": {
+        "widthMM": {
+          "quote": {
+            "minMM": 100,
+            "maxMM": 500
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 100,
+            "maxMM": 500
+          }
+        }
+      },
+      "hinge": {
+        "quote": {
+          "minMM": 10,
+          "maxMM": 12,
+          "typicalMM": 11
+        }
+      },
+      "spine": {
+        "quote": {
+          "minMM": 0,
+          "minExclusive": true,
+          "maxMM": 60
+        }
+      },
+      "wrap": {
+        "quote": {
+          "minMM": 0,
+          "maxMM": 30
+        }
+      },
+      "bleed": {
+        "quote": {
+          "minMM": 0,
+          "maxMM": 30
+        }
+      }
+    },
+    "files": {
+      "arrangement": "separate"
+    },
+    "color": {
+      "accepts": [
+        "srgb"
+      ],
+      "standard": "PDF 1.4 or later",
+      "flattenTransparency": false
+    },
+    "sizes": [
+      {
+        "id": "27x35.6",
+        "name": {
+          "en": "Portfolio A3 portrait · 27 × 35.6 cm",
+          "it": "Portfolio A3 verticale · 27 × 35,6 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 262,
+            "maxMM": 278,
+            "typicalMM": 270
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 348,
+            "maxMM": 364,
+            "typicalMM": 356
+          }
+        }
+      },
+      {
+        "id": "38.2x29",
+        "name": {
+          "en": "Portfolio A3 landscape · 38.2 × 29 cm",
+          "it": "Portfolio A3 orizzontale · 38,2 × 29 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 374,
+            "maxMM": 390,
+            "typicalMM": 382
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 282,
+            "maxMM": 298,
+            "typicalMM": 290
+          }
+        }
+      },
+      {
+        "id": "29x29",
+        "name": {
+          "en": "Gallery square · 29 × 29 cm",
+          "it": "Gallery quadrato · 29 × 29 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 282,
+            "maxMM": 298,
+            "typicalMM": 290
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 282,
+            "maxMM": 298,
+            "typicalMM": 290
+          }
+        }
+      },
+      {
+        "id": "20.5x27",
+        "name": {
+          "en": "Exhibition A4 portrait · 20.5 × 27 cm",
+          "it": "Exhibition A4 verticale · 20,5 × 27 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 197,
+            "maxMM": 213,
+            "typicalMM": 205
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 262,
+            "maxMM": 278,
+            "typicalMM": 270
+          }
+        }
+      },
+      {
+        "id": "27x20.5",
+        "name": {
+          "en": "Exhibition A4 landscape · 27 × 20.5 cm",
+          "it": "Exhibition A4 orizzontale · 27 × 20,5 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 262,
+            "maxMM": 278,
+            "typicalMM": 270
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 197,
+            "maxMM": 213,
+            "typicalMM": 205
+          }
+        }
+      },
+      {
+        "id": "20.5x20.5",
+        "name": {
+          "en": "Story square · 20.5 × 20.5 cm",
+          "it": "Story quadrato · 20,5 × 20,5 cm"
+        },
+        "widthMM": {
+          "quote": {
+            "minMM": 197,
+            "maxMM": 213,
+            "typicalMM": 205
+          }
+        },
+        "heightMM": {
+          "quote": {
+            "minMM": 197,
+            "maxMM": 213,
+            "typicalMM": 205
+          }
+        }
+      }
+    ]
+  }
+]

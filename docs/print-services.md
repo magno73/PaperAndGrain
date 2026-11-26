@@ -22,6 +22,18 @@ Three entries (`peecho-hardcover`, `peecho-layflat`, `peecho-softcover`), file `
 - **Differences from the PRD's Appendix A.** Layflat content pages need no margin on the inner (binding) edge (Appendix A says 10 mm on every side); the page's orientation labels (for example "A5 Landscape 148 × 210") do not agree with the dimensions, so the entry uses the dimensions as written. The numbers of the three products otherwise agree.
 - Sources: [hardcover](https://support.peecho.com/hc/en-us/articles/19730953142428), [layflat](https://support.peecho.com/hc/en-us/articles/19732208244252), [softcover](https://support.peecho.com/hc/en-us/articles/19731377793564) (help articles updated 9 September, 24 November and 22 October 2026).
 
+### WhiteWall · Coffee Table Book, hardcover
+
+File `whitewall.json`; one entry, six sizes (cm): Portfolio A3 portrait 27 × 35.6 and landscape 38.2 × 29, Gallery square 29 × 29, Exhibition A4 portrait 20.5 × 27 and landscape 27 × 20.5, Story square 20.5 × 20.5. Six papers: three inkjet (up to 200 pages) and three Fuji Crystal Archive photo papers (up to 112).
+
+- **Pages.** 28 to 200 in steps of 4, covers not counted.
+- **What the export writes.** Two files in a folder: `Interior.pdf`, single pages with bleed on the top, bottom and outer edge and none on the binding edge, and `Cover.pdf`, one flat spread (back, spine, front with the fold, wrap and bleed). sRGB, 300 ppi target, fonts embedded, no marks.
+- **Margins.** 5 mm inside the page and cover edges; text at least 2 mm from the spine edges, 11 pt or larger recommended.
+- **Quote-typed.** WhiteWall shows the exact page and cover sizes, the bleed, the spine and the fold only after the book is configured on its site (Create now › PDF upload) or in its InDesign template, so the author types them in the export sheet: the page sizes (the entry accepts 8 mm either way of the nominal size and proposes the nominal one), the interior bleed, the cover board, the fold (10 to 12 mm from the spine onto the front and back, the one range the page states), the wrap, the cover bleed and the spine.
+- **Limits.** The cover file is at most 250 MB. The content file is 1 GB on two WhiteWall pages and 1.5 GB on the upload page: keep it under 1 GB.
+- **Differences from Appendix A.** None in the numbers; the pages say the safety area is 5 mm and the spine margin 2 mm, as Appendix A does. The article "Setting the correct dimensions" confirms bleed on three edges only.
+- Sources: [PDF upload](https://www.whitewall.com/eu/coffee-table-book/pdf-upload), [file requirements](https://service.whitewall.com/hc/en-us/articles/4411222658321), [dimensions](https://service.whitewall.com/hc/en-us/articles/4411250911377), [design notes](https://service.whitewall.com/hc/en-us/articles/4411236486929), [formats and papers](https://www.whitewall.com/eu/coffee-table-book).
+
 ## Not added yet
 
 ### Saal Digital

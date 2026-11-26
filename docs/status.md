@@ -77,6 +77,8 @@ Nothing of T5 was seen on screen (no GUI access). With a bundle from `./scripts/
 
 ### Print services (T11)
 
+WhiteWall: read on 26 November 2026 from the PDF-upload page, four help-center articles (through the help center's public JSON) and the product page. The page and cover sizes, bleed, wrap, spine and fold are typed from the order, as the structure's quote-typed measures; nothing was estimated. The nominal sizes in the entry come from the product page, whose size table is the only place the six formats are listed. `testWhiteWallTakesEveryMeasureFromTheOrder` pins this. Not seen on screen: the export sheet asks for the six measures, refuses an export without the spine, and the guides show the 5 mm margin.
+
 Peecho: the three entries were read from Peecho's help articles (through the help center's public JSON, because the article pages refuse automated fetches) on 26 November 2026. The catalog tests render every size (boxes), and `PrintCatalogEntriesTests` pins the numbers and checks that text keeps inside the 10 mm margin. Not seen on screen: **Book & Print › Print service › Peecho** lists the three products with their sizes, the page-count rules ("Needs at least 24 pages (has 18)") and the "Specification checked on 26 Nov 2026" line with the link; **Export PDF** for the layflat product writes one PDF whose first page is the cover.
 
 Entries left out because a number could not be confirmed on the printer's own page:
