@@ -186,7 +186,8 @@ enum BookPDF {
             report.warnings.append(PreflightIssue(problem: .blankPages(blanks)))
         }
         let style = book.editorialStyle
-        for leaf in slots.compactMap({ $0 }) where leaf.half == 0 {
+        for (position, slot) in slots.enumerated() {
+            guard let leaf = slot, leaf.half == 0 else { continue }
             // A cancelled live run is discarded, so stop working on it.
             if Task.isCancelled { break }
             let page = leaf.page
@@ -205,6 +206,36 @@ enum BookPDF {
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
             let story = composition.storyDrawingBlocks(page: page, book: book)
+            let guides = settings.map { PrintGuides.frames(pageSize: composition.bounds.size, settings: $0) }
+            if let guides {
+                // The binding edge of a single page is not cut, so it can hold a photo near it.
+                let bound: Set<PrintGuides.Edge> = page.effectiveLayout == .fullSpread ? []
+                    : position.isMultiple(of: 2) ? [.right] : [.left]
+                var placedAgain = [UUID: Int]()
+                for slot in composition.photos {
+                    let occurrence = placedAgain[slot.photo.id, default: 0]
+                    placedAgain[slot.photo.id, default: 0] += 1
+                    guard let nearest = guides.edgesNearTrim(of: slot.frame, ignoring: bound)
+                        .min(by: { $0.distanceMM < $1.distanceMM }) else { continue }
+                    var place = at
+                    place.target = .photo(slot.photo.id)
+                    place.occurrence = occurrence
+                    report.warnings.append(place.issue(.photoNearEdge(photo: slot.photo.name,
+                                                                      distanceMM: nearest.distanceMM)))
+                }
+                if story.contains(where: { $0.text.length > 0 && !guides.keepsInsideSafe($0.frame) }) {
+                    var place = at
+                    place.target = .story
+                    report.warnings.append(place.issue(.textOutsideSafeMargin))
+                }
+                for box in composition.textBoxes where box.prints(paper: style.paper, ink: style.ink)
+                    && !guides.keepsInsideSafe(box.frame.rect(in: composition.bounds)) {
+                    var place = at
+                    place.target = .textBox(box.id)
+                    place.excerpt = Self.excerpt(of: box.text)
+                    report.warnings.append(place.issue(.textOutsideSafeMargin))
+                }
+            }
             if !story.allSatisfy({ $0.text.length == 0 || EditorialTypesetter.fits($0.text, in: $0.frame) }) {
                 var place = at
                 place.target = .story

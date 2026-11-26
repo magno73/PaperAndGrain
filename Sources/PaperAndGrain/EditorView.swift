@@ -93,6 +93,9 @@ struct EditorView: View, Localizing {
 
     @State var gutterGuide = false
 
+    /// Print guides on the canvas; kept between launches.
+    @AppStorage("editorShowsPrintGuides") var printGuides = false
+
     @State var showDelete = false
 
     @State var inspectorNavigation = InspectorNavigation()

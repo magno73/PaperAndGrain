@@ -28,6 +28,7 @@ struct EditorCommandSet {
     var showsSpread = true
     var showsIssues = false
     var gutterGuide = false
+    var printGuides = false
     var canDuplicatePage = false
     var canBringForward = false
     var canSendBackward = false
@@ -57,6 +58,7 @@ struct EditorCommandSet {
     var zoomOut: () -> Void = {}
     var zoomToFit: () -> Void = {}
     var toggleGutter: () -> Void = {}
+    var togglePrintGuides: () -> Void = {}
     var browse: () -> Void = {}
     var moveLayer: (PageLayer.Move) -> Void = { _ in }
 }
@@ -120,6 +122,10 @@ struct EditorMenus: Commands, Localizing {
             Button(editor?.gutterGuide == true ? tr("Hide Gutter Guide")
                                                : tr("Show Gutter Guide")) {
                 editor?.toggleGutter()
+            }
+            .disabled(editor == nil)
+            Button(editor?.printGuides == true ? tr("Hide Print Guides") : tr("Show Print Guides")) {
+                editor?.togglePrintGuides()
             }
             .disabled(editor == nil)
             Divider()

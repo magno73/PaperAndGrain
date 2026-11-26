@@ -166,6 +166,7 @@ extension EditorView {
         commands.showsTray = showsTray
         commands.showsSpread = showSpread
         commands.gutterGuide = gutterGuide
+        commands.printGuides = printGuides
         let layer = selectedLayer
         commands.canBringForward = canMoveLayer(layer, .forward)
         commands.canSendBackward = canMoveLayer(layer, .backward)
@@ -209,6 +210,7 @@ extension EditorView {
         commands.zoomOut = { stepZoom(-1) }
         commands.zoomToFit = { zoom = .fitPage }
         commands.toggleGutter = { gutterGuide.toggle() }
+        commands.togglePrintGuides = { setPrintGuides(!printGuides) }
         commands.browse = openBrowser
         return commands
     }

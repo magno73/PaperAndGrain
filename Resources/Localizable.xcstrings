@@ -485,19 +485,19 @@
         }
       }
     },
-    "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles.": {
+    "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles. **View › Show Print Guides** draws the safe margin (dashed) and the bleed on the canvas.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles."
+            "value": "**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles. **View › Show Print Guides** draws the safe margin (dashed) and the bleed on the canvas."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Libro e stampa** imposta formato, abbondanza, margini e copertina con dorso. **Esporta PDF** offre la verifica prestampa e i profili di stampa."
+            "value": "**Libro e stampa** imposta formato, abbondanza, margini e copertina con dorso. **Esporta PDF** offre la verifica prestampa e i profili di stampa. **Vista › Mostra guide di stampa** disegna sul canvas il margine sicuro (tratteggiato) e l’abbondanza."
           }
         }
       }
@@ -4642,6 +4642,23 @@
         }
       }
     },
+    "Hide Print Guides": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Print Guides"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi guide di stampa"
+          }
+        }
+      }
+    },
     "Highlights": {
       "extractionState": "manual",
       "localizations": {
@@ -5156,6 +5173,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giustifica"
+          }
+        }
+      }
+    },
+    "Keep text inside the dashed line. Photos that reach the edge extend to the outer line.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep text inside the dashed line. Photos that reach the edge extend to the outer line."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni il testo dentro la linea tratteggiata. Le foto che arrivano al bordo si estendono fino alla linea esterna."
           }
         }
       }
@@ -6931,6 +6965,23 @@
         }
       }
     },
+    "Photo ends %.1f mm inside the trim. Move it to the edge or further in.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo ends %.1f mm inside the trim. Move it to the edge or further in."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La foto finisce %.1f mm dentro il taglio. Portala fino al bordo o più all’interno."
+          }
+        }
+      }
+    },
     "Photo file missing": {
       "extractionState": "manual",
       "localizations": {
@@ -7251,6 +7302,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Controllo di stampa"
+          }
+        }
+      }
+    },
+    "Print Guides": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Print Guides"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide di stampa"
           }
         }
       }
@@ -8330,6 +8398,23 @@
         }
       }
     },
+    "Show Print Guides": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Print Guides"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra guide di stampa"
+          }
+        }
+      }
+    },
     "Show in Finder": {
       "extractionState": "manual",
       "localizations": {
@@ -8972,6 +9057,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Testo accanto alla foto"
+          }
+        }
+      }
+    },
+    "Text crosses the safe margin": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text crosses the safe margin"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il testo supera il margine sicuro"
           }
         }
       }

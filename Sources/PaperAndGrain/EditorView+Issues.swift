@@ -72,7 +72,7 @@ extension EditorView {
     func issueFix(for issue: BookPDF.PreflightIssue) -> IssueFix? {
         switch issue.problem {
         case .invalidDimensions, .missingPhoto, .missingFile, .unreadableLUT, .lowResolution, .textOverflows,
-             .blankPages:
+             .textOutsideSafeMargin, .photoNearEdge, .blankPages:
             nil
         }
     }

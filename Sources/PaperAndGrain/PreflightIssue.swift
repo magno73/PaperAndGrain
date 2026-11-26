@@ -96,6 +96,11 @@ extension BookPDF {
             case unreadableLUT(String)
             case lowResolution(photo: String, ppi: Double, target: Double)
             case textOverflows
+            /// A heading, story or text box whose frame crosses the safe line.
+            case textOutsideSafeMargin
+            /// A photo edge that stops inside the trim by less than the bleed, so a cutting error would
+            /// show paper; the distance is in millimetres.
+            case photoNearEdge(photo: String, distanceMM: Double)
             /// Blank pages added so the imposition lines up, by sheet position.
             case blankPages([Int])
 
@@ -108,6 +113,8 @@ extension BookPDF {
                 case .unreadableLUT: "unreadableLUT"
                 case .lowResolution: "lowResolution"
                 case .textOverflows: "textOverflows"
+                case .textOutsideSafeMargin: "textOutsideSafeMargin"
+                case .photoNearEdge: "photoNearEdge"
                 case .blankPages: "blankPages"
                 }
             }
@@ -121,6 +128,8 @@ extension BookPDF {
                 case .unreadableLUT: "camera.filters"
                 case .lowResolution: "arrow.down.right.and.arrow.up.left"
                 case .textOverflows: "text.append"
+                case .textOutsideSafeMargin: "text.badge.minus"
+                case .photoNearEdge: "photo.badge.exclamationmark"
                 case .blankPages: "doc.on.doc"
                 }
             }
@@ -193,6 +202,11 @@ extension BookPDF {
             case let .lowResolution(photo, ppi, target):
                 [place, photo, String(format: "%.0f ppi < %.0f ppi", ppi, target)]
             case .textOverflows: [place, overflowSubject(language: language), L10n.string("Text overflows", language: language)]
+            case .textOutsideSafeMargin:
+                [place, overflowSubject(language: language), L10n.string("Text crosses the safe margin", language: language)]
+            case let .photoNearEdge(photo, distanceMM):
+                [place, photo, L10n.format("Photo ends %.1f mm inside the trim. Move it to the edge or further in.",
+                                           language: language, [distanceMM])]
             case let .blankPages(pages):
                 [place, L10n.string("Blank pages for alignment", language: language),
                  pages.map(String.init).joined(separator: ", ")]

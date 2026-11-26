@@ -99,6 +99,7 @@ extension EditorView {
                 .pickerStyle(.inline)
                 Divider()
                 Toggle(tr("Gutter Guide"), isOn: $gutterGuide)
+                Toggle(tr("Print Guides"), isOn: Binding(get: { printGuides }, set: { setPrintGuides($0) }))
             } label: {
                 Text(zoomName(zoom)).monospacedDigit()
             }
@@ -111,6 +112,28 @@ extension EditorView {
         .padding(4)
         .floatingCapsule()
         .editorDropFrame(.canvasViewControls)
+    }
+
+    /// Turns the guides on or off. The first time in a session a short legend explains the two lines.
+    func setPrintGuides(_ on: Bool) {
+        printGuides = on
+        guard on, !PrintGuidesLegend.shown else { return }
+        PrintGuidesLegend.shown = true
+        showCanvasNotice(tr("Keep text inside the dashed line. Photos that reach the edge extend to the outer line."))
+    }
+
+    /// The guides of the pages in a spread, placed where the pages are drawn.
+    func printGuidePages(_ spread: [BookPage], blankLeft: Bool, scale: CGFloat) -> [PrintGuidesOverlay.Page] {
+        let size = book.format.pageSize
+        let settings = book.printSettings ?? PrintSettings()
+        var x = blankLeft ? size.width * scale : 0
+        return spread.map { leaf in
+            let width = leaf.effectiveLayout == .fullSpread ? size.width * 2 : size.width
+            defer { x += width * scale }
+            return PrintGuidesOverlay.Page(
+                origin: CGPoint(x: x, y: 0),
+                guides: PrintGuides.frames(pageSize: CGSize(width: width, height: size.height), settings: settings))
+        }
     }
 
     func zoomName(_ level: CanvasZoom) -> String {
@@ -169,6 +192,11 @@ extension EditorView {
                 }
             }
             .allowsHitTesting(false)
+        }
+        .overlay {
+            if printGuides {
+                PrintGuidesOverlay(pages: printGuidePages(spread, blankLeft: blankLeft, scale: scale), scale: scale)
+            }
         }
     }
 

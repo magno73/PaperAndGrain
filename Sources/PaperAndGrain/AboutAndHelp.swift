@@ -124,7 +124,7 @@ struct HelpView: View, Localizing {
                 tr("For the whole book tick **Change the whole book**, or use the **Film** tab with no photo selected."),
             ]),
             Topic(id: "print", symbol: "5.circle", title: tr("Print"), lines: [
-                tr("**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles."),
+                tr("**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles. **View › Show Print Guides** draws the safe margin (dashed) and the bleed on the canvas."),
                 tr("The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text."),
                 tr("An orange or red triangle in the corner of a photo means a low print resolution: make the photo smaller or use a larger original."),
                 tr("Always check sizes and color with your print shop before ordering."),

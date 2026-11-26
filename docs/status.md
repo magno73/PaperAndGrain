@@ -76,6 +76,19 @@ Unit tests cover the copy (only the page id and box ids differ, the layer order 
 5. Italian: **Pagina › Duplica pagina**, and the undo item reads "Annulla Duplica pagina".
 6. Close and reopen the book: the copy is still there.
 
+### Print guides (T2)
+
+Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-edge rule (on the trim, 0.2 mm, 1.5 mm and 5 mm inside, bleeding), the safe-line rule, both warnings, stable issue ids, the binding edge, and that no template and arrangement of the standard pages raises either warning. Not seen on screen (no GUI access in this run). With the sample book:
+
+1. **View › Show Print Guides**: each page shows a dashed accent line inside it and a thin line just outside; in a two-page view the thin line goes around both pages. A notice with the legend appears for four seconds, only the first time in the session. The menu item reads **Hide Print Guides**. The page does not move or resize when the guides come on. Quit and reopen: the choice is kept.
+2. The zoom menu in the corner of the canvas has **Print Guides** as well, and it matches the View menu item. Check a full spread (one dashed rectangle around the whole spread) and a first page with the first page on the right (blank left side has none).
+3. Thumbnails in **Pages**, **Browse the Book** and an exported PDF show no guides. Export the same book with guides on and off and compare (`cmp` after removing dates, or open both).
+4. **Book & Print**: change **Safe margin** from 10 to 20 mm: the dashed line moves in. Change **Bleed**: the outer line moves.
+5. Drag a text box so its edge crosses the dashed line: within a second **Issues** shows "Text crosses the safe margin" under the page, and the row selects the box. Drag a photo so its left edge is 1.5 mm inside the page edge: a row says "Photo ends 1.5 mm inside the trim…". Move it to the edge: the row goes.
+6. Dragging, selecting and cropping work with guides on (the overlay ignores the pointer).
+7. Italian: **Vista › Mostra guide di stampa**, the legend and both rows. Dark appearance: both lines are visible on white and on a dark photo.
+8. Not done: guides on the cover faces, and the two warnings for the cover.
+
 ### Documents
 
 - In the app rather than in unit tests: renaming the open package in Finder, editing, quitting and reopening; ejecting the volume of an open book and using **Save As**; opening a book from a read-only volume; **Delete Draft…** and **Save As** from a draft.
