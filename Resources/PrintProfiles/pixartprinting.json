@@ -8,8 +8,8 @@
     "sourceURL": "https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/copertina-rigida-nobilitata/",
     "verifiedOn": "2026-11-26",
     "notes": {
-      "en": "Cover geometry from the printer's 21 × 21 cm hardcover template. The product page asks for CMYK (FOGRA39); this export writes sRGB, so check the instructions for your quote.",
-      "it": "Geometria della copertina dal modello 21 × 21 cm dello stampatore. La pagina del prodotto chiede CMYK (FOGRA39); questa esportazione scrive sRGB, quindi controlla le istruzioni del tuo preventivo."
+      "en": "Cover geometry from the printer's 21 × 21 cm hardcover template. The product page asks for CMYK (FOGRA39): choose CMYK in Book & Print › Color, which proposes the bundled FOGRA39 profile, and check the instructions for your quote.",
+      "it": "Geometria della copertina dal modello 21 × 21 cm dello stampatore. La pagina del prodotto chiede CMYK (FOGRA39): scegli CMYK in Libro e stampa › Colore, che propone il profilo FOGRA39 incluso, e controlla le istruzioni del tuo preventivo."
     },
     "interior": {
       "layout": "single",
