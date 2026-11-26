@@ -1,2 +1,3 @@
 Resources/FilmLooks/*.cube -text -diff
 Resources/Localizable.xcstrings merge=l10n-catalog
+Resources/ICCProfiles/*.icc -text -diff

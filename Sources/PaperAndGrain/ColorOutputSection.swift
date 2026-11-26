@@ -2,14 +2,16 @@ import AppKit
 import SwiftUI
 
 /// **Book & Print › Color**: sRGB, or CMYK with an output profile. A profile chosen here (bundled, PSO
-/// Coated v3 from ECI, installed on the Mac, or a file) is copied into the book package at once, so the
-/// book carries the profile it prints with.
+/// Coated v3 from ECI, installed on the Mac, or a file) is kept as `pending` and copied into the book
+/// package only when the author applies the sheet, so Cancel leaves the package untouched.
 struct ColorOutputSection: View, Localizing {
     @Binding var output: ColorOutput?
+    @Binding var pending: PendingICCProfile?
     /// The book package; nil while the book has no package, when CMYK cannot be chosen.
     let directory: URL?
-    /// The color mode the chosen print service asks for, if it names one the book does not use.
-    let serviceAsks: PrintProfile.ColorMode?
+    /// The color modes the chosen print service accepts, and the profile it names, if any.
+    let serviceAccepts: [PrintProfile.ColorMode]?
+    let printerProfile: String?
     let language: String
 
     @State private var problem: String?
@@ -20,7 +22,12 @@ struct ColorOutputSection: View, Localizing {
     private var cmyk: Binding<Bool> {
         Binding(get: { output?.mode == .cmyk }, set: { on in
             output = on ? ColorOutput(mode: .cmyk, profile: output?.profile) : nil
+            if on, output?.profile == nil { preselect() }
         })
+    }
+
+    private var candidate: ICCProfileSources.Candidate? {
+        printerProfile.flatMap { ICCProfileSources.candidate(for: $0, installed: installed) }
     }
 
     var body: some View {
@@ -32,14 +39,24 @@ struct ColorOutputSection: View, Localizing {
             .pickerStyle(.segmented)
             .help(tr("CMYK converts the print PDFs to the printer’s profile. The editor and the viewing PDF stay sRGB."))
             .disabled(directory == nil)
-            if let serviceAsks {
-                Text(serviceAsks == .cmyk ? tr("The print service asks for CMYK.") : tr("The print service asks for sRGB."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            if let accepts = serviceAccepts {
+                let writes: PrintProfile.ColorMode = output?.mode == .cmyk ? .cmyk : .srgb
+                if !accepts.contains(writes), let asked = accepts.first {
+                    Text(asked == .cmyk ? tr("The print service asks for CMYK.") : tr("The print service asks for sRGB."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             if output?.mode == .cmyk {
+                printerProfileNote
                 Menu(output?.profile?.name ?? tr("Choose a Profile")) { profileMenu }
                     .help(tr("The CMYK output profile the printer names."))
+                if !psoInstalled {
+                    Text(tr("Download PSO Coated v3 from ECI… contacts eci.org once; the profile belongs to ECI."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let name = output?.profile?.name {
                     Text(tr("CMYK with %@. Not a certified PDF/X file; check it with your printer’s preflight.", name))
                         .font(.caption)
@@ -60,7 +77,44 @@ struct ColorOutputSection: View, Localizing {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .task { installed = await Task.detached { ICCProfileSources.installed() }.value }
+        .task {
+            installed = await Task.detached { ICCProfileSources.installed() }.value
+            if output?.mode == .cmyk, output?.profile == nil { preselect() }
+        }
+    }
+
+    /// Which profile the printer asks for, and how to get it.
+    @ViewBuilder private var printerProfileNote: some View {
+        if let printerProfile {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(tr("The printer asks for the profile %@.", printerProfile))
+                switch candidate {
+                case let .bundled(profile)?:
+                    if output?.profile?.id != profile.id, let data = ICCProfileSources.bundledData(profile) {
+                        Button(tr("Use %@", ICCProfileInfo(data)?.name ?? profile.filename)) {
+                            use(data, named: profile.filename, id: profile.id)
+                        }
+                    }
+                case let .installed(profile)?:
+                    if output?.profile?.name != profile.name {
+                        Button(tr("Use %@", profile.name)) { useInstalled(profile) }
+                    }
+                case .eci?:
+                    if output?.profile?.id != ECIProfile.id {
+                        if psoInstalled, let data = ECIProfile.installedData() {
+                            Button(tr("Use %@", ECIProfile.expectedName)) { use(data, named: ECIProfile.profileFilename, id: ECIProfile.id) }
+                        } else {
+                            Button(tr("Download PSO Coated v3 from ECI…"), action: downloadPSO)
+                        }
+                    }
+                case nil:
+                    Text(tr("Get it from the printer’s instructions and use Choose ICC Profile…."))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder private var profileMenu: some View {
@@ -77,16 +131,12 @@ struct ColorOutputSection: View, Localizing {
                 Button("PSO Coated v3") { use(data, named: ECIProfile.profileFilename, id: ECIProfile.id) }
             } else {
                 Button(tr("Download PSO Coated v3 from ECI…"), action: downloadPSO)
-                    .help(tr("Contacts eci.org once to download ECI’s profile. The profile belongs to ECI."))
             }
         }
         if !installed.isEmpty {
             Section(tr("On This Mac")) {
                 ForEach(installed, id: \.url) { profile in
-                    Button(profile.name) {
-                        guard let data = try? Data(contentsOf: profile.url) else { return }
-                        use(data, named: profile.url.lastPathComponent, id: "installed:" + profile.url.lastPathComponent)
-                    }
+                    Button(profile.name) { useInstalled(profile) }
                 }
             }
         }
@@ -94,10 +144,30 @@ struct ColorOutputSection: View, Localizing {
         Button(tr("Choose ICC Profile…"), action: chooseFile)
     }
 
+    /// Chooses the profile the printer names when it is at hand (bundled, installed or already downloaded).
+    private func preselect() {
+        switch candidate {
+        case let .bundled(profile)?:
+            if let data = ICCProfileSources.bundledData(profile) { use(data, named: profile.filename, id: profile.id) }
+        case let .installed(profile)?:
+            useInstalled(profile)
+        case .eci?:
+            if let data = ECIProfile.installedData() { use(data, named: ECIProfile.profileFilename, id: ECIProfile.id) }
+        case nil:
+            break
+        }
+    }
+
+    private func useInstalled(_ profile: ICCProfileSources.Installed) {
+        guard let data = try? Data(contentsOf: profile.url) else { return }
+        use(data, named: profile.url.lastPathComponent, id: "installed:" + profile.url.lastPathComponent)
+    }
+
     private func use(_ data: Data, named name: String, id: String) {
-        guard let directory else { return }
+        guard directory != nil else { return }
         do {
-            let reference = try BookStorage.importICCProfile(data, named: name, id: id, in: directory)
+            let reference = try BookStorage.iccProfileReference(data, named: name, id: id)
+            pending = PendingICCProfile(data: data, reference: reference)
             output = .cmyk(reference)
             problem = nil
         } catch {
@@ -127,7 +197,7 @@ struct ColorOutputSection: View, Localizing {
                 psoInstalled = true
                 use(data, named: ECIProfile.profileFilename, id: ECIProfile.id)
             } catch {
-                problem = (error.localizedDescription) + " "
+                problem = error.localizedDescription + " "
                     + tr("Download it by hand from eci.org and use Choose ICC Profile….")
             }
             downloading = false

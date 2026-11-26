@@ -818,20 +818,20 @@
         }
       }
     },
-    "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. The editor and the viewing PDF stay sRGB.": {
+    "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. **Download PSO Coated v3 from ECI…** contacts eci.org once; the profile belongs to ECI. The editor and the viewing PDF stay sRGB.": {
       "comment": "Help, Print topic.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. The editor and the viewing PDF stay sRGB."
+            "value": "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. **Download PSO Coated v3 from ECI…** contacts eci.org once; the profile belongs to ECI. The editor and the viewing PDF stay sRGB."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Colore** in **Libro e stampa** scrive i PDF di stampa in sRGB o in CMYK con il profilo dello stampatore. L’editor e il PDF di visualizzazione restano sRGB."
+            "value": "**Colore** in **Libro e stampa** scrive i PDF di stampa in sRGB o in CMYK con il profilo dello stampatore. **Scarica PSO Coated v3 da ECI…** contatta eci.org una volta; il profilo appartiene a ECI. L’editor e il PDF di visualizzazione restano sRGB."
           }
         }
       }
@@ -3685,23 +3685,6 @@
         }
       }
     },
-    "Contacts eci.org once to download ECI’s profile. The profile belongs to ECI.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contacts eci.org once to download ECI’s profile. The profile belongs to ECI."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contatta eci.org una volta per scaricare il profilo di ECI. Il profilo appartiene a ECI."
-          }
-        }
-      }
-    },
     "Continue": {
       "extractionState": "manual",
       "localizations": {
@@ -4504,6 +4487,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scarica PSO Coated v3 da ECI…"
+          }
+        }
+      }
+    },
+    "Download PSO Coated v3 from ECI… contacts eci.org once; the profile belongs to ECI.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download PSO Coated v3 from ECI… contacts eci.org once; the profile belongs to ECI."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scarica PSO Coated v3 da ECI… contatta eci.org una volta; il profilo appartiene a ECI."
           }
         }
       }
@@ -5686,6 +5686,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stampa generica"
+          }
+        }
+      }
+    },
+    "Get it from the printer’s instructions and use Choose ICC Profile….": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get it from the printer’s instructions and use Choose ICC Profile…."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procuralo seguendo le istruzioni dello stampatore e usa Scegli profilo ICC…."
           }
         }
       }
@@ -12208,6 +12225,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lo stampatore chiede sRGB; il libro scrive CMYK"
+          }
+        }
+      }
+    },
+    "The printer asks for the profile %@.": {
+      "comment": "The argument is the profile name the printer gives, such as FOGRA39.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The printer asks for the profile %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo stampatore chiede il profilo %@."
           }
         }
       }

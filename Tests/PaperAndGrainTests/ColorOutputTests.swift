@@ -300,37 +300,139 @@ final class ColorOutputTests: XCTestCase {
         XCTAssertTrue(document.contains("Black text on the page"), "the text stays text")
     }
 
+    func testTheProfileAPrinterNamesIsFoundAndChosenProfilesWaitForApply() throws {
+        XCTAssertEqual(ICCProfileSources.family("FOGRA39"), "fogra39")
+        XCTAssertEqual(ICCProfileSources.family("Coated GRACoL 2006"), "gracol2006")
+        XCTAssertEqual(ICCProfileSources.family("PSO Coated v3"), "fogra51")
+        XCTAssertNil(ICCProfileSources.family("Japan Color 2001 Coated"))
+        guard case let .bundled(fogra)? = ICCProfileSources.candidate(for: "FOGRA39", installed: []) else {
+            return XCTFail("FOGRA39 is bundled")
+        }
+        XCTAssertEqual(fogra.filename, "Coated_Fogra39L_VIGC_300.icc")
+        guard case let .bundled(gracol)? = ICCProfileSources.candidate(for: "Coated GRACoL 2006", installed: []) else {
+            return XCTFail("GRACoL is bundled")
+        }
+        XCTAssertEqual(gracol.filename, "GRACoL2006_Coated1v2.icc")
+        XCTAssertEqual(ICCProfileSources.candidate(for: "PSO Coated v3", installed: []), .eci)
+        XCTAssertNil(ICCProfileSources.candidate(for: "Japan Color 2001 Coated", installed: []))
+        // Every catalog entry that names a CMYK profile can be served.
+        for profile in PrintProfileCatalog.bundled.profiles where profile.color.accepts.contains(.cmyk) {
+            if let name = profile.color.iccProfile {
+                XCTAssertNotNil(ICCProfileSources.candidate(for: name, installed: []), "\(profile.id): \(name)")
+            }
+        }
+        // Naming a profile writes nothing; installing it writes the same file importing does.
+        let directory = try temporaryDirectory()
+        let data = try Data(contentsOf: Self.genericCMYK)
+        let reference = try BookStorage.iccProfileReference(data, named: "Generic CMYK Profile.icc", id: "file:x")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: directory.appendingPathComponent("profiles").path))
+        try BookStorage.installICCProfile(data, as: reference, in: directory)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: BookStorage.profileURL(filename: reference.filename, in: directory).path))
+        XCTAssertEqual(try BookStorage.importICCProfile(data, named: "Generic CMYK Profile.icc", id: "file:x", in: directory), reference)
+    }
+
+    func testFlatteningKeepsTextBoxesThatLieUnderAPanel() throws {
+        let directory = try temporaryDirectory()
+        var book = try book(in: directory)
+        book.cover = nil
+        let photo = try XCTUnwrap(book.pages[0].photoIDs.first)
+        let box = PageTextBox(text: "", frame: PageRect(x: 0, y: 0, width: 1, height: 1), backgroundColor: 0x00C040)
+        book.pages[0].textBoxes = [box]
+        book.pages[0].layerOrder = [.photo(photo), .textBox(box.id), .story]
+        let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/PrintProfiles", isDirectory: true)
+        var profile = try XCTUnwrap(PrintProfileCatalog.load(from: fixtures).profile("test-trimonly"))
+        let live = directory.appendingPathComponent("live.pdf")
+        try BookPDF.write(book, directory: directory, plan: PrintPlan(profile: profile), to: live)
+        profile.color.flattenTransparency = true
+        let flat = directory.appendingPathComponent("flat.pdf")
+        try BookPDF.write(book, directory: directory, plan: PrintPlan(profile: profile), to: flat)
+        func raster(_ url: URL) throws -> [UInt8] {
+            let page = try XCTUnwrap(CGPDFDocument(url as CFURL)?.page(at: 3), "the first book page, after the front cover and a blank")
+            let box = page.getBoxRect(.mediaBox)
+            let context = try XCTUnwrap(CGContext(data: nil, width: Int(box.width / 2), height: Int(box.height / 2),
+                                                  bitsPerComponent: 8, bytesPerRow: Int(box.width / 2) * 4,
+                                                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                  bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+            context.scaleBy(x: 0.5, y: 0.5)
+            context.drawPDFPage(page)
+            return Array(UnsafeBufferPointer(start: try XCTUnwrap(context.data).assumingMemoryBound(to: UInt8.self),
+                                             count: Int(box.width / 2) * Int(box.height / 2) * 4))
+        }
+        let a = try raster(live), b = try raster(flat)
+        XCTAssertEqual(a.count, b.count)
+        let mean = Double(zip(a, b).map { abs(Int($0) - Int($1)) }.reduce(0, +)) / Double(a.count)
+        XCTAssertLessThan(mean, 2, "the flattened page looks like the live one, green box included")
+        XCTAssertFalse(String(decoding: try Data(contentsOf: flat), as: UTF8.self).contains("/ca 0.9"))
+    }
+
+    private func zipped(_ staged: URL, to zip: URL) throws -> Data {
+        let ditto = Process()
+        ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        ditto.arguments = ["-c", "-k", "--sequesterRsrc", staged.path, zip.path]
+        try ditto.run()
+        ditto.waitUntilExit()
+        return try Data(contentsOf: zip)
+    }
+
     func testPSODownloadChecksTheProfileAndLeavesNothingOnFailure() async throws {
         let directory = try temporaryDirectory()
         let destination = directory.appendingPathComponent("Profiles/PSOcoated_v3.icc")
-        // An archive with the right file name but the wrong profile is refused and nothing is kept.
+        // An archive with the right file name but another profile is refused and nothing is kept.
         let staged = directory.appendingPathComponent("zip", isDirectory: true)
         try FileManager.default.createDirectory(at: staged, withIntermediateDirectories: true)
         try FileManager.default.copyItem(at: Self.genericCMYK, to: staged.appendingPathComponent("PSOcoated_v3.icc"))
-        let zip = directory.appendingPathComponent("pso.zip")
-        let ditto = Process()
-        ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-        ditto.arguments = ["-c", "-k", staged.path, zip.path]
-        try ditto.run()
-        ditto.waitUntilExit()
-        let archive = try Data(contentsOf: zip)
+        let archive = try zipped(staged, to: directory.appendingPathComponent("pso.zip"))
         do {
-            _ = try await ECIProfile.install(to: destination, fetch: { _ in archive })
+            _ = try await ECIProfile.install(to: destination, fetch: { _, file in try archive.write(to: file) })
             XCTFail("A profile that is not PSO Coated v3 was accepted")
         } catch {
             XCTAssertEqual(error as? ECIProfile.Failure, .wrongProfile)
         }
         XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
         do {
-            _ = try await ECIProfile.install(to: destination, fetch: { _ in throw URLError(.notConnectedToInternet) })
+            _ = try await ECIProfile.install(to: destination, fetch: { _, _ in throw URLError(.notConnectedToInternet) })
             XCTFail("A failed download succeeded")
         } catch {
             XCTAssertEqual(error as? ECIProfile.Failure, .download)
         }
-        // With the expected name the same archive installs, as the real one will.
-        let data = try await ECIProfile.install(to: destination, expectedName: "Generic CMYK", fetch: { _ in archive })
+        // An archive whose profile is a link is refused, not followed.
+        let linked = directory.appendingPathComponent("linked", isDirectory: true)
+        try FileManager.default.createDirectory(at: linked, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: linked.appendingPathComponent("PSOcoated_v3.icc"), withDestinationURL: Self.genericCMYK)
+        let linkArchive = try zipped(linked, to: directory.appendingPathComponent("link.zip"))
+        do {
+            _ = try await ECIProfile.install(to: destination, expectedName: "Generic CMYK Profile", expectedSHA256: nil,
+                                             fetch: { _, file in try linkArchive.write(to: file) })
+            XCTFail("A linked profile was accepted")
+        } catch {
+            XCTAssertEqual(error as? ECIProfile.Failure, .notInArchive)
+        }
+        // A description that only contains the expected name, or a zero profile ID without a pinned hash, is refused.
+        let generic = try Data(contentsOf: Self.genericCMYK)
+        XCTAssertThrowsError(try ECIProfile.check(generic, expectedName: "Generic CMYK", expectedSHA256: nil))
+        if ICCProfileInfo(generic)?.hasProfileID == false {
+            XCTAssertThrowsError(try ECIProfile.check(generic, expectedName: "Generic CMYK Profile", expectedSHA256: nil))
+        }
+        XCTAssertEqual(ECIProfile.expectedSHA256?.count, 64, "the hash of ECI's file is pinned")
+        // With the name and hash of the file in the archive, the same archive installs, as the real one will.
+        let sha = try XCTUnwrap(ICCProfileInfo(generic)).sha256
+        let data = try await ECIProfile.install(to: destination, expectedName: "Generic CMYK Profile", expectedSHA256: sha,
+                                                fetch: { _, file in try archive.write(to: file) })
         XCTAssertEqual(try Data(contentsOf: destination), data)
         XCTAssertNil(ECIProfile.installedData(at: destination), "the installed file is still checked against PSO Coated v3")
+    }
+
+    func testBundledProfilesAreIntactCMYKOutputProfiles() throws {
+        XCTAssertEqual(ICCProfileSources.bundled.map(\.filename).sorted(),
+                       ["Coated_Fogra39L_VIGC_300.icc", "GRACoL2006_Coated1v2.icc"])
+        for profile in ICCProfileSources.bundled {
+            let data = try XCTUnwrap(ICCProfileSources.bundledData(profile), profile.filename)
+            let info = try XCTUnwrap(ICCProfileInfo(data))
+            XCTAssertTrue(info.isCMYKOutput, profile.filename)
+            XCTAssertEqual(info.name, profile.filename, "the registry files carry their file name as description")
+            XCTAssertNoThrow(try PrintColor.converter(for: data))
+        }
     }
 }
 

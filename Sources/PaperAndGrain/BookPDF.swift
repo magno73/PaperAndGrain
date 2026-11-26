@@ -835,12 +835,27 @@ enum BookPDF {
                         try flatten(panel, into: context, images: images) { bitmap in
                             bitmap.setFillColor(EditorialStyle.fillColor(style.paper))
                             bitmap.fill(panel)
-                            for case let .photo(id) in below {
-                                guard let slot = composition.photos.first(where: { $0.id == id }) else { continue }
-                                try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop,
-                                          images: ImageOutput(ppi: images.ppi, quality: images.quality),
-                                          book: book, directory: directory, context: bitmap,
-                                          trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
+                            // Everything under the panel goes into the image: photos with their captions,
+                            // and text boxes, so nothing disappears beneath it.
+                            let outer = composition.bounds.insetBy(dx: -bleed, dy: -bleed)
+                            for item in below {
+                                switch item {
+                                case let .photo(id):
+                                    guard let slot = composition.photos.first(where: { $0.id == id }) else { continue }
+                                    try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop,
+                                              images: ImageOutput(ppi: images.ppi, quality: images.quality),
+                                              book: book, directory: directory, context: bitmap,
+                                              trim: composition.bounds, outer: outer)
+                                    if let caption = composition.caption(for: id) {
+                                        drawCaption(caption, style: style, trim: composition.bounds, outer: outer, context: bitmap)
+                                    }
+                                case let .textBox(id):
+                                    guard let box = composition.textBoxes.first(where: { $0.id == id }) else { continue }
+                                    try drawTextBox(box, composition: composition, book: book, pageNumber: pageNumber,
+                                                    context: bitmap)
+                                case .story:
+                                    break
+                                }
                             }
                             bitmap.setAlpha(style.overlayOpacity)
                             bitmap.setFillColor(EditorialStyle.fillColor(style.overlayPaper))
@@ -865,21 +880,8 @@ enum BookPDF {
                     try drawText(block.text, in: block.frame, overflow: .textOverflow(pageNumber), context: context)
                 }
             case let .textBox(id):
-                guard let box = composition.textBoxes.first(where: { $0.id == id }),
-                      box.prints(paper: style.paper, ink: style.ink) else { continue }
-                let frame = box.frame.rect(in: composition.bounds)
-                if let fill = box.printedFill(paper: style.paper) {
-                    context.setFillColor(EditorialStyle.fillColor(fill))
-                    context.fill(frame)
-                }
-                if let border = box.border(ink: style.ink) {
-                    context.setStrokeColor(EditorialStyle.color(border.color))
-                    context.setLineWidth(border.width)
-                    context.stroke(frame.insetBy(dx: border.width / 2, dy: border.width / 2))
-                }
-                let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
-                try drawText(PageComposition.boxText(box: box, book: book),
-                             in: textFrame, overflow: .textOverflow(pageNumber), context: context)
+                guard let box = composition.textBoxes.first(where: { $0.id == id }) else { continue }
+                try drawTextBox(box, composition: composition, book: book, pageNumber: pageNumber, context: context)
             }
         }
         if let folio = composition.folio {
@@ -901,6 +903,26 @@ enum BookPDF {
         }
         // The frame is as tall as the text needs, so nothing is cut; a caption that does not fit is an issue.
         EditorialTypesetter.draw(caption.text, in: caption.frame, context: context)
+    }
+
+    /// A text box: its fill, border and text, when it prints anything.
+    private static func drawTextBox(_ box: PageTextBox, composition: PageComposition, book: Book, pageNumber: Int,
+                                    context: CGContext) throws {
+        let style = book.editorialStyle
+        guard box.prints(paper: style.paper, ink: style.ink) else { return }
+        let frame = box.frame.rect(in: composition.bounds)
+        if let fill = box.printedFill(paper: style.paper) {
+            context.setFillColor(EditorialStyle.fillColor(fill))
+            context.fill(frame)
+        }
+        if let border = box.border(ink: style.ink) {
+            context.setStrokeColor(EditorialStyle.color(border.color))
+            context.setLineWidth(border.width)
+            context.stroke(frame.insetBy(dx: border.width / 2, dy: border.width / 2))
+        }
+        let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
+        try drawText(PageComposition.boxText(box: box, book: book),
+                     in: textFrame, overflow: .textOverflow(pageNumber), context: context)
     }
 
     /// How far a photo extends under each neighbor painted after it.

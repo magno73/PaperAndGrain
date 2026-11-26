@@ -14,6 +14,8 @@ struct ICCProfileInfo: Hashable, Sendable {
     let name: String
     /// True when the header's profile ID is zero or matches the MD5 of the profile, as ICC.1 defines it.
     let idMatches: Bool
+    /// True when the header carries a profile ID at all; a zero ID checks nothing.
+    let hasProfileID: Bool
     let sha256: String
 
     var isCMYKOutput: Bool { deviceClass == "prtr" && colorSpace == "CMYK" }
@@ -26,7 +28,8 @@ struct ICCProfileInfo: Hashable, Sendable {
         deviceClass = String(bytes: bytes[12..<16], encoding: .ascii) ?? ""
         colorSpace = (String(bytes: bytes[16..<20], encoding: .ascii) ?? "").trimmingCharacters(in: .whitespaces)
         let id = Array(bytes[84..<100])
-        if id.allSatisfy({ $0 == 0 }) {
+        hasProfileID = !id.allSatisfy { $0 == 0 }
+        if !hasProfileID {
             idMatches = true
         } else {
             var copy = bytes

@@ -77,21 +77,33 @@ extension BookStorage {
             .appendingPathComponent(validFilename(filename) ? filename : "_invalid_profile")
     }
 
-    /// Checks an ICC file and copies it into the package, named after the file and its hash, like an
-    /// imported LUT. The profile itself is never renamed inside or altered.
-    static func importICCProfile(_ data: Data, named name: String, id: String, in directory: URL) throws -> ICCProfileReference {
+    /// Checks an ICC file and names its copy in the package after the file and its hash, like an imported
+    /// LUT, without writing anything. The profile itself is never renamed inside or altered.
+    static func iccProfileReference(_ data: Data, named name: String, id: String) throws -> ICCProfileReference {
         guard data.count <= 20_000_000, let info = ICCProfileInfo(data), info.isCMYKOutput else {
             throw ProfileError.notCMYKOutput(name)
         }
         let stem = (name as NSString).deletingPathExtension.replacingOccurrences(of: ":", with: "_")
             .replacingOccurrences(of: "/", with: "_")
-        let filename = "\(stem.prefix(72))-\(info.sha256.prefix(16)).icc"
-        let destination = profileURL(filename: filename, in: directory)
+        return ICCProfileReference(id: id, name: info.name, filename: "\(stem.prefix(72))-\(info.sha256.prefix(16)).icc",
+                                   sha256: info.sha256)
+    }
+
+    /// Writes the profile's copy into the package's `profiles/` folder, if it is not there yet.
+    static func installICCProfile(_ data: Data, as reference: ICCProfileReference, in directory: URL) throws {
+        let destination = profileURL(filename: reference.filename, in: directory)
         try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
         if !FileManager.default.fileExists(atPath: destination.path) {
             try data.write(to: destination, options: [.atomic])
         }
-        return ICCProfileReference(id: id, name: info.name, filename: filename, sha256: info.sha256)
+    }
+
+    /// Checks an ICC file and copies it into the package (the command line and tests; **Book & Print**
+    /// copies only on Apply).
+    static func importICCProfile(_ data: Data, named name: String, id: String, in directory: URL) throws -> ICCProfileReference {
+        let reference = try iccProfileReference(data, named: name, id: id)
+        try installICCProfile(data, as: reference, in: directory)
+        return reference
     }
 
     /// The converter for the book's CMYK profile, after checking that the copy is there and unchanged.
@@ -104,6 +116,12 @@ extension BookStorage {
     }
 }
 
+/// A profile chosen in **Book & Print** that is copied into the package only when the author applies.
+struct PendingICCProfile: Hashable, Sendable {
+    let data: Data
+    let reference: ICCProfileReference
+}
+
 /// Where CMYK profiles come from: the ones bundled with the app, PSO Coated v3 downloaded from ECI on
 /// the author's request, and the CMYK output profiles installed on the Mac.
 enum ICCProfileSources {
@@ -114,9 +132,13 @@ enum ICCProfileSources {
         var id: String { "bundled:" + filename }
     }
 
-    /// The bundled profiles. GRACoL2006_Coated1v2 and Coated_Fogra39L_VIGC_300 are to be added from the ICC
-    /// registry with their hashes; until the files are in `Resources/ICCProfiles`, the list is empty.
-    static let bundled: [Bundled] = []
+    /// The bundled profiles, from the ICC registry (terms and sources in `Resources/ICCProfiles/CREDITS.md`).
+    static let bundled: [Bundled] = [
+        Bundled(filename: "GRACoL2006_Coated1v2.icc",
+                sha256: "7f822b354f3f4081e3b1dadd381c9f16d583257d1574e583be7d0e3433a6b45b"),
+        Bundled(filename: "Coated_Fogra39L_VIGC_300.icc",
+                sha256: "6df43849a84d2632e7900a125f657bd09364ed56775bc4740c1e39a5492d47e3"),
+    ]
 
     static func bundledURL(_ profile: Bundled) -> URL? {
         let candidates: [URL?] = [
@@ -142,11 +164,44 @@ enum ICCProfileSources {
         let url: URL
     }
 
+    /// Where the profile a printer names can be had: bundled, installed on the Mac, or downloadable.
+    enum Candidate: Hashable, Sendable {
+        case bundled(Bundled)
+        case installed(Installed)
+        /// PSO Coated v3, installed or downloadable from ECI.
+        case eci
+    }
+
+    /// The press condition a profile name refers to, so "FOGRA39", "Coated FOGRA39 (ISO 12647-2:2004)" and
+    /// "Coated_Fogra39L_VIGC_300.icc" are one family.
+    static func family(_ name: String) -> String? {
+        let text = name.lowercased().filter { $0.isLetter || $0.isNumber }
+        for (key, family) in [("gracol2006", "gracol2006"), ("gracol", "gracol2006"), ("fogra39", "fogra39"),
+                              ("isocoatedv2", "fogra39"), ("fogra51", "fogra51"), ("psocoatedv3", "fogra51"),
+                              ("swop2006", "swop2006")] where text.contains(key) {
+            return family
+        }
+        return nil
+    }
+
+    /// The best available profile for the one a printer names: a bundled one first, then PSO Coated v3,
+    /// then one installed on the Mac. Nil when the name is unknown or nothing matches.
+    static func candidate(for printerProfile: String, installed: [Installed]) -> Candidate? {
+        guard let wanted = family(printerProfile) else { return nil }
+        if let profile = bundled.first(where: { bundled in
+            bundledData(bundled).flatMap(ICCProfileInfo.init).map { family($0.name) == wanted } ?? false
+        }) {
+            return .bundled(profile)
+        }
+        if wanted == "fogra51" { return .eci }
+        return installed.first { family($0.name) == wanted }.map { .installed($0) }
+    }
+
     static func installed() -> [Installed] {
         final class Found: @unchecked Sendable { var items = [Installed]() }
         let found = Found()
         _ = withUnsafeMutablePointer(to: &found.items) { pointer -> Bool in
-            ColorSyncIterateInstalledProfiles({ info, context in
+            ColorSyncIterateInstalledProfilesWithOptions({ info, context in
                 guard let info = info as? [String: Any], let context else { return true }
                 let items = context.assumingMemoryBound(to: [Installed].self)
                 guard let url = info[kColorSyncProfileURL.takeUnretainedValue() as String] as? URL,
@@ -154,7 +209,7 @@ enum ICCProfileSources {
                 else { return true }
                 items.pointee.append(Installed(name: profile.name, url: url))
                 return true
-            }, nil, pointer, nil)
+            }, nil, pointer, [kColorSyncWaitForCacheReply.takeUnretainedValue() as String: true] as CFDictionary, nil)
             return true
         }
         var seen = Set<String>()

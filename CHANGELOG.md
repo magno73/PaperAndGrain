@@ -41,7 +41,8 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ### Color output
 
-- **Book & Print › Color**: sRGB or CMYK. For CMYK choose PSO Coated v3 (**Download from ECI…**, the app's only network request, on your click), a CMYK profile installed on the Mac, or **Choose ICC Profile…**; the profile is copied into the book.
+- **Book & Print › Color**: sRGB or CMYK. For CMYK choose GRACoL 2006 or FOGRA39 (included with the app), PSO Coated v3 (**Download PSO Coated v3 from ECI…** contacts eci.org once, on your click; the profile belongs to ECI), a CMYK profile installed on the Mac, or **Choose ICC Profile…**. With a print service that names a profile, Book & Print says which one and chooses it when it is at hand. The profile is copied into the book when you apply.
+- Text, rules and borders in near-gray inks (every template's ink and caption ink) print with black ink only.
 - CMYK print PDFs convert the finished photos once (relative colorimetric with black point compensation), print black and gray text, rules and borders with black ink only, and name and embed the profile as the output intent. They are not labelled PDF/X; the export sheet says so.
 - A print service that asks for flattened transparency gets translucent panels blended into the photo beneath, with the text kept as text.
 - **Issues** reports a missing or unusable color profile, and a print service that asks for the other color mode.
