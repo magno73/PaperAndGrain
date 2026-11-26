@@ -181,6 +181,8 @@ extension EditorView {
         commands.nextPage = { stepPage(1) }
         commands.moveEarlier = { move(-1) }
         commands.moveLater = { move(1) }
+        commands.canDuplicatePage = canDuplicatePage
+        commands.duplicatePage = { duplicatePage() }
         commands.deletePage = { if page != nil { showDelete = true } }
         commands.crop = cropSelection
         commands.adjust = { showPhotoSection(film: false) }

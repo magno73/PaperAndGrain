@@ -28,6 +28,7 @@ struct EditorCommandSet {
     var showsSpread = true
     var showsIssues = false
     var gutterGuide = false
+    var canDuplicatePage = false
     var canBringForward = false
     var canSendBackward = false
 
@@ -41,6 +42,7 @@ struct EditorCommandSet {
     var moveEarlier: () -> Void = {}
     var moveLater: () -> Void = {}
     var deletePage: () -> Void = {}
+    var duplicatePage: () -> Void = {}
     var crop: () -> Void = {}
     var adjust: () -> Void = {}
     var autoEnhance: () -> Void = {}
@@ -157,6 +159,9 @@ struct EditorMenus: Commands, Localizing {
                 .keyboardShortcut("]", modifiers: [.command, .option])
                 .disabled(editor?.canMoveLater != true)
             Divider()
+            Button(tr("Duplicate Page")) { editor?.duplicatePage() }
+                .keyboardShortcut("d", modifiers: .command)
+                .disabled(editor?.canDuplicatePage != true)
             Button(tr("Delete Page…")) { editor?.deletePage() }
                 .disabled(editor?.hasPage != true)
         }

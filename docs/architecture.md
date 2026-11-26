@@ -122,6 +122,8 @@ Sliders do not use `Slider(step:)`. On macOS the step creates a tick mark for ev
 
 Film has a single visible interface at a time. With a photo selected it sits in the **Photo** tab and changes `BookPhoto.film`. If **Change the whole book** is ticked, it changes `Book.film` and removes the selected photo's override in the same undoable action. With nothing selected, the **Film** tab changes `Book.film`. `filmScope` derives from the tab and the checkbox.
 
+`BookPage.duplicated()` (`PageDuplication.swift`) backs **Page › Duplicate Page**: the copy gets a new page id and new text box ids, `layerOrder` is rewritten to the new box ids, and photo ids are kept because a photo may sit on several pages. `EditorView.duplicatePage` inserts it after the original in one `editPages` step and registers a second undo action that moves the page selection back to the original (and forward again on redo). The command is off on the covers and while text, a crop or a library search is active, which is what lets ⌘D stay free of the text field.
+
 Dropping a photo from the photo library on a page goes through `EditorView.photoDropAction`. There are five outcomes:
 - **swap**, with a photo on the same page;
 - **replace** (`BookPage.replacePhoto`): the new photo takes the order position, template slot, frame and layer of the one under the pointer. In an automatic gallery the visible frames are fixed first, so the page is not laid out again;

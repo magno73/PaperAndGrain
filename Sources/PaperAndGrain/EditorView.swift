@@ -707,6 +707,15 @@ final class EditorUndo {
         manager.setActionName(name)
     }
 
+    /// Makes undo and redo of a page insertion also move the page selection.
+    func registerSelection(_ manager: UndoManager, binding: Binding<UUID?>, restoring: UUID, then next: UUID) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager else { return }
+            binding.wrappedValue = restoring
+            target.registerSelection(manager, binding: binding, restoring: next, then: restoring)
+        }
+    }
+
     func registerBookFilm(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
                           previous: FilmSettings?, name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in

@@ -9,6 +9,10 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
 - Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
 
+### Pages
+
+- **Page › Duplicate Page** (⌘D, also in the Pages context menu) copies a page right after itself and selects the copy. One undo step.
+
 ## 0.10.0 · 2026-11-25
 
 The first public release. The interface is redesigned for current macOS, and much of the work went into document safety and print output.

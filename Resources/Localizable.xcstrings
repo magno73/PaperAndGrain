@@ -3484,6 +3484,23 @@
         }
       }
     },
+    "Duplicate Page": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicate Page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplica pagina"
+          }
+        }
+      }
+    },
     "Edit Text": {
       "extractionState": "manual",
       "localizations": {
@@ -10872,19 +10889,19 @@
         }
       }
     },
-    "⇧⌘N new page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back": {
+    "⇧⌘N new page · ⌘D duplicate page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "⇧⌘N new page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"
+            "value": "⇧⌘N new page · ⌘D duplicate page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "⇧⌘N nuova pagina · ⌘[ ⌘] pagina precedente e successiva · ⌥⌘C ritaglia · ⌥⌘E migliora · ⇧⌘F / ⇧⌘B primo piano / in fondo"
+            "value": "⇧⌘N nuova pagina · ⌘D duplica pagina · ⌘[ ⌘] pagina precedente e successiva · ⌥⌘C ritaglia · ⌥⌘E migliora · ⇧⌘F / ⇧⌘B primo piano / in fondo"
           }
         }
       }

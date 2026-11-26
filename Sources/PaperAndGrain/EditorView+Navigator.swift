@@ -214,6 +214,8 @@ extension EditorView {
         Button(tr("Insert Page After")) {
             if let position { insert(.gallery, at: position + 1) }
         }
+        Button(tr("Duplicate Page")) { duplicatePage(leaf.id) }
+            .disabled(!canDuplicatePage(leaf.id))
         Divider()
         Button(tr("Move Earlier")) {
             select(leaf)
@@ -383,6 +385,28 @@ extension EditorView {
         selectedBox = nil
         selectedEditorial = nil
         filmScope = .book
+    }
+
+    /// Duplicate Page works on a book page, not on a cover, and never while text is being typed.
+    var canDuplicatePage: Bool { page.map { canDuplicatePage($0.id) } ?? false }
+
+    func canDuplicatePage(_ id: UUID) -> Bool {
+        coverSide == nil && cropSession == nil && !showDelete && !writing && !writingBox
+            && inlineBoxFocus == nil && editorialFocus == nil && !searchingPhotos
+            && book.pages.contains { $0.id == id }
+    }
+
+    /// Puts a copy right after the page and selects it, as one undo step.
+    func duplicatePage(_ id: UUID? = nil) {
+        guard let id = id ?? page?.id, canDuplicatePage(id),
+              let position = book.pages.firstIndex(where: { $0.id == id }) else { return }
+        let copy = book.pages[position].duplicated()
+        editPages(tr("Duplicate Page")) { $0.insert(copy, at: position + 1) }
+        if let undoManager {
+            undoTarget.registerSelection(undoManager, binding: $selection, restoring: id, then: copy.id)
+        }
+        select(copy)
+        clearCanvasSelection()
     }
 
     func move(_ offset: Int) {

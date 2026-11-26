@@ -65,6 +65,17 @@ None of this was seen on screen (no GUI access in this run). With the bundle fro
 8. Italian: switch **Settings › Language** to Italian and check the button help, the popover headings (Problemi, Avvisi, Pagina N, Tutto il libro) and the help topic **Stampa**.
 9. Dark appearance and a narrow window: the popover stays 360 pt wide and readable.
 
+### Duplicate Page (T3)
+
+Unit tests cover the copy (only the page id and box ids differ, the layer order refers only to boxes on the copy). Not seen on screen (no GUI access in this run). With the sample book:
+
+1. Select page 2 and choose **Page › Duplicate Page** (⌘D): a copy appears right after it and is selected; the inspector stays on the Page tab. Check a page with a text box, two photos and a changed layer order: the copy looks the same, and moving a box on the copy does not move it on the original.
+2. ⌘Z: the copy goes and the original is selected again; the Edit menu said "Undo Duplicate Page". ⇧⌘Z brings the copy back.
+3. Right-click a thumbnail in the Pages sidebar: **Duplicate Page** sits after **Insert Page After**.
+4. Select the front cover, then the back cover: **Duplicate Page** is greyed out. Double-click a text box to type, and open the Page menu: it is greyed out too (⌘D does nothing).
+5. Italian: **Pagina › Duplica pagina**, and the undo item reads "Annulla Duplica pagina".
+6. Close and reopen the book: the copy is still there.
+
 ### Documents
 
 - In the app rather than in unit tests: renaming the open package in Finder, editing, quitting and reopening; ejecting the volume of an open book and using **Save As**; opening a book from a read-only volume; **Delete Draft…** and **Save As** from a draft.

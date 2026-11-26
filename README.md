@@ -73,7 +73,7 @@ swift test
 
 | Area | What it does |
 |---|---|
-| **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
+| **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, duplicate, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
 | **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Issues**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
 | **Canvas** | One page or a spread (⌘1, ⌘2), zoom (⌘+, ⌘−, ⌘0). When the whole page fits, scroll or swipe to turn pages. **Browse the Book** (⌥⌘↩) shows the book full screen. |
 | **Photo Library** (bottom, ⌥⌘L) | Thumbnails in each photo's own proportions. Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here, or choose **Import Files…** from its menu, to add them to the open book. |
@@ -95,6 +95,7 @@ The app frame follows the Mac's light or dark appearance. Pages always keep thei
 - **Resolution.** A photo whose print resolution falls below the book's target (300 ppi unless changed in **Book & Print**) shows a warning badge in its corner: orange below the target, red below two thirds of it. Hover the badge for the value; the **Photo** tab shows the print resolution of the selected photo. The value counts the crop and the zoom, like the export preflight.
 - **Layers.** Right-click, or Control-click, a photo, box or story for its own menu. It includes **Bring to Front**, **Bring Forward**, **Send Backward** and **Send to Back**. The same commands are in the **Arrange** menu (⇧⌘F, ⌥⇧⌘F, ⌥⇧⌘B, ⇧⌘B). The order is saved and used in the PDF.
 - **Text.** **Insert › Text Box** adds a free text frame. **Insert › Page Heading** adds a heading to any page. Drag text to move it; use the side handles for width and the corners for height. Double-click to type on the page. Drag the story's background, or its **Move Story Group** handle, to move heading, story and background together.
+- **Duplicate a page.** **Page › Duplicate Page** (⌘D), or the same item in the Pages context menu, puts a copy right after the page and selects it. Text, frames, crops, layers and typography are copied; photos stay the same photos, so a photo can be on both pages. One ⌘Z removes the copy. It is disabled for the front and back cover and while you are typing.
 - **Cover.** **Cover**, **First Page** and **Back Cover** open from the Pages sidebar. **Insert › Title Page** adds an opening page with the book title. Both cover faces take a photo and text that you can move, resize and crop.
 
 ## Book templates

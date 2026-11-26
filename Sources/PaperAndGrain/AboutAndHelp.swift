@@ -131,7 +131,7 @@ struct HelpView: View, Localizing {
             ]),
             Topic(id: "keys", symbol: "keyboard", title: tr("Handy shortcuts"), lines: [
                 tr("⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book · ⇧⌘I issues"),
-                tr("⇧⌘N new page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"),
+                tr("⇧⌘N new page · ⌘D duplicate page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"),
             ]),
         ]
     }
