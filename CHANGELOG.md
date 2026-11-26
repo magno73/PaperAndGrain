@@ -17,6 +17,11 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 
+### Copy and paste
+
+- **Edit › Cut, Copy, Paste** and **Edit › Duplicate** work on the selected canvas objects; while text is typed they keep their text meaning. Pasted objects keep their place and order and become the selection; stories become the page's story or a text box; photos stay in their own book and are not placed twice on a page. Plain text from other apps pastes as a text box, and copied text pastes as plain text elsewhere.
+- ⌘D duplicates the selected text boxes or story; otherwise, photos included, it still duplicates the page. While a sheet such as **Book & Print** is open the canvas takes no Cut, Copy or Paste.
+
 ### Multiple selection
 
 - ⇧-click or ⌘-click adds an object to the selection; dragging on blank paper draws a selection rectangle; ⌘A selects every object on the page.

@@ -29,6 +29,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     var canBeginMarquee: (CGPoint) -> Bool = { _ in false }
     /// The selection rectangle from its origin to the pointer; `ended` on release.
     var onMarquee: (_ origin: CGPoint, _ point: CGPoint, _ ended: Bool) -> Void = { _, _, _ in }
+    /// Edit › Cut, Copy and Paste for the canvas. They reach the window's responder chain only when no
+    /// text view took them first, so text keeps its own meaning.
+    var edit = CanvasEditCommands()
 
     func makeNSView(context: Context) -> Anchor {
         let anchor = Anchor(frame: .zero)
@@ -49,10 +52,13 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         anchor.onSelectAll = onSelectAll
         anchor.canBeginMarquee = canBeginMarquee
         anchor.onMarquee = onMarquee
+        anchor.editResponder.commands = edit
+        anchor.joinResponderChain()
     }
 
     static func dismantleNSView(_ anchor: Anchor, coordinator: ()) {
         anchor.stopMonitoring()
+        anchor.leaveResponderChain()
     }
 
     nonisolated static func isDeleteKey(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags, isRepeat: Bool) -> Bool {
@@ -111,6 +117,38 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         var onMarquee: (CGPoint, CGPoint, Bool) -> Void = { _, _, _ in }
         private var marqueeOrigin: CGPoint?
         private var marqueeActive = false
+        let editResponder = CanvasEditResponder()
+        private weak var chainWindow: NSWindow?
+
+        /// Puts the edit responder after the window in its responder chain, once.
+        func joinResponderChain() {
+            guard let window else { return }
+            if chainWindow !== window { leaveResponderChain() }
+            var responder: NSResponder? = window
+            while let current = responder {
+                if current === editResponder { return }
+                responder = current.nextResponder
+            }
+            editResponder.nextResponder = window.nextResponder
+            window.nextResponder = editResponder
+            editResponder.window = window
+            chainWindow = window
+        }
+
+        func leaveResponderChain() {
+            guard let window = chainWindow else { return }
+            var responder: NSResponder? = window
+            while let current = responder {
+                if current.nextResponder === editResponder {
+                    current.nextResponder = editResponder.nextResponder
+                    break
+                }
+                responder = current.nextResponder
+            }
+            editResponder.nextResponder = nil
+            editResponder.window = nil
+            chainWindow = nil
+        }
         var onPointerDown: (CGPoint) -> Void = { _ in }
         var onKeyboardTraversal: () -> Void = {}
         var onContextMenu: (CGPoint) -> [EditorMenuEntry]? = { _ in nil }
@@ -127,8 +165,10 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             super.viewDidMoveToWindow()
             guard window != nil else {
                 stopMonitoring()
+                leaveResponderChain()
                 return
             }
+            joinResponderChain()
             if monitor == nil {
                 let mask: NSEvent.EventTypeMask = [
                     .keyDown, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .otherMouseDown, .scrollWheel
@@ -268,6 +308,42 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     }
 }
 
+
+/// What the canvas does for Edit › Cut, Copy and Paste.
+struct CanvasEditCommands {
+    var canCopy: () -> Bool = { false }
+    var canPaste: () -> Bool = { false }
+    var copy: () -> Void = {}
+    var cut: () -> Void = {}
+    var paste: () -> Void = {}
+}
+
+/// Answers the standard Edit menu items after the window, so a text field or text view that is first
+/// responder handles them first. The menu items enable from `validateMenuItem`.
+final class CanvasEditResponder: NSResponder, NSMenuItemValidation, NSUserInterfaceValidations {
+    var commands = CanvasEditCommands()
+    /// The book window. While a sheet (Book & Print, an alert) covers it, the canvas takes no commands.
+    weak var window: NSWindow?
+
+    private var available: Bool { window?.attachedSheet == nil }
+
+    @objc func copy(_ sender: Any?) { if available, commands.canCopy() { commands.copy() } }
+    @objc func cut(_ sender: Any?) { if available, commands.canCopy() { commands.cut() } }
+    @objc func paste(_ sender: Any?) { if available, commands.canPaste() { commands.paste() } }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        validateUserInterfaceItem(menuItem)
+    }
+
+    func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        guard available else { return false }
+        return switch item.action {
+        case #selector(copy(_:)), #selector(cut(_:)): commands.canCopy()
+        case #selector(paste(_:)): commands.canPaste()
+        default: false
+        }
+    }
+}
 
 /// Turns one page per scroll gesture: a trackpad swipe or a wheel notch, never a burst of momentum.
 struct PageScrollGesture {

@@ -432,6 +432,132 @@
         }
       }
     },
+    "%lld photos are already on this page and were not added.": {
+      "comment": "Canvas notice: a page holds each photo once, so pasted or duplicated photos already there are skipped.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo is already on this page and was not added."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos are already on this page and were not added."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto è già in questa pagina e non è stata aggiunta."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto sono già in questa pagina e non sono state aggiunte."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld photos are no longer in this book and were not pasted.": {
+      "comment": "Canvas notice: copied photos deleted from the book before the paste.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo is no longer in this book and was not pasted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos are no longer in this book and were not pasted."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non è più in questo libro e non è stata incollata."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non sono più in questo libro e non sono state incollate."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld photos come from another book and were not pasted.": {
+      "comment": "Canvas notice: photos copied from another book are skipped, since their image files are not in this one.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo comes from another book and was not pasted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos come from another book and were not pasted."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto viene da un altro libro e non è stata incollata."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto vengono da un altro libro e non sono state incollate."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld photos have their own look and won’t change.": {
       "extractionState": "manual",
       "localizations": {
@@ -3830,6 +3956,24 @@
         }
       }
     },
+    "Cut": {
+      "comment": "Undo action name for cutting canvas objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cut"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taglia"
+          }
+        }
+      }
+    },
     "Cyan": {
       "extractionState": "manual",
       "localizations": {
@@ -4323,6 +4467,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rilascia per aggiungere al libro"
+          }
+        }
+      }
+    },
+    "Duplicate": {
+      "comment": "Undo action name for duplicating canvas objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicate"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplica"
           }
         }
       }
@@ -8431,6 +8593,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Carta, caratteri e margini di tutto il libro"
+          }
+        }
+      }
+    },
+    "Paste": {
+      "comment": "Undo action name for pasting canvas objects or text.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incolla"
           }
         }
       }
@@ -12714,6 +12894,24 @@
         }
       }
     },
+    "With objects selected, **Edit › Copy**, **Cut**, **Paste** and **Duplicate** (⌘D) work on them; text copied elsewhere pastes as a text box.": {
+      "comment": "Help: the Lay out pages topic, about copying and pasting objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With objects selected, **Edit › Copy**, **Cut**, **Paste** and **Duplicate** (⌘D) work on them; text copied elsewhere pastes as a text box."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con degli oggetti selezionati, **Modifica › Copia**, **Taglia**, **Incolla** e **Duplica** (⌘D) agiscono su di loro; il testo copiato altrove si incolla come box di testo."
+          }
+        }
+      }
+    },
     "Write": {
       "extractionState": "manual",
       "localizations": {
@@ -13073,6 +13271,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Automatica"
+          }
+        }
+      }
+    },
+    "edit.duplicate": {
+      "comment": "Edit menu: duplicate the selected canvas objects (⌘D while objects are selected).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicate"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplica"
           }
         }
       }
