@@ -11,6 +11,9 @@ struct PageMap: Codable, Hashable, Sendable {
     }
 
     var photos: Photos? = nil
+    /// Saved only: the template of the map page (`PageArrangement.map` when nil). In memory the page's
+    /// arrangement says it; see `BookPage`'s coding.
+    var layout: MapLayout? = nil
     var showsRoute: Bool? = nil
     var showsLabels: Bool? = nil
     var showsBorders: Bool? = nil
@@ -32,6 +35,14 @@ struct PageMap: Codable, Hashable, Sendable {
     func label(_ key: String) -> MapLabel? { labels?.first { $0.key == key } }
 }
 
+/// How a map page is laid out, as saved in the manifest.
+enum MapLayout: String, Codable, Sendable {
+    /// The map fills the page.
+    case page
+    /// The map sits above the story.
+    case aboveText
+}
+
 struct MapOffset: Codable, Hashable, Sendable {
     var x: Double
     var y: Double
@@ -51,6 +62,76 @@ struct MapLabel: Codable, Hashable, Sendable {
 
 extension BookPage {
     var isMapPage: Bool { arrangement?.isMap == true }
+}
+
+/// A map page is saved with an arrangement 0.10 knows, `textOnly`, and is a map by its `map` field, which
+/// 0.10 ignores. 0.10 can therefore decode a book with map pages, read `writerVersion` 2 and open it
+/// read-only as a newer format, instead of failing on an unknown arrangement. Every other page is coded
+/// exactly as the synthesized `Codable` would.
+extension BookPage: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, layout, photoIDs, text, framing, textPlacement, heading, photoPlacements, textBoxes, arrangement
+        case typography, layerOrder, titleFrame, storyFrame, storyBackdropFrames, map
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init()
+        id = try values.decode(UUID.self, forKey: .id)
+        layout = try values.decode(PageLayout.self, forKey: .layout)
+        photoIDs = try values.decode([UUID].self, forKey: .photoIDs)
+        text = try values.decode(String.self, forKey: .text)
+        framing = try values.decodeIfPresent(Double.self, forKey: .framing)
+        textPlacement = try values.decodeIfPresent(PageTextPlacement.self, forKey: .textPlacement)
+        heading = try values.decodeIfPresent(String.self, forKey: .heading)
+        photoPlacements = try values.decodeIfPresent([UUID: PhotoPlacement].self, forKey: .photoPlacements)
+        textBoxes = try values.decodeIfPresent([PageTextBox].self, forKey: .textBoxes)
+        arrangement = try values.decodeIfPresent(PageArrangement.self, forKey: .arrangement)
+        typography = try values.decodeIfPresent(EditorialTypography.self, forKey: .typography)
+        layerOrder = try values.decodeIfPresent([PageLayer].self, forKey: .layerOrder)
+        titleFrame = try values.decodeIfPresent(PageRect.self, forKey: .titleFrame)
+        storyFrame = try values.decodeIfPresent(PageRect.self, forKey: .storyFrame)
+        storyBackdropFrames = try values.decodeIfPresent([PageRect].self, forKey: .storyBackdropFrames)
+        map = try values.decodeIfPresent(PageMap.self, forKey: .map)
+        // A saved map page: text only with a map. The command line may also name the map templates directly.
+        if var saved = map, arrangement == .textOnly || arrangement?.isMap == true {
+            if arrangement == .textOnly { arrangement = saved.layout == .aboveText ? .mapAboveText : .map }
+            saved.layout = nil
+            // In memory a map page with default settings holds no map: the arrangement says it is one.
+            map = saved == PageMap() ? nil : saved
+            if let arrangement { layout = arrangement.layout }
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        var arrangement = self.arrangement
+        var layout = self.layout
+        var map = self.map
+        if let current = arrangement, current.isMap {
+            var saved = map ?? PageMap()
+            saved.layout = current == .mapAboveText ? .aboveText : nil
+            map = saved
+            arrangement = .textOnly
+            layout = PageArrangement.textOnly.layout
+        }
+        try values.encode(id, forKey: .id)
+        try values.encode(layout, forKey: .layout)
+        try values.encode(photoIDs, forKey: .photoIDs)
+        try values.encode(text, forKey: .text)
+        try values.encodeIfPresent(framing, forKey: .framing)
+        try values.encodeIfPresent(textPlacement, forKey: .textPlacement)
+        try values.encodeIfPresent(heading, forKey: .heading)
+        try values.encodeIfPresent(photoPlacements, forKey: .photoPlacements)
+        try values.encodeIfPresent(textBoxes, forKey: .textBoxes)
+        try values.encodeIfPresent(arrangement, forKey: .arrangement)
+        try values.encodeIfPresent(typography, forKey: .typography)
+        try values.encodeIfPresent(layerOrder, forKey: .layerOrder)
+        try values.encodeIfPresent(titleFrame, forKey: .titleFrame)
+        try values.encodeIfPresent(storyFrame, forKey: .storyFrame)
+        try values.encodeIfPresent(storyBackdropFrames, forKey: .storyBackdropFrames)
+        try values.encodeIfPresent(map, forKey: .map)
+    }
 }
 
 /// A map laid out on a page, in the page's points. `PageComposition.map` holds it for every surface.
@@ -102,12 +183,29 @@ struct MapComposition {
         }
     }
 
+    /// The map of a page, reused while nothing it depends on changes: every surface composes the page,
+    /// and names, labels and geography need not be worked out again for each.
+    static func cached(page: BookPage, book: Book, frame: CGRect, fillsTrim: Bool,
+                       language: String = L10n.interfaceLanguage, store: MapDataStore = .shared) -> MapComposition {
+        let settings = page.map ?? PageMap()
+        let located = locatedPhotos(book, settings: settings)
+        let key = MapCompositionCache.Key(
+            settings: settings, frame: [frame.minX, frame.minY, frame.width, frame.height], fillsTrim: fillsTrim,
+            language: language, template: book.template, captions: book.captionStyle,
+            located: located.map { MapCompositionCache.Located(id: $0.photo.id, coordinate: $0.coordinate, name: $0.photo.location?.name) },
+            geography: store.loadedGeography != nil, store: ObjectIdentifier(store))
+        return MapCompositionCache.shared.map(for: key) {
+            MapComposition(page: page, book: book, frame: frame, fillsTrim: fillsTrim, language: language, store: store,
+                           located: located)
+        }
+    }
+
     init(page: BookPage, book: Book, frame: CGRect, fillsTrim: Bool, language: String = L10n.interfaceLanguage,
-         store: MapDataStore = .shared) {
+         store: MapDataStore = .shared, located: [(photo: BookPhoto, coordinate: MapCoordinate)]? = nil) {
         self.frame = frame
         self.fillsTrim = fillsTrim
         let settings = page.map ?? PageMap()
-        let located = Self.locatedPhotos(book, settings: settings)
+        let located = located ?? Self.locatedPhotos(book, settings: settings)
         let world = store.loadedGeography
         missingGeography = world == nil
         guard !located.isEmpty, frame.width > 1, frame.height > 1,
@@ -186,6 +284,50 @@ struct MapComposition {
             if distance <= labelReachKM, distance < best?.distance ?? .infinity { best = (distance, place) }
         }
         return best?.place.name(language: language)
+    }
+}
+
+/// Recent maps by everything they depend on.
+final class MapCompositionCache: @unchecked Sendable {
+    static let shared = MapCompositionCache()
+
+    struct Located: Hashable {
+        let id: UUID
+        let coordinate: MapCoordinate
+        let name: String?
+    }
+
+    struct Key: Hashable {
+        let settings: PageMap
+        let frame: [CGFloat]
+        let fillsTrim: Bool
+        let language: String
+        let template: BookTemplate?
+        let captions: EditorialTextStyle
+        let located: [Located]
+        let geography: Bool
+        let store: ObjectIdentifier
+    }
+
+    private let lock = NSLock()
+    private var entries: [Key: MapComposition] = [:]
+    private var order: [Key] = []
+    private let capacity = 16
+
+    func map(for key: Key, make: () -> MapComposition) -> MapComposition {
+        lock.lock()
+        if let cached = entries[key] {
+            lock.unlock()
+            return cached
+        }
+        lock.unlock()
+        let map = make()
+        lock.lock()
+        if entries[key] == nil { order.append(key) }
+        entries[key] = map
+        if order.count > capacity { entries.removeValue(forKey: order.removeFirst()) }
+        lock.unlock()
+        return map
     }
 }
 
@@ -335,9 +477,18 @@ enum MapRenderer {
             context.fillEllipse(in: CGRect(x: place.point.x - r, y: place.point.y - r, width: 2 * r, height: 2 * r))
         }
         for place in map.places {
-            if let label = place.label, let frame = place.labelFrame {
-                EditorialTypesetter.draw(label, in: frame, context: context)
-            }
+            guard let label = place.label, let frame = place.labelFrame else { continue }
+            // A halo of the land's tint keeps the name readable where the route or a border runs under it.
+            let halo = NSMutableAttributedString(attributedString: label)
+            let whole = NSRange(location: 0, length: halo.length)
+            halo.addAttribute(NSAttributedString.Key(kCTStrokeColorAttributeName as String),
+                              value: EditorialStyle.color(style.mapLand), range: whole)
+            halo.addAttribute(NSAttributedString.Key(kCTStrokeWidthAttributeName as String), value: 24.0, range: whole)
+            context.saveGState()
+            context.setLineJoin(.round)
+            EditorialTypesetter.draw(halo, in: frame, context: context)
+            context.restoreGState()
+            EditorialTypesetter.draw(label, in: frame, context: context)
         }
         context.restoreGState()
         if !map.fillsTrim {

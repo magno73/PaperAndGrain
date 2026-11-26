@@ -219,6 +219,53 @@ final class MapTests: XCTestCase {
         XCTAssertNil(decoded.pages[0].map)
     }
 
+    /// 0.10's page model: its arrangements, no map field. Unknown keys are ignored, as by `Codable`.
+    private struct OldBook: Decodable {
+        enum OldArrangement: String, Decodable {
+            case fullBleed, fullSpread, bleedTwoAcross, bleedTwoStacked, bleedThreeAcross, bleedFourGrid, bleedHeroAboveTwo
+            case twoAcross, twoStacked, fourGrid, heroAboveTwo, twoAboveHero
+            case textAbovePhoto, photoAboveText, textBesidePhoto, textOverPhoto, textOnly
+        }
+        struct OldPage: Decodable {
+            var id: UUID
+            var layout: PageLayout
+            var photoIDs: [UUID]
+            var text: String
+            var heading: String?
+            var arrangement: OldArrangement?
+        }
+        var title: String
+        var pages: [OldPage]
+        var writerVersion: Int?
+    }
+
+    func testABookWithMapPagesDecodesIn010AndReadsAsNewer() throws {
+        var book = Workspace.stamped(namibia())
+        var above = BookPage(layout: .mixed, text: "North.", arrangement: .mapAboveText)
+        above.map = PageMap(showsRoute: false, labels: [MapLabel(key: "-22.57,17.08", name: "Home")])
+        book.pages.append(above)
+        let data = try JSONEncoder().encode(book)
+        // 0.10 decodes it: a text page with a field it ignores, written by version 2, which it opens as newer.
+        let old = try JSONDecoder().decode(OldBook.self, from: data)
+        XCTAssertEqual(old.writerVersion, 2)
+        XCTAssertEqual(old.pages[1].arrangement, .textOnly)
+        XCTAssertEqual(old.pages[1].layout, .text)
+        XCTAssertEqual(old.pages[2].arrangement, .textOnly)
+        XCTAssertEqual(old.pages[2].text, "North.")
+        // 0.11 reads the same pages back as maps, unchanged.
+        let again = try JSONDecoder().decode(Book.self, from: data)
+        XCTAssertEqual(again, book)
+        XCTAssertEqual(again.pages[1].arrangement, .map)
+        XCTAssertEqual(again.pages[2].arrangement, .mapAboveText)
+        XCTAssertEqual(again.pages[2].map?.label("-22.57,17.08")?.name, "Home")
+        XCTAssertNil(again.pages[2].map?.layout, "the saved layout lives only in the manifest")
+        // Other pages are coded as before: a text page without a map stays a text page.
+        let text = BookPage(layout: .text, text: "Only words", arrangement: .textOnly)
+        XCTAssertEqual(try JSONDecoder().decode(BookPage.self, from: JSONEncoder().encode(text)), text)
+        let json = try XCTUnwrap(String(data: JSONEncoder().encode(text), encoding: .utf8))
+        XCTAssertFalse(json.contains("map"))
+    }
+
     // MARK: PDF and command line
 
     func testTheMapPrintsAsVectorsAndTheCommandLineBuildsIt() throws {

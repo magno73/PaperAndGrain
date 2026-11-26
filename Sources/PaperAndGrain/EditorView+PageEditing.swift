@@ -53,6 +53,8 @@ extension EditorView {
         editPages(tr("Change Page Template")) { pages in
             let wasSpread = pages[index].effectiveLayout == .fullSpread
             pages[index].arrangement = arrangement
+            // A map's settings belong to a map page; a saved text page with them would read back as a map.
+            if arrangement?.isMap != true { pages[index].map = nil }
             if let arrangement {
                 pages[index].layout = arrangement.layout
                 pages[index].photoPlacements = Self.photoCrops(from: pages[index].photoPlacements)

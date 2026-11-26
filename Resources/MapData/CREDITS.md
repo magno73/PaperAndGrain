@@ -16,6 +16,6 @@ Its default view of disputed areas follows who controls the territory
 (<https://www.naturalearthdata.com/about/disputed-boundaries-policy/>); the app uses that view and
 does not print country names.
 
-The file is not generated yet: the script downloads from GitHub and is run only with the author's
-consent. Unit tests use `Tests/Fixtures/test-map.mapdata`, synthetic shapes written by
+The file was generated on 26 November 2026 (465,649 bytes); the script downloads from GitHub and is
+run only with the author's consent. The downloaded GeoJSON is not kept in the repository. Unit tests use `Tests/Fixtures/test-map.mapdata`, synthetic shapes written by
 `scripts/make-map-data.py --fixture`, not geography.

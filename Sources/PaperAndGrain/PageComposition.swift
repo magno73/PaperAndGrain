@@ -283,7 +283,7 @@ struct PageComposition {
         if let arrangement = page.arrangement {
             let geometry = arrangement.geometry(in: bounds, inside: safe, gap: style.imageGap)
             map = geometry.map.map { area in
-                MapComposition(page: page, book: book, frame: mapFillsTrim ? bounds : area, fillsTrim: mapFillsTrim)
+                MapComposition.cached(page: page, book: book, frame: mapFillsTrim ? bounds : area, fillsTrim: mapFillsTrim)
             }
             arrangementPhotoSlots = geometry.photos
             if arrangement == .textOverPhoto, let panel = book.template?.storyOverlayPanel(in: safe) {

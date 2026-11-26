@@ -55,7 +55,7 @@ Checked on 26 November 2026 by exporting a synthetic book (gallery of three, fou
 
 ## Map pages
 
-A map uses the template's colors: the sea is the paper, land the paper with 10 % of the ink, coasts, lake shores and borders a 0.35 pt line of the ink at 42 %, places filled dots of the ink, the route a 0.9 pt line of the accent, and names the caption style. On dark paper (Gallery, Berlin Notebook, Nocturne) land is a lighter tint. A whole-page map reaches the trim (and the bleed) in Essential, Berlin Notebook and Postcard, whose photographs do; elsewhere it keeps the margins and gets a hairline frame. Checked with synthetic shapes on Journal, Swiss Grid and Nocturne; the real data is still to be checked on all twelve.
+A map uses the template's colors: the sea is the paper, land the paper with 10 % of the ink, coasts, lake shores and borders a 0.35 pt line of the ink at 42 %, places filled dots of the ink, the route a 0.9 pt line of the accent, and names the caption style. On dark paper (Gallery, Berlin Notebook, Nocturne) land is a lighter tint. A whole-page map reaches the trim (and the bleed) in Essential, Berlin Notebook and Postcard, whose photographs do; elsewhere it keeps the margins and gets a hairline frame. Names carry a halo of the land's tint, so a route or border under them does not cut the letters. Checked with the bundled data on all twelve templates, with five places in Namibia, on 26 November 2026.
 
 ## Cover and spine
 

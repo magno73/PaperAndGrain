@@ -59,7 +59,7 @@ enum PageTextPlacement: String, Codable, Hashable, Sendable {
     case below, beside
 }
 
-struct BookPage: Identifiable, Codable, Hashable, Sendable {
+struct BookPage: Identifiable, Hashable, Sendable {
     var id = UUID()
     var layout: PageLayout = .gallery
     var photoIDs: [UUID] = []

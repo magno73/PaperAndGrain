@@ -403,7 +403,7 @@ enum BookCLI {
                 }
                 built.photoPlacements = resolved
             }
-            built.map = page.map
+            built.map = page.map == PageMap() ? nil : page.map
             built.layerOrder = try page.layerOrder.map { entries in
                 try entries.map { entry in try layer(entry, on: built, photoID: { ids[$0] }, at: index) }
             }
