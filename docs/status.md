@@ -88,6 +88,10 @@ Unit tests (`SimilarPhotosTests`) cover transitive groups, the time rule at 9, 1
 5. Sorting, **Unused**, **On Page** and the search field with stacks on. Add a new photo while analysis runs: the stacks update when it ends.
 6. Italian: menu item, badge help, sheet.
 7. With 1,000 photos, turn stacks on and scroll: no stall.
+8. Put one member of a group on a page, choose **Unused**: the stack shows the best of the unused members (not nothing); search for a word that matches only one member: that photo shows alone, without a badge.
+9. Compare sheet: under **Use This One** a line says which pages change (or that nothing is close enough / not placed); **Previous**, **Next** and **Done** have help text. With a chain of shots, **Use This One** leaves the members that are not near the chosen one.
+10. VoiceOver on a stack tile: the value says the count, and the actions list shows "Show the similar photos". A member opened from the stack says it is in a stack.
+11. Double-click the badge: the stack opens and closes, and the photo is not added to the page.
 
 ### Relink (T7)
 

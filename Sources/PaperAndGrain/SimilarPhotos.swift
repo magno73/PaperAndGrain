@@ -71,6 +71,26 @@ enum SimilarPhotos {
         return order.compactMap { members[$0] }.filter { $0.count > 1 }
     }
 
+    /// True when two photos are near-duplicates of each other directly (not through a chain of others).
+    static func isSimilar(_ a: Entry, _ b: Entry) -> Bool {
+        let bits = (a.hash ^ b.hash).nonzeroBitCount
+        guard bits <= closeBits else { return false }
+        if bits <= nearBits { return true }
+        guard let x = a.time, let y = b.time else { return false }
+        return abs(x - y) <= closeSeconds
+    }
+
+    /// The members of `group` that **Use This One** may replace with `chosen`: only those that are
+    /// near-duplicates of `chosen` itself. A group is a connected set, so a chain of slowly changing shots can
+    /// hold photos that are not alike; those stay as they are.
+    static func replaceable(by chosen: UUID, in group: [UUID], entries: [Entry]) -> [UUID] {
+        guard let target = entries.first(where: { $0.id == chosen }) else { return [] }
+        let byID = Dictionary(entries.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return group.filter { id in
+            id != chosen && byID[id].map { isSimilar(target, $0) } == true
+        }
+    }
+
     private static func before(_ a: Entry, _ b: Entry) -> Bool {
         switch (a.time, b.time) {
         case let (x?, y?) where x != y: return x < y
@@ -90,12 +110,12 @@ enum SimilarPhotos {
 
     /// The photo shown for a group: the one already placed in the book, otherwise the one with the most
     /// detail (sharpness), otherwise the earliest. A tie goes to the earlier member.
-    static func shownPhoto(in group: [UUID], photos: [UUID: BookPhoto], placed: Set<UUID>) -> UUID {
+    static func shownPhoto(in group: [UUID], photo: (UUID) -> BookPhoto?, placed: Set<UUID>) -> UUID {
         if let onPage = group.first(where: { placed.contains($0) }) { return onPage }
         var best = group[0]
-        var bestDetail = photos[best]?.analysis?.visual?.sharpness ?? -1
+        var bestDetail = photo(best)?.analysis?.visual?.sharpness ?? -1
         for id in group.dropFirst() {
-            let detail = photos[id]?.analysis?.visual?.sharpness ?? -1
+            let detail = photo(id)?.analysis?.visual?.sharpness ?? -1
             if detail > bestDetail {
                 best = id
                 bestDetail = detail
@@ -104,9 +124,15 @@ enum SimilarPhotos {
         return best
     }
 
-    static func stacks(_ groups: [[UUID]], photos: [BookPhoto], placed: Set<UUID>) -> [Stack] {
-        let byID = Dictionary(photos.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return groups.map { Stack(shown: shownPhoto(in: $0, photos: byID, placed: placed), members: $0) }
+    /// The stacks of the photos in `visible` (what the library's filter and search let through): a group
+    /// keeps only its visible members, and stacks when two or more remain, with the best of them shown.
+    static func stacks(_ groups: [[UUID]], visible: Set<UUID>, photo: (UUID) -> BookPhoto?,
+                       placed: Set<UUID>) -> [Stack] {
+        groups.compactMap { group in
+            let members = group.filter { visible.contains($0) }
+            guard members.count > 1 else { return nil }
+            return Stack(shown: shownPhoto(in: members, photo: photo, placed: placed), members: members)
+        }
     }
 }
 

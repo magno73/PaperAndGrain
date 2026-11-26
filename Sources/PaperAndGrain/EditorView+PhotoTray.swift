@@ -104,11 +104,9 @@ extension EditorView {
         case .unused: results.photos.filter { photoLocations[$0.id]?.isEmpty ?? true }
         case .onPage: results.photos.filter { assigned.contains($0.id) }
         }
-        // A stack is filed under the photo it shows: the photos behind it leave the list until it is opened.
-        let stackIndex = SimilarStackIndex(stacksSimilar
-            ? SimilarPhotos.stacks(similarGroups, photos: book.photos,
-                                   placed: Set(photoLocations.filter { !$0.value.isEmpty }.keys))
-            : [])
+        // Stacks are built from what the filter and the search let through, so each one shows the best of its
+        // visible members; the others wait behind it until it is opened.
+        let stackIndex = stackedLibrary(filtered, locations: photoLocations)
         let sections = libraryOrdering.groups(
             for: filtered.filter { !stackIndex.behind.contains($0.id) }, order: photoOrder, locale: Locale(identifier: language),
             places: placesRead, used: photoOrder == .usage ? Set(photoLocations.keys) : []
@@ -364,16 +362,25 @@ extension EditorView {
             .contentShape(Rectangle())
             .gesture(editorDrag(.photo(photo.id)))
             .simultaneousGesture(TapGesture(count: 2).onEnded {
+                // A double click on the count badge opens and closes the stack twice; it must not also add the photo.
+                if let clicked = stackBadgeClickedAt, Date().timeIntervalSince(clicked) < 0.6 { return }
                 selectLibraryPhoto(photo.id)
                 togglePhoto(photo.id)
             })
             .help(photo.name + "\n" + details)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(photo.name)
-            .accessibilityValue(details)
+            .accessibilityValue(stackAccessibilityValue(details, stack: stack, behind: behind))
             .accessibilityAddTraits(.isButton)
             .accessibilityAddTraits(active ? .isSelected : [])
             .accessibilityAction { selectLibraryPhoto(photo.id) }
+            .accessibilityActions {
+                if let stack {
+                    Button(stackIsOpen(stack) ? tr("Hide the similar photos") : tr("Show the similar photos")) {
+                        toggleStack(stack)
+                    }
+                }
+            }
             .accessibilityAction(named: Text(used ? tr("Remove from page")
                                                  : tr("Add to page"))) {
                 togglePhoto(photo.id)
@@ -403,6 +410,13 @@ extension EditorView {
         guard stacksSimilar else { return nil }
         if let stack { return stack.members }
         return similarGroups.first { $0.contains(id) }
+    }
+
+    func stackedLibrary(_ visible: [BookPhoto], locations: [UUID: [PhotoUsageIndex.Location]]) -> SimilarStackIndex {
+        guard stacksSimilar, !similarGroups.isEmpty else { return SimilarStackIndex() }
+        let placed = Set(locations.filter { !$0.value.isEmpty }.keys)
+        return SimilarStackIndex(SimilarPhotos.stacks(similarGroups, visible: Set(visible.map(\.id)),
+                                                      photo: { indexedPhoto($0) }, placed: placed))
     }
 
     func photoOrientation(_ photo: BookPhoto) -> (symbol: String, label: String) {

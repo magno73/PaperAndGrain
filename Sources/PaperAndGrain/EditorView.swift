@@ -104,6 +104,9 @@ struct EditorView: View, Localizing {
 
     @State var comparison: SimilarComparison?
 
+    /// When the count badge was last clicked, so its double click does not also reach the tile.
+    @State var stackBadgeClickedAt: Date?
+
     @GestureState var dragging: EditorDragPreview?
 
     @State var showSpread = true

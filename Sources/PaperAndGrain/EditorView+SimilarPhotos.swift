@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// What the grouping reads from a photo, before it is parsed.
+struct SimilarKeyItem: Hashable {
+    let id: UUID
+    let hash: String?
+    let date: Date?
+}
+
 /// A group of similar photos opened in the compare sheet.
 struct SimilarComparison: Identifiable, Equatable {
     let id = UUID()
@@ -15,22 +22,42 @@ extension EditorView {
             if !similarGroups.isEmpty { similarGroups = [] }
             return
         }
-        let entries = SimilarPhotos.entries(book.photos)
-        let groups = await Task.detached(priority: .utility) { SimilarPhotos.groups(entries) }.value
+        let photos = book.photos
+        let groups = await Task.detached(priority: .utility) {
+            SimilarPhotos.groups(SimilarPhotos.entries(photos))
+        }.value
         if !Task.isCancelled, groups != similarGroups { similarGroups = groups }
     }
 
-    /// What the grouping reads, so `.task(id:)` runs again only when it changes.
-    var similarKey: [SimilarPhotos.Entry] { stacksSimilar ? SimilarPhotos.entries(book.photos) : [] }
+    /// What the grouping reads, unparsed, so `.task(id:)` runs again only when a hash or a date changes.
+    var similarKey: [SimilarKeyItem] {
+        guard stacksSimilar else { return [] }
+        return book.photos.map {
+            SimilarKeyItem(id: $0.id, hash: $0.analysis?.visual?.perceptualHash, date: $0.capturedAt)
+        }
+    }
+
+    func stackIsOpen(_ stack: SimilarPhotos.Stack) -> Bool {
+        stack.members.first.map { expandedStacks.contains($0) } ?? false
+    }
 
     func toggleStack(_ stack: SimilarPhotos.Stack) {
         guard let key = stack.members.first else { return }
+        stackBadgeClickedAt = Date()
         if expandedStacks.contains(key) { expandedStacks.remove(key) } else { expandedStacks.insert(key) }
+    }
+
+    /// What VoiceOver says about a tile: its details, and its place in a stack.
+    func stackAccessibilityValue(_ details: String, stack: SimilarPhotos.Stack?, behind: Bool) -> String {
+        var parts = [details]
+        if let stack { parts.append(tr("%lld similar photos", stack.members.count)) }
+        if behind { parts.append(tr("In a stack of similar photos")) }
+        return parts.joined(separator: " · ")
     }
 
     /// The count badge on a stack's thumbnail: it opens and closes the group in place.
     func stackBadge(_ stack: SimilarPhotos.Stack) -> some View {
-        let open = stack.members.first.map { expandedStacks.contains($0) } ?? false
+        let open = stackIsOpen(stack)
         return Button { toggleStack(stack) } label: {
             Label("\(stack.members.count)", systemImage: open ? "chevron.left.2" : "square.on.square")
                 .font(.system(size: 10, weight: .semibold).monospacedDigit())
@@ -42,8 +69,8 @@ extension EditorView {
         }
         .buttonStyle(.plain)
         .help(open ? tr("Hide the similar photos") : tr("Show the similar photos"))
-        .accessibilityLabel(tr("%lld similar photos", stack.members.count))
-        .accessibilityHint(open ? tr("Hide the similar photos") : tr("Show the similar photos"))
+        // The tile is one accessibility element; its action and value carry the badge.
+        .accessibilityHidden(true)
     }
 
     func compare(_ members: [UUID]) {
@@ -52,30 +79,40 @@ extension EditorView {
 
     // MARK: Use This One
 
-    /// Replaces every other member of the group with `chosen` wherever it is placed (pages and the two cover
-    /// faces), keeping frames, crops and layers. One undo step. No photo is deleted from the book.
+    /// Replaces the members of the group that are near-duplicates of `chosen` itself with `chosen`, wherever
+    /// they are placed (pages and the two cover faces), keeping frames, crops and layers. One undo step: all
+    /// pages change in one `editPages` call and a cover face registers in the same undo group. No photo is
+    /// deleted from the book.
     func useThisOne(_ chosen: UUID, among members: [UUID]) {
-        let others = Set(members).subtracting([chosen])
-        let previous = book.pages
-        var changed = false
-        for index in book.pages.indices {
-            for other in others where book.pages[index].substitutePhoto(other, with: chosen) { changed = true }
+        let others = SimilarPhotos.replaceable(by: chosen, in: members, entries: SimilarPhotos.entries(book.photos))
+        defer { comparison = nil }
+        guard !others.isEmpty else { return }
+        let name = tr("Use This One")
+        editPages(name) { pages in
+            for index in pages.indices {
+                for other in others { pages[index].substitutePhoto(other, with: chosen) }
+            }
         }
-        if changed { registerUndo(previous, name: tr("Use This Photo")) }
         for side in [CoverSide.front, .back] {
             guard let current = coverPhotoID(side), others.contains(current) else { continue }
             let key: WritableKeyPath<BookCover, UUID?> = side == .front ? \.frontPhotoID : \.backPhotoID
-            let placementKey = coverPlacementKey(side)
             let before = CoverImage(id: current, placement: coverPhotoPlacement(side))
             changeCover { $0[keyPath: key] = chosen }
             if let undoManager {
                 undoTarget.registerCoverImage(undoManager, binding: $book, bookID: book.id, idKey: key,
-                                              placementKey: placementKey, previous: before, name: tr("Use This Photo"))
+                                              placementKey: coverPlacementKey(side), previous: before, name: name)
             }
-            changed = true
         }
-        if changed { undoManager?.setActionName(tr("Use This Photo")) }
-        comparison = nil
+    }
+
+    /// Where `chosen` would replace others, for the sheet to say before the click.
+    func useThisOneEffect(_ chosen: UUID, among members: [UUID], locations: [UUID: [PhotoUsageIndex.Location]]) -> String {
+        let others = SimilarPhotos.replaceable(by: chosen, in: members, entries: SimilarPhotos.entries(book.photos))
+        if others.isEmpty { return tr("No other photo is close enough to this one to be replaced.") }
+        var seen = Set<String>()
+        let places = others.flatMap { locations[$0] ?? [] }.map(usageDescription).filter { seen.insert($0).inserted }
+        if places.isEmpty { return tr("The similar photos are not placed, so no page changes.") }
+        return tr("Replaces the similar photos on: %@", places.joined(separator: ", "))
     }
 
     // MARK: Compare sheet
@@ -86,10 +123,7 @@ extension EditorView {
         let page = min(current.page, pages - 1)
         let visible = Array(current.members.dropFirst(page * perPage).prefix(perPage))
         let locations = photoUsageIndex.locations(in: book)
-        let style = DateFormatter()
-        style.locale = Locale(identifier: language)
-        style.dateStyle = .medium
-        style.timeStyle = .short
+        let dateStyle = Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: language))
         return VStack(alignment: .leading, spacing: 14) {
             Text(tr("Compare Similar Photos")).font(.headline)
             HStack(alignment: .top, spacing: 14) {
@@ -103,14 +137,16 @@ extension EditorView {
                                 .accessibilityLabel(photo.name)
                             Text(photo.name).font(.callout.weight(.semibold)).lineLimit(1)
                             Text("\(photo.pixelWidth) × \(photo.pixelHeight)").font(.caption).foregroundStyle(muted)
-                            Text(photo.capturedAt.map { style.string(from: $0) } ?? tr("No Date"))
+                            Text(photo.capturedAt.map { $0.formatted(dateStyle) } ?? tr("No Date"))
                                 .font(.caption).foregroundStyle(muted)
                             Text((locations[id] ?? []).isEmpty ? tr("Not on a page")
                                  : (locations[id] ?? []).map(usageDescription).joined(separator: ", "))
                                 .font(.caption).foregroundStyle(muted).lineLimit(2)
                             Button(tr("Use This One")) { useThisOne(id, among: current.members) }
-                                .help(tr("Replace the other photos of this group with this one wherever they are placed"))
-                                .disabled(current.members.count < 2)
+                                .help(tr("Replace the similar photos of this group with this one wherever they are placed"))
+                            Text(useThisOneEffect(id, among: current.members, locations: locations))
+                                .font(.caption2).foregroundStyle(muted)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(width: 230, alignment: .leading)
                     }
@@ -120,12 +156,16 @@ extension EditorView {
                 if pages > 1 {
                     Button(tr("Previous"), systemImage: "chevron.left") { comparison?.page = max(0, page - 1) }
                         .disabled(page == 0)
+                        .help(tr("Show the previous photos of the group"))
                     Text(tr("%1$lld of %2$lld", page + 1, pages)).font(.caption).foregroundStyle(muted).monospacedDigit()
                     Button(tr("Next"), systemImage: "chevron.right") { comparison?.page = min(pages - 1, page + 1) }
                         .disabled(page >= pages - 1)
+                        .help(tr("Show the next photos of the group"))
                 }
                 Spacer()
-                Button(tr("Done")) { comparison = nil }.keyboardShortcut(.defaultAction)
+                Button(tr("Done")) { comparison = nil }
+                    .keyboardShortcut(.defaultAction)
+                    .help(tr("Close the comparison"))
             }
         }
         .padding(20)

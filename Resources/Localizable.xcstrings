@@ -2858,6 +2858,23 @@
         }
       }
     },
+    "Close the comparison": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close the comparison"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiudi il confronto"
+          }
+        }
+      }
+    },
     "Collapsed": {
       "extractionState": "manual",
       "localizations": {
@@ -5254,6 +5271,23 @@
         }
       }
     },
+    "In a stack of similar photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In a stack of similar photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In un gruppo di foto simili"
+          }
+        }
+      }
+    },
     "In progress": {
       "extractionState": "manual",
       "localizations": {
@@ -6870,6 +6904,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nessuna foto corrispondente."
+          }
+        }
+      }
+    },
+    "No other photo is close enough to this one to be replaced.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No other photo is close enough to this one to be replaced."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun’altra foto è abbastanza simile a questa da essere sostituita."
           }
         }
       }
@@ -8581,19 +8632,36 @@
         }
       }
     },
-    "Replace the other photos of this group with this one wherever they are placed": {
+    "Replace the similar photos of this group with this one wherever they are placed": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replace the other photos of this group with this one wherever they are placed"
+            "value": "Replace the similar photos of this group with this one wherever they are placed"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sostituisci le altre foto di questo gruppo con questa, ovunque siano collocate"
+            "value": "Sostituisci le foto simili di questo gruppo con questa, ovunque siano collocate"
+          }
+        }
+      }
+    },
+    "Replaces the similar photos on: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaces the similar photos on: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sostituisce le foto simili in: %@"
           }
         }
       }
@@ -9461,6 +9529,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra i problemi e gli avvisi trovati nel libro"
+          }
+        }
+      }
+    },
+    "Show the next photos of the group": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the next photos of the group"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra le foto successive del gruppo"
+          }
+        }
+      }
+    },
+    "Show the previous photos of the group": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the previous photos of the group"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra le foto precedenti del gruppo"
           }
         }
       }
@@ -10698,6 +10800,23 @@
         }
       }
     },
+    "The similar photos are not placed, so no page changes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The similar photos are not placed, so no page changes."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto simili non sono collocate: nessuna pagina cambia."
+          }
+        }
+      }
+    },
     "The text exceeds the cover space.": {
       "extractionState": "manual",
       "localizations": {
@@ -11291,23 +11410,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Usa questa"
-          }
-        }
-      }
-    },
-    "Use This Photo": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use This Photo"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa questa foto"
           }
         }
       }

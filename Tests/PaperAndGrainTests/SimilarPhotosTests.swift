@@ -111,11 +111,40 @@ final class SimilarPhotosTests: XCTestCase {
         let a = photo(0.2), b = photo(0.9), c = photo(0.5)
         let byID = Dictionary(uniqueKeysWithValues: [a, b, c].map { ($0.id, $0) })
         let group = [a.id, b.id, c.id]
-        XCTAssertEqual(SimilarPhotos.shownPhoto(in: group, photos: byID, placed: [c.id]), c.id)
-        XCTAssertEqual(SimilarPhotos.shownPhoto(in: group, photos: byID, placed: []), b.id)
+        XCTAssertEqual(SimilarPhotos.shownPhoto(in: group, photo: { byID[$0] }, placed: [c.id]), c.id)
+        XCTAssertEqual(SimilarPhotos.shownPhoto(in: group, photo: { byID[$0] }, placed: []), b.id)
         let flat = [photo(nil), photo(nil)]
         let flatByID = Dictionary(uniqueKeysWithValues: flat.map { ($0.id, $0) })
-        XCTAssertEqual(SimilarPhotos.shownPhoto(in: flat.map(\.id), photos: flatByID, placed: []), flat[0].id)
+        XCTAssertEqual(SimilarPhotos.shownPhoto(in: flat.map(\.id), photo: { flatByID[$0] }, placed: []), flat[0].id)
+    }
+
+    func testStacksFollowTheFilterAndChainsAreNotReplacedWholesale() {
+        let base: UInt64 = 0xAAAA_AAAA_AAAA_AAAA
+        // a-b 6 bits, b-c 6 bits, a-c 12 bits: one group, but a and c are not alike.
+        let a = entry(base), b = entry(flipped(base, 6)), c = entry(base ^ 0xFFF)
+        let group = SimilarPhotos.groups([a, b, c])
+        XCTAssertEqual(group.count, 1)
+        let ids = group[0]
+        // Only the unused ones pass the filter (b and c): the stack shows the better of those two.
+        func photo(_ id: UUID, sharp: Double) -> BookPhoto {
+            var p = BookPhoto(id: id, name: "p", filename: id.uuidString, pixelWidth: 4, pixelHeight: 3)
+            p.analysis = PhotoAnalysis(labels: [], concepts: [], visual: PhotoVisualSignals(
+                orientation: "l", brightness: 0, sharpness: sharp, contrast: 0, dominantColors: [], perceptualHash: "0000000000000000"))
+            return p
+        }
+        let lookup = [a.id: photo(a.id, sharp: 0.9), b.id: photo(b.id, sharp: 0.3), c.id: photo(c.id, sharp: 0.6)]
+        let all = SimilarPhotos.stacks([ids], visible: [a.id, b.id, c.id], photo: { lookup[$0] }, placed: [a.id])
+        XCTAssertEqual(all.map(\.shown), [a.id])
+        let unused = SimilarPhotos.stacks([ids], visible: [b.id, c.id], photo: { lookup[$0] }, placed: [])
+        XCTAssertEqual(unused.map(\.shown), [c.id], "the sharper of the visible members")
+        XCTAssertEqual(Set(unused[0].members), [b.id, c.id])
+        XCTAssertTrue(SimilarPhotos.stacks([ids], visible: [b.id], photo: { lookup[$0] }, placed: []).isEmpty,
+                      "one visible member is a plain thumbnail")
+        // Use This One on b may take a and c (both within 6 bits of b); on a it may take b only.
+        let entries = [a, b, c]
+        XCTAssertEqual(Set(SimilarPhotos.replaceable(by: b.id, in: ids, entries: entries)), [a.id, c.id])
+        XCTAssertEqual(SimilarPhotos.replaceable(by: a.id, in: ids, entries: entries), [b.id])
+        XCTAssertEqual(SimilarPhotos.replaceable(by: c.id, in: ids, entries: entries), [b.id])
     }
 
     func testSubstitutionKeepsFrameCropAndLayer() {
