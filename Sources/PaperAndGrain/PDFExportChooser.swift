@@ -19,6 +19,9 @@ struct PDFExportChooser: View, Localizing {
     /// editor's provider here and the rows stay identical to the Issues popover.
     let fix: (BookPDF.PreflightIssue) -> IssueFix?
     let catalog: PrintProfileCatalog
+    /// Keeps measures the author changed for the book's own product in its print settings, as one undo
+    /// step, so the live Issues list sees them too.
+    let saveMeasures: (PrintMeasures) -> Void
 
     @State private var choice: Choice = .proof
     /// The product picked under **Other print service…**.
@@ -27,6 +30,8 @@ struct PDFExportChooser: View, Localizing {
     @State private var otherPaperID: String?
     /// The measures typed in the sheet, as text in the interface language.
     @State private var typed: [PrintMeasure: String] = [:]
+    /// The text the fields started with, to tell what the author changed.
+    @State private var initialTyped: [PrintMeasure: String] = [:]
     @State private var report: BookPDF.Preflight?
 
     private enum Choice: Hashable {
@@ -36,6 +41,7 @@ struct PDFExportChooser: View, Localizing {
     init(book: Book, directory: URL? = nil, language: String, catalog: PrintProfileCatalog = .bundled,
          cancel: @escaping () -> Void,
          fix: @escaping (BookPDF.PreflightIssue) -> IssueFix? = { _ in nil },
+         saveMeasures: @escaping (PrintMeasures) -> Void = { _ in },
          export: @escaping (PDFExportRequest) -> Void) {
         self.book = book
         self.directory = directory
@@ -44,8 +50,11 @@ struct PDFExportChooser: View, Localizing {
         self.cancel = cancel
         self.export = export
         self.fix = fix
+        self.saveMeasures = saveMeasures
         let bookPlan = PrintPlan(book: book, catalog: catalog)
-        _typed = State(initialValue: Self.typedText(bookPlan, book: book, language: language))
+        let text = Self.typedText(bookPlan, book: book, language: language)
+        _typed = State(initialValue: text)
+        _initialTyped = State(initialValue: text)
         let first = catalog.profiles.first { $0.id == PrintProfileCatalog.pixartID } ?? catalog.profiles.first
         _otherID = State(initialValue: first?.id)
         _otherSizeID = State(initialValue: first.flatMap { $0.size(matching: book.format)?.id ?? $0.sizes.first?.id })
@@ -68,7 +77,9 @@ struct PDFExportChooser: View, Localizing {
                 Spacer()
                 Button(tr("Cancel"), action: cancel).keyboardShortcut(.cancelAction)
                 Button(tr("Continue…")) {
-                    if let request { export(request) }
+                    guard let request else { return }
+                    if choice == .bookProfile, let changed = changedMeasures { saveMeasures(changed) }
+                    export(request)
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
@@ -82,9 +93,26 @@ struct PDFExportChooser: View, Localizing {
             let profile = catalog.profile(id)
             otherSizeID = profile?.size(matching: book.format)?.id ?? profile?.sizes.first?.id
             otherPaperID = nil
-            if choice == .other { typed = Self.typedText(basePlan, book: book, language: language) }
+            if choice == .other { resetTyped() }
         }
-        .onChange(of: choice) { _, _ in typed = Self.typedText(basePlan, book: book, language: language) }
+        .onChange(of: choice) { _, _ in resetTyped() }
+    }
+
+    private func resetTyped() {
+        typed = Self.typedText(basePlan, book: book, language: language)
+        initialTyped = typed
+    }
+
+    /// The book's saved measures with the fields the author changed in the sheet; nil when none changed.
+    private var changedMeasures: PrintMeasures? {
+        guard let plan else { return nil }
+        var measures = book.printSettings?.profileMeasures ?? PrintMeasures()
+        var changed = false
+        for measure in PrintMeasure.allCases where (typed[measure] ?? "") != (initialTyped[measure] ?? "") {
+            measures[measure] = plan.measures[measure]
+            changed = true
+        }
+        return changed ? measures : nil
     }
 
     private var choices: [Choice] {
@@ -108,15 +136,14 @@ struct PDFExportChooser: View, Localizing {
         guard var plan = basePlan else { return nil }
         for measure in PrintMeasure.allCases {
             let entry = (typed[measure] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !entry.isEmpty else { continue }
+            guard !entry.isEmpty else {
+                plan.measures[measure] = nil
+                continue
+            }
             let separator = Locale(identifier: language).decimalSeparator ?? "."
             guard let mm = Double(entry.replacingOccurrences(of: separator, with: ".")),
                   plan.rule(measure, for: book)?.accepts(mm) ?? false else { return nil }
-            switch measure {
-            case .spine: plan.measures.spineMM = mm
-            case .hinge: plan.measures.hingeMM = mm
-            case .wrap: plan.measures.wrapMM = mm
-            }
+            plan.measures[measure] = mm
         }
         return plan
     }
@@ -203,9 +230,8 @@ struct PDFExportChooser: View, Localizing {
                     .fixedSize(horizontal: false, vertical: true)
             } else if flat && book.cover == nil {
                 Text(tr("Add the cover in the Page inspector."))
-            } else if flat {
-                ForEach(PrintMeasure.allCases.filter { plan.rule($0, for: book) != nil
-                    && ($0 == .spine || plan.rule($0, for: book)?.isTyped == true) }, id: \.self) { measure in
+            } else {
+                ForEach(plan.editableMeasures(for: book), id: \.self) { measure in
                     measureField(measure, plan: plan, interiorPages: interiorPages)
                 }
             }
@@ -228,7 +254,7 @@ struct PDFExportChooser: View, Localizing {
         let computed = rule?.value(pages: interiorPages, paper: plan.paper?.id)
         let number = FloatingPointFormatStyle<Double>.number.locale(Locale(identifier: language))
             .precision(.fractionLength(0...2)).grouping(.never)
-        let label = rule?.isTyped == true ? measure.quoteLabel(language) : measure.label(language)
+        let label = rule?.isTyped == true ? tr("%@ from the quote", measure.label(language)) : measure.label(language)
         return HStack {
             Text(label)
             Spacer()
@@ -306,12 +332,9 @@ struct PDFExportChooser: View, Localizing {
         case .printPackage: return .printPackage
         case .bookProfile, .other:
             guard let plan, plan.size(for: book) != nil else { return nil }
-            if plan.coverKind(for: book) == .flat {
-                guard book.cover != nil else { return nil }
-                let pages = BookPDF.interiorPageCount(book, plan: plan)
-                guard PrintMeasure.allCases.allSatisfy({ plan.value($0, for: book, interiorPages: pages) != nil })
-                else { return nil }
-            }
+            if plan.coverKind(for: book) == .flat, book.cover == nil { return nil }
+            guard plan.missingMeasures(for: book, interiorPages: BookPDF.interiorPageCount(book, plan: plan)).isEmpty
+            else { return nil }
             return .service(plan)
         }
     }
@@ -346,10 +369,10 @@ struct PDFExportChooser: View, Localizing {
         case (.single, .none), (.separate, .none): tr("One PDF without the cover.")
         case (.separate, .flat): tr("Separate interior and cover files.")
         }
-        let bleed = plan.profile.interior.bleed
+        let bleed = plan.interiorBleed(for: book) ?? plan.profile.interior.bleed.fixedValues
         let spread = plan.profile.interior.layout == .spread
-        let width = (spread ? 2 : 1) * book.format.widthMM + bleed.outer.mm + (spread ? bleed.outer.mm : bleed.inner.mm)
-        let height = book.format.heightMM + bleed.top.mm + bleed.bottom.mm
+        let width = (spread ? 2 : 1) * book.format.widthMM + bleed.outer + (spread ? bleed.outer : bleed.inner)
+        let height = book.format.heightMM + bleed.top + bleed.bottom
         let style = FloatingPointFormatStyle<Double>.number.locale(Locale(identifier: language)).precision(.fractionLength(0...1))
         let size = "\(width.formatted(style)) × \(height.formatted(style)) mm"
         return files + " " + (spread ? tr("Double pages of %@.", size) : tr("Single pages of %@.", size))

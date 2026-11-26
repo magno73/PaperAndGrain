@@ -106,10 +106,12 @@ extension BookPDF {
             /// The print-service product does not offer the book's trim; `offered` lists its sizes, the
             /// nearest first.
             case sizeNotOffered(BookFormat, offered: [BookFormat])
-            /// The page count the printer counts breaks one of the product's limits.
-            case pageCount(PageLimit, has: Int)
-            /// A cover measure the product needs is neither typed nor computable for this page count.
-            case missingMeasure(PrintMeasure)
+            /// The page count the printer counts (`counted`: the book's pages, blanks and cover pages it
+            /// includes) breaks one of the product's limits.
+            case pageCount(PageLimit, counted: Int, bookPages: Int)
+            /// A measure the product needs is neither typed nor computable; `tableLimit` is the last page
+            /// count of the printer's table when the book runs past it.
+            case missingMeasure(PrintMeasure, tableLimit: Int?)
             /// A caption on its photo taller than half the photo, or a caption that crosses the trim.
             case captionDoesNotFit
 
@@ -126,8 +128,8 @@ extension BookPDF {
                 case .photoNearEdge: "photoNearEdge"
                 case .blankPages: "blankPages"
                 case .sizeNotOffered: "sizeNotOffered"
-                case let .pageCount(limit, _): "pageCount." + limit.key
-                case let .missingMeasure(measure): "missingMeasure." + measure.rawValue
+                case let .pageCount(limit, _, _): "pageCount." + limit.key
+                case let .missingMeasure(measure, _): "missingMeasure." + measure.rawValue
                 case .captionDoesNotFit: "captionDoesNotFit"
                 }
             }
@@ -156,13 +158,11 @@ extension BookPDF {
         enum PageLimit: Equatable, Sendable {
             case minimum(Int)
             case maximum(Int)
-            case multiple(Int)
 
             var key: String {
                 switch self {
                 case .minimum: "minimum"
                 case .maximum: "maximum"
-                case .multiple: "multiple"
                 }
             }
         }
@@ -249,25 +249,21 @@ extension BookPDF {
                                     [BookFormatPreset.centimetres(format, language: language)]),
                  L10n.format("Sizes: %@", language: language,
                              [offered.map { BookFormatPreset.centimetres($0, language: language) }.joined(separator: ", ")])]
-            case let .pageCount(.minimum(limit), count):
-                [place, L10n.format("Needs at least %1$lld pages (has %2$lld)", language: language, [limit, count])]
-            case let .pageCount(.maximum(limit), count):
-                [place, L10n.format("Takes at most %1$lld pages (has %2$lld)", language: language, [limit, count])]
-            case let .pageCount(.multiple(limit), count):
-                [place, L10n.format("Needs a multiple of %1$lld pages (has %2$lld)", language: language, [limit, count])]
-            case let .missingMeasure(measure):
-                [place, L10n.string(Self.missingText(measure), language: language)]
+            case let .pageCount(.minimum(limit), counted, pages):
+                [place, L10n.format("Needs at least %1$lld pages; the printer counts %2$lld (%3$lld in the book)",
+                                    language: language, [limit, counted, pages])]
+            case let .pageCount(.maximum(limit), counted, pages):
+                [place, L10n.format("Takes at most %1$lld pages; the printer counts %2$lld (%3$lld in the book)",
+                                    language: language, [limit, counted, pages])]
+            case let .missingMeasure(measure, limit?):
+                [place, L10n.format("%1$@: the printer’s table stops at %2$lld pages. Enter the value from the quote",
+                                    language: language, [measure.label(language), limit])]
+            case let .missingMeasure(measure, nil):
+                [place, L10n.format("%@ missing: enter it from the printer’s quote", language: language,
+                                    [measure.label(language)])]
             case .captionDoesNotFit: [place, excerpt.map { "“" + $0 + "”" }, L10n.string("Caption does not fit", language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")
-        }
-
-        private static func missingText(_ measure: PrintMeasure) -> String {
-            switch measure {
-            case .spine: "Spine width missing: enter it from the printer’s quote"
-            case .hinge: "Hinge width missing: enter it from the printer’s quote"
-            case .wrap: "Cover wrap missing: enter it from the printer’s quote"
-            }
         }
     }
 }

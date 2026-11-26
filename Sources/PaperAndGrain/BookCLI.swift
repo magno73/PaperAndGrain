@@ -264,7 +264,7 @@ enum BookCLI {
         }
         if let format, !size.matches(format) {
             throw Failure("format \(format.widthMM) × \(format.heightMM) mm does not match printService.size \(size.id) "
-                          + "(\(size.widthMM.mm) × \(size.heightMM.mm) mm); leave format out to use the size")
+                          + "(\(size.format.widthMM) × \(size.format.heightMM) mm); leave format out to use the size")
         }
         return (profile, size)
     }

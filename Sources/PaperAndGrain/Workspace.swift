@@ -324,6 +324,15 @@ final class Workspace: ObservableObject {
         applySettings(changes, restoring: false, undoManager: undoManager, actionName: actionName)
     }
 
+    /// Keeps the cover and page measures typed for the book's print service, as one undoable step.
+    func savePrintMeasures(_ measures: PrintMeasures, undoManager: UndoManager?, actionName: String) {
+        guard var settings = book.printSettings, settings.profileID != nil else { return }
+        settings.profileMeasures = measures == PrintMeasures() ? nil : measures
+        let changes = [SettingsChange(\.printSettings, from: book.printSettings, to: settings)].compactMap { $0 }
+        guard !changes.isEmpty else { return }
+        applySettings(changes, restoring: false, undoManager: undoManager, actionName: actionName)
+    }
+
     func applyBookTemplate(_ template: BookTemplate?, showPageNumbers: Bool?,
                            undoManager: UndoManager?, actionName: String) {
         let changes = [

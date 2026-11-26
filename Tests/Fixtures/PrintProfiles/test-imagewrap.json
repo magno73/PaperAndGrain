@@ -9,7 +9,7 @@
   "notes": "Test-only entry: bleed on three edges, a board larger than the page, separate files and a spine table per paper.",
   "papers": [
     { "id": "premium", "name": { "en": "Premium", "it": "Premium" } },
-    { "id": "standard", "name": "Standard" }
+    { "id": "standard", "name": "Standard", "pages": { "maximum": 120 } }
   ],
   "interior": {
     "layout": "single",

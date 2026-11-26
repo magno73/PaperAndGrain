@@ -99,7 +99,7 @@ struct PaperAndGrainApp: App, Localizing {
             .sheet(isPresented: $showPDFExport, onDismiss: runPDFExport) {
                 let book = workspace.book
                 let directory = workspace.directory
-                PDFExportChooser(book: book, directory: directory, language: language, cancel: { showPDFExport = false }) { request in
+                PDFExportSheet(workspace: workspace, language: language, cancel: { showPDFExport = false }) { request in
                     pendingPDFExport = PendingPDFExport(bookID: book.id, directory: directory, request: request)
                     showPDFExport = false
                 }
@@ -236,6 +236,26 @@ struct PaperAndGrainApp: App, Localizing {
             .padding(26)
             .floatingPanel(cornerRadius: 22)
         }
+    }
+}
+
+/// The export sheet with the window's undo manager, so measures typed for the book's print service are
+/// kept in the book as one undoable step.
+private struct PDFExportSheet: View, Localizing {
+    @Environment(\.undoManager) private var undoManager
+    let workspace: Workspace
+    let language: String
+    let cancel: () -> Void
+    let export: (PDFExportRequest) -> Void
+
+    var body: some View {
+        let book = workspace.book
+        PDFExportChooser(book: book, directory: workspace.directory, language: language, cancel: cancel,
+                         saveMeasures: { measures in
+                             guard workspace.book.id == book.id else { return }
+                             workspace.savePrintMeasures(measures, undoManager: undoManager,
+                                                         actionName: tr("Print Service Measures"))
+                         }, export: export)
     }
 }
 

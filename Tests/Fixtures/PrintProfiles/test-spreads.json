@@ -22,6 +22,8 @@
     ] } },
     "spine": { "formula": { "baseMM": 1.524, "mmPerPage": 0.0572, "source": "pages ÷ 17.48 + 1.524 mm" } },
     "wrap": 0,
+    "hingeWithinPanel": true,
+    "panel": { "widthMM": { "mm": 213.9, "source": "2526 px: board and fold-over" }, "heightMM": 274 },
     "bleed": { "top": 7.027, "bottom": 7.027, "outer": 9.313, "inner": 0 }
   },
   "files": { "arrangement": "separate" },

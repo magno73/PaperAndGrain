@@ -419,10 +419,9 @@ enum BookCLIEditing {
             } else if print.profileSizeID != nil || print.profilePaperID != nil || print.profileMeasures != nil {
                 throw Failure("printSettings.profileSizeID, profilePaperID and profileMeasures need a profileID")
             }
-            for (field, value) in [("spineMM", print.profileMeasures?.spineMM), ("hingeMM", print.profileMeasures?.hingeMM),
-                                   ("wrapMM", print.profileMeasures?.wrapMM)] {
-                if let value, !(value.isFinite && value >= 0) {
-                    throw Failure("printSettings.profileMeasures.\(field) must be 0 or more")
+            for measure in PrintMeasure.allCases {
+                if let value = print.profileMeasures?[measure], !(value.isFinite && value >= 0) {
+                    throw Failure("printSettings.profileMeasures.\(measure.rawValue)MM must be 0 or more")
                 }
             }
         }

@@ -1,0 +1,24 @@
+{
+  "id": "test-endpapers",
+  "service": "Test Endpapers",
+  "product": "Test hardcover whose first and last pages are glued to the boards",
+  "binding": "hardcover",
+  "regions": ["EU"],
+  "sourceURL": "https://example.com/endpapers",
+  "verifiedOn": "2026-11-26",
+  "interior": {
+    "layout": "single",
+    "bleed": 3,
+    "safe": 10,
+    "firstPage": "right",
+    "ends": "endpapers",
+    "pages": { "multiple": 2 }
+  },
+  "cover": { "kind": "none" },
+  "files": { "arrangement": "single" },
+  "color": { "accepts": ["srgb"] },
+  "sizes": [
+    { "id": "21x21", "widthMM": 210, "heightMM": 210 },
+    { "id": "20x20", "widthMM": 200, "heightMM": 200 }
+  ]
+}

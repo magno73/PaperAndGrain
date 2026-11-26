@@ -19,7 +19,8 @@ final class PixartPrintTests: XCTestCase {
                 let file = dir.appendingPathComponent("book.pdf")
                 try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: spine), to: file)
                 let pdf = try XCTUnwrap(PDFDocument(url: file))
-                XCTAssertEqual(pdf.pageCount, right ? 4 : 6)
+                // The count with the four cover pages is even: an odd interior gets a trailing blank.
+                XCTAssertEqual(pdf.pageCount, right ? 5 : 7)
                 let cover = try XCTUnwrap(pdf.page(at: 0))
                 checkBoxes(cover, width: 474 + spine, height: 258, inset: 19)
                 let backText = try XCTUnwrap(pdf.findString("Rear", withOptions: []).first)
@@ -41,7 +42,7 @@ final class PixartPrintTests: XCTestCase {
         book.printSettings = PrintSettings(firstPageOnRight: true)
         let file = dir.appendingPathComponent("short.pdf")
         try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: 5), to: file)
-        XCTAssertEqual(PDFDocument(url: file)?.pageCount, 2)
+        XCTAssertEqual(PDFDocument(url: file)?.pageCount, 3)
         let spine = try XCTUnwrap(PrintPlan.pixart().rule(.spine, for: book))
         XCTAssertFalse(spine.accepts(.nan))
         XCTAssertFalse(spine.accepts(0))
