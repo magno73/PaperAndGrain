@@ -6,7 +6,21 @@ Checked on 26 November 2026, from the printers' own pages.
 
 ## Entries
 
-(One section per entry, added with the entry.)
+### Pixartprinting · photo book, hardcover
+
+21 × 21 cm only. One 1:1 PDF: a flat hardcover (back, spine, front, with the printer's 11 mm hinge and 19 mm wrap) then single pages with 3 mm bleed, starting on the right; the count includes the four cover sides. The spine is typed from the quote. sRGB written; the product page asks for CMYK (FOGRA 39), so check the instructions for your quote. [Source](https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/copertina-rigida-nobilitata/).
+
+### Peecho · hardcover, layflat, softcover
+
+Three entries (`peecho-hardcover`, `peecho-layflat`, `peecho-softcover`), file `peecho.json`.
+
+- **Sizes (mm).** Hardcover 148 × 210, 210 × 148, 210 × 297, 297 × 210, 216 × 280, 280 × 216, 210 × 210, 294 × 294. Layflat 297 × 210, 210 × 210, 294 × 294. Softcover 148 × 210, 210 × 148, 210 × 297, 297 × 210, 210 × 210. Choosing one sets the book's size to it.
+- **Pages.** An even number, covers included: hardcover 24 to 500, layflat 18 to 122, softcover 20 to 300.
+- **What the export writes.** One PDF of single pages: front cover, content, back cover, each at the trim size with no bleed and no marks (Peecho adds them). The inside covers are blank and not in the PDF. sRGB, 300 dpi, fonts embedded, transparency flattened; the page recommends a PDF/X-4 (FOGRA 39) check, which this export does not certify.
+- **Margins.** 10 mm on every side; on layflat content pages none on the inner (binding) edge.
+- **What the author enters.** Nothing: Peecho works the spine out from the page count, the paper and the destination, and prints it only for a merchant account, so no spine is drawn.
+- **Differences from the PRD's Appendix A.** Layflat content pages need no margin on the inner (binding) edge (Appendix A says 10 mm on every side); the page's orientation labels (for example "A5 Landscape 148 × 210") do not agree with the dimensions, so the entry uses the dimensions as written. The numbers of the three products otherwise agree.
+- Sources: [hardcover](https://support.peecho.com/hc/en-us/articles/19730953142428), [layflat](https://support.peecho.com/hc/en-us/articles/19732208244252), [softcover](https://support.peecho.com/hc/en-us/articles/19731377793564) (help articles updated 9 September, 24 November and 22 October 2026).
 
 ## Not added yet
 

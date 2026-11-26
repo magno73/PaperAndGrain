@@ -39,6 +39,10 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
 - Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
 
+### Print services
+
+- Peecho: hardcover, layflat and softcover books (8, 3 and 5 sizes). Each writes one PDF of single pages with the covers first and last, no bleed. [docs/print-services.md](docs/print-services.md) lists every service, what each writes, what you still enter, and the services that cannot take a PDF.
+
 ### Spelling
 
 - **Edit › Spelling and Grammar** and spell checking while typing in every book text. **Issues** lists possible misspellings (Italian and English), without place names of your photos, capitals, numbers and short words; **Ignore in This Book** and **Learn Spelling** on each row. **Settings › Check spelling in the issues list** switches it off. A book saved by 0.10 opens unchanged.
