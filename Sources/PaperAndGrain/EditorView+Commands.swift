@@ -167,6 +167,8 @@ extension EditorView {
         commands.showsSpread = showSpread
         commands.gutterGuide = gutterGuide
         commands.printGuides = printGuides
+        commands.proofColors = proofColors
+        commands.canProofColors = proofProfile != nil
         commands.canBringForward = canMoveSelectionLayers(.forward)
         commands.canSendBackward = canMoveSelectionLayers(.backward)
         commands.moveLayer = moveSelectionLayers
@@ -220,6 +222,7 @@ extension EditorView {
         commands.zoomToFit = { zoom = .fitPage }
         commands.toggleGutter = { gutterGuide.toggle() }
         commands.togglePrintGuides = { setPrintGuides(!printGuides) }
+        commands.toggleProofColors = toggleProofColors
         commands.browse = openBrowser
         return commands
     }

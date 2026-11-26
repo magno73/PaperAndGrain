@@ -271,6 +271,17 @@ enum BookPDF {
                 report.blockers.append(place.issue(.unreadableLUT(name.isEmpty ? photo.name : name)))
             }
         }
+        // CMYK books: how much of each photo the profile cannot print (estimated on a small copy, cached).
+        let gamut: CMYKConverter? = if settings != nil, let directory, let output = book.printSettings?.colorOutput,
+                                       output.mode == .cmyk, let reference = output.profile {
+            try? BookStorage.converter(for: reference, in: directory)
+        } else { nil }
+        func checkGamut(_ photo: BookPhoto, at place: Place) {
+            guard let gamut, let directory, !Task.isCancelled,
+                  let share = GamutEstimate.share(of: photo, book: book, directory: directory, converter: gamut),
+                  share >= GamutEstimate.warningShare else { return }
+            report.warnings.append(place.issue(.outOfGamut(photo: photo.name, percent: Int((share * 100).rounded()))))
+        }
         func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, at place: Place) {
             guard settings != nil else { return }
             // The same measure as the canvas badge; rounded like the message, so "300 ppi < 300 ppi" cannot appear.
@@ -322,6 +333,7 @@ enum BookPDF {
                 placed[slot.photo.id, default: 0] += 1
                 checkFiles(slot.photo, at: place)
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
+                checkGamut(slot.photo, at: place)
             }
             for caption in composition.captions where !caption.fits {
                 var place = at
@@ -414,6 +426,7 @@ enum BookPDF {
                 if let photo = book.photo(id) {
                     checkFiles(photo, at: place)
                     checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, at: place)
+                    checkGamut(photo, at: place)
                 } else {
                     report.blockers.append(place.issue(.missingPhoto))
                 }

@@ -115,6 +115,8 @@ struct EditorView: View, Localizing {
 
     /// Print guides on the canvas; kept between launches.
     @AppStorage("editorShowsPrintGuides") var printGuides = false
+    /// **View › Proof Colors**: a view setting, never saved in the book.
+    @State var proofColors = false
 
     @State var showDelete = false
 
@@ -586,9 +588,11 @@ struct EditorView: View, Localizing {
         let isLive = draft.map { $0 != (photo.adjustments ?? PhotoAdjustments()) } ?? false
         let limit = small ? 180 : (isLive ? 640 : 1440)
         let corrections = isLive ? draft : photo.adjustments
-        let request = EditorPreviewRequest(url: url, limit: limit, look: look, lutURL: lutURL,
+        var request = EditorPreviewRequest(url: url, limit: limit, look: look, lutURL: lutURL,
                                            adjustments: original ? nil : corrections,
                                            isFilmSwatch: settings != nil)
+        // The soft proof is for the canvas only: thumbnails and film swatches stay sRGB.
+        if !small, settings == nil, proofColors { request.proofSHA = proofProfile?.sha256 }
         return EditorPreview(request: request, crop: crop, fills: fills,
                              filmEdit: !small && settings == nil && !original ? filmEdit : nil,
                              photoID: photo.id, inheritsBookFilm: photo.film == nil,
@@ -911,8 +915,10 @@ struct EditorPreview<Placeholder: View>: View {
               target == .photo(photoID) || (target == .book && inheritsBookFilm),
               let look = filmEdit.preview, look != request.look else { return request }
         // Slider drafts keep the committed preset and its LUT. Smaller renders use a separate queue.
-        return EditorPreviewRequest(url: request.url, limit: 640, look: look, lutURL: request.lutURL,
-                                    adjustments: request.adjustments, isInteractive: true)
+        var live = EditorPreviewRequest(url: request.url, limit: 640, look: look, lutURL: request.lutURL,
+                                        adjustments: request.adjustments, isInteractive: true)
+        live.proofSHA = request.proofSHA
+        return live
     }
 
     @Environment(\.displayScale) private var displayScale
@@ -926,6 +932,7 @@ struct EditorPreview<Placeholder: View>: View {
         var sized = EditorPreviewRequest(url: request.url, limit: step, look: request.look, lutURL: request.lutURL,
                                          adjustments: request.adjustments)
         sized.isFilmSwatch = request.isFilmSwatch
+        sized.proofSHA = request.proofSHA
         return sized
     }
 

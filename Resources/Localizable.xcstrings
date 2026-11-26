@@ -3599,6 +3599,24 @@
         }
       }
     },
+    "Colors will be duller in print (%lld %% of the photo is outside the printer’s range)": {
+      "comment": "Issues warning; %% is a percent sign.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colors will be duller in print (%lld %% of the photo is outside the printer’s range)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In stampa i colori saranno più spenti (il %lld %% della foto è fuori dalla gamma dello stampatore)"
+          }
+        }
+      }
+    },
     "Compare Similar Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -9544,6 +9562,42 @@
         }
       }
     },
+    "Proof Colors": {
+      "comment": "View menu: show the canvas photos as the CMYK profile prints them.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof Colors"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova colori"
+          }
+        }
+      }
+    },
+    "Proof: %@": {
+      "comment": "Tag on the canvas page; the argument is the CMYK profile name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proof: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prova: %@"
+          }
+        }
+      }
+    },
     "Pure white, light typography and edge-to-edge photography.": {
       "extractionState": "manual",
       "localizations": {
@@ -11866,6 +11920,23 @@
         }
       }
     },
+    "The book’s color profile is missing; choose it again in Book & Print.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The book’s color profile is missing; choose it again in Book & Print."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manca il profilo colore del libro; sceglilo di nuovo in Libro e stampa."
+          }
+        }
+      }
+    },
     "The color profile %@ in the book has changed": {
       "extractionState": "manual",
       "localizations": {
@@ -13288,6 +13359,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fauna selvatica"
+          }
+        }
+      }
+    },
+    "With CMYK, **View › Proof Colors** shows the photos as they will print, and **Issues** names photos whose colors will be duller.": {
+      "comment": "Help, Print topic.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With CMYK, **View › Proof Colors** shows the photos as they will print, and **Issues** names photos whose colors will be duller."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con CMYK, **Vista › Prova colori** mostra le foto come verranno stampate e **Segnalazioni** indica le foto i cui colori saranno più spenti."
           }
         }
       }

@@ -35,6 +35,9 @@ struct EditorCommandSet {
     var showsIssues = false
     var gutterGuide = false
     var printGuides = false
+    var proofColors = false
+    /// The book writes CMYK with a usable profile, so the soft proof can be shown.
+    var canProofColors = false
     var canDuplicatePage = false
     /// Canvas objects are selected and no text is typed: ⌘D duplicates them instead of the page.
     var canDuplicateObjects = false
@@ -72,6 +75,7 @@ struct EditorCommandSet {
     var zoomToFit: () -> Void = {}
     var toggleGutter: () -> Void = {}
     var togglePrintGuides: () -> Void = {}
+    var toggleProofColors: () -> Void = {}
     var browse: () -> Void = {}
     var moveLayer: (PageLayer.Move) -> Void = { _ in }
     var duplicateObjects: () -> Void = {}
@@ -152,6 +156,9 @@ struct EditorMenus: Commands, Localizing {
                 editor?.togglePrintGuides()
             }
             .disabled(editor == nil)
+            Toggle(tr("Proof Colors"), isOn: Binding(get: { editor?.proofColors == true },
+                                                     set: { _ in editor?.toggleProofColors() }))
+                .disabled(editor?.canProofColors != true)
             Divider()
             Button(tr("Browse the Book")) { editor?.browse() }
                 .keyboardShortcut(.return, modifiers: [.command, .option])

@@ -117,6 +117,26 @@ extension EditorView {
         .editorDropFrame(.canvasViewControls)
     }
 
+    /// The book's CMYK profile, when the book writes CMYK: what the soft proof shows.
+    var proofProfile: ICCProfileReference? {
+        guard book.printSettings?.writesCMYK == true else { return nil }
+        return book.printSettings?.colorOutput?.profile
+    }
+
+    /// **View › Proof Colors**: canvas photos as the CMYK profile prints them. Not saved in the book. The
+    /// profile's converter is built once here, so the preview renders can proof with it.
+    func toggleProofColors() {
+        guard !proofColors else {
+            proofColors = false
+            return
+        }
+        guard let reference = proofProfile, (try? BookStorage.converter(for: reference, in: directory)) != nil else {
+            showCanvasNotice(tr("The book’s color profile is missing; choose it again in Book & Print."))
+            return
+        }
+        proofColors = true
+    }
+
     /// Turns the guides on or off. The first time in a session a short legend explains the two lines.
     func setPrintGuides(_ on: Bool) {
         printGuides = on
@@ -222,6 +242,17 @@ extension EditorView {
         .overlay {
             if printGuides {
                 PrintGuidesOverlay(pages: printGuidePages(spread, blankLeft: blankLeft, scale: scale), scale: scale)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if proofColors, let name = proofProfile?.name {
+                Label(tr("Proof: %@", name), systemImage: "eye")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(6)
+                    .allowsHitTesting(false)
             }
         }
     }

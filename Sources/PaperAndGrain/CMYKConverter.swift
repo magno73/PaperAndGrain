@@ -60,6 +60,8 @@ final class CMYKConverter: @unchecked Sendable {
     private let fromLab: ColorSyncTransform
     private let blackXYZ: (Double, Double, Double)
     private let table: vImage_MultidimensionalTable
+    /// sRGB → CMYK → sRGB, for the soft proof: how the profile prints each color, shown on screen.
+    private let proofTable: vImage_MultidimensionalTable
     /// L* of black ink alone at 1024 steps, for neutral grays.
     private let blackInkL: [Double]
     private let lock = NSLock()
@@ -99,6 +101,11 @@ final class CMYKConverter: @unchecked Sendable {
         } } }
         let converted = Self.pipeline(grid, toLab: toLab, fromLab: fromLab, black: blackXYZ)
         let fixed = converted.map { UInt16(max(0, min(65535, ($0 * 65535).rounded()))) }
+        // The proof: the same CMYK back to sRGB through ColorSync, relative colorimetric, so the paper is
+        // shown as the screen's white and only the gamut change remains.
+        guard let toSRGB = Self.transform(cmyk, srgb) else { throw Failure.transform }
+        let proofed = Self.run(toSRGB, converted, inChannels: 4, outChannels: 3)
+            .map { UInt16(max(0, min(65535, ($0 * 65535).rounded()))) }
         var error = vImage_Error(kvImageNoError)
         guard let table = fixed.withUnsafeBufferPointer({ buffer in
             [UInt8](repeating: UInt8(n), count: 3).withUnsafeBufferPointer { entries in
@@ -107,9 +114,22 @@ final class CMYKConverter: @unchecked Sendable {
             }
         }), error == kvImageNoError else { throw Failure.transform }
         self.table = table
+        guard let proofTable = proofed.withUnsafeBufferPointer({ buffer in
+            [UInt8](repeating: UInt8(n), count: 3).withUnsafeBufferPointer { entries in
+                vImageMultidimensionalTable_Create(buffer.baseAddress!, 3, 3, entries.baseAddress!,
+                                                   kvImageMDTableHint_16Q12, vImage_Flags(kvImageNoFlags), &error)
+            }
+        }), error == kvImageNoError else {
+            vImageMultidimensionalTable_Release(table)
+            throw Failure.transform
+        }
+        self.proofTable = proofTable
     }
 
-    deinit { vImageMultidimensionalTable_Release(table) }
+    deinit {
+        vImageMultidimensionalTable_Release(table)
+        vImageMultidimensionalTable_Release(proofTable)
+    }
 
     /// The profile's description, as shown in menus and written in the output intent.
     var name: String { info.name }
@@ -183,13 +203,74 @@ final class CMYKConverter: @unchecked Sendable {
     /// The image in the output profile: the same pixels converted through the table, in strips so memory
     /// stays small. The result is an 8-bit CMYK bitmap tagged with the profile.
     func convert(_ image: CGImage) -> CGImage? {
+        guard let output = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                     bytesPerRow: image.width * 4, space: space,
+                                     bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return nil }
+        return apply(table, channels: 4, to: image, into: output)
+    }
+
+    /// The soft proof of an sRGB image: the colors the profile prints, back in sRGB for the screen.
+    func proof(_ image: CGImage) -> CGImage? {
+        guard let output = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                     bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                     bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+        return apply(proofTable, channels: 3, to: image, into: output)
+    }
+
+    /// The minimum chroma loss (in a*b*) that counts as a color outside the printer's range: smaller
+    /// differences are not visible next to each other on paper. Lightness is left out, because black point
+    /// compensation lightens the deepest shadows of every photo on purpose.
+    static let gamutChromaLimit = 8.0
+
+    /// The share of pixels (0 to 1) whose color the profile cannot print: the soft proof moves them by
+    /// more than `gamutChromaLimit` in a*b*. Measured on the image as given; pass a small copy.
+    func outOfGamutShare(_ image: CGImage) -> Double {
+        guard let proofed = proof(image),
+              let original = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                       bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                       bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue),
+              let printed = proofed.dataProvider?.data as Data?, let source = original.data else { return 0 }
+        original.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        let pixels = image.width * image.height
+        guard pixels > 0 else { return 0 }
+        let before = source.assumingMemoryBound(to: UInt8.self)
+        var outside = 0
+        printed.withUnsafeBytes { raw in
+            let after = raw.bindMemory(to: UInt8.self)
+            let rowBytes = proofed.bytesPerRow
+            for y in 0..<image.height {
+                for x in 0..<image.width {
+                    let i = (y * image.width + x) * 4, j = y * rowBytes + x * 4
+                    let a = Self.fastLab(before[i], before[i + 1], before[i + 2])
+                    let b = Self.fastLab(after[j], after[j + 1], after[j + 2])
+                    if hypot(a.1 - b.1, a.2 - b.2) > Self.gamutChromaLimit { outside += 1 }
+                }
+            }
+        }
+        return Double(outside) / Double(pixels)
+    }
+
+    /// CIELAB (D50) of 8-bit sRGB by the formula, for measuring many pixels quickly.
+    private static func fastLab(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> (Double, Double, Double) {
+        func linear(_ v: UInt8) -> Double {
+            let c = Double(v) / 255
+            return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        let (lr, lg, lb) = (linear(r), linear(g), linear(b))
+        let x = 0.4360747 * lr + 0.3850649 * lg + 0.1430804 * lb
+        let y = 0.2225045 * lr + 0.7168786 * lg + 0.0606169 * lb
+        let z = 0.0139322 * lr + 0.0971045 * lg + 0.7141733 * lb
+        return lab(fromXYZ: (x, y, z))
+    }
+
+    /// Applies a table with 3 inputs and `channels` outputs (3 or 4) to an image, in strips.
+    private func apply(_ table: vImage_MultidimensionalTable, channels: Int, to image: CGImage,
+                       into output: CGContext) -> CGImage? {
         let width = image.width, height = image.height
         guard width > 0, height > 0,
               let source = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
                                      bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue),
-              let output = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
-                                     space: space, bitmapInfo: CGImageAlphaInfo.none.rawValue),
               let rgba = source.data, let cmyk = output.data else { return nil }
         source.interpolationQuality = .none
         source.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
@@ -216,14 +297,15 @@ final class CMYKConverter: @unchecked Sendable {
                                   rowBytes: width * 2)
                 }
                 var sources = [buffer(0), buffer(1), buffer(2)]
-                var destinations = [buffer(3), buffer(4), buffer(5), buffer(6)]
+                var destinations = (0..<channels).map { buffer(3 + $0) }
                 guard vImageMultiDimensionalInterpolatedLookupTable_Planar16Q12(
                     &sources, &destinations, nil, table, kvImageFullInterpolation, vImage_Flags(kvImageNoFlags)) == kvImageNoError
                 else { return false }
                 for index in 0..<pixels {
-                    for channel in 0..<4 {
+                    for channel in 0..<channels {
                         out[index * 4 + channel] = UInt8((UInt32(min(4096, base[(3 + channel) * count + index])) * 255 + 2048) / 4096)
                     }
+                    if channels == 3 { out[index * 4 + 3] = 255 }
                 }
                 return true
             }

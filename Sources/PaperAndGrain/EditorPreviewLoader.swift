@@ -9,6 +9,8 @@ struct EditorPreviewRequest: Hashable, Sendable {
     let adjustments: PhotoAdjustments?
     var isFilmSwatch = false
     var isInteractive = false
+    /// The SHA-256 of the CMYK profile to soft-proof with (**View › Proof Colors**); nil shows sRGB.
+    var proofSHA: String? = nil
 }
 
 actor EditorPreviewLoader {
@@ -50,8 +52,11 @@ actor EditorPreviewLoader {
                                   width: EditorPreviewLoader.thumbnailLaneWidth)
     private let filmSwatches = Lane(name: "PaperAndGrain.preview.filmSwatches", qos: .userInitiated, megabytes: 4)
     private static let shared = EditorPreviewLoader { request in
-        FilmRenderer.image(from: request.url, maxPixelSize: request.limit, settings: request.look,
-                           lutURL: request.lutURL, adjustments: request.adjustments)
+        let image = FilmRenderer.image(from: request.url, maxPixelSize: request.limit, settings: request.look,
+                                       lutURL: request.lutURL, adjustments: request.adjustments)
+        guard let image, let sha = request.proofSHA, let converter = PrintColor.cachedConverter(sha256: sha) else { return image }
+        // The soft proof: converted to the output profile and back, so the screen shows the print's colors.
+        return converter.proof(image) ?? image
     }
 
     init(render: @escaping @Sendable (EditorPreviewRequest) -> CGImage?) {

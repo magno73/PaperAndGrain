@@ -121,6 +121,8 @@ extension BookPDF {
             case colorProfileUnusable(String)
             /// The print service asks for a color mode the book does not write (`cmyk` or `srgb`).
             case colorModeNotAccepted(asked: PrintProfile.ColorMode)
+            /// A share of the photo (in percent) falls outside the CMYK profile's range and prints duller.
+            case outOfGamut(photo: String, percent: Int)
 
             /// The kind without its details, for the issue's id.
             var kind: String {
@@ -141,6 +143,7 @@ extension BookPDF {
                 case .possibleMisspelling: "possibleMisspelling"
                 case .colorProfileUnusable: "colorProfileUnusable"
                 case .colorModeNotAccepted: "colorModeNotAccepted"
+                case .outOfGamut: "outOfGamut"
                 }
             }
 
@@ -168,6 +171,7 @@ extension BookPDF {
                 case .possibleMisspelling: "textformat.abc"
                 case .colorProfileUnusable: "paintpalette"
                 case .colorModeNotAccepted: "drop.halffull"
+                case .outOfGamut: "eyedropper.halffull"
                 }
             }
         }
@@ -278,6 +282,9 @@ extension BookPDF {
                                     language: language, [measure.label(language), limit])]
             case let .colorProfileUnusable(name):
                 [place, L10n.format("The color profile %@ is missing or is not a CMYK output profile", language: language, [name])]
+            case let .outOfGamut(photo, percent):
+                [place, photo, L10n.format("Colors will be duller in print (%lld %% of the photo is outside the printer’s range)",
+                                           language: language, [percent])]
             case .colorModeNotAccepted(.cmyk):
                 [place, L10n.string("The printer asks for CMYK; the book writes sRGB", language: language)]
             case .colorModeNotAccepted(.srgb):

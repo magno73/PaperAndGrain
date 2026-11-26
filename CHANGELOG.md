@@ -43,6 +43,11 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - The Issues list warns when a caption does not fit: on its photo and taller than half of it, across the trim, or cut because it is longer than 12 lines or 600 characters; the safe-margin warning covers captions too.
 - Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
 
+### Soft proof
+
+- **View › Proof Colors** shows the canvas photos as the book's CMYK profile prints them, with a **Proof:** tag on the page. It is not saved in the book; thumbnails stay sRGB.
+- **Issues** warns when 10 % or more of a photo is outside the printer's range: "Colors will be duller in print (18 % of the photo is outside the printer's range)".
+
 ### Color output
 
 - **Book & Print › Color**: sRGB or CMYK. For CMYK choose GRACoL 2006 or FOGRA39 (included with the app), PSO Coated v3 (**Download PSO Coated v3 from ECI…** contacts eci.org once, on your click; the profile belongs to ECI), a CMYK profile installed on the Mac, or **Choose ICC Profile…**. With a print service that names a profile, Book & Print says which one and chooses it when it is at hand. The profile is copied into the book when you apply.

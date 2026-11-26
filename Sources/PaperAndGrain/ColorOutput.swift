@@ -36,6 +36,13 @@ enum PrintColor {
     private static let cacheLock = NSLock()
     nonisolated(unsafe) private static var cache = [String: CMYKConverter]()
 
+    /// The converter already built for a profile's SHA-256, for the editor's soft proof.
+    static func cachedConverter(sha256: String) -> CMYKConverter? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return cache[sha256]
+    }
+
     /// One converter per profile, kept for the session: building its table takes a few milliseconds.
     static func converter(for data: Data) throws -> CMYKConverter {
         let key = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
