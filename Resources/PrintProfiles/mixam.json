@@ -1,0 +1,448 @@
+[
+  {
+    "id": "mixam-hardcover",
+    "service": "Mixam",
+    "product": {
+      "en": "Hardcover book (casebound)",
+      "it": "Libro con copertina rigida (cartonato)"
+    },
+    "binding": "hardcover",
+    "regions": [
+      "US",
+      "GB",
+      "EU"
+    ],
+    "sourceURL": "https://mixam.com/support/hardcoversetup",
+    "verifiedOn": "2026-11-26",
+    "notes": {
+      "en": "Two files in a folder: the interior as single pages with 0.125 in (3.175 mm) bleed on all four sides, and the cover as one spread: back cover, 0.2 in (5.08 mm) hinge, spine, 0.2 in hinge, front cover, the height of the book, then 0.8 in (20.32 mm) of bleed on all four edges of the spread (the printer wraps it around the boards). The spine width is in your Mixam cart and in the order's Artwork tab (it depends on the page count and the paper): type it in the export sheet. Hardcovers have no inside covers and free endpapers; page 2 is blank and the first printed page is page 3, on the right. Mixam counts two pages for the cover in the total you enter in its calculator, and its calculator checks the page count. Interior text 0.25 in (6.35 mm) from the outer edges and 0.5 in (12.7 mm) from the binding; on the cover keep text 0.25 in from the outer edges and 0.6 in (15.2 mm) from the spine edge so it stays clear of the hinge (a binding-types page says 0.4 in). Mixam prefers CMYK files (GRACoL2006_Coated1v2) and converts RGB files itself; this export is sRGB. The sizes are those of the hardcover page's dust-jacket table. Page limits are shown by Mixam's calculator per order.",
+      "it": "Due file in una cartella: l'interno in pagine singole con 0,125 in (3,175 mm) di abbondanza su tutti e quattro i lati e la copertina in una sola doppia pagina: quarta, cerniera di 0,2 in (5,08 mm), dorso, cerniera di 0,2 in, copertina, alta come il libro, poi 0,8 in (20,32 mm) di abbondanza sui quattro bordi (lo stampatore la ripiega attorno ai cartoni). La larghezza del dorso è nel carrello Mixam e nella scheda Artwork dell'ordine (dipende da pagine e carta): inseriscila nella finestra di esportazione. Le copertine rigide non hanno risguardi stampati e hanno i risguardi gratis; la pagina 2 è bianca e la prima pagina stampata è la 3, a destra. Mixam conta due pagine per la copertina nel totale da inserire nel suo calcolatore, che controlla il numero di pagine. Testo interno a 0,25 in (6,35 mm) dai bordi esterni e a 0,5 in (12,7 mm) dalla rilegatura; in copertina tieni il testo a 0,25 in dai bordi esterni e a 0,6 in (15,2 mm) dal bordo del dorso, per restare fuori dalla cerniera (una pagina sulle rilegature dice 0,4 in). Mixam preferisce file CMYK (GRACoL2006_Coated1v2) e converte da sé gli RGB; questa esportazione è sRGB. I formati sono quelli della tabella delle sovraccoperte nella pagina sulle copertine rigide. I limiti di pagine li mostra il calcolatore di Mixam per ogni ordine."
+    },
+    "interior": {
+      "layout": "single",
+      "bleed": {
+        "mm": 3.175,
+        "source": "0.125 in"
+      },
+      "safe": {
+        "top": {
+          "mm": 6.35,
+          "source": "0.25 in"
+        },
+        "bottom": {
+          "mm": 6.35,
+          "source": "0.25 in"
+        },
+        "outer": {
+          "mm": 6.35,
+          "source": "0.25 in"
+        },
+        "inner": {
+          "mm": 12.7,
+          "source": "0.5 in"
+        }
+      },
+      "firstPage": "right",
+      "ends": "pages",
+      "targetPPI": 300,
+      "pages": {
+        "coverPagesCounted": 2
+      }
+    },
+    "cover": {
+      "kind": "flat",
+      "hinge": {
+        "mm": 5.08,
+        "source": "0.2 in"
+      },
+      "wrap": 0,
+      "spine": {
+        "quote": {
+          "minMM": 0,
+          "minExclusive": true,
+          "maxMM": 100
+        }
+      },
+      "bleed": {
+        "mm": 20.32,
+        "source": "0.8 in"
+      },
+      "safe": {
+        "mm": 6.35,
+        "source": "0.25 in (0.6 in from the spine edge)"
+      }
+    },
+    "files": {
+      "arrangement": "separate"
+    },
+    "color": {
+      "accepts": [
+        "cmyk",
+        "srgb"
+      ],
+      "iccProfile": "GRACoL2006_Coated1v2"
+    },
+    "sizes": [
+      {
+        "id": "digest-portrait",
+        "name": {
+          "en": "Digest portrait · 5.5 × 8.5 in",
+          "it": "Digest verticale · 5,5 × 8,5 in"
+        },
+        "widthMM": {
+          "mm": 139.7,
+          "source": "5.5 in"
+        },
+        "heightMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        }
+      },
+      {
+        "id": "digest-landscape",
+        "name": {
+          "en": "Digest landscape · 8.5 × 5.5 in",
+          "it": "Digest orizzontale · 8,5 × 5,5 in"
+        },
+        "widthMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        },
+        "heightMM": {
+          "mm": 139.7,
+          "source": "5.5 in"
+        }
+      },
+      {
+        "id": "us-trade-portrait",
+        "name": {
+          "en": "US Trade portrait · 6 × 9 in",
+          "it": "US Trade verticale · 6 × 9 in"
+        },
+        "widthMM": {
+          "mm": 152.4,
+          "source": "6 in"
+        },
+        "heightMM": {
+          "mm": 228.6,
+          "source": "9 in"
+        }
+      },
+      {
+        "id": "us-trade-landscape",
+        "name": {
+          "en": "US Trade landscape · 9 × 6 in",
+          "it": "US Trade orizzontale · 9 × 6 in"
+        },
+        "widthMM": {
+          "mm": 228.6,
+          "source": "9 in"
+        },
+        "heightMM": {
+          "mm": 152.4,
+          "source": "6 in"
+        }
+      },
+      {
+        "id": "letter-portrait",
+        "name": {
+          "en": "Letter portrait · 8.5 × 11 in",
+          "it": "Letter verticale · 8,5 × 11 in"
+        },
+        "widthMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        },
+        "heightMM": {
+          "mm": 279.4,
+          "source": "11 in"
+        }
+      },
+      {
+        "id": "letter-landscape",
+        "name": {
+          "en": "Letter landscape · 11 × 8.5 in",
+          "it": "Letter orizzontale · 11 × 8,5 in"
+        },
+        "widthMM": {
+          "mm": 279.4,
+          "source": "11 in"
+        },
+        "heightMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        }
+      },
+      {
+        "id": "7.25x9.5-portrait",
+        "name": {
+          "en": "7.25 × 9.5 in portrait · 7.25 × 9.5 in",
+          "it": "7,25 × 9,5 in verticale · 7,25 × 9,5 in"
+        },
+        "widthMM": {
+          "mm": 184.15,
+          "source": "7.25 in"
+        },
+        "heightMM": {
+          "mm": 241.3,
+          "source": "9.5 in"
+        }
+      },
+      {
+        "id": "7.25x9.5-landscape",
+        "name": {
+          "en": "7.25 × 9.5 in landscape · 9.5 × 7.25 in",
+          "it": "7,25 × 9,5 in orizzontale · 9,5 × 7,25 in"
+        },
+        "widthMM": {
+          "mm": 241.3,
+          "source": "9.5 in"
+        },
+        "heightMM": {
+          "mm": 184.15,
+          "source": "7.25 in"
+        }
+      },
+      {
+        "id": "7x9-portrait",
+        "name": {
+          "en": "7 × 9 in portrait · 7 × 9 in",
+          "it": "7 × 9 in verticale · 7 × 9 in"
+        },
+        "widthMM": {
+          "mm": 177.8,
+          "source": "7 in"
+        },
+        "heightMM": {
+          "mm": 228.6,
+          "source": "9 in"
+        }
+      },
+      {
+        "id": "7x9-landscape",
+        "name": {
+          "en": "7 × 9 in landscape · 9 × 7 in",
+          "it": "7 × 9 in orizzontale · 9 × 7 in"
+        },
+        "widthMM": {
+          "mm": 228.6,
+          "source": "9 in"
+        },
+        "heightMM": {
+          "mm": 177.8,
+          "source": "7 in"
+        }
+      },
+      {
+        "id": "pocket-portrait",
+        "name": {
+          "en": "Pocket Book portrait · 4.25 × 6.87 in",
+          "it": "Pocket Book verticale · 4,25 × 6,87 in"
+        },
+        "widthMM": {
+          "mm": 107.95,
+          "source": "4.25 in"
+        },
+        "heightMM": {
+          "mm": 174.498,
+          "source": "6.87 in"
+        }
+      },
+      {
+        "id": "pocket-landscape",
+        "name": {
+          "en": "Pocket Book landscape · 6.87 × 4.25 in",
+          "it": "Pocket Book orizzontale · 6,87 × 4,25 in"
+        },
+        "widthMM": {
+          "mm": 174.498,
+          "source": "6.87 in"
+        },
+        "heightMM": {
+          "mm": 107.95,
+          "source": "4.25 in"
+        }
+      },
+      {
+        "id": "royal-portrait",
+        "name": {
+          "en": "Royal portrait · 6.14 × 9.21 in",
+          "it": "Royal verticale · 6,14 × 9,21 in"
+        },
+        "widthMM": {
+          "mm": 155.956,
+          "source": "6.14 in"
+        },
+        "heightMM": {
+          "mm": 233.934,
+          "source": "9.21 in"
+        }
+      },
+      {
+        "id": "royal-landscape",
+        "name": {
+          "en": "Royal landscape · 9.21 × 6.14 in",
+          "it": "Royal orizzontale · 9,21 × 6,14 in"
+        },
+        "widthMM": {
+          "mm": 233.934,
+          "source": "9.21 in"
+        },
+        "heightMM": {
+          "mm": 155.956,
+          "source": "6.14 in"
+        }
+      },
+      {
+        "id": "executive-portrait",
+        "name": {
+          "en": "Executive portrait · 7 × 10 in",
+          "it": "Executive verticale · 7 × 10 in"
+        },
+        "widthMM": {
+          "mm": 177.8,
+          "source": "7 in"
+        },
+        "heightMM": {
+          "mm": 254.0,
+          "source": "10 in"
+        }
+      },
+      {
+        "id": "executive-landscape",
+        "name": {
+          "en": "Executive landscape · 10 × 7 in",
+          "it": "Executive orizzontale · 10 × 7 in"
+        },
+        "widthMM": {
+          "mm": 254.0,
+          "source": "10 in"
+        },
+        "heightMM": {
+          "mm": 177.8,
+          "source": "7 in"
+        }
+      },
+      {
+        "id": "crown-quarto-portrait",
+        "name": {
+          "en": "Crown Quarto portrait · 7.44 × 9.68 in",
+          "it": "Crown Quarto verticale · 7,44 × 9,68 in"
+        },
+        "widthMM": {
+          "mm": 188.976,
+          "source": "7.44 in"
+        },
+        "heightMM": {
+          "mm": 245.872,
+          "source": "9.68 in"
+        }
+      },
+      {
+        "id": "crown-quarto-landscape",
+        "name": {
+          "en": "Crown Quarto landscape · 9.68 × 7.44 in",
+          "it": "Crown Quarto orizzontale · 9,68 × 7,44 in"
+        },
+        "widthMM": {
+          "mm": 245.872,
+          "source": "9.68 in"
+        },
+        "heightMM": {
+          "mm": 188.976,
+          "source": "7.44 in"
+        }
+      },
+      {
+        "id": "a5-portrait",
+        "name": {
+          "en": "A5 portrait · 5.8 × 8.3 in",
+          "it": "A5 verticale · 5,8 × 8,3 in"
+        },
+        "widthMM": {
+          "mm": 147.32,
+          "source": "5.8 in"
+        },
+        "heightMM": {
+          "mm": 210.82,
+          "source": "8.3 in"
+        }
+      },
+      {
+        "id": "a5-landscape",
+        "name": {
+          "en": "A5 landscape · 8.3 × 5.8 in",
+          "it": "A5 orizzontale · 8,3 × 5,8 in"
+        },
+        "widthMM": {
+          "mm": 210.82,
+          "source": "8.3 in"
+        },
+        "heightMM": {
+          "mm": 147.32,
+          "source": "5.8 in"
+        }
+      },
+      {
+        "id": "a4-portrait",
+        "name": {
+          "en": "A4 portrait · 8.3 × 11.7 in",
+          "it": "A4 verticale · 8,3 × 11,7 in"
+        },
+        "widthMM": {
+          "mm": 210.82,
+          "source": "8.3 in"
+        },
+        "heightMM": {
+          "mm": 297.18,
+          "source": "11.7 in"
+        }
+      },
+      {
+        "id": "a4-landscape",
+        "name": {
+          "en": "A4 landscape · 11.7 × 8.3 in",
+          "it": "A4 orizzontale · 11,7 × 8,3 in"
+        },
+        "widthMM": {
+          "mm": 297.18,
+          "source": "11.7 in"
+        },
+        "heightMM": {
+          "mm": 210.82,
+          "source": "8.3 in"
+        }
+      },
+      {
+        "id": "square-8.5",
+        "name": {
+          "en": "8.5 in square · 8.5 × 8.5 in",
+          "it": "8,5 in square · 8,5 × 8,5 in"
+        },
+        "widthMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        },
+        "heightMM": {
+          "mm": 215.9,
+          "source": "8.5 in"
+        }
+      },
+      {
+        "id": "square-7.5",
+        "name": {
+          "en": "7.5 in small square · 7.5 × 7.5 in",
+          "it": "7,5 in small square · 7,5 × 7,5 in"
+        },
+        "widthMM": {
+          "mm": 190.5,
+          "source": "7.5 in"
+        },
+        "heightMM": {
+          "mm": 190.5,
+          "source": "7.5 in"
+        }
+      }
+    ]
+  }
+]

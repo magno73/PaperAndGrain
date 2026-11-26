@@ -136,6 +136,35 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(paperback.size("a4")).format, BookFormat(widthMM: 210, heightMM: 297))
     }
 
+    func testMixamHardcoverFollowsItsCoverFormula() throws {
+        let profile = try XCTUnwrap(catalog.profile("mixam-hardcover"))
+        XCTAssertEqual(profile.binding, .hardcover)
+        XCTAssertEqual(profile.sizes.count, 24)
+        XCTAssertEqual(profile.interior.bleed.fixedValues, PrintProfile.EdgeValues(top: 3.175, bottom: 3.175, outer: 3.175, inner: 3.175))
+        XCTAssertEqual(profile.interior.safe.fixedValues, PrintProfile.EdgeValues(top: 6.35, bottom: 6.35, outer: 6.35, inner: 12.7))
+        XCTAssertEqual(profile.interior.pages.coverPagesCounted, 2)
+        XCTAssertNil(profile.interior.pages.minimum, "page limits are shown per order")
+        XCTAssertEqual(profile.cover.hinge?.nominal ?? 0, 5.08, accuracy: 0.001)
+        XCTAssertEqual(profile.cover.bleed?.fixedValues, PrintProfile.EdgeValues(top: 20.32, bottom: 20.32, outer: 20.32, inner: 20.32))
+        XCTAssertTrue(profile.cover.spine?.isTyped == true, "the spine is in the cart")
+        XCTAssertEqual(profile.separateFiles, true)
+        // The printer's worked example: a 5.5 x 8.5 in digest with a 0.35 in spine is 11.75 x 8.5 in without bleed and
+        // 13.35 x 10.1 in with it.
+        var book = Book(title: "Digest", format: try XCTUnwrap(profile.size("digest-portrait")).format, pages: [BookPage(layout: .text, text: "x")])
+        book.cover = BookCover(title: "Digest", spineMM: 0.35 * 25.4)
+        var plan = PrintPlan(profile: profile, sizeID: "digest-portrait")
+        plan.measures[.spine] = 0.35 * 25.4
+        let directory = try temporaryDirectory()
+        let output = directory.appendingPathComponent("Out")
+        try BookPDF.write(book, directory: directory, plan: plan, to: output)
+        let cover = try XCTUnwrap(CGPDFDocument(output.appendingPathComponent("Cover.pdf") as CFURL)?.page(at: 1))
+        let inch = 72.0
+        XCTAssertEqual(cover.getBoxRect(.trimBox).width, 11.75 * inch, accuracy: 0.1)
+        XCTAssertEqual(cover.getBoxRect(.trimBox).height, 8.5 * inch, accuracy: 0.1)
+        XCTAssertEqual(cover.getBoxRect(.mediaBox).width, 13.35 * inch, accuracy: 0.1)
+        XCTAssertEqual(cover.getBoxRect(.mediaBox).height, 10.1 * inch, accuracy: 0.1)
+    }
+
     // MARK: Text keeps inside the safe margin
 
     /// A page of text in every size of every entry stays inside the product's margin on the edges that are cut.

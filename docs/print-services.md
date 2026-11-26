@@ -47,6 +47,19 @@ File `lulu.json`; two entries, seven trims each: Small Square 7.5 × 7.5 in, Squ
 - **Not confirmed.** Which of the seven trims Lulu offers for hardcover casewrap: the guide lists trims for all bindings, and the products page does not list casewrap sizes. Check Lulu's pricing calculator before ordering; see `docs/status.md`.
 - Sources: [Book Creation Guide](https://assets.lulu.com/media/guides/en/lulu-book-creation-guide.pdf), [PDF settings](https://help.lulu.com/en/support/solutions/articles/64000255519), [casewrap cover](https://help.lulu.com/en/support/solutions/articles/64000308572-creating-your-hardcover-casewrap-cover), [products](https://www.lulu.com/products).
 
+### Mixam · hardcover book (casebound)
+
+File `mixam.json`; one entry, 24 sizes: the 11 book sizes of the hardcover page's table (Digest 5.5 × 8.5 in, US Trade 6 × 9, Letter 8.5 × 11, 7.25 × 9.5, 7 × 9, Pocket Book, Royal, Executive, Crown Quarto, A5, A4) in portrait and landscape, and the 8.5 in and 7.5 in squares. Inch values are kept exactly as Mixam writes them.
+
+- **What the export writes.** Two files in a folder: `Interior.pdf`, single pages with 0.125 in (3.175 mm) bleed on all four sides, and `Cover.pdf`, one flat spread (back, 0.2 in hinge, spine, 0.2 in hinge, front) with 0.8 in (20.32 mm) of bleed on all four edges, which Mixam wraps around the boards. Mixam's worked example (a 5.5 × 8.5 in digest with a 0.35 in spine: 11.75 × 8.5 in, 13.35 × 10.1 in with bleed) is a test.
+- **Margins.** Interior: 0.25 in from the outer edges, 0.5 in from the binding. Cover: 0.25 in from the outer edges; 0.6 in from the spine edge (the structure has one safe distance for a cover, so the 0.6 in is in the notes).
+- **Pages.** Mixam counts two pages for the cover in the total you enter in its calculator; hardcovers have free endpapers and no inside covers; the first printed page is page 3, on the right. Page limits are shown by the calculator per order, so the entry sets none.
+- **Quote-typed.** The spine, from your Mixam cart or the order's Artwork tab (it depends on the page count and the paper).
+- **Color.** Mixam prefers CMYK (GRACoL2006_Coated1v2) and converts RGB files itself; this export is sRGB.
+- **Differences from Appendix A.** The cover bleed (0.8 in on all four edges), the hinge and the interior bleed agree. The interior binding margin is 0.5 in on the hardcover binding page, and 0.6 in applies to the cover spread, from the spine edge (Appendix A gave 0.6 in for the interior). The binding-types page gives 0.4 in for the cover's binding edge and the file-setup page 0.6 in: the stricter is used. The UK site's millimetre values were not read (the UK pages could not be fetched as text), so none is used.
+- **Not added.** Mixam layflat: its binding page gives the margins (bleed 0.125 in, no quiet area at the binding, cover bleed 0.8 in) but the sizes and page limits are not on any page that could be read.
+- Sources: [hardcover setup](https://mixam.com/support/hardcoversetup), [print file setup](https://mixam.com/support/filesetup), [binding types](https://mixam.com/support/binding), [page counts](https://mixam.com/support/pagecount), [CMYK vs RGB](https://mixam.com/support/cmykvsrgb).
+
 ## Not added yet
 
 ### Saal Digital
@@ -59,6 +72,10 @@ Not in the catalog. Saal publishes the numbers that a cover and spread need (spr
 - The standard option prints a small barcode on the back cover and the last page.
 
 To add it: download the template PDFs of the sizes wanted from the Professional Zone, or read the tables in a browser, and give the numbers (the engine already has spreads, inside covers, a fold-over inside the board and tables by page count).
+
+### Mixam layflat
+
+Not in the catalog. The binding page gives the margins (bleed 0.125 in, no quiet area at the binding, 0.25 in elsewhere, cover bleed 0.8 in), but no page states the layflat sizes or page limits, and the spine is per order. Add it with the sizes from Mixam's calculator.
 
 ### Pixartprinting, other sizes
 

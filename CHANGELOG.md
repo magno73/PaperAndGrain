@@ -41,6 +41,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ### Print services
 
+- Mixam: the hardcover book in 24 sizes; the spine is typed from the Mixam cart.
 - Lulu: hardcover casewrap and paperback in seven trims; the hardcover spine from Lulu's table (24 to 800 pages), the paperback spine from its formula.
 - WhiteWall: the Coffee Table Book in six sizes and six papers; the exact page and cover sizes, bleed, fold, wrap and spine are typed from WhiteWall's configurator.
 - Peecho: hardcover, layflat and softcover books (8, 3 and 5 sizes). Each writes one PDF of single pages with the covers first and last, no bleed. [docs/print-services.md](docs/print-services.md) lists every service, what each writes, what you still enter, and the services that cannot take a PDF.
