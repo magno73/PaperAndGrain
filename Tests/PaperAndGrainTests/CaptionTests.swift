@@ -310,6 +310,35 @@ final class CaptionTests: XCTestCase {
         XCTAssertEqual(SimilarPhotos.captionCarry(chosen: chosen, replaced: [first, second]), .keepsOwn)
     }
 
+    func testCaptionsKeepOffAPrintServicesBindingMargin() throws {
+        let list = photos(2, captions: ["Near the binding", "Near the binding"])
+        // Frames that reach the binding edge of each page; the caption sits below.
+        var left = BookPage(photoIDs: [list[0].id]), right = BookPage(photoIDs: [list[1].id])
+        left.photoPlacements = [list[0].id: PhotoPlacement(frame: PageRect(x: 0.5, y: 0.1, width: 0.5, height: 0.3),
+                                                           captionPosition: .below)]
+        right.photoPlacements = [list[1].id: PhotoPlacement(frame: PageRect(x: 0, y: 0.1, width: 0.5, height: 0.3),
+                                                            captionPosition: .below)]
+        var book = Book(title: "T", photos: list, pages: [left, right], template: .atlas)
+        book.printSettings = PrintSettings()
+        let profile = try XCTUnwrap(PrintProfileCatalog.bundled.profile("pixartprinting-photobook-hardcover"))
+        book.printSettings?.choose(profile, size: profile.size(matching: book.format))
+        let plan = try XCTUnwrap(PrintPlan(book: book))
+        let rightIDs = BookPDF.rightPageIDs(book)
+        for page in book.pages {
+            let onRight = rightIDs.contains(page.id)
+            let composition = PageComposition(page: page, book: book)
+            let guides = PrintGuides.frames(pageSize: composition.bounds.size, settings: try XCTUnwrap(book.printSettings),
+                                            zones: plan.guideZones(pageSize: composition.bounds.size, onRight: onRight,
+                                                                   spread: false, safeMM: book.printSettings?.safeMM ?? 0))
+            let caption = try XCTUnwrap(composition.captions.first)
+            XCTAssertTrue(guides.keepsInsideSafe(caption.frame), "page on the \(onRight ? "right" : "left")")
+            XCTAssertLessThan(guides.textSafe.width, guides.safe.width, "the binding margin narrows the text area")
+        }
+        XCTAssertFalse(BookPDF.preflight(book, directory: nil, profile: .service(plan)).warnings.contains {
+            $0.problem == .textOutsideSafeMargin
+        })
+    }
+
     // MARK: Text
 
     func testAutomaticCaptionFromPlaceAndDate() {

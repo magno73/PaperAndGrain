@@ -107,7 +107,7 @@ struct CaptionSetter {
     let style: EditorialStyle
     let override: EditorialTextStyle
     let bounds: CGRect
-    /// The print safe line: the trim inset by the book's safe margin.
+    /// Where caption text may go: `PrintGuides.textSafe`, the safe margin less a print service's binding margin.
     let safe: CGRect
     let spread: Bool
     let gap: CGFloat
@@ -129,10 +129,18 @@ struct CaptionSetter {
         style = book.editorialStyle
         override = book.captionStyle
         self.bounds = bounds
-        let inset = (book.printSettings ?? PrintSettings()).safeMM * 72 / 25.4
-        let limit = max(0, min(bounds.width, bounds.height) / 2 - 1)
-        safe = bounds.insetBy(dx: min(inset, limit), dy: min(inset, limit))
         spread = page.effectiveLayout == .fullSpread
+        // The same area text must keep inside as the safe-margin check: the safe margin, and a print
+        // service's wider margin along the binding of this page.
+        let settings = book.printSettings ?? PrintSettings()
+        var zones: [PrintGuides.Zone] = []
+        if let plan = PrintPlan(book: book) {
+            zones = plan.guideZones(pageSize: bounds.size, onRight: BookPDF.rightPageIDs(book).contains(page.id),
+                                    spread: spread, safeMM: settings.safeMM)
+        }
+        let area = PrintGuides.frames(pageSize: bounds.size, settings: settings, zones: zones).textSafe
+            .offsetBy(dx: bounds.minX, dy: bounds.minY)
+        safe = area.width > 1 && area.height > 1 ? area : bounds
         gap = style.captionGap(override: override)
         self.storyPanel = storyPanel
     }
