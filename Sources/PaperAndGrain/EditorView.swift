@@ -36,6 +36,8 @@ struct EditorView: View, Localizing {
 
     @FocusState var searchingPhotos: Bool
 
+    @FocusState var headingFocused: Bool
+
     @State var selection: UUID?
 
     @State var selectedPhoto: UUID?
@@ -711,11 +713,11 @@ final class EditorUndo {
     }
 
     /// Makes undo and redo of a page insertion also move the page selection.
-    func registerSelection(_ manager: UndoManager, binding: Binding<UUID?>, restoring: UUID, then next: UUID) {
+    func registerSelection(_ manager: UndoManager, binding: Binding<UUID?>, book: Binding<Book>, bookID: UUID, restoring: UUID, then next: UUID) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
-            guard let manager else { return }
+            guard let manager, book.wrappedValue.id == bookID else { return }
             binding.wrappedValue = restoring
-            target.registerSelection(manager, binding: binding, restoring: next, then: restoring)
+            target.registerSelection(manager, binding: binding, book: book, bookID: bookID, restoring: next, then: restoring)
         }
     }
 

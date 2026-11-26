@@ -388,22 +388,26 @@ extension EditorView {
     }
 
     /// Duplicate Page works on a book page, not on a cover, and never while text is being typed.
-    var canDuplicatePage: Bool { page.map { canDuplicatePage($0.id) } ?? false }
+    var canDuplicatePage: Bool {
+        coverSide == nil && page.map { canDuplicatePage($0.id) } ?? false
+    }
 
+    /// For a page the author points at, as in the Pages context menu: also true while a cover is selected.
     func canDuplicatePage(_ id: UUID) -> Bool {
-        coverSide == nil && cropSession == nil && !showDelete && !writing && !writingBox
+        cropSession == nil && !showDelete && !writing && !writingBox && !headingFocused
             && inlineBoxFocus == nil && editorialFocus == nil && !searchingPhotos
+            && !(NSApp.keyWindow?.firstResponder is NSText)
             && book.pages.contains { $0.id == id }
     }
 
     /// Puts a copy right after the page and selects it, as one undo step.
     func duplicatePage(_ id: UUID? = nil) {
-        guard let id = id ?? page?.id, canDuplicatePage(id),
+        guard let id = id ?? (coverSide == nil ? page?.id : nil), canDuplicatePage(id),
               let position = book.pages.firstIndex(where: { $0.id == id }) else { return }
         let copy = book.pages[position].duplicated()
         editPages(tr("Duplicate Page")) { $0.insert(copy, at: position + 1) }
         if let undoManager {
-            undoTarget.registerSelection(undoManager, binding: $selection, restoring: id, then: copy.id)
+            undoTarget.registerSelection(undoManager, binding: $selection, book: $book, bookID: book.id, restoring: id, then: copy.id)
         }
         select(copy)
         clearCanvasSelection()

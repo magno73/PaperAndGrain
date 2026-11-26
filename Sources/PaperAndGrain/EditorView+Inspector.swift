@@ -225,6 +225,7 @@ extension EditorView {
                         }
                     ))
                     .textFieldStyle(.roundedBorder)
+                    .focused($headingFocused)
                     if showsBody {
                         TextEditor(text: text)
                             .font(.system(size: 14, design: .serif))
@@ -548,6 +549,7 @@ extension EditorView {
                 }
             ))
             .textFieldStyle(.roundedBorder)
+            .focused($headingFocused)
             EditorialTypographyControls(style: pageTextStyle(\.title, on: leaf.id),
                                        inherited: style.defaultTitleStyle(mixed: leaf.effectiveLayout == .mixed)
                                            .applying(book.typography?.title),
