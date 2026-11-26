@@ -1,5 +1,5 @@
 import AppKit
-import ColorSync
+@preconcurrency import ColorSync
 import CoreGraphics
 import PDFKit
 import XCTest
@@ -174,6 +174,40 @@ final class ColorOutputTests: XCTestCase {
         return found
     }
 
+    func testCMYKPhotosShareOneEmbeddedProfileAndStayCloseToSRGBSize() throws {
+        let directory = try temporaryDirectory()
+        var photos = [BookPhoto]()
+        for (index, color) in [NSColor.systemRed, .systemGreen, .systemBlue].enumerated() {
+            let photo = BookPhoto(name: "P\(index)", filename: "p\(index).tiff", pixelWidth: 600, pixelHeight: 400)
+            let sample = NSImage(size: CGSize(width: 600, height: 400), flipped: false) { rect in
+                color.setFill()
+                rect.fill()
+                NSColor.white.setFill()
+                rect.insetBy(dx: CGFloat(60 * (index + 1)), dy: 50).fill()
+                return true
+            }
+            try XCTUnwrap(sample.tiffRepresentation).write(to: BookStorage.assetURL(filename: photo.filename, in: directory))
+            photos.append(photo)
+        }
+        var book = Book(title: "Size", photos: photos,
+                        pages: photos.map { BookPage(layout: .fullPage, photoIDs: [$0.id]) })
+        book.printSettings = PrintSettings()
+        let bundled = try XCTUnwrap(ICCProfileSources.bundled.first { $0.filename == "Coated_Fogra39L_VIGC_300.icc" })
+        let data = try XCTUnwrap(ICCProfileSources.bundledData(bundled))
+        try BookPDF.writePrint(book, directory: directory, to: directory.appendingPathComponent("sRGB"))
+        try BookPDF.writePrint(book, directory: directory, to: directory.appendingPathComponent("CMYK"),
+                               color: .cmyk(try PrintColor.converter(for: data)))
+        let srgb = try Data(contentsOf: directory.appendingPathComponent("sRGB/Interior.pdf"))
+        let cmyk = try Data(contentsOf: directory.appendingPathComponent("CMYK/Interior.pdf"))
+        let text = String(decoding: cmyk, as: UTF8.self)
+        XCTAssertEqual(text.components(separatedBy: "/ICCBased").count - 1, 1, "one ICCBased object for all photos")
+        XCTAssertEqual(text.components(separatedBy: "/DCTDecode").count - 1, 3, "the JPEG data is still passed through")
+        XCTAssertEqual(text.components(separatedBy: "/Decode [ 1 0 1 0 1 0 1 0 ]").count - 1, 3)
+        // The profile appears at most twice (the shared color space and the output intent), never per photo.
+        XCTAssertLessThan(cmyk.count, 3 * srgb.count + 2 * data.count, "CMYK \(cmyk.count) bytes, sRGB \(srgb.count)")
+        XCTAssertLessThan(cmyk.count, 3 * data.count, "three photos never carry three copies of an 8.6 MB profile")
+    }
+
     func testCMYKPrintPDFHasFourComponentImagesBlackOnlyTextAndTheOutputIntent() throws {
         let directory = try temporaryDirectory()
         let book = try book(in: directory)
@@ -272,13 +306,14 @@ final class ColorOutputTests: XCTestCase {
         XCTAssertFalse(old.writesCMYK)
     }
 
-    func testThePrintServiceColorModeIsAWarningWhenTheBookDiffers() throws {
+    func testThePrintServiceColorModeBlocksWhenTheBookDiffers() throws {
         let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Fixtures/PrintProfiles", isDirectory: true)
         let cmykOnly = try XCTUnwrap(PrintProfileCatalog.load(from: fixtures).profile("test-imagewrap"))
         let book = Book(title: "T", format: cmykOnly.sizes[1].format, pages: [BookPage(layout: .text)])
         let report = BookPDF.preflight(book, directory: nil, profile: .service(PrintPlan(profile: cmykOnly)))
-        XCTAssertTrue(report.warnings.contains { $0.message(language: "en") == "The printer asks for CMYK; the book writes sRGB" })
+        XCTAssertTrue(report.blockers.contains { $0.message(language: "en") == "The printer asks for CMYK; the book writes sRGB" },
+                      "a printer that takes CMYK only blocks an sRGB book")
     }
 
     func testFlattenedTransparencyLeavesNoTranslucentPanel() throws {

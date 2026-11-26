@@ -11944,6 +11944,42 @@
         }
       }
     },
+    "Switch to CMYK": {
+      "comment": "Issue fix button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to CMYK"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a CMYK"
+          }
+        }
+      }
+    },
+    "Switch to sRGB": {
+      "comment": "Issue fix button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to sRGB"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a sRGB"
+          }
+        }
+      }
+    },
     "System Default": {
       "extractionState": "manual",
       "localizations": {
@@ -14057,6 +14093,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scrive luogo e data sotto ogni foto della pagina senza didascalia"
+          }
+        }
+      }
+    },
+    "Write the print PDFs in CMYK with %@": {
+      "comment": "The argument is an ICC profile name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the print PDFs in CMYK with %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi i PDF di stampa in CMYK con %@"
+          }
+        }
+      }
+    },
+    "Write the print PDFs in sRGB, as the printer asks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the print PDFs in sRGB, as the printer asks"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi i PDF di stampa in sRGB, come chiede lo stampatore"
           }
         }
       }

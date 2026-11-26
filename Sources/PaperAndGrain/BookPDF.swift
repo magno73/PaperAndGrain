@@ -309,8 +309,9 @@ enum BookPDF {
         }
         if let plan {
             let writes: PrintProfile.ColorMode = book.printSettings?.writesCMYK == true ? .cmyk : .srgb
+            // A printer that takes only the other color mode would refuse the file: a blocker with a fix.
             if !plan.profile.color.accepts.contains(writes), let asked = plan.profile.color.accepts.first {
-                report.warnings.append(PreflightIssue(problem: .colorModeNotAccepted(asked: asked)))
+                report.blockers.append(PreflightIssue(problem: .colorModeNotAccepted(asked: asked)))
             }
             let bookPages = slots.filter { $0 != nil }.count
             let product = plan.issues(for: book, interiorPages: slots.count, bookPages: bookPages)
@@ -1124,17 +1125,23 @@ enum BookPDF {
     /// Re-encodes a render as JPEG. Quartz embeds a JPEG-backed image as DCT data, so a page of
     /// photographs costs a few megabytes instead of the lossless pixels.
     private static func jpegBacked(_ image: CGImage, quality: Double) -> CGImage {
+        // A CMYK image is encoded untagged and tagged again after loading: ImageIO would otherwise put the whole
+        // ICC profile (several megabytes) into every photo's JPEG. Tagged with the converter's color space,
+        // all photos share one ICCBased object in the PDF, and Quartz still passes the JPEG data through.
+        let profile = image.colorSpace?.model == .cmyk ? image.colorSpace : nil
+        let source = profile == nil ? image : image.copy(colorSpace: CGColorSpaceCreateDeviceCMYK()) ?? image
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
         else { return image }
-        CGImageDestinationAddImage(destination, image, [
+        CGImageDestinationAddImage(destination, source, [
             kCGImageDestinationLossyCompressionQuality: quality,
         ] as CFDictionary)
         guard CGImageDestinationFinalize(destination), let provider = CGDataProvider(data: data),
               let jpeg = CGImage(jpegDataProviderSource: provider, decode: nil, shouldInterpolate: true,
                                  intent: .defaultIntent)
         else { return image }
-        return jpeg
+        guard let profile else { return jpeg }
+        return jpeg.copy(colorSpace: profile) ?? image
     }
 
     private static func drawImage(_ image: CGImage, at placement: CGRect, in context: CGContext) {

@@ -796,6 +796,17 @@ final class EditorUndo {
         manager.setActionName(name)
     }
 
+    func registerPrintSettings(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                               previous: PrintSettings?, name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID else { return }
+            let current = binding.wrappedValue.printSettings
+            binding.wrappedValue.printSettings = previous
+            target.registerPrintSettings(manager, binding: binding, bookID: bookID, previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
+
     func registerBookFilm(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
                           previous: FilmSettings?, name: String) {
         manager.registerUndo(withTarget: self) { [weak manager] target in
