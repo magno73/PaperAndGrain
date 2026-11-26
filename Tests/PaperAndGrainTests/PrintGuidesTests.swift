@@ -118,11 +118,25 @@ final class PrintGuidesTests: XCTestCase {
         XCTAssertTrue(BookPDF.preflight(b, directory: nil, profile: .proof).isClean)
     }
 
-    func testBindingEdgeOfASinglePageDoesNotWarn() {
-        // Page 1 sits on the left (firstPageOnRight is off): its right edge is the binding edge.
+    func testBindingEdgeFollowsThePhysicalSideInEveryProfile() {
+        // A photo whose right edge is 1.5 mm inside the trim; its other edges bleed.
         var b = book(photoFrame: PageRect(x: -1, y: 0.2, width: 1 + (210 - 1.5) / 210, height: 0.5))
-        XCTAssertFalse(kinds(b).contains("photoNearEdge"))
-        b.printSettings?.firstPageOnRight = true
-        XCTAssertTrue(kinds(b).contains("photoNearEdge"))
+        func warns(_ profile: BookPDF.Profile, firstOnRight: Bool) -> Bool {
+            b.printSettings?.firstPageOnRight = firstOnRight
+            return BookPDF.preflight(b, directory: nil, profile: profile).warnings.contains { $0.problem.kind == "photoNearEdge" }
+        }
+        // Print: the first page is on the left unless the book starts on the right.
+        XCTAssertFalse(warns(.print, firstOnRight: false), "left page: the right edge is the binding edge")
+        XCTAssertTrue(warns(.print, firstOnRight: true), "right page: the right edge is cut")
+        // Pixart: the first physical interior page is on the right, so the book is shifted by one.
+        XCTAssertTrue(warns(.pixart, firstOnRight: true), "right page: the right edge is cut")
+        XCTAssertFalse(warns(.pixart, firstOnRight: false), "left page: the right edge is the binding edge")
+    }
+
+    func testEmptyStyledBoxIsNotATextWarning() {
+        var b = book(boxFrame: PageRect(x: 0.0, y: 0.1, width: 1, height: 0.1))
+        b.pages[0].textBoxes?[0].text = ""
+        b.pages[0].textBoxes?[0].backgroundColor = 0xCC0000
+        XCTAssertFalse(kinds(b).contains("textOutsideSafeMargin"))
     }
 }

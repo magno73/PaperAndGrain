@@ -33,9 +33,11 @@ extension EditorView {
             GeometryReader { geometry in
                 if let coverSide {
                     let scale = zoom.scale(viewport: geometry.size, artboard: book.format.pageSize)
-                    canvasViewport(geometry.size) { coverCanvas(coverSide, scale: scale) }
+                    canvasViewport(geometry.size) { coverCanvas(coverSide, scale: scale).shadow(color: .black.opacity(0.16), radius: 12, x: 0, y: 7) }
                 } else if let page {
-                    canvasViewport(geometry.size) { canvasSpread(page, viewport: geometry.size) }
+                    canvasViewport(geometry.size, outset: printGuidesOutset(viewport: geometry.size, page: page)) {
+                        canvasSpread(page, viewport: geometry.size)
+                    }
                 } else {
                     VStack(spacing: 14) {
                         Image(systemName: "book").font(.system(size: 33, weight: .ultraLight)).foregroundStyle(pine)
@@ -100,6 +102,7 @@ extension EditorView {
                 Divider()
                 Toggle(tr("Gutter Guide"), isOn: $gutterGuide)
                 Toggle(tr("Print Guides"), isOn: Binding(get: { printGuides }, set: { setPrintGuides($0) }))
+                    .help(tr("Show the safe margin and the bleed on the pages"))
             } label: {
                 Text(zoomName(zoom)).monospacedDigit()
             }
@@ -120,6 +123,19 @@ extension EditorView {
         guard on, !PrintGuidesLegend.shown else { return }
         PrintGuidesLegend.shown = true
         showCanvasNotice(tr("Keep text inside the dashed line. Photos that reach the edge extend to the outer line."))
+    }
+
+    /// How far the bleed line reaches outside the artboard on screen, in points; 0 with the guides off.
+    func printGuidesOutset(viewport: CGSize, page: BookPage) -> CGFloat {
+        guard printGuides else { return 0 }
+        let spread = showSpread ? groups.first { $0.contains { $0.id == page.id } } ?? [page] : [page]
+        let wide = page.effectiveLayout == .fullSpread
+        let blankLeft = showSpread && !wide && spread.count == 1 && page.id == book.pages.first?.id
+            && book.printSettings?.firstPageOnRight == true
+        let size = book.format.pageSize
+        let count = wide || blankLeft ? 2 : spread.count
+        let scale = zoom.scale(viewport: viewport, artboard: CGSize(width: size.width * CGFloat(count), height: size.height))
+        return CGFloat((book.printSettings ?? PrintSettings()).bleedMM * PrintGuides.pointsPerMM) * scale
     }
 
     /// The guides of the pages in a spread, placed where the pages are drawn.
@@ -144,12 +160,14 @@ extension EditorView {
         }
     }
 
-    func canvasViewport<Artboard: View>(_ viewport: CGSize, @ViewBuilder content: () -> Artboard) -> some View {
+    /// The artboard draws its own shadow, so the print guides around it do not get one. `outset` is how
+    /// far the guides reach outside the artboard; the scroll padding grows to keep the bleed line visible.
+    func canvasViewport<Artboard: View>(_ viewport: CGSize, outset: CGFloat = 0,
+                                        @ViewBuilder content: () -> Artboard) -> some View {
         ScrollView([.horizontal, .vertical]) {
             content()
-                .shadow(color: .black.opacity(0.16), radius: 12, x: 0, y: 7)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 24)
+                .padding(.horizontal, max(20, outset + 6))
+                .padding(.vertical, max(24, outset + 6))
                 .frame(minWidth: viewport.width, minHeight: viewport.height)
         }
         .defaultScrollAnchor(.center)
@@ -193,6 +211,7 @@ extension EditorView {
             }
             .allowsHitTesting(false)
         }
+        .shadow(color: .black.opacity(0.16), radius: 12, x: 0, y: 7)
         .overlay {
             if printGuides {
                 PrintGuidesOverlay(pages: printGuidePages(spread, blankLeft: blankLeft, scale: scale), scale: scale)

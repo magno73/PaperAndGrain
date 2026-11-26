@@ -209,8 +209,10 @@ enum BookPDF {
             let guides = settings.map { PrintGuides.frames(pageSize: composition.bounds.size, settings: $0) }
             if let guides {
                 // The binding edge of a single page is not cut, so it can hold a photo near it.
+                // `leaves` puts the first slot on the left, except for Pixart, whose first slot is a right page.
+                let onRight = profile == .pixart ? position.isMultiple(of: 2) : !position.isMultiple(of: 2)
                 let bound: Set<PrintGuides.Edge> = page.effectiveLayout == .fullSpread ? []
-                    : position.isMultiple(of: 2) ? [.right] : [.left]
+                    : onRight ? [.left] : [.right]
                 var placedAgain = [UUID: Int]()
                 for slot in composition.photos {
                     let occurrence = placedAgain[slot.photo.id, default: 0]
@@ -228,7 +230,7 @@ enum BookPDF {
                     place.target = .story
                     report.warnings.append(place.issue(.textOutsideSafeMargin))
                 }
-                for box in composition.textBoxes where box.prints(paper: style.paper, ink: style.ink)
+                for box in composition.textBoxes where !box.text.isEmpty && box.prints(paper: style.paper, ink: style.ink)
                     && !guides.keepsInsideSafe(box.frame.rect(in: composition.bounds)) {
                     var place = at
                     place.target = .textBox(box.id)

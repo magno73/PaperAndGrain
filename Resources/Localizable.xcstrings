@@ -8449,6 +8449,23 @@
         }
       }
     },
+    "Show the safe margin and the bleed on the pages": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the safe margin and the bleed on the pages"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra sulle pagine il margine sicuro e l’abbondanza"
+          }
+        }
+      }
+    },
     "Single Page": {
       "extractionState": "manual",
       "localizations": {
