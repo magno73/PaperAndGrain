@@ -234,7 +234,7 @@ final class PrintReleaseTests: XCTestCase {
         XCTAssertTrue(blockers.contains("p. 3 · Missing photo"), "\(blockers)")
         XCTAssertTrue(blockers.contains("p. 3 · lost.png · Photo file missing"))
         XCTAssertTrue(blockers.contains("p. 4 · broken.cube · Unreadable LUT"))
-        XCTAssertTrue(report.blockers.contains(.init(location: .page(4), problem: .unreadableLUT("broken.cube"))))
+        XCTAssertTrue(report.blockers.contains { $0.location == .page(4) && $0.problem == .unreadableLUT("broken.cube") && $0.target == .photo(tinted.id) })
         XCTAssertEqual(report.warnings.count, 1)
         XCTAssertTrue(report.warnings[0].message(language: "en").hasPrefix("p. 1 · small.png ·"), "\(report.warnings)")
 

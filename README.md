@@ -74,7 +74,7 @@ swift test
 | Area | What it does |
 |---|---|
 | **Pages** (left, ⌃⌘S) | Spread thumbnails. Drag to reorder; hover between pages for **+**; right-click to insert, move or delete. After clicking a thumbnail, ← → step one page and ↑ ↓ one spread. Drag the edge to make thumbnails larger. |
-| **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
+| **Toolbar** | **Insert**, **Style** (book template), **Layout** (page layout), **Film**, **Issues**, **Export**, **Photo Library** and **Inspector**. Click the book title for **Book & Print**, templates, saving and exporting. |
 | **Canvas** | One page or a spread (⌘1, ⌘2), zoom (⌘+, ⌘−, ⌘0). When the whole page fits, scroll or swipe to turn pages. **Browse the Book** (⌥⌘↩) shows the book full screen. |
 | **Photo Library** (bottom, ⌥⌘L) | Thumbnails in each photo's own proportions. Filters **All**, **Unused** and **On Page**, sorting by date, place or subject, a theme filter and search. Drop files from Finder or Photos here, or choose **Import Files…** from its menu, to add them to the open book. |
 | **Inspector** (right, ⌥⌘I) | Tabs follow the selection. **Page** or **Cover**. **Text** for a heading, story, box or cover text. **Photo** for a selected photo, cover photo included. **Film** for the book look when no photo is selected. |
@@ -136,6 +136,7 @@ Every look choice or slider drag is a single ⌘Z step.
 **Book & Print** sets the format, bleed, safe margin, target resolution, PDF type, the side of the first page and the cover with spine width.
 
 - **Export for Print** writes `Interior.pdf` and, if enabled, `Cover.pdf`. It flags photos below the target resolution and the filler pages that panoramas need.
+- **Issues** (⇧⌘I, or the triangle in the toolbar next to **Export**) runs the same preflight check while you work, a moment after your last change, and shows the number of problems and warnings; a check mark means none. The popover lists problems first, then warnings, under the page they belong to. Click a row to go to the page and select the photo, text box, story or cover face. The list uses the Generic Print profile.
 - Before an export, a preflight check lists what would stop it, such as text that overflows its frame or a missing photo file, and the warnings, such as low resolution. Problems must be fixed before you can continue; warnings can be ignored.
 - **Export PDF** offers **Viewing PDF**, **Generic Print** and **Pixartprinting · 21 × 21 cm**. The Pixartprinting profile writes one 1:1 PDF: a flat hardcover with the spine width from your quote, then single 216 × 216 mm pages with 3 mm bleed. PDFs are sRGB.
 

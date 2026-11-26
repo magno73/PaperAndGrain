@@ -21,6 +21,7 @@ Paper & Grain is a native Mac editor for travel photobooks. The interface is in 
 - `FilmPipeline.swift` shares color development, LUTs and grain between editor and print.
 - `PhotoAdjustments.swift` analyses the photo and applies the adjustments before the film look. `PhotoAdjustmentsPanel.swift` exposes the same values in the inspector.
 - `BundledFilmLooks.swift` lists the film-emulation LUTs bundled in `Resources/FilmLooks`, with descriptive names and no film or camera trademarks. Update the catalog, the integrity checks and the [attribution](Resources/FilmLooks/CREDITS.md) together with the resources.
+- `PreflightIssue.swift` defines the preflight result and the model of one issue (target, stable id, destination). `IssueMonitor.swift` reruns the check off the main thread after each pause in editing. `IssueList.swift` draws the rows shared by the Issues popover and the export sheet, and `EditorView+Issues.swift` adds the toolbar button, the popover, the fix action and selection of the target. A new kind of issue goes in `BookPDF.preflight` and in every `switch` the compiler flags; update [Architecture](docs/architecture.md).
 - `BookSettingsView.swift`, `PDFExportChooser.swift`, `PixartPrintProfile.swift` and `BookPDF.swift` handle settings, profile selection, format and printing. [Architecture](docs/architecture.md) describes the contracts between these components.
 - `L10n.swift` is the localization lookup: it resolves a key from the String Catalog in the interface language chosen in **Settings**, and falls back to the key.
 

@@ -125,11 +125,12 @@ struct HelpView: View, Localizing {
             ]),
             Topic(id: "print", symbol: "5.circle", title: tr("Print"), lines: [
                 tr("**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles."),
+                tr("The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text."),
                 tr("An orange or red triangle in the corner of a photo means a low print resolution: make the photo smaller or use a larger original."),
                 tr("Always check sizes and color with your print shop before ordering."),
             ]),
             Topic(id: "keys", symbol: "keyboard", title: tr("Handy shortcuts"), lines: [
-                tr("⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book"),
+                tr("⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book · ⇧⌘I issues"),
                 tr("⇧⌘N new page · ⌘[ ⌘] previous and next page · ⌥⌘C crop · ⌥⌘E enhance · ⇧⌘F / ⇧⌘B front / back"),
             ]),
         ]

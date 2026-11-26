@@ -59,6 +59,17 @@ extension EditorView {
                 }
                 .help(tr("Film look for the book or photo"))
             }
+            ToolbarItem(id: "issues", placement: .primaryAction) {
+                Button {
+                    showsIssues.toggle()
+                } label: {
+                    issuesButtonLabel
+                }
+                .help(tr("Show problems and warnings found in the book"))
+                .popover(isPresented: $showsIssues, arrowEdge: .bottom) {
+                    issuesPopover
+                }
+            }
             ToolbarItem(id: "export", placement: .primaryAction) {
                 Button(action: onExport) {
                     Label(tr("Export"), systemImage: "square.and.arrow.up")
@@ -144,6 +155,7 @@ extension EditorView {
         var commands = EditorCommandSet()
         let current = index
         commands.hasPage = page != nil
+        commands.showsIssues = showsIssues
         commands.hasPhotoSelection = canvasPhotoSelection != nil
         commands.canMoveEarlier = current.map { $0 > 0 } ?? false
         commands.canMoveLater = current.map { $0 < book.pages.count - 1 } ?? false
@@ -182,6 +194,7 @@ extension EditorView {
         commands.toggleNavigator = { showsNavigator.toggle() }
         commands.toggleInspector = { showsInspector.toggle() }
         commands.toggleTray = { showsTray.toggle() }
+        commands.toggleIssues = { showsIssues.toggle() }
         commands.setSpread = { value in if coverSide == nil { showSpread = value } }
         commands.zoomIn = { stepZoom(1) }
         commands.zoomOut = { stepZoom(-1) }

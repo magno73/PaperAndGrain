@@ -26,6 +26,7 @@ struct EditorCommandSet {
     var showsInspector = true
     var showsTray = true
     var showsSpread = true
+    var showsIssues = false
     var gutterGuide = false
     var canBringForward = false
     var canSendBackward = false
@@ -48,6 +49,7 @@ struct EditorCommandSet {
     var toggleNavigator: () -> Void = {}
     var toggleInspector: () -> Void = {}
     var toggleTray: () -> Void = {}
+    var toggleIssues: () -> Void = {}
     var setSpread: (Bool) -> Void = { _ in }
     var zoomIn: () -> Void = {}
     var zoomOut: () -> Void = {}
@@ -90,6 +92,11 @@ struct EditorMenus: Commands, Localizing {
                 editor?.toggleTray()
             }
             .keyboardShortcut("l", modifiers: [.command, .option])
+            .disabled(editor == nil)
+            Button(editor?.showsIssues == true ? tr("Hide Issues") : tr("Show Issues")) {
+                editor?.toggleIssues()
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
             .disabled(editor == nil)
             Divider()
             Button(tr("Single Page")) { editor?.setSpread(false) }

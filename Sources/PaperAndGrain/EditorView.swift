@@ -150,6 +150,10 @@ struct EditorView: View, Localizing {
 
     @State var cropSession: CropSession?
 
+    @State var issues = IssueMonitor()
+
+    @State var showsIssues = false
+
     enum Inspector: String, CaseIterable {
         case page, text, photo, film
     }
@@ -468,6 +472,8 @@ struct EditorView: View, Localizing {
         .coordinateSpace(name: EditorDropTarget.coordinateSpace)
         .onPreferenceChange(EditorDropFrames.self) { dropFrames = $0 }
         .onPreferenceChange(CanvasHitMaps.self) { canvasHits.maps = $0 }
+        .task { recheckIssues(immediately: true) }
+        .onChange(of: book) { recheckIssues() }
         .onChange(of: book.photos.map(\.id), initial: true) { _, ids in
             photoIndices = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
         }
@@ -491,6 +497,7 @@ struct EditorView: View, Localizing {
         }
         .onChange(of: filmScope) { _, _ in finishFilmEdit() }
         .onDisappear {
+            issues.stop()
             adjustmentPreviewTask?.cancel()
             filmPreviewTask?.cancel()
             undoManager?.removeAllActions(withTarget: undoTarget)

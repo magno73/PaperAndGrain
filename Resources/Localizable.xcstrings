@@ -359,6 +359,48 @@
         }
       }
     },
+    "%lld problems": {
+      "comment": "Spoken count of blockers on the Issues button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld problem"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld problems"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld problema"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld problemi"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld selected": {
       "comment": "Album picker: photos selected for the new book.",
       "extractionState": "manual",
@@ -394,6 +436,48 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld selezionate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld warnings": {
+      "comment": "Spoken count of warnings on the Issues button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld warning"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld warnings"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld avviso"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld avvisi"
                 }
               }
             }
@@ -2329,6 +2413,23 @@
         }
       }
     },
+    "Checking the book…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking the book…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controllo del libro…"
+          }
+        }
+      }
+    },
     "Choose LUT": {
       "extractionState": "manual",
       "localizations": {
@@ -4252,6 +4353,23 @@
         }
       }
     },
+    "Go to the page and select it": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to the page and select it"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vai alla pagina e seleziona l’elemento"
+          }
+        }
+      }
+    },
     "Grain": {
       "extractionState": "manual",
       "localizations": {
@@ -4452,6 +4570,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nascondi ispettore"
+          }
+        }
+      }
+    },
+    "Hide Issues": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Issues"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi segnalazioni"
           }
         }
       }
@@ -4918,6 +5053,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dimensioni non valide"
+          }
+        }
+      }
+    },
+    "Issues": {
+      "comment": "Toolbar button and popover title for the live preflight list.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Issues"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segnalazioni"
           }
         }
       }
@@ -6046,6 +6199,23 @@
         }
       }
     },
+    "No issues": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No issues"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna segnalazione"
+          }
+        }
+      }
+    },
     "No matching photos.": {
       "extractionState": "manual",
       "localizations": {
@@ -6416,6 +6586,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pagina"
+          }
+        }
+      }
+    },
+    "Page %lld": {
+      "comment": "Heading of the issues of one page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagina %lld"
           }
         }
       }
@@ -7081,6 +7269,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stampa: %@"
+          }
+        }
+      }
+    },
+    "Problem": {
+      "comment": "Spoken before an issue that blocks the export.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problem"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problema"
+          }
+        }
+      }
+    },
+    "Problems": {
+      "comment": "Heading of the blockers in the Issues list.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problems"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Problemi"
           }
         }
       }
@@ -8021,6 +8245,23 @@
         }
       }
     },
+    "Show Issues": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Issues"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra segnalazioni"
+          }
+        }
+      }
+    },
     "Show Page Numbers": {
       "extractionState": "manual",
       "localizations": {
@@ -8085,6 +8326,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra nel Finder"
+          }
+        }
+      }
+    },
+    "Show problems and warnings found in the book": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show problems and warnings found in the book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra i problemi e gli avvisi trovati nel libro"
           }
         }
       }
@@ -8804,6 +9062,23 @@
         }
       }
     },
+    "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il pulsante **Segnalazioni** nella barra degli strumenti (⇧⌘I) controlla il libro mentre lavori: prima i problemi che bloccherebbero l’esportazione, poi gli avvisi. Fai clic su una riga per andare alla pagina e selezionare la foto o il testo."
+          }
+        }
+      }
+    },
     "The **Text** tab of the inspector sets font, size, color, alignment, line spacing, and the box background and border.": {
       "extractionState": "manual",
       "localizations": {
@@ -8852,6 +9127,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il libro non si trova più nella sua posizione"
+          }
+        }
+      }
+    },
+    "The book is ready for print.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The book is ready for print."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il libro è pronto per la stampa."
           }
         }
       }
@@ -9622,6 +9914,42 @@
         }
       }
     },
+    "Warning": {
+      "comment": "Spoken before an issue that only weakens the print.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avviso"
+          }
+        }
+      }
+    },
+    "Warnings": {
+      "comment": "Heading of the warnings in the Issues list.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warnings"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avvisi"
+          }
+        }
+      }
+    },
     "Water": {
       "extractionState": "manual",
       "localizations": {
@@ -9669,6 +9997,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bianco"
+          }
+        }
+      }
+    },
+    "Whole book": {
+      "comment": "Heading of issues that belong to no page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whole book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutto il libro"
           }
         }
       }
@@ -9992,90 +10338,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adatta alla finestra"
-          }
-        }
-      }
-    },
-    "and %lld more problems to fix": {
-      "comment": "Export preflight, after the first six blockers.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "and %lld more problem to fix"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "and %lld more problems to fix"
-                }
-              }
-            }
-          }
-        },
-        "it": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "e un altro problema da correggere"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "e altri %lld problemi da correggere"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "and %lld more warnings": {
-      "comment": "Export preflight, after the first six warnings.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "and %lld more warning"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "and %lld more warnings"
-                }
-              }
-            }
-          }
-        },
-        "it": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "e un altro avviso"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "e altri %lld avvisi"
-                }
-              }
-            }
           }
         }
       }
@@ -10627,19 +10889,19 @@
         }
       }
     },
-    "⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book": {
+    "⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book · ⇧⌘I issues": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book"
+            "value": "⌃⌘S pages · ⌥⌘I inspector · ⌥⌘L photo library · ⌘1 / ⌘2 single or two-page view · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ browse the book · ⇧⌘I issues"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "⌃⌘S pagine · ⌥⌘I ispettore · ⌥⌘L fototeca · ⌘1 / ⌘2 pagina singola o doppia · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ sfoglia il libro"
+            "value": "⌃⌘S pagine · ⌥⌘I ispettore · ⌥⌘L fototeca · ⌘1 / ⌘2 pagina singola o doppia · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ sfoglia il libro · ⇧⌘I segnalazioni"
           }
         }
       }

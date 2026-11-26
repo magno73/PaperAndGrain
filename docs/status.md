@@ -4,11 +4,13 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of ch
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 209 tests with no failures. They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print and Pixartprinting PDFs, and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 224 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print and Pixartprinting PDFs, and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
 - **Timing without the interface.** In a release build on this Mac, a 180 px thumbnail of a 12 MP photo takes about 15 ms; with several thumbnail lanes the tray of a 150-photo book fills in about 0.4 s instead of about 2.2 s. Composing and typesetting one page thumbnail takes about 0.06 ms, so redrawing the visible thumbnails while typing costs well under a millisecond and needs no cache.
+
+- **Live preflight timing (T1).** A synthetic book of 50 pages and 150 photos (4000 × 3000 px JPEGs made with `sips` from `Resources/Demo.png`, three photos, a heading, a paragraph and a text box per page, a cover; built with `cli build`, 372 MB) was read from disk and checked with the `.print` profile 21 times in a release build (`PAPERGRAIN_PREFLIGHT_BOOK=… swift test -c release -Xswiftc -enable-testing --filter testPreflightTimingOnAPackage`): 7.8 ms for the first run, a median of 4.0 ms and a maximum of 4.1 ms for the others, against a budget of 150 ms. No per-page cache is needed. The check reads no pixels: it tests that each photo file exists and typesets each story and box once.
 
 ## Verified
 
@@ -45,8 +47,23 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of ch
 - Unit tests: printed folios match the editor when blanks are inserted; the Pixart cover title fits the panel it is drawn in; the print bleed keeps the editor crop inside the trim; preflight lists every blocker; a photo at the target resolution does not warn; progress per sheet; a previous print package is replaced; seam underlaps follow the layer order; blanks use the template paper; the classic cover band runs into the wrap; empty text boxes print only what the author styled.
 - File size and memory on the 50-page synthetic book (release build): print PDF 907 MB to 200 MB, peak memory 2.76 GB to 0.43 GB; viewing PDF 976 MB to 46 MB; Pixart 907 MB to 197 MB. A gradient test shows no banding.
 - The preflight check in the app with a real resolution warning, and the preset sizes in **Book & Print**.
+- Issues list (T1), unit tests only: issue ids are stable across two runs, unique, and follow the page and object rather than the printed number; each target (photo, text box, story, caption, cover face) resolves to its page or face, and one pointing to nothing resolves to nothing; an overflowing box or story is its own blocker with its target and disappears when the text is shortened; a photo whose pixels fall under the target raises a warning on that photo; groups come out book-wide, pages in order, cover last; six changes inside one pause start one run; a run overtaken by a newer change never publishes; stopping the monitor cancels the pending run. The catalog compiles into the debug bundle with the new Italian strings.
 
 ## Not yet verified
+
+### Issues (T1)
+
+None of this was seen on screen (no GUI access in this run). With the bundle from `./scripts/build-app.sh` and the sample book:
+
+1. Open the sample book. The toolbar shows **Issues** between **Film** and **Export**: a check mark, or a triangle with a number. Hover it: the help reads "Show problems and warnings found in the book". With VoiceOver the button says the counts in words.
+2. Select a photo on a page and enlarge it with a large crop zoom, or place a small photo: within a second the number rises and the triangle appears. Click the button: the popover lists a warning under "Page N". Click the row: the canvas goes to that page and the photo is selected, with the inspector on the **Photo** tab.
+3. Type a long text in a text box until it overflows: a row under **Problems** appears about 0.6 s after you stop typing; click it and the box is selected. Shorten the text: the row goes away and the count falls. While typing, the window must not stutter.
+4. Do the same for the story (heading and text of a page) and for the cover title on the front and the back: the row selects the story, or shows that cover face.
+5. With no issues the popover says "The book is ready for print." and the toolbar shows the check mark.
+6. **View › Show Issues** (⇧⌘I) opens and closes the popover, and the menu item then reads **Hide Issues**. Check ⇧⌘I does not collide with a system shortcut. If **Issues** is removed from the toolbar through **Customize Toolbar…**, the menu item does nothing.
+7. **File › Export PDF**: the sheet shows the same rows (not clickable), grouped by page, with a scroll area when there are many. **Continue** stays disabled while a problem remains.
+8. Italian: switch **Settings › Language** to Italian and check the button help, the popover headings (Problemi, Avvisi, Pagina N, Tutto il libro) and the help topic **Stampa**.
+9. Dark appearance and a narrow window: the popover stays 360 pt wide and readable.
 
 ### Documents
 

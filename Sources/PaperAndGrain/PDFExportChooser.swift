@@ -128,28 +128,19 @@ struct PDFExportChooser: View, Localizing {
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
             if let report {
-                if report.blockers.isEmpty && report.warnings.isEmpty {
-                    Label(tr("No problems found"), systemImage: "checkmark.circle.fill")
-                        .font(.callout)
-                        .symbolRenderingMode(.multicolor)
+                IssueScroll(maxHeight: 210) {
+                    IssueList(report: report, language: language, emptyText: tr("No problems found"))
                 }
                 if !report.blockers.isEmpty {
-                    problems(report.blockers, icon: "xmark.octagon.fill", tint: .red,
-                             more: { tr("and %lld more problems to fix", $0) })
                     Text(tr("Fix these problems to export the PDF."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                }
-                if !report.warnings.isEmpty {
-                    problems(report.warnings, icon: "exclamationmark.triangle.fill", tint: .orange,
-                             more: { tr("and %lld more warnings", $0) })
-                    if report.blockers.isEmpty {
-                        Text(tr("You can still export: the same warnings appear when the export finishes."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                } else if !report.warnings.isEmpty {
+                    Text(tr("You can still export: the same warnings appear when the export finishes."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             } else {
                 HStack(spacing: 6) {
@@ -177,24 +168,6 @@ struct PDFExportChooser: View, Localizing {
                 BookPDF.preflight(book, directory: directory, profile: checked)
             }.value
             if !Task.isCancelled { report = found }
-        }
-    }
-
-    private func problems(_ lines: [BookPDF.PreflightIssue], icon: String, tint: Color, more: @escaping (Int) -> String) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            ForEach(Array(lines.prefix(6).enumerated()), id: \.offset) { _, line in
-                Label {
-                    Text(line.message(language: language)).fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: icon).foregroundStyle(tint)
-                }
-                .font(.callout)
-            }
-            if lines.count > 6 {
-                Text(more(lines.count - 6))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
     }
 

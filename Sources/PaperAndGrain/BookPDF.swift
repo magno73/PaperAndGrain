@@ -115,60 +115,6 @@ enum BookPDF {
         case proof, print, pixart
     }
 
-    /// Problems found before an export. Blockers make the export fail and must be fixed first;
-    /// warnings describe a weaker print. Each issue is localized when it is shown.
-    struct Preflight: Equatable, Sendable {
-        var blockers: [PreflightIssue] = []
-        var warnings: [PreflightIssue] = []
-    }
-
-    /// One problem of the preflight: where it is, and what it is.
-    struct PreflightIssue: Equatable, Sendable {
-        enum Location: Equatable, Sendable {
-            /// The page number shown in the editor.
-            case page(Int)
-            case cover
-        }
-
-        enum Problem: Equatable, Sendable {
-            case invalidDimensions
-            case missingPhoto
-            /// The photo's file is not in the book package; the name is the photo's.
-            case missingFile(String)
-            /// The LUT cannot be read; the name is the LUT file's, or the photo's when the LUT has none.
-            case unreadableLUT(String)
-            case lowResolution(photo: String, ppi: Double, target: Double)
-            case textOverflows
-            /// Blank pages added so the imposition lines up, by sheet position.
-            case blankPages([Int])
-        }
-
-        var location: Location?
-        var problem: Problem
-
-        /// "location · subject · problem", in `language`. The CLI reads it in English.
-        func message(language: String) -> String {
-            let place: String? = switch location {
-            case let .page(number): "p. " + String(number)
-            case .cover: L10n.string("Cover", language: language)
-            case nil: nil
-            }
-            let parts: [String?] = switch problem {
-            case .invalidDimensions: [place, L10n.string("Invalid print dimensions", language: language)]
-            case .missingPhoto: [place, L10n.string("Missing photo", language: language)]
-            case let .missingFile(name): [place, name, L10n.string("Photo file missing", language: language)]
-            case let .unreadableLUT(name): [place, name, L10n.string("Unreadable LUT", language: language)]
-            case let .lowResolution(photo, ppi, target):
-                [place, photo, String(format: "%.0f ppi < %.0f ppi", ppi, target)]
-            case .textOverflows: [place, L10n.string("Text overflows", language: language)]
-            case let .blankPages(pages):
-                [place, L10n.string("Blank pages for alignment", language: language),
-                 pages.map(String.init).joined(separator: ", ")]
-            }
-            return parts.compactMap { $0 }.joined(separator: " · ")
-        }
-    }
-
     /// Every problem in one list, blockers first, for callers that show a single list.
     static func printWarnings(_ book: Book, pixart: Bool = false, language: String = "en") -> [String] {
         let report = preflight(book, directory: nil, profile: pixart ? .pixart : .print)
@@ -197,33 +143,38 @@ enum BookPDF {
         var checkedFiles = Set<String>()
         var checkedLooks = Set<String>()
         let fm = FileManager.default
-        func checkFiles(_ photo: BookPhoto, location: PreflightIssue.Location) {
+        /// Where an issue is, so it can be opened: the printed page number, the page and its object.
+        struct Place {
+            var location: PreflightIssue.Location
+            var pageID: UUID?
+            var target: IssueTarget?
+
+            func issue(_ problem: PreflightIssue.Problem) -> PreflightIssue {
+                PreflightIssue(location: location, problem: problem, pageID: pageID, target: target)
+            }
+        }
+        func checkFiles(_ photo: BookPhoto, at place: Place) {
             guard let directory else { return }
             if checkedFiles.insert(photo.filename).inserted,
                !fm.fileExists(atPath: BookStorage.assetURL(filename: photo.filename, in: directory).path) {
-                report.blockers.append(PreflightIssue(location: location, problem: .missingFile(photo.name)))
+                report.blockers.append(place.issue(.missingFile(photo.name)))
             }
             let film = book.effectiveFilm(for: photo)
             guard film.preset == .custom, film.strength > 0 else { return }
             let name = film.lutFilename ?? ""
             guard checkedLooks.insert(name).inserted else { return }
             if film.lutFilename.map({ (try? FilmRenderer.validateLUT(at: BookStorage.lutURL(filename: $0, in: directory))) == nil }) ?? true {
-                report.blockers.append(PreflightIssue(location: location, problem: .unreadableLUT(name.isEmpty ? photo.name : name)))
+                report.blockers.append(place.issue(.unreadableLUT(name.isEmpty ? photo.name : name)))
             }
         }
-        func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop,
-                             location: PreflightIssue.Location) {
+        func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, at place: Place) {
             guard settings != nil else { return }
             // The same measure as the canvas badge; rounded like the message, so "300 ppi < 300 ppi" cannot appear.
             guard let measured = PhotoResolution.ppi(of: photo, in: frame, fills: fills, crop: crop) else { return }
             let actual = measured.rounded()
             if PhotoResolution.level(measured, target: ppi) != .good {
-                report.warnings.append(PreflightIssue(location: location,
-                                                      problem: .lowResolution(photo: photo.name, ppi: actual, target: ppi)))
+                report.warnings.append(place.issue(.lowResolution(photo: photo.name, ppi: actual, target: ppi)))
             }
-        }
-        func overflow(_ location: PreflightIssue.Location) {
-            report.blockers.append(PreflightIssue(location: location, problem: .textOverflows))
         }
 
         let slots = leaves(book.pages, settings: settings, pixart: profile == .pixart)
@@ -234,43 +185,52 @@ enum BookPDF {
         let style = book.editorialStyle
         for leaf in slots.compactMap({ $0 }) where leaf.half == 0 {
             let page = leaf.page
-            let loc = PreflightIssue.Location.page(leaf.number)
+            let at = Place(location: .page(leaf.number), pageID: page.id)
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
-                report.blockers.append(PreflightIssue(location: loc, problem: .missingPhoto))
+                report.blockers.append(at.issue(.missingPhoto))
             }
             let composition = PageComposition(page: page, book: book)
             for slot in composition.photos {
-                checkFiles(slot.photo, location: loc)
-                checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, location: loc)
+                var place = at
+                place.target = .photo(slot.photo.id)
+                checkFiles(slot.photo, at: place)
+                checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
             let story = composition.storyDrawingBlocks(page: page, book: book)
-            var fits = story.allSatisfy { $0.text.length == 0 || EditorialTypesetter.fits($0.text, in: $0.frame) }
-            for box in composition.textBoxes where fits && box.prints(paper: style.paper, ink: style.ink) {
-                let frame = box.frame.rect(in: composition.bounds)
-                fits = EditorialTypesetter.fits(PageComposition.boxText(box: box, book: book),
-                                                in: frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints))
+            if !story.allSatisfy({ $0.text.length == 0 || EditorialTypesetter.fits($0.text, in: $0.frame) }) {
+                var place = at
+                place.target = .story
+                report.blockers.append(place.issue(.textOverflows))
             }
-            if !fits { overflow(loc) }
+            for box in composition.textBoxes where box.prints(paper: style.paper, ink: style.ink) {
+                let frame = box.frame.rect(in: composition.bounds)
+                if !EditorialTypesetter.fits(PageComposition.boxText(box: box, book: book),
+                                             in: frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)) {
+                    var place = at
+                    place.target = .textBox(box.id)
+                    report.blockers.append(place.issue(.textOverflows))
+                }
+            }
         }
         if let cover = book.cover, profile != .proof {
-            let location = PreflightIssue.Location.cover
-            var coverFits = true
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
+                let place = Place(location: .cover, target: .cover(front: front))
                 let face = profile == .pixart
                     ? BookCoverGeometry(book: book, front: front, size: CGSize(
                         width: PixartPrintProfile.panelWidth * pointsPerMM,
                         height: PixartPrintProfile.panelHeight * pointsPerMM))
                     : BookCoverGeometry(book: book, front: front, bleed: bleed)
-                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) { coverFits = false }
+                if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
+                    report.blockers.append(place.issue(.textOverflows))
+                }
                 guard let id else { continue }
                 if let photo = book.photo(id) {
-                    checkFiles(photo, location: location)
-                    checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, location: location)
+                    checkFiles(photo, at: place)
+                    checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, at: place)
                 } else {
-                    report.blockers.append(PreflightIssue(location: location, problem: .missingPhoto))
+                    report.blockers.append(place.issue(.missingPhoto))
                 }
             }
-            if !coverFits { overflow(location) }
         }
         return report
     }
