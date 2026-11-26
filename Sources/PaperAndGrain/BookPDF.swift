@@ -331,6 +331,8 @@ enum BookPDF {
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
                 report.blockers.append(at.issue(.missingPhoto))
             }
+            // The check runs off the main thread: a map page reads the bundled data before it is composed.
+            if page.isMapPage { _ = MapDataStore.shared.geography() }
             let composition = PageComposition(page: page, book: book)
             var placed = [UUID: Int]()
             for slot in composition.photos {
@@ -343,6 +345,9 @@ enum BookPDF {
                 checkGamut(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
             if composition.map?.isEmpty == true { report.blockers.append(at.issue(.mapWithoutPlaces)) }
+            if let map = composition.map, !map.isEmpty, map.missingGeography {
+                report.warnings.append(at.issue(.mapDataMissing))
+            }
             for caption in composition.captions where !caption.fits {
                 var place = at
                 place.target = .caption(caption.photoID)

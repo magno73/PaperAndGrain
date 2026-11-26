@@ -9,7 +9,8 @@
 Downloading contacts GitHub (raw.githubusercontent.com); run it only when you mean to. The source is
 pinned to a release tag, so the output can be reproduced. See Resources/MapData/CREDITS.md.
 
-Output: a raw DEFLATE stream (zlib wbits -15, read by Foundation's `.zlib` decompression) of
+Output: "PGMZ", u32 length and u32 CRC-32 (zlib) of a raw DEFLATE stream (zlib wbits -15, read by
+Foundation's `.zlib` decompression) of
 
   "PGMAP" u8 version=1
   land:    u32 ring count, rings
@@ -32,6 +33,9 @@ import zlib
 from pathlib import Path
 
 TAG = "v5.1.2"
+# The payload built from the files at TAG on 26 November 2026 (Resources/MapData/world.mapdata). The script
+# refuses to write a different result, so a changed download is caught; pass --accept-new to override.
+PAYLOAD_SHA256 = "a9b22588885fd9123186335c0b2b94c6577ce66fa5630025cb85f2d0d607c1f5"
 BASE = f"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/{TAG}/geojson/"
 FILES = {
     "land": "ne_50m_land.geojson",
@@ -170,8 +174,21 @@ def build(sources, tolerance=60):
         places.append(struct.pack("<iiI", round(lon * SCALE), round(lat * SCALE), max(0, population))
                       + string(name) + string(p.get("NAME_IT")) + string(p.get("NAME_EN")))
     out += struct.pack("<I", len(places)) + b"".join(places)
+    return frame(bytes(out))
+
+
+def frame(payload):
+    """The file: a frame with the length and CRC-32 of the compressed stream, so damage is detected."""
     compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
-    return compressor.compress(bytes(out)) + compressor.flush()
+    stream = compressor.compress(payload) + compressor.flush()
+    return b"PGMZ" + struct.pack("<II", len(stream), zlib.crc32(stream) & 0xFFFFFFFF) + stream
+
+
+def payload_sha256(data):
+    """SHA-256 of the uncompressed payload of a framed file."""
+    import hashlib
+    assert data[:4] == b"PGMZ"
+    return hashlib.sha256(zlib.decompress(data[12:], -15)).hexdigest()
 
 
 def fixture():
@@ -220,6 +237,7 @@ def main():
     parser.add_argument("--source", type=Path, help="read the GeoJSON files from this folder")
     parser.add_argument("--fixture", type=Path, help="write the synthetic test file here and stop")
     parser.add_argument("--output", type=Path, default=Path("Resources/MapData/world.mapdata"))
+    parser.add_argument("--accept-new", action="store_true", help="write a result that differs from the pinned one")
     args = parser.parse_args()
     if args.fixture:
         args.fixture.parent.mkdir(parents=True, exist_ok=True)
@@ -230,6 +248,9 @@ def main():
     for theme, name in FILES.items():
         sources[theme] = json.loads((args.source / name).read_text()) if args.source else download(name)
     data = build(sources)
+    digest = payload_sha256(data)
+    if digest != PAYLOAD_SHA256 and not args.accept_new:
+        sys.exit(f"The data differs from the pinned build ({digest}); check the download, or pass --accept-new")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(data)
     print(args.output, len(data), "bytes")

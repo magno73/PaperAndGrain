@@ -119,6 +119,8 @@ extension BookPDF {
             case captionDoesNotFit
             /// A map page, but no photo the map counts has a location: nothing would print.
             case mapWithoutPlaces
+            /// The bundled map data cannot be read: the map prints places and route without land.
+            case mapDataMissing
             /// A word the spell checker does not know, with a few words around it.
             case possibleMisspelling(word: String, context: String)
             /// The CMYK output profile cannot be used: its copy is missing, changed or not a CMYK output
@@ -146,6 +148,7 @@ extension BookPDF {
                 case let .missingMeasure(measure, _): "missingMeasure." + measure.rawValue
                 case .captionDoesNotFit: "captionDoesNotFit"
                 case .mapWithoutPlaces: "mapWithoutPlaces"
+                case .mapDataMissing: "mapDataMissing"
                 case .possibleMisspelling: "possibleMisspelling"
                 case .colorProfileUnusable: "colorProfileUnusable"
                 case .colorModeNotAccepted: "colorModeNotAccepted"
@@ -175,6 +178,7 @@ extension BookPDF {
                 case .missingMeasure: "ruler"
                 case .captionDoesNotFit: "text.below.photo"
                 case .mapWithoutPlaces: "map"
+                case .mapDataMissing: "map"
                 case .possibleMisspelling: "textformat.abc"
                 case .colorProfileUnusable: "paintpalette"
                 case .colorModeNotAccepted: "drop.halffull"
@@ -303,6 +307,7 @@ extension BookPDF {
                 [place, "“" + word + "”", context.isEmpty ? nil : context]
             case .captionDoesNotFit: [place, excerpt.map { "“" + $0 + "”" }, L10n.string("Caption does not fit", language: language)]
             case .mapWithoutPlaces: [place, L10n.string("No photo in this book has a location", language: language)]
+            case .mapDataMissing: [place, L10n.string("The map data is missing from this copy of the app.", language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")
         }

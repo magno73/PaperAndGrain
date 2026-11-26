@@ -25,7 +25,12 @@ enum BookCLIEditing {
         }
         try mutate(&book, stage)
         book.id = UUID()
-        if Workspace.writerVersion(for: book) > (book.writerVersion ?? 1) { book.writerVersion = Workspace.writerVersion(for: book) }
+        // The version follows the map pages: raised when the patch adds one, back to 1 when it removes the last.
+        // A book that never had a version keeps none unless it needs one.
+        let required = Workspace.writerVersion(for: book)
+        if (book.writerVersion ?? 1) <= Workspace.writerVersion, required > 1 || book.writerVersion != nil {
+            book.writerVersion = required
+        }
         try validatePackage(book, in: stage)
         try BookStorage.writeExisting(book, to: stage)
         guard try BookStorage.read(from: stage) == book else { throw Failure("Output verification failed") }

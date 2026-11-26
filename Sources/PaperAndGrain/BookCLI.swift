@@ -403,6 +403,9 @@ enum BookCLI {
                 }
                 built.photoPlacements = resolved
             }
+            if page.map != nil, page.arrangement?.isMap != true {
+                throw Failure("Page \(index + 1) (pages[\(index)]) has a map; use arrangement \"map\" or \"mapAboveText\"")
+            }
             built.map = page.map == PageMap() ? nil : page.map
             built.layerOrder = try page.layerOrder.map { entries in
                 try entries.map { entry in try layer(entry, on: built, photoID: { ids[$0] }, at: index) }

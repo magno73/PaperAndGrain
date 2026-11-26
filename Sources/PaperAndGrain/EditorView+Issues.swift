@@ -110,7 +110,7 @@ extension EditorView {
             spellingFix(for: word)
         case .invalidDimensions, .missingPhoto, .unreadableLUT, .lowResolution, .textOverflows,
              .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure,
-             .captionDoesNotFit, .colorProfileUnusable, .colorModeNotAccepted, .outOfGamut, .mapWithoutPlaces:
+             .captionDoesNotFit, .colorProfileUnusable, .colorModeNotAccepted, .outOfGamut, .mapWithoutPlaces, .mapDataMissing:
             nil
         }
     }

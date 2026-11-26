@@ -190,6 +190,7 @@ struct MapComposition {
         let settings = page.map ?? PageMap()
         let located = locatedPhotos(book, settings: settings)
         let key = MapCompositionCache.Key(
+            converter: PrintColor.converter.map(ObjectIdentifier.init),
             settings: settings, frame: [frame.minX, frame.minY, frame.width, frame.height], fillsTrim: fillsTrim,
             language: language, template: book.template, captions: book.captionStyle,
             located: located.map { MapCompositionCache.Located(id: $0.photo.id, coordinate: $0.coordinate, name: $0.photo.location?.name) },
@@ -298,6 +299,8 @@ final class MapCompositionCache: @unchecked Sendable {
     }
 
     struct Key: Hashable {
+        /// The CMYK converter of a print export: label colors are baked in its output profile.
+        let converter: ObjectIdentifier?
         let settings: PageMap
         let frame: [CGFloat]
         let fillsTrim: Bool
@@ -350,12 +353,15 @@ final class MapShapes: @unchecked Sendable {
 final class MapShapeCache: @unchecked Sendable {
     static let shared = MapShapeCache()
     private struct Key: Hashable {
+        /// Which loaded copy of the data the shapes were clipped from.
+        let world: UUID
         let region: MapGeometry.Region
         let frame: CGRect
         let borders: Bool
         let reach: CGFloat
 
         func hash(into hasher: inout Hasher) {
+            hasher.combine(world)
             hasher.combine(region)
             hasher.combine(frame.minX); hasher.combine(frame.minY); hasher.combine(frame.width); hasher.combine(frame.height)
             hasher.combine(borders)
@@ -369,7 +375,7 @@ final class MapShapeCache: @unchecked Sendable {
 
     /// `reach` is how far past the frame the geography goes: into the bleed for a map that reaches the trim.
     func shapes(world: MapGeography, region: MapGeometry.Region, frame: CGRect, borders: Bool, reach: CGFloat) -> MapShapes {
-        let key = Key(region: region, frame: frame, borders: borders, reach: reach)
+        let key = Key(world: world.identity, region: region, frame: frame, borders: borders, reach: reach)
         lock.lock()
         if let cached = entries[key] {
             lock.unlock()
@@ -427,8 +433,13 @@ extension EditorialStyle {
     var mapLand: UInt32 { Self.mix(ink, paper, inkShare: 0.10) }
     /// Coast, lake shores and borders: the ink at reduced strength.
     var mapLine: UInt32 { Self.mix(ink, paper, inkShare: 0.42) }
-    /// The route: the template's accent, or its ink when the accent is too close to the paper.
-    var mapRoute: UInt32 { accent }
+    /// The route: the template's accent, or its ink when the accent is too close to the paper to show.
+    var mapRoute: UInt32 {
+        func luminance(_ rgb: UInt32) -> Double {
+            0.2126 * Double((rgb >> 16) & 255) + 0.7152 * Double((rgb >> 8) & 255) + 0.0722 * Double(rgb & 255)
+        }
+        return abs(luminance(accent) - luminance(paper)) < 40 ? ink : accent
+    }
 }
 
 enum MapRenderer {
@@ -440,15 +451,17 @@ enum MapRenderer {
         let area = map.fillsTrim ? map.frame.insetBy(dx: -min(bleed, 30), dy: -min(bleed, 30)) : map.frame
         context.saveGState()
         context.clip(to: area)
-        context.setFillColor(EditorialStyle.color(style.paper))
+        // Areas take the fill color (all four inks in CMYK, like the page's paper); lines, dots and text the
+        // color for strokes and type.
+        context.setFillColor(EditorialStyle.fillColor(style.paper))
         context.fill(area)
         if let shapes = map.geography {
             context.setLineJoin(.round)
             context.addPath(shapes.land)
-            context.setFillColor(EditorialStyle.color(style.mapLand))
+            context.setFillColor(EditorialStyle.fillColor(style.mapLand))
             context.fillPath(using: .evenOdd)
             context.addPath(shapes.lakes)
-            context.setFillColor(EditorialStyle.color(style.paper))
+            context.setFillColor(EditorialStyle.fillColor(style.paper))
             context.fillPath(using: .evenOdd)
             context.setStrokeColor(EditorialStyle.color(style.mapLine))
             context.setLineWidth(0.35)
@@ -478,15 +491,16 @@ enum MapRenderer {
         }
         for place in map.places {
             guard let label = place.label, let frame = place.labelFrame else { continue }
-            // A halo of the land's tint keeps the name readable where the route or a border runs under it.
-            let halo = NSMutableAttributedString(attributedString: label)
-            let whole = NSRange(location: 0, length: halo.length)
-            halo.addAttribute(NSAttributedString.Key(kCTStrokeColorAttributeName as String),
-                              value: EditorialStyle.color(style.mapLand), range: whole)
-            halo.addAttribute(NSAttributedString.Key(kCTStrokeWidthAttributeName as String), value: 24.0, range: whole)
+            // A halo of the land's tint keeps the name readable where the route or a border runs under it. It is
+            // the glyphs' outlines stroked, not a second copy of the text, so the name is in the PDF once.
+            let (outline, size) = glyphOutlines(label, in: frame)
             context.saveGState()
+            context.addPath(outline)
+            context.setStrokeColor(EditorialStyle.fillColor(style.mapLand))
+            context.setLineWidth(size * 0.24)
             context.setLineJoin(.round)
-            EditorialTypesetter.draw(halo, in: frame, context: context)
+            context.setLineCap(.round)
+            context.strokePath()
             context.restoreGState()
             EditorialTypesetter.draw(label, in: frame, context: context)
         }
@@ -496,5 +510,39 @@ enum MapRenderer {
             context.setLineWidth(0.35)
             context.stroke(map.frame.insetBy(dx: 0.175, dy: 0.175))
         }
+    }
+
+    /// The outlines of the glyphs of `text` as `EditorialTypesetter.draw` sets it in `rect` (top-left
+    /// coordinates), and the largest point size, for the halo's width.
+    static func glyphOutlines(_ text: NSAttributedString, in rect: CGRect) -> (CGPath, CGFloat) {
+        let path = CGMutablePath()
+        var size: CGFloat = 0
+        guard text.length > 0, rect.width > 0, rect.height > 0 else { return (path, size) }
+        let setter = CTFramesetterCreateWithAttributedString(text)
+        let frame = CTFramesetterCreateFrame(setter, CFRange(location: 0, length: text.length),
+                                             CGPath(rect: CGRect(origin: .zero, size: rect.size), transform: nil), nil)
+        guard let lines = CTFrameGetLines(frame) as? [CTLine] else { return (path, size) }
+        var origins = [CGPoint](repeating: .zero, count: lines.count)
+        CTFrameGetLineOrigins(frame, CFRange(location: 0, length: lines.count), &origins)
+        for (line, origin) in zip(lines, origins) {
+            for run in (CTLineGetGlyphRuns(line) as? [CTRun]) ?? [] {
+                let attributes = CTRunGetAttributes(run) as NSDictionary
+                guard let value = attributes[kCTFontAttributeName as String] else { continue }
+                let font = value as! CTFont
+                size = max(size, CTFontGetSize(font))
+                let count = CTRunGetGlyphCount(run)
+                var glyphs = [CGGlyph](repeating: 0, count: count)
+                var positions = [CGPoint](repeating: .zero, count: count)
+                CTRunGetGlyphs(run, CFRange(location: 0, length: count), &glyphs)
+                CTRunGetPositions(run, CFRange(location: 0, length: count), &positions)
+                for (glyph, position) in zip(glyphs, positions) {
+                    // Core Text's frame is bottom-up; the page is top-down, as in `EditorialTypesetter.draw`.
+                    var transform = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: rect.minX + origin.x + position.x,
+                                                      ty: rect.maxY - origin.y - position.y)
+                    if let outline = CTFontCreatePathForGlyph(font, glyph, &transform) { path.addPath(outline) }
+                }
+            }
+        }
+        return (path, size)
     }
 }

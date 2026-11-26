@@ -89,25 +89,14 @@ extension EditorView {
                 .help(tr("Names next to the places, in the book's caption style"))
             Toggle(tr("Country borders"), isOn: mapBinding(leaf.id, \.countryBorders, name: tr("Country Borders")) { $0.showsBorders = $1 ? nil : false })
                 .help(tr("Borders as Natural Earth draws them; disputed ones are dashed"))
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(tr("Zoom")).font(.system(size: 11))
-                    Spacer()
-                    Text((leaf.map?.resolvedZoom ?? 1).formatted(.percent.precision(.fractionLength(0))))
-                        .font(.system(size: 10).monospacedDigit()).foregroundStyle(.secondary)
-                }
-                // Quantized in the setter: a stepped Slider draws a tick per step on macOS.
-                Slider(value: mapBinding(leaf.id, \.resolvedZoom, name: tr("Map Zoom")) {
-                    let value = PhotoAdjustmentsPanel.quantized($1, step: 0.05, in: PageMap.zoomRange)
-                    $0.zoom = abs(value - 1) < 0.001 ? nil : value
-                }, in: 0.5...4)
-                .accessibilityLabel(tr("Zoom"))
-                .help(tr("100% fits every place on the map"))
+            MapZoomSlider(zoom: leaf.map?.resolvedZoom ?? 1, language: language) { value in
+                changeMap(on: leaf.id, name: tr("Map Zoom")) { $0.zoom = abs(value - 1) < 0.001 ? nil : value }
             }
             if let map, !map.isEmpty {
                 caption(tr("Places"))
                 ForEach(map.places) { place in
                     MapPlaceRow(name: leaf.map?.label(place.key)?.name ?? "", suggested: place.suggestedName,
+                                shownName: place.name ?? place.suggestedName,
                                 shown: leaf.map?.label(place.key)?.hidden != true, language: language,
                                 rename: { changeMapLabel(place.key, on: leaf.id, name: $0) },
                                 show: { changeMapLabel(place.key, on: leaf.id, hidden: !$0) })
@@ -126,6 +115,8 @@ extension EditorView {
 struct MapPlaceRow: View, Localizing {
     let name: String
     let suggested: String?
+    /// What VoiceOver calls the place: its name on the map, or the suggested one.
+    var shownName: String? = nil
     let shown: Bool
     let language: String
     let rename: (String) -> Void
@@ -141,13 +132,13 @@ struct MapPlaceRow: View, Localizing {
                 .focused($editing)
                 .onSubmit(commit)
                 .onChange(of: editing) { _, now in if !now { commit() } }
-                .accessibilityLabel(tr("Place name"))
+                .accessibilityLabel(tr("Place name") + ": " + (shownName ?? tr("No name")))
                 .help(tr("A name for this place; empty uses the suggested one"))
             Toggle(tr("Show"), isOn: Binding(get: { shown }, set: { show($0) }))
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .labelsHidden()
-                .accessibilityLabel(tr("Show the name"))
+                .accessibilityLabel(tr("Show the name") + ": " + (shownName ?? tr("No name")))
                 .help(tr("Show or hide this name"))
         }
     }
@@ -156,5 +147,54 @@ struct MapPlaceRow: View, Localizing {
         guard let draft else { return }
         self.draft = nil
         if draft != name { rename(draft) }
+    }
+}
+
+/// The map's zoom from 25 % to 800 %, on a doubling scale so 100 % sits in the useful middle. Dragging shows
+/// the value; releasing makes one undo step.
+struct MapZoomSlider: View, Localizing {
+    let zoom: Double
+    let language: String
+    let commit: (Double) -> Void
+
+    @State private var draft: Double?
+
+    private var shown: Double { draft ?? zoom }
+    private var percent: String { (shown).formatted(.percent.precision(.fractionLength(0)).locale(Locale(identifier: language))) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(tr("Zoom")).font(.system(size: 11))
+                Spacer()
+                Text(percent).font(.system(size: 10).monospacedDigit()).foregroundStyle(.secondary)
+            }
+            .accessibilityHidden(true)
+            // Quantized in the setter: a stepped Slider draws a tick per step on macOS.
+            Slider(value: Binding(get: { log2(shown) }, set: { draft = Self.zoom(atStep: $0) }),
+                   in: log2(PageMap.zoomRange.lowerBound)...log2(PageMap.zoomRange.upperBound)) { editing in
+                if !editing, let value = draft {
+                    draft = nil
+                    if value != zoom { commit(value) }
+                }
+            }
+            .accessibilityLabel(tr("Zoom"))
+            .accessibilityValue(percent)
+            // VoiceOver adjusts in steps that commit at once.
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment: commit(Self.zoom(atStep: log2(zoom) + 0.25))
+                case .decrement: commit(Self.zoom(atStep: log2(zoom) - 0.25))
+                @unknown default: break
+                }
+            }
+            .help(tr("100% fits every place on the map"))
+        }
+    }
+
+    /// The zoom for a slider position, rounded to 5 % so 100 % is easy to hit.
+    static func zoom(atStep step: Double) -> Double {
+        let value = pow(2, step)
+        return min(PageMap.zoomRange.upperBound, max(PageMap.zoomRange.lowerBound, (value * 20).rounded() / 20))
     }
 }

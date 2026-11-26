@@ -46,8 +46,48 @@ final class MapTests: XCTestCase {
         XCTAssertEqual(world.places[2].name(language: "it"), "TEST North", "falls back to the name")
         XCTAssertEqual(world.places[0].coordinate.latitude, -22.57, accuracy: 0.0001)
         XCTAssertEqual(world.land[0].minLongitude, 11.7, accuracy: 0.0001)
-        XCTAssertThrowsError(try MapGeography.decode(compressed: Data("not a map".utf8)))
+        XCTAssertThrowsError(try MapGeography.decode(file: Data("not a map".utf8)))
         XCTAssertNil(MapDataStore(url: nil).geography())
+    }
+
+    /// Damaged data is refused, never a crash: the frame's CRC catches changed bytes, and the decoder checks
+    /// every count, coordinate and length of a payload that passes it.
+    func testDamagedMapDataIsRefused() throws {
+        let files = [try Data(contentsOf: Self.fixture), try Data(contentsOf: try XCTUnwrap(MapDataStore.bundledURL))]
+        var random = SystemRandomNumberGenerator()
+        for file in files {
+            XCTAssertNoThrow(try MapGeography.decode(file: file))
+            for _ in 0..<200 {
+                var bytes = [UInt8](file)
+                for _ in 0..<Int.random(in: 1...3, using: &random) {
+                    let index = Int.random(in: 0..<bytes.count, using: &random)
+                    bytes[index] ^= UInt8.random(in: 1...255, using: &random)
+                }
+                XCTAssertThrowsError(try MapGeography.decode(file: Data(bytes)))
+            }
+            XCTAssertThrowsError(try MapGeography.decode(file: file.prefix(file.count - 1)))
+        }
+        // Corruptions behind a valid frame, straight into the decoder.
+        let payload = try (Data(try Data(contentsOf: Self.fixture)[12...]) as NSData).decompressed(using: .zlib) as Data
+        XCTAssertNoThrow(try MapGeography.decode(payload: payload))
+        for _ in 0..<3_000 {
+            var bytes = [UInt8](payload)
+            for _ in 0..<Int.random(in: 1...3, using: &random) {
+                let index = Int.random(in: 6..<bytes.count, using: &random)
+                bytes[index] = UInt8.random(in: 0...255, using: &random)
+            }
+            _ = try? MapGeography.decode(payload: Data(bytes))
+        }
+        // A delta that would overflow, and a point off the globe.
+        var overflow = Array("PGMAP".utf8) + [1]
+        func u32(_ value: UInt32) -> [UInt8] { (0..<4).map { UInt8((value >> (8 * $0)) & 0xFF) } }
+        overflow += u32(1) + u32(2) + u32(0) + u32(0) + [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00]
+        overflow += u32(0) + u32(0) + u32(0)
+        XCTAssertThrowsError(try MapGeography.decode(payload: Data(overflow)))
+        var offGlobe = Array("PGMAP".utf8) + [1] + u32(1) + u32(1) + u32(2_000_000) + u32(0) + u32(0) + u32(0) + u32(0)
+        XCTAssertThrowsError(try MapGeography.decode(payload: Data(offGlobe))) { XCTAssertEqual($0 as? MapGeography.FormatError, .outOfRange) }
+        offGlobe = Array("PGMAP".utf8) + [1] + u32(UInt32.max)
+        XCTAssertThrowsError(try MapGeography.decode(payload: Data(offGlobe)))
     }
 
     // MARK: Geometry
@@ -125,7 +165,9 @@ final class MapTests: XCTestCase {
         for (index, label) in placed.enumerated() {
             XCTAssertTrue(frame.contains(label))
             for other in placed.dropFirst(index + 1) { XCTAssertFalse(label.intersects(other)) }
-            for dot in dots { XCTAssertFalse(label.contains(dot)) }
+            for dot in dots {
+                XCTAssertFalse(label.intersects(CGRect(x: dot.x - 2.4, y: dot.y - 2.4, width: 4.8, height: 4.8)))
+            }
         }
     }
 
@@ -294,11 +336,86 @@ final class MapTests: XCTestCase {
         let pdf = try XCTUnwrap(PDFDocument(url: pdfURL))
         let text = try XCTUnwrap(pdf.page(at: 0)?.string)
         XCTAssertTrue(text.contains("Windhoek") && text.contains("Sossusvlei"))
+        // The halo is drawn from glyph outlines: each name is in the text once.
+        XCTAssertEqual(text.components(separatedBy: "Windhoek").count - 1, 1)
+        XCTAssertEqual(text.components(separatedBy: "Sossusvlei").count - 1, 1)
         let size = try XCTUnwrap(try FileManager.default.attributesOfItem(atPath: pdfURL.path)[.size] as? Int)
         XCTAssertLessThan(size, 300_000)
         XCTAssertFalse(try Data(contentsOf: pdfURL).range(of: Data("/Subtype /Image".utf8)) != nil, "no image on a map page")
         let bad = root.appendingPathComponent("bad.json")
         try Data(#"{"version":1,"title":"M","assets":[],"pages":[{"arrangement":"map","map":{"zoom":20}}]}"#.utf8).write(to: bad)
         XCTAssertThrowsError(try BookCLI.execute(["build", bad.path, root.appendingPathComponent("B.papergrain").path]))
+    }
+
+    func testAMapPagePrintsInCMYKAfterTheEditorComposedIt() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        var book = namibia()
+        book.template = .nocturne
+        book.pages = [book.pages[1]]
+        book.pages[0].map = PageMap(photos: .all)
+        book.printSettings = PrintSettings()
+        // The editor composes the page first, without a print converter.
+        XCTAssertFalse(PageComposition(page: book.pages[0], book: book).map?.places.isEmpty ?? true)
+        let profile = URL(fileURLWithPath: "/System/Library/ColorSync/Profiles/Generic CMYK Profile.icc")
+        let converter = try PrintColor.converter(for: Data(contentsOf: profile))
+        let output = root.appendingPathComponent("Press")
+        try BookPDF.writePrint(book, directory: root, to: output, color: .cmyk(converter))
+        let pdf = output.appendingPathComponent("Interior.pdf")
+        XCTAssertFalse(String(decoding: try Data(contentsOf: pdf), as: UTF8.self).contains("DeviceRGB"))
+        let document = try XCTUnwrap(CGPDFDocument(pdf as CFURL))
+        for index in 1...document.numberOfPages {
+            let page = try XCTUnwrap(document.page(at: index))
+            final class Recorder { var operands = [[Double]]() }
+            for name in ["sc", "scn", "rg", "RG", "SC", "SCN"] {
+                let recorder = Recorder()
+                let table = CGPDFOperatorTableCreate()!
+                CGPDFOperatorTableSetCallback(table, name) { scanner, info in
+                    guard let info else { return }
+                    var values = [Double](), number: CGPDFReal = 0
+                    while CGPDFScannerPopNumber(scanner, &number) { values.append(Double(number)) }
+                    Unmanaged<Recorder>.fromOpaque(info).takeUnretainedValue().operands.append(values)
+                }
+                let stream = CGPDFContentStreamCreateWithPage(page)
+                let scanner = CGPDFScannerCreate(stream, table, Unmanaged.passUnretained(recorder).toOpaque())
+                CGPDFScannerScan(scanner)
+                CGPDFScannerRelease(scanner)
+                CGPDFContentStreamRelease(stream)
+                CGPDFOperatorTableRelease(table)
+                for operands in recorder.operands {
+                    XCTAssertNotEqual(operands.count, 3, "page \(index): an RGB color with \(name)")
+                }
+                if name == "rg" || name == "RG" { XCTAssertTrue(recorder.operands.isEmpty) }
+            }
+        }
+        // And the canvas afterwards still gets RGB colors, not the print's.
+        let after = try XCTUnwrap(PageComposition(page: book.pages[0], book: book).map?.places.first?.label)
+        let color = after.attribute(NSAttributedString.Key(kCTForegroundColorAttributeName as String), at: 0, effectiveRange: nil)
+        XCTAssertEqual((color as! CGColor).numberOfComponents, 4, "sRGB: three components and alpha")
+        XCTAssertNotEqual((color as! CGColor).colorSpace?.model, .cmyk)
+    }
+
+    func testTheCommandLineKeepsMapsAndVersionsConsistent() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let spec = root.appendingPathComponent("spec.json")
+        try Data(#"{"version":1,"title":"T","assets":[],"pages":[{"arrangement":"textOnly","layout":"text","map":{}}]}"#.utf8).write(to: spec)
+        XCTAssertThrowsError(try BookCLI.execute(["build", spec.path, root.appendingPathComponent("A.papergrain").path]))
+        try Data(#"{"version":1,"title":"T","assets":[],"pages":[{"arrangement":"map"},{"layout":"gallery"}]}"#.utf8).write(to: spec)
+        let map = root.appendingPathComponent("Map.papergrain")
+        _ = try BookCLI.execute(["build", spec.path, map.path])
+        XCTAssertEqual(try BookStorage.read(from: map).writerVersion, 2)
+        // Removing the last map page brings the version back to 1.
+        let patch = root.appendingPathComponent("patch.json")
+        try Data(#"[{"op":"remove","path":"/pages/0"}]"#.utf8).write(to: patch)
+        let plain = root.appendingPathComponent("Plain.papergrain")
+        XCTAssertEqual(try BookCLIEditing.patch(source: map, patchURL: patch, output: plain).writerVersion, 1)
+        XCTAssertEqual(try BookStorage.read(from: plain).writerVersion, 1)
+        // The zoom slider's doubling scale lands on round values inside the model's range.
+        XCTAssertEqual(MapZoomSlider.zoom(atStep: 0), 1)
+        XCTAssertEqual(MapZoomSlider.zoom(atStep: 3.2), PageMap.zoomRange.upperBound)
+        XCTAssertEqual(MapZoomSlider.zoom(atStep: -3), PageMap.zoomRange.lowerBound)
     }
 }
