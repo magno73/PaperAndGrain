@@ -19,6 +19,10 @@ final class IssueMonitor {
     @ObservationIgnored private let check: Check
     @ObservationIgnored private let extra: Extra?
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// Fills the gamut estimates a run lacked, in the background; edits do not cancel it.
+    @ObservationIgnored let estimator = GamutEstimator()
+    /// The inputs of the latest run, to check again when estimates arrive.
+    @ObservationIgnored private var last: (book: Book, directory: URL?, profile: BookPDF.Profile)?
 
     /// `sleep` and `check` are injected so tests can control the clock and count the runs.
     init(delay: Duration = .milliseconds(600),
@@ -34,6 +38,7 @@ final class IssueMonitor {
     /// Runs the check after the quiet period, or at once for the first look at a book.
     func bookChanged(_ book: Book, directory: URL?, profile: BookPDF.Profile = .print, immediately: Bool = false) {
         task?.cancel()
+        last = (book, directory, profile)
         let delay = immediately ? nil : delay
         let sleep = sleep
         let check = check
@@ -53,7 +58,20 @@ final class IssueMonitor {
                 if Task.isCancelled { return }
             }
             self?.report = merged
+            // Photos without a cached gamut estimate are measured in the background; the list is checked
+            // again as results arrive, and the other issues are already published.
+            if !found.pendingGamut.isEmpty, let estimator = self?.estimator {
+                await estimator.enqueue(found.pendingGamut) { [weak self] in
+                    await self?.recheck()
+                }
+            }
         }
+    }
+
+    /// Checks the latest book again at once, when background estimates have arrived.
+    func recheck() {
+        guard let last else { return }
+        bookChanged(last.book, directory: last.directory, profile: last.profile, immediately: true)
     }
 
     /// Waits for the run in progress; for tests.
@@ -64,5 +82,8 @@ final class IssueMonitor {
     func stop() {
         task?.cancel()
         task = nil
+        last = nil
+        let estimator = estimator
+        Task { await estimator.cancel() }
     }
 }

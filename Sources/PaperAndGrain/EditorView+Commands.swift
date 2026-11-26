@@ -168,7 +168,7 @@ extension EditorView {
         commands.gutterGuide = gutterGuide
         commands.printGuides = printGuides
         commands.proofColors = proofColors
-        commands.canProofColors = proofProfile != nil
+        commands.canProofColors = proofProfileUsable
         commands.canBringForward = canMoveSelectionLayers(.forward)
         commands.canSendBackward = canMoveSelectionLayers(.backward)
         commands.moveLayer = moveSelectionLayers

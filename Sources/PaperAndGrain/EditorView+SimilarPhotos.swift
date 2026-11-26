@@ -149,7 +149,7 @@ extension EditorView {
                 ForEach(visible, id: \.self) { id in
                     if let photo = indexedPhoto(id) {
                         VStack(alignment: .leading, spacing: 6) {
-                            preview(photo, small: false, fills: false)
+                            preview(photo, small: false, fills: false, proof: false)
                                 .frame(width: 230, height: 190)
                                 .background(pine.opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 6))

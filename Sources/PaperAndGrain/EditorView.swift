@@ -577,8 +577,9 @@ struct EditorView: View, Localizing {
         .animation(.snappy(duration: 0.22), value: showsTray)
     }
 
+    /// `proof: false` keeps sRGB where the soft proof does not belong, such as the Compare sheet.
     func preview(_ photo: BookPhoto, small: Bool = false, crop: PhotoCrop = PhotoCrop(),
-                         fills: Bool = true, settings: FilmSettings? = nil) -> some View {
+                         fills: Bool = true, settings: FilmSettings? = nil, proof: Bool = true) -> some View {
         let url = BookStorage.assetURL(filename: photo.filename, in: directory)
         let original = settings == nil && (compareOriginal || comparePhotoOriginal == photo.id)
         let look = settings ?? (original ? FilmSettings() : book.effectiveFilm(for: photo))
@@ -592,7 +593,9 @@ struct EditorView: View, Localizing {
                                            adjustments: original ? nil : corrections,
                                            isFilmSwatch: settings != nil)
         // The soft proof is for the canvas only: thumbnails and film swatches stay sRGB.
-        if !small, settings == nil, proofColors { request.proofSHA = proofProfile?.sha256 }
+        if proof, !small, settings == nil, proofColors, let reference = proofProfile {
+            request.proof = ProofProfile(reference: reference, directory: directory)
+        }
         return EditorPreview(request: request, crop: crop, fills: fills,
                              filmEdit: !small && settings == nil && !original ? filmEdit : nil,
                              photoID: photo.id, inheritsBookFilm: photo.film == nil,
@@ -917,7 +920,7 @@ struct EditorPreview<Placeholder: View>: View {
         // Slider drafts keep the committed preset and its LUT. Smaller renders use a separate queue.
         var live = EditorPreviewRequest(url: request.url, limit: 640, look: look, lutURL: request.lutURL,
                                         adjustments: request.adjustments, isInteractive: true)
-        live.proofSHA = request.proofSHA
+        live.proof = request.proof
         return live
     }
 
@@ -932,7 +935,7 @@ struct EditorPreview<Placeholder: View>: View {
         var sized = EditorPreviewRequest(url: request.url, limit: step, look: request.look, lutURL: request.lutURL,
                                          adjustments: request.adjustments)
         sized.isFilmSwatch = request.isFilmSwatch
-        sized.proofSHA = request.proofSHA
+        sized.proof = request.proof
         return sized
     }
 

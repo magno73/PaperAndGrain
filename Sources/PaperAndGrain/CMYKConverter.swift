@@ -222,8 +222,10 @@ final class CMYKConverter: @unchecked Sendable {
     /// compensation lightens the deepest shadows of every photo on purpose.
     static let gamutChromaLimit = 8.0
 
-    /// The share of pixels (0 to 1) whose color the profile cannot print: the soft proof moves them by
-    /// more than `gamutChromaLimit` in a*b*. Measured on the image as given; pass a small copy.
+    /// The share of pixels (0 to 1) whose color the profile cannot print: the soft proof lies more than
+    /// `gamutChromaLimit` in a*b* from the original after black point compensation, which the print applies
+    /// on purpose (it also lowers the chroma of dark tones, so a navy shadow is not "out of gamut").
+    /// Measured on the image as given; pass a small copy.
     func outOfGamutShare(_ image: CGImage) -> Double {
         guard let proofed = proof(image),
               let original = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
@@ -241,7 +243,8 @@ final class CMYKConverter: @unchecked Sendable {
             for y in 0..<image.height {
                 for x in 0..<image.width {
                     let i = (y * image.width + x) * 4, j = y * rowBytes + x * 4
-                    let a = Self.fastLab(before[i], before[i + 1], before[i + 2])
+                    let a = Self.lab(fromXYZ: Self.compensate(Self.fastXYZ(before[i], before[i + 1], before[i + 2]),
+                                                              black: blackXYZ))
                     let b = Self.fastLab(after[j], after[j + 1], after[j + 2])
                     if hypot(a.1 - b.1, a.2 - b.2) > Self.gamutChromaLimit { outside += 1 }
                 }
@@ -252,6 +255,11 @@ final class CMYKConverter: @unchecked Sendable {
 
     /// CIELAB (D50) of 8-bit sRGB by the formula, for measuring many pixels quickly.
     private static func fastLab(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> (Double, Double, Double) {
+        lab(fromXYZ: fastXYZ(r, g, b))
+    }
+
+    /// XYZ (D50, Bradford) of 8-bit sRGB by the formula.
+    private static func fastXYZ(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> (Double, Double, Double) {
         func linear(_ v: UInt8) -> Double {
             let c = Double(v) / 255
             return c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
@@ -260,7 +268,7 @@ final class CMYKConverter: @unchecked Sendable {
         let x = 0.4360747 * lr + 0.3850649 * lg + 0.1430804 * lb
         let y = 0.2225045 * lr + 0.7168786 * lg + 0.0606169 * lb
         let z = 0.0139322 * lr + 0.0971045 * lg + 0.7141733 * lb
-        return lab(fromXYZ: (x, y, z))
+        return (x, y, z)
     }
 
     /// Applies a table with 3 inputs and `channels` outputs (3 or 4) to an image, in strips.

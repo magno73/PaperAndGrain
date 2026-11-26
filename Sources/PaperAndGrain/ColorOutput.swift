@@ -44,8 +44,8 @@ enum PrintColor {
     }
 
     /// One converter per profile, kept for the session: building its table takes a few milliseconds.
-    static func converter(for data: Data) throws -> CMYKConverter {
-        let key = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    static func converter(for data: Data, sha256: String? = nil) throws -> CMYKConverter {
+        let key = sha256 ?? SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
         cacheLock.lock()
         defer { cacheLock.unlock() }
         if let known = cache[key] { return known }
@@ -113,13 +113,44 @@ extension BookStorage {
         return reference
     }
 
-    /// The converter for the book's CMYK profile, after checking that the copy is there and unchanged.
+    private struct CheckedFile: Hashable {
+        let path: String
+        let size: Int
+        let modified: Date
+        let sha256: String
+    }
+
+    private static let checkedLock = NSLock()
+    nonisolated(unsafe) private static var checked = Set<CheckedFile>()
+
+    /// The converter for the book's CMYK profile, after checking that the copy is there and unchanged. A file
+    /// already checked with the same size and date is not hashed again.
     static func converter(for reference: ICCProfileReference, in directory: URL) throws -> CMYKConverter {
         let url = profileURL(filename: reference.filename, in: directory)
+        if let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]),
+           let size = values.fileSize, let modified = values.contentModificationDate,
+           let converter = PrintColor.cachedConverter(sha256: reference.sha256) {
+            let file = CheckedFile(path: url.path, size: size, modified: modified, sha256: reference.sha256)
+            checkedLock.lock()
+            let known = checked.contains(file)
+            checkedLock.unlock()
+            if known { return converter }
+        }
+        let converter = try loadConverter(for: reference, at: url)
+        if let values = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]),
+           let size = values.fileSize, let modified = values.contentModificationDate {
+            checkedLock.lock()
+            checked.insert(CheckedFile(path: url.path, size: size, modified: modified, sha256: reference.sha256))
+            checkedLock.unlock()
+        }
+        return converter
+    }
+
+    private static func loadConverter(for reference: ICCProfileReference, at url: URL) throws -> CMYKConverter {
         guard let data = try? Data(contentsOf: url) else { throw ProfileError.missing(reference.name) }
         guard let info = ICCProfileInfo(data), info.sha256 == reference.sha256 else { throw ProfileError.changed(reference.name) }
         guard info.isCMYKOutput else { throw ProfileError.notCMYKOutput(reference.name) }
-        return try PrintColor.converter(for: data)
+        return try PrintColor.converter(for: data, sha256: info.sha256)
     }
 }
 

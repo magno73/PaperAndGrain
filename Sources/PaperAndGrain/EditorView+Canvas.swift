@@ -130,11 +130,25 @@ extension EditorView {
             proofColors = false
             return
         }
-        guard let reference = proofProfile, (try? BookStorage.converter(for: reference, in: directory)) != nil else {
-            showCanvasNotice(tr("The book’s color profile is missing; choose it again in Book & Print."))
-            return
+        guard let reference = proofProfile else { return }
+        let directory = directory
+        Task {
+            // Reading and hashing the profile happens off the main thread.
+            let usable = await Task.detached(priority: .userInitiated) {
+                (try? BookStorage.converter(for: reference, in: directory)) != nil
+            }.value
+            guard proofProfile == reference else { return }
+            if usable {
+                proofColors = true
+            } else {
+                showCanvasNotice(tr("The book’s color profile is missing; choose it again in Book & Print."))
+            }
         }
-        proofColors = true
+    }
+
+    /// False while the Issues list reports the CMYK profile as missing or damaged.
+    var proofProfileUsable: Bool {
+        proofProfile != nil && issues.report?.blockers.contains { $0.problem.kind == "colorProfileUnusable" } != true
     }
 
     /// Turns the guides on or off. The first time in a session a short legend explains the two lines.
@@ -244,8 +258,12 @@ extension EditorView {
                 PrintGuidesOverlay(pages: printGuidePages(spread, blankLeft: blankLeft, scale: scale), scale: scale)
             }
         }
+        .onChange(of: proofProfile) { _, profile in
+            // A book switched to sRGB, or to another profile, leaves the proof.
+            if profile == nil { proofColors = false }
+        }
         .overlay(alignment: .topLeading) {
-            if proofColors, let name = proofProfile?.name {
+            if proofColors, proofProfileUsable, let name = proofProfile?.name {
                 Label(tr("Proof: %@", name), systemImage: "eye")
                     .font(.caption2)
                     .padding(.horizontal, 6)

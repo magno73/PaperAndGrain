@@ -8,6 +8,9 @@ extension BookPDF {
     struct Preflight: Equatable, Sendable {
         var blockers: [PreflightIssue] = []
         var warnings: [PreflightIssue] = []
+        /// Gamut estimates the check needed but found no cached result for; `GamutEstimator` computes them
+        /// and the check runs again.
+        var pendingGamut: [GamutEstimate.Request] = []
 
         var isClean: Bool { blockers.isEmpty && warnings.isEmpty }
 

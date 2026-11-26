@@ -272,14 +272,23 @@ enum BookPDF {
             }
         }
         // CMYK books: how much of each photo the profile cannot print (estimated on a small copy, cached).
-        let gamut: CMYKConverter? = if settings != nil, let directory, let output = book.printSettings?.colorOutput,
-                                       output.mode == .cmyk, let reference = output.profile {
-            try? BookStorage.converter(for: reference, in: directory)
+        // The CMYK profile, loaded once per run (its file is hashed only when it changes on disk).
+        let cmykReference: ICCProfileReference? = settings != nil && book.printSettings?.colorOutput?.mode == .cmyk
+            ? book.printSettings?.colorOutput?.profile : nil
+        let gamut: CMYKConverter? = if let cmykReference, let directory {
+            try? BookStorage.converter(for: cmykReference, in: directory)
         } else { nil }
-        func checkGamut(_ photo: BookPhoto, at place: Place) {
-            guard let gamut, let directory, !Task.isCancelled,
-                  let share = GamutEstimate.share(of: photo, book: book, directory: directory, converter: gamut),
-                  share >= GamutEstimate.warningShare else { return }
+        var pending = Set<GamutEstimate.Request>()
+        /// Reads the cached estimate of the part of the photo shown; a missing one is left to `GamutEstimator`.
+        func checkGamut(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, at place: Place) {
+            guard let gamut, let directory else { return }
+            let request = GamutEstimate.Request(photo: photo, book: book, directory: directory, frame: frame, fills: fills,
+                                                crop: crop, profileSHA: gamut.info.sha256)
+            guard let share = GamutEstimate.cachedShare(request) else {
+                if pending.insert(request).inserted { report.pendingGamut.append(request) }
+                return
+            }
+            guard share >= GamutEstimate.warningShare else { return }
             report.warnings.append(place.issue(.outOfGamut(photo: photo.name, percent: Int((share * 100).rounded()))))
         }
         func checkResolution(_ photo: BookPhoto, frame: CGRect, fills: Bool, crop: PhotoCrop, at place: Place) {
@@ -295,9 +304,7 @@ enum BookPDF {
         let slots = leaves(book.pages, settings: settings, imposition: plan?.imposition(for: book) ?? Imposition())
         if settings != nil, let output = book.printSettings?.colorOutput, output.mode == .cmyk {
             let name = output.profile?.name ?? "CMYK"
-            let usable: Bool = if let reference = output.profile {
-                directory.map { (try? BookStorage.converter(for: reference, in: $0)) != nil } ?? true
-            } else { false }
+            let usable: Bool = output.profile != nil && (directory == nil || gamut != nil)
             if !usable { report.blockers.append(PreflightIssue(problem: .colorProfileUnusable(name))) }
         }
         if let plan {
@@ -333,7 +340,7 @@ enum BookPDF {
                 placed[slot.photo.id, default: 0] += 1
                 checkFiles(slot.photo, at: place)
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
-                checkGamut(slot.photo, at: place)
+                checkGamut(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
             for caption in composition.captions where !caption.fits {
                 var place = at
@@ -426,7 +433,7 @@ enum BookPDF {
                 if let photo = book.photo(id) {
                     checkFiles(photo, at: place)
                     checkResolution(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, at: place)
-                    checkGamut(photo, at: place)
+                    checkGamut(photo, frame: face.photoFrame, fills: face.fills, crop: face.photoCrop, at: place)
                 } else {
                     report.blockers.append(place.issue(.missingPhoto))
                 }

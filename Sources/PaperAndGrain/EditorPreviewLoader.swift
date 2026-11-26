@@ -9,8 +9,14 @@ struct EditorPreviewRequest: Hashable, Sendable {
     let adjustments: PhotoAdjustments?
     var isFilmSwatch = false
     var isInteractive = false
-    /// The SHA-256 of the CMYK profile to soft-proof with (**View › Proof Colors**); nil shows sRGB.
-    var proofSHA: String? = nil
+    /// The CMYK profile to soft-proof with (**View › Proof Colors**); nil shows sRGB.
+    var proof: ProofProfile? = nil
+}
+
+/// The book's CMYK profile for a proofed preview: its hash and the copy in the package.
+struct ProofProfile: Hashable, Sendable {
+    let reference: ICCProfileReference
+    let directory: URL
 }
 
 actor EditorPreviewLoader {
@@ -54,9 +60,11 @@ actor EditorPreviewLoader {
     private static let shared = EditorPreviewLoader { request in
         let image = FilmRenderer.image(from: request.url, maxPixelSize: request.limit, settings: request.look,
                                        lutURL: request.lutURL, adjustments: request.adjustments)
-        guard let image, let sha = request.proofSHA, let converter = PrintColor.cachedConverter(sha256: sha) else { return image }
+        guard let image, let proof = request.proof else { return image }
         // The soft proof: converted to the output profile and back, so the screen shows the print's colors.
-        return converter.proof(image) ?? image
+        // Without a usable profile nothing is returned, so no sRGB image is ever cached under a proof key.
+        guard let converter = try? BookStorage.converter(for: proof.reference, in: proof.directory) else { return nil }
+        return converter.proof(image)
     }
 
     init(render: @escaping @Sendable (EditorPreviewRequest) -> CGImage?) {
