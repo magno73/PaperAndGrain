@@ -87,7 +87,7 @@ The eleven features of this version, grouped by feature. Books saved by 0.10 ope
 - An odd page count is padded with blank pages to the product's step; glued endpapers are printed blank. Page-count warnings give both the printer's count and the book's pages.
 - With a print service, **Print Guides** and the safe-margin warning follow the product's wider margin along the binding.
 - A print-service file that cannot be read is skipped and named in **Book & Print**; the others stay available.
-- Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
+- Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same file as before, except that a book with an odd page count now gets a blank page at the end to reach an even count.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 - Blurb: ImageWrap hardcover (five formats, four papers) and softcover (three formats). CMYK, not certified PDF/X-3:2002. The Standard Landscape spine is tabled; the other spines and cover panels are typed from Blurb's calculator.
 - Saal Digital: the hardcover photo book in five sizes, for the default cover and paper; one PDF page per double page, spine, fold-over and cover width from Saal's tables.

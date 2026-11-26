@@ -905,6 +905,24 @@
         }
       }
     },
+    "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on photos, text boxes and stories; with a text box or the story selected, ⌘D duplicates it instead of the page.": {
+      "comment": "Help: the Lay out pages topic, about Duplicate Page and the clipboard.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on photos, text boxes and stories; with a text box or the story selected, ⌘D duplicates it instead of the page."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Pagina › Duplica pagina** (⌘D) o il menu contestuale delle Pagine mette una copia della pagina subito dopo. Taglia, copia e incolla agiscono su foto, box di testo e racconti; con un box di testo o il racconto selezionato, ⌘D duplica quello invece della pagina."
+          }
+        }
+      }
+    },
     "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Blurb, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering.": {
       "comment": "Help, Print topic.",
       "extractionState": "manual",
@@ -3174,7 +3192,7 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Controlla l’ortografia nell’elenco dei problemi"
+            "value": "Controlla l’ortografia nell’elenco delle segnalazioni"
           }
         }
       }
@@ -9489,6 +9507,23 @@
         }
       }
     },
+    "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto senza file mostrano un segnaposto grigio: **Segnalazioni** le elenca e **Ricollega…** (o **Ricollega tutte da una cartella…**) le riporta a un file."
+          }
+        }
+      }
+    },
     "Place": {
       "extractionState": "manual",
       "localizations": {
@@ -12212,7 +12247,7 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il testo è controllato mentre scrivi, in italiano o in inglese: una sottolineatura rossa segnala un possibile errore e **Modifica › Ortografia e grammatica** ha le opzioni del sistema. **Problemi** elenca anche le possibili parole errate; **Ignora in questo libro** o **Impara parola** su una riga la fa sparire. In **Impostazioni** si può disattivare l’elenco."
+            "value": "Il testo è controllato mentre scrivi, in italiano o in inglese: una sottolineatura rossa segnala un possibile errore e **Modifica › Ortografia e grammatica** ha le opzioni del sistema. **Segnalazioni** elenca anche le possibili parole errate; **Ignora in questo libro** o **Impara parola** su una riga la fa sparire. In **Impostazioni** si può disattivare l’elenco."
           }
         }
       }
@@ -13938,20 +13973,20 @@
         }
       }
     },
-    "With objects selected, **Edit › Copy**, **Cut**, **Paste** and **Duplicate** (⌘D) work on them; text copied elsewhere pastes as a text box.": {
+    "With objects selected, **Edit › Copy**, **Cut** and **Paste** work on them; **Edit › Duplicate** (⌘D) copies selected text boxes and the story on the same page. Text copied elsewhere pastes as a text box.": {
       "comment": "Help: the Lay out pages topic, about copying and pasting objects.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "With objects selected, **Edit › Copy**, **Cut**, **Paste** and **Duplicate** (⌘D) work on them; text copied elsewhere pastes as a text box."
+            "value": "With objects selected, **Edit › Copy**, **Cut** and **Paste** work on them; **Edit › Duplicate** (⌘D) copies selected text boxes and the story on the same page. Text copied elsewhere pastes as a text box."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con degli oggetti selezionati, **Modifica › Copia**, **Taglia**, **Incolla** e **Duplica** (⌘D) agiscono su di loro; il testo copiato altrove si incolla come box di testo."
+            "value": "Con degli oggetti selezionati, **Modifica › Copia**, **Taglia** e **Incolla** agiscono su di loro; **Modifica › Duplica** (⌘D) copia nella stessa pagina i box di testo e il racconto selezionati. Il testo copiato altrove si incolla come box di testo."
           }
         }
       }
@@ -14897,40 +14932,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "⌃⌘S pagine · ⌥⌘I ispettore · ⌥⌘L fototeca · ⌘1 / ⌘2 pagina singola o doppia · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ sfoglia il libro · ⇧⌘I segnalazioni"
-          }
-        }
-      }
-    },
-    "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "**Pagina › Duplica pagina** (⌘D) o il menu contestuale di Pagine mette una copia della pagina subito dopo. Taglia, copia e incolla funzionano su riquadri di testo e racconti; ⌘D allora duplica il riquadro o il racconto selezionato."
-          }
-        }
-      }
-    },
-    "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le foto senza file mostrano un segnaposto grigio: **Problemi** le elenca e **Ricollega…** (o **Ricollega tutte da una cartella…**) le riporta a un file."
           }
         }
       }

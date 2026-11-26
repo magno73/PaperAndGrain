@@ -98,7 +98,12 @@ extension EditorView {
             case let .textBox(id):
                 entries += [
                     EditorMenuEntry(tr("Edit Text", key: "layers.edit_text")) { beginInlineBoxEditing(id, in: leaf) },
-                    EditorMenuEntry(tr("Font and Paragraph…")) { showInspectorTab(.page) },
+                    // The inspector's Text tab, for this box.
+                    EditorMenuEntry(tr("Font and Paragraph…")) {
+                        selectTextBox(id, in: leaf)
+                        showsInspector = true
+                        showInspectorTab(.text)
+                    },
                     .separator
                 ]
                 entries += layerEntries(LayerTarget(pageID: leaf.id, layer: .textBox(id)))
@@ -117,7 +122,11 @@ extension EditorView {
                         selectEditorial(object, on: leaf)
                         editingEditorial = object
                     },
-                    EditorMenuEntry(tr("Font and Paragraph…")) { showInspectorTab(.page) },
+                    EditorMenuEntry(tr("Font and Paragraph…")) {
+                        selectEditorial(.page(leaf.id, role), on: leaf)
+                        showsInspector = true
+                        showInspectorTab(.text)
+                    },
                     .separator
                 ]
                 entries += layerEntries(LayerTarget(pageID: leaf.id, layer: .story))
