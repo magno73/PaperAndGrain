@@ -132,15 +132,7 @@ struct CaptionSetter {
         spread = page.effectiveLayout == .fullSpread
         // The same area text must keep inside as the safe-margin check: the safe margin, and a print
         // service's wider margin along the binding of this page.
-        let settings = book.printSettings ?? PrintSettings()
-        var zones: [PrintGuides.Zone] = []
-        if let plan = PrintPlan(book: book) {
-            zones = plan.guideZones(pageSize: bounds.size, onRight: BookPDF.rightPageIDs(book).contains(page.id),
-                                    spread: spread, safeMM: settings.safeMM)
-        }
-        let area = PrintGuides.frames(pageSize: bounds.size, settings: settings, zones: zones).textSafe
-            .offsetBy(dx: bounds.minX, dy: bounds.minY)
-        safe = area.width > 1 && area.height > 1 ? area : bounds
+        safe = book.textSafeArea(of: page, bounds: bounds)
         gap = style.captionGap(override: override)
         self.storyPanel = storyPanel
     }
@@ -306,5 +298,46 @@ struct CaptionSetter {
             && bounds.insetBy(dx: -0.5, dy: -0.5).contains(frame)
         return PageComposition.Caption(photoID: photo.id, frame: frame, band: band, text: entry.text,
                                        position: .inside, fits: fits)
+    }
+}
+
+extension Book {
+    /// Where text may go on `page`: `PrintGuides.textSafe`, the safe margin less a print service's binding
+    /// margin on that side of the page. When a margin leaves no room, the plain safe margin is used.
+    func textSafeArea(of page: BookPage, bounds: CGRect) -> CGRect {
+        let settings = printSettings ?? PrintSettings()
+        let inset = max(0, settings.safeMM) * PrintGuides.pointsPerMM
+        let limit = max(0, min(bounds.width, bounds.height) / 2 - 1)
+        let plain = bounds.insetBy(dx: min(inset, limit), dy: min(inset, limit))
+        guard let plan = PrintPlan(book: self) else { return plain }
+        let zones = plan.guideZones(pageSize: bounds.size, onRight: RightPages.shared.ids(of: self).contains(page.id),
+                                    spread: page.effectiveLayout == .fullSpread, safeMM: settings.safeMM)
+        let area = PrintGuides.frames(pageSize: bounds.size, settings: settings, zones: zones).textSafe
+            .offsetBy(dx: bounds.minX, dy: bounds.minY)
+        return area.width > 1 && area.height > 1 ? area : plain
+    }
+}
+
+/// The right-hand pages of the last book asked about, so composing every page of a book works them out
+/// once (`BookPDF.rightPageIDs` walks the whole book).
+final class RightPages: @unchecked Sendable {
+    static let shared = RightPages()
+    private struct Key: Hashable {
+        let pages: [UUID]
+        let spreads: [Bool]
+        let settings: PrintSettings?
+    }
+    private let lock = NSLock()
+    private var last: (key: Key, ids: Set<UUID>)?
+
+    func ids(of book: Book) -> Set<UUID> {
+        let key = Key(pages: book.pages.map(\.id), spreads: book.pages.map { $0.effectiveLayout == .fullSpread },
+                      settings: book.printSettings)
+        lock.lock()
+        defer { lock.unlock() }
+        if let last, last.key == key { return last.ids }
+        let ids = BookPDF.rightPageIDs(book)
+        last = (key, ids)
+        return ids
     }
 }

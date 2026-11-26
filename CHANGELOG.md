@@ -29,6 +29,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Position**, per page: **Automatic**, **Below**, **Above**, **On Photo** (a band at the bottom of the picture) or **Hidden**. Automatic puts it below, or on the photo when there is no room, as with full-bleed photos and panoramas. In galleries and fixed layouts the photos make room together, so they keep a common size and the captions line up.
 - **Fill from Place and Date** writes the place and capture date in the interface language; **Photo › Caption Photos on This Page** fills every empty caption on the page in one step.
 - One caption style per book, from the template, in **Book & Print › Book Typography › Captions**.
+- Captions keep inside the safe margin and, with a print service, off its wider margin along the binding.
 - **Use This One** (similar photos) carries a caption over: the chosen photo takes a replaced photo's caption when it has none, and keeps its own otherwise; the compare sheet says which.
 - The Issues list warns when a caption does not fit: on its photo and taller than half of it, across the trim, or cut because it is longer than 12 lines or 600 characters; the safe-margin warning covers captions too.
 - Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
