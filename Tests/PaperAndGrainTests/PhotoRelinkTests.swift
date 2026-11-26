@@ -124,6 +124,37 @@ final class PhotoRelinkTests: XCTestCase {
         XCTAssertEqual(result.unmatched.map(\.id), [nowhere.id])
     }
 
+    func testSameNameInTwoSubfoldersIsAmbiguousUnlessSizeOrDatePicksOne() {
+        func photo(_ name: String, _ width: Int, _ height: Int, date: Date? = nil) -> BookPhoto {
+            BookPhoto(name: name, capturedAt: date, filename: UUID().uuidString, pixelWidth: width, pixelHeight: height)
+        }
+        let day1 = URL(fileURLWithPath: "/x/Day1/IMG_0001.jpg"), day2 = URL(fileURLWithPath: "/x/Day2/IMG_0001.jpg")
+        let when = Date(timeIntervalSince1970: 1_700_000_000)
+        let sizes = [day1: (4000, 3000, Date?.none), day2: (3000, 4000, Date?.none)]
+        func read(_ url: URL) -> (width: Int, height: Int, date: Date?)? { sizes[url].map { ($0.0, $0.1, $0.2) } }
+
+        let alone = photo("IMG_0001.jpg", 100, 100)
+        XCTAssertEqual(PhotoRelink.match(missing: [alone], files: [day1, day2], summary: read).ambiguous.map(\.id), [alone.id])
+        XCTAssertTrue(PhotoRelink.match(missing: [alone], files: [day1, day2], summary: read).matches.isEmpty)
+        let landscape = photo("IMG_0001.jpg", 4000, 3000)
+        XCTAssertEqual(PhotoRelink.match(missing: [landscape], files: [day1, day2], summary: read).matches[landscape.id], day1)
+        // Same size in both: the capture date decides.
+        let dated = [day1: (4000, 3000, Date?.some(when)), day2: (4000, 3000, Date?.some(when + 60))]
+        let byDate = photo("IMG_0001.jpg", 4000, 3000, date: when + 60)
+        let picked = PhotoRelink.match(missing: [byDate], files: [day1, day2]) { url in dated[url].map { ($0.0, $0.1, $0.2) } }
+        XCTAssertEqual(picked.matches[byDate.id], day2)
+        let stillTied = photo("IMG_0001.jpg", 4000, 3000)
+        XCTAssertEqual(PhotoRelink.match(missing: [stillTied], files: [day1, day2]) { url in dated[url].map { ($0.0, $0.1, $0.2) } }.ambiguous.count, 1)
+    }
+
+    func testADottedNameWithoutAnImageExtensionKeepsItsDots() {
+        XCTAssertEqual(PhotoRelink.keys("Namibia.2024.dune"), ["namibia.2024.dune"])
+        XCTAssertEqual(PhotoRelink.keys("Namibia.2024.JPG"), ["namibia.2024.jpg", "namibia.2024"])
+        let dune = BookPhoto(name: "Namibia.2024.dune", filename: "a", pixelWidth: 4, pixelHeight: 3)
+        let files = [URL(fileURLWithPath: "/x/Namibia.2024.jpg")]
+        XCTAssertEqual(PhotoRelink.match(missing: [dune], files: files).unmatched.map(\.id), [dune.id])
+    }
+
     func testProportionsRuleAndRelinkedValues() {
         let old = BookPhoto(name: "a", filename: "old", pixelWidth: 4000, pixelHeight: 3000,
                             analysis: PhotoAnalysis(labels: ["sky"], concepts: []), location: nil)

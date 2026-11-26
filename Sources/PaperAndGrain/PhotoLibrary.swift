@@ -257,6 +257,13 @@ enum LocalImages {
         }
     }
 
+    /// Oriented pixel size and capture date from the file's header, for telling two files apart.
+    static func summary(at url: URL) -> (width: Int, height: Int, date: Date?)? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let header = ImageHeader(source, preferredExtension: nil) else { return nil }
+        return (header.width, header.height, exifDate(from: header.properties))
+    }
+
     static func location(at url: URL) -> PhotoLocation? {
         guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
               let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else { return nil }

@@ -102,6 +102,9 @@ Unit tests (`PhotoRelinkTests`) cover, with a real workspace and package: one as
 7. Open a book from a read-only volume: the commands are greyed out.
 8. Italian: all of the above.
 9. The export sheet lists the missing file without a button (documented limit).
+10. Delete a file of an open book in Finder while it is open: within a second or so of the live check, the photo's context menu and **Photo** tab offer **Relink…**; put the file back at the same path and the placeholder goes away.
+11. A missing front or back cover photo: its issue row has **Relink…**. Two subfolders with the same file name: the folder relink lists it as "Several files named" unless one has the photo's size.
+12. Start an import and relink at once: a message asks to try again when the import has finished. Italian labels of the placeholder follow Settings › Language.
 
 ### Print guides (T2)
 

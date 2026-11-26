@@ -1115,6 +1115,23 @@
         }
       }
     },
+    "An import is still running. Try again when it has finished.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An import is still running. Try again when it has finished."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un’importazione è ancora in corso. Riprova quando sarà finita."
+          }
+        }
+      }
+    },
     "An off-centre print, Mincho headings and a caption on warm paper.": {
       "extractionState": "manual",
       "localizations": {
@@ -9206,6 +9223,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Imposta il formato del libro sul formato rifilato del prodotto."
+          }
+        }
+      }
+    },
+    "Several files named: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Several files named: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Più file con il nome: %@"
           }
         }
       }

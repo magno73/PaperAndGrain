@@ -547,7 +547,12 @@ final class Workspace: ObservableObject {
 
     private func runRelink(ids: [UUID], language: String, completion: @escaping (PhotoRelink.Report) -> Void,
                            start: () throws -> DroppedPhotos?) -> Bool {
-        guard directory != nil, !importing, !ids.isEmpty else { return false }
+        guard directory != nil, !ids.isEmpty else { return false }
+        if importing {
+            problem = L10n.string("An import is still running. Try again when it has finished.",
+                                  language: L10n.interfaceLanguage)
+            return false
+        }
         if let readOnlyReason {
             problem = readOnlyReason.localizedDescription
             return false

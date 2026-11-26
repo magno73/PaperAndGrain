@@ -508,6 +508,11 @@ struct EditorView: View, Localizing {
         // A package renamed or moved in Finder changes where the photo files are looked up.
         .onChange(of: directory) { recheckIssues(immediately: true) }
         .onChange(of: book.photos.map(\.filename), initial: true) { refreshMissingFiles() }
+        // A file that disappears (or comes back) while the book is open shows up in the live check.
+        .onChange(of: issues.report) { _, report in
+            let found = report?.blockers.filter { if case .missingFile = $0.problem { true } else { false } }.count ?? 0
+            if found != missingFileIDs.count { refreshMissingFiles() }
+        }
         .onChange(of: directory) { refreshMissingFiles() }
         .onChange(of: book.photos.map(\.id), initial: true) { _, ids in
             photoIndices = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
@@ -560,7 +565,8 @@ struct EditorView: View, Localizing {
                                            isFilmSwatch: settings != nil)
         return EditorPreview(request: request, crop: crop, fills: fills,
                              filmEdit: !small && settings == nil && !original ? filmEdit : nil,
-                             photoID: photo.id, inheritsBookFilm: photo.film == nil) {
+                             photoID: photo.id, inheritsBookFilm: photo.film == nil,
+                             fileIsMissing: missingFileIDs.contains(photo.id), missingLabel: tr("Photo file missing")) {
             placeholder
         }
     }
@@ -823,6 +829,12 @@ struct FilmSlider: View {
     }
 }
 
+/// Reloads a preview when its request changes or when the editor learns that the file is back (or gone).
+private struct PreviewTaskKey: Hashable {
+    let request: EditorPreviewRequest
+    let fileIsMissing: Bool
+}
+
 struct EditorPreview<Placeholder: View>: View {
     let request: EditorPreviewRequest
     let crop: PhotoCrop
@@ -830,6 +842,9 @@ struct EditorPreview<Placeholder: View>: View {
     let filmEdit: FilmEdit?
     let photoID: UUID
     let inheritsBookFilm: Bool
+    /// The editor's belief that the file is gone; when it flips back a missing mark is cleared and the file is read again.
+    var fileIsMissing = false
+    var missingLabel = ""
     @ViewBuilder let placeholder: () -> Placeholder
 
     @State private var image: NSImage?
@@ -874,12 +889,12 @@ struct EditorPreview<Placeholder: View>: View {
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 } else if missingURL == request.url {
-                    MissingPhotoPlaceholder()
+                    MissingPhotoPlaceholder(label: missingLabel)
                 } else {
                     placeholder()
                 }
             }
-            .task(id: request) {
+            .task(id: PreviewTaskKey(request: request, fileIsMissing: fileIsMissing)) {
                 // Show the navigator's thumbnail at once while the sharp render is on its way.
                 if displayedURL != request.url, request.limit > 180 {
                     let thumbnail = EditorPreviewRequest(url: request.url, limit: 180, look: request.look,
@@ -907,7 +922,7 @@ struct EditorPreview<Placeholder: View>: View {
 /// Drawn where a photo's file is gone: a neutral frame at the photo's proportions with an icon, and a
 /// short label when there is room. It sits in the canvas, thumbnails and the Photo Library alike.
 struct MissingPhotoPlaceholder: View {
-    private var label: String { L10n.string("Photo file missing", language: L10n.interfaceLanguage) }
+    let label: String
 
     var body: some View {
         GeometryReader { geometry in

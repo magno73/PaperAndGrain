@@ -35,7 +35,16 @@ extension EditorView {
 
     /// The remedy on an issue row for a missing file.
     func relinkFix(for issue: BookPDF.PreflightIssue) -> IssueFix? {
-        guard canRelink, case let .photo(id)? = issue.target else { return nil }
+        guard canRelink else { return nil }
+        let id: UUID
+        switch issue.target {
+        case let .photo(photo)?: id = photo
+        case let .cover(front)?:
+            // A missing cover photo's row points at the cover face, not at a photo.
+            guard let cover = book.cover, let photo = front ? cover.frontPhotoID : cover.backPhotoID else { return nil }
+            id = photo
+        default: return nil
+        }
         return IssueFix(title: tr("Relink…"), help: tr("Choose the image file for this photo"),
                         systemImage: "link") { relink(id) }
     }
@@ -80,7 +89,15 @@ extension EditorView {
         panel.message = tr("Choose the image file for “%@”", photo.name)
         EditorFilePanels.present(panel) { response in
             guard response == .OK, let url = panel.url else { return }
-            actions.relinkPhotos([id: url]) { report in showRelinkReport(report) }
+            actions.relinkPhotos([id: url]) { report in
+                if report.relinked == 0 {
+                    // A file that is not an image gets the import's own message.
+                    presentRelinkAlert(title: tr("Relink Photos"),
+                                       message: AppError.imageUnavailable(name: url.lastPathComponent).localizedDescription)
+                } else {
+                    showRelinkReport(report)
+                }
+            }
         }
     }
 
@@ -110,27 +127,33 @@ extension EditorView {
             let photos = book.photos
             let package = directory
             Task {
-                let found = await Task.detached(priority: .userInitiated) { () -> (matches: [UUID: URL], unmatched: [BookPhoto]) in
+                let found = await Task.detached(priority: .userInitiated) { () -> PhotoRelink.Matching in
                     let missing = PhotoRelink.missing(in: photos, directory: package)
                     return PhotoRelink.match(missing: missing, files: PhotoRelink.imageFiles(in: folder))
                 }.value
-                confirmRelink(matches: found.matches, unmatched: found.unmatched)
+                confirmRelink(found)
             }
         }
     }
 
-    private func confirmRelink(matches: [UUID: URL], unmatched: [BookPhoto]) {
-        let total = matches.count + unmatched.count
-        guard !matches.isEmpty else {
-            presentRelinkAlert(title: tr("No matching photos"),
-                               message: tr("No file in that folder has the name of a missing photo."))
+    private func confirmRelink(_ found: PhotoRelink.Matching) {
+        let total = found.matches.count + found.unmatched.count + found.ambiguous.count
+        guard !found.matches.isEmpty else {
+            var message = tr("No file in that folder has the name of a missing photo.")
+            if !found.ambiguous.isEmpty {
+                message += "\n\n" + tr("Several files named: %@", nameList(found.ambiguous.map(\.name)))
+            }
+            presentRelinkAlert(title: tr("No matching photos"), message: message)
             return
         }
-        var message = tr("Missing photos found: %1$lld of %2$lld.", matches.count, total)
-        if !unmatched.isEmpty { message += "\n\n" + tr("Not found: %@", nameList(unmatched.map(\.name))) }
+        var message = tr("Missing photos found: %1$lld of %2$lld.", found.matches.count, total)
+        if !found.unmatched.isEmpty { message += "\n\n" + tr("Not found: %@", nameList(found.unmatched.map(\.name))) }
+        if !found.ambiguous.isEmpty {
+            message += "\n\n" + tr("Several files named: %@", nameList(found.ambiguous.map(\.name)))
+        }
         message += "\n\n" + tr("The files are copied into the book. Relinking cannot be undone with ⌘Z.")
         presentRelinkAlert(title: tr("Relink Photos"), message: message, confirm: tr("Relink")) {
-            actions.relinkPhotos(matches) { report in showRelinkReport(report) }
+            actions.relinkPhotos(found.matches) { report in showRelinkReport(report) }
         }
     }
 

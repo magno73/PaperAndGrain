@@ -20,25 +20,54 @@ enum PhotoRelink {
         return photos.filter { !files.fileExists(atPath: BookStorage.assetURL(filename: $0.filename, in: directory).path) }
     }
 
-    /// Names a file can be matched by: with and without its extension, lowercased.
+    /// Names a file can be matched by: the whole name, and the name without its extension when the extension
+    /// is an image type (so `Namibia.2024.dune` does not become `Namibia.2024`). Lowercased.
     static func keys(_ name: String) -> Set<String> {
         let lowered = name.lowercased()
+        let ext = (lowered as NSString).pathExtension
+        guard !ext.isEmpty, UTType(filenameExtension: ext)?.conforms(to: .image) == true else { return [lowered] }
         return [lowered, (lowered as NSString).deletingPathExtension]
     }
 
-    /// Matches each missing photo to a file of `files` by its original name, ignoring case and extension.
-    /// When several files fit, the one whose full name matches exactly wins, then the first in name order.
-    static func match(missing: [BookPhoto], files: [URL]) -> (matches: [UUID: URL], unmatched: [BookPhoto]) {
-        let sorted = files.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+    /// The outcome of matching missing photos to the files of a folder.
+    struct Matching {
         var matches: [UUID: URL] = [:]
+        /// Photos no file has the name of.
         var unmatched: [BookPhoto] = []
+        /// Photos several files have the name of, which neither pixel size nor capture date could tell apart.
+        var ambiguous: [BookPhoto] = []
+    }
+
+    /// Matches each missing photo to a file of `files` by its original name, ignoring case and extension.
+    /// A full-name match beats a name-without-extension match. When several files still fit (the same name in
+    /// two subfolders), the one with the photo's pixel size is taken if exactly one has it, otherwise the one
+    /// with its capture date; if that does not pick exactly one the photo is reported as ambiguous.
+    /// `summary` reads a file's size and date, and is only called for ambiguous names.
+    static func match(missing: [BookPhoto], files: [URL],
+                      summary: (URL) -> (width: Int, height: Int, date: Date?)? = { LocalImages.summary(at: $0) }) -> Matching {
+        let sorted = files.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+        var result = Matching()
         for photo in missing {
             let wanted = keys(photo.name)
             let candidates = sorted.filter { !wanted.isDisjoint(with: keys($0.lastPathComponent)) }
-            let exact = candidates.first { $0.lastPathComponent.lowercased() == photo.name.lowercased() }
-            if let found = exact ?? candidates.first { matches[photo.id] = found } else { unmatched.append(photo) }
+            let exact = candidates.filter { $0.lastPathComponent.lowercased() == photo.name.lowercased() }
+            let pool = exact.isEmpty ? candidates : exact
+            switch pool.count {
+            case 0: result.unmatched.append(photo)
+            case 1: result.matches[photo.id] = pool[0]
+            default:
+                let read = pool.map { ($0, summary($0)) }
+                let sameSize = read.filter { $0.1?.width == photo.pixelWidth && $0.1?.height == photo.pixelHeight }
+                let sameDate = read.filter { entry in
+                    guard let wantedDate = photo.capturedAt, let date = entry.1?.date else { return false }
+                    return date == wantedDate
+                }
+                if sameSize.count == 1 { result.matches[photo.id] = sameSize[0].0 }
+                else if sameDate.count == 1 { result.matches[photo.id] = sameDate[0].0 }
+                else { result.ambiguous.append(photo) }
+            }
         }
-        return (matches, unmatched)
+        return result
     }
 
     /// The image files in a folder and its subfolders, hidden files left out.
