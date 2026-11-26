@@ -4,7 +4,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 326 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 327 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
@@ -72,7 +72,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 Not seen on screen (no GUI access). With a bundle from `./scripts/build-app.sh` and a synthetic book:
 
 1. Select a text box and two photos, **Edit › Copy**, go to an empty page, **Edit › Paste**: the three appear in the same places and order and are selected. ⌘Z once: the page is empty again.
-2. **Edit › Paste** again on the first page: the box lands 12 pt lower and right, and a note says the photos are already on the page. ⌘D with objects selected duplicates them (the Edit menu shows ⌘D next to Duplicate); with nothing selected ⌘D is **Page › Duplicate Page**.
+2. **Edit › Paste** again on the first page: the box lands 12 pt lower and right, and a note says the photos are already on the page. ⌘D with a text box selected duplicates it (the Edit menu shows ⌘D next to Duplicate); with nothing or only photos selected ⌘D is **Page › Duplicate Page**. With **Book & Print** open, ⌘X and ⌘V do nothing to the page behind it; Paste is greyed out after clicking the Pages sidebar.
 3. Copy a story and paste it on a gallery page without text (it becomes the story) and on a page with a story (it becomes a text box). **Edit › Cut** a box: it leaves the page and pastes back.
 4. Copy from a second open book: the text pastes, the photos are left out with a note. Copy text in TextEdit and paste on the canvas: a text box in the middle. Copy a box and paste in TextEdit: its text.
 5. While typing in a box, a story, a caption, the inspector, **Book & Print** or **Settings**: Cut, Copy, Paste and Select All act on the text. The menu items are disabled with nothing selected and nothing to paste.

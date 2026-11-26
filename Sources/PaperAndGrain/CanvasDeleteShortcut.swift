@@ -131,6 +131,7 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             }
             editResponder.nextResponder = window.nextResponder
             window.nextResponder = editResponder
+            editResponder.window = window
             chainWindow = window
         }
 
@@ -145,6 +146,7 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 responder = current.nextResponder
             }
             editResponder.nextResponder = nil
+            editResponder.window = nil
             chainWindow = nil
         }
         var onPointerDown: (CGPoint) -> Void = { _ in }
@@ -320,17 +322,22 @@ struct CanvasEditCommands {
 /// responder handles them first. The menu items enable from `validateMenuItem`.
 final class CanvasEditResponder: NSResponder, NSMenuItemValidation, NSUserInterfaceValidations {
     var commands = CanvasEditCommands()
+    /// The book window. While a sheet (Book & Print, an alert) covers it, the canvas takes no commands.
+    weak var window: NSWindow?
 
-    @objc func copy(_ sender: Any?) { if commands.canCopy() { commands.copy() } }
-    @objc func cut(_ sender: Any?) { if commands.canCopy() { commands.cut() } }
-    @objc func paste(_ sender: Any?) { if commands.canPaste() { commands.paste() } }
+    private var available: Bool { window?.attachedSheet == nil }
+
+    @objc func copy(_ sender: Any?) { if available, commands.canCopy() { commands.copy() } }
+    @objc func cut(_ sender: Any?) { if available, commands.canCopy() { commands.cut() } }
+    @objc func paste(_ sender: Any?) { if available, commands.canPaste() { commands.paste() } }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         validateUserInterfaceItem(menuItem)
     }
 
     func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
-        switch item.action {
+        guard available else { return false }
+        return switch item.action {
         case #selector(copy(_:)), #selector(cut(_:)): commands.canCopy()
         case #selector(paste(_:)): commands.canPaste()
         default: false

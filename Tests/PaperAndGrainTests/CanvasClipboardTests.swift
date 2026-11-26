@@ -126,6 +126,32 @@ final class CanvasClipboardTests: XCTestCase {
         XCTAssertEqual(full.layers, [.textBox(added.id)])
     }
 
+    func testAPhotoFromASpreadLandsOnASinglePageAndMissingPhotosAreNamed() throws {
+        let (book, _, photo, _) = sample()
+        var spread = BookPage(layout: .fullSpread)
+        spread.photoIDs = [photo.id]
+        // On the right half of the spread, beyond a single page.
+        spread.photoPlacements = [photo.id: PhotoPlacement(frame: PageRect(x: 0.6, y: 0.2, width: 0.3, height: 0.3),
+                                                           crop: PhotoCrop(x: 0.1, y: 0.9, zoom: 2), captionPosition: .hidden)]
+        var withSpread = book
+        withSpread.pages.append(spread)
+        let copied = try clip(withSpread, spread, [.photo(photo.id)])
+        let pasted = copied.paste(into: withSpread.pages[1], book: withSpread)
+        let bounds = PageComposition(page: withSpread.pages[1], book: withSpread).bounds
+        let placement = try XCTUnwrap(pasted.page.photoPlacements?[photo.id])
+        let frame = try XCTUnwrap(placement.frame).rect(in: bounds)
+        XCTAssertTrue(bounds.insetBy(dx: -0.01, dy: -0.01).contains(frame), "moved onto the page")
+        if case let .photo(item) = copied.objects[0] { XCTAssertEqual(frame.size, item.frame.size) }
+        // The whole placement travels: crop and caption position.
+        XCTAssertEqual(placement.crop, PhotoCrop(x: 0.1, y: 0.9, zoom: 2))
+        XCTAssertEqual(placement.captionPosition, .hidden)
+        // The same book, but the photo was deleted since the copy.
+        var without = withSpread
+        without.photos = []
+        XCTAssertEqual(copied.paste(into: without.pages[1], book: without).skipped, [.notInBook])
+        XCTAssertFalse(copied.duplicatesOnItsPage, "photos alone cannot be duplicated on their page")
+    }
+
     func testPlainTextBecomesABoxInTheMiddle() {
         let bounds = CGRect(x: 0, y: 0, width: 600, height: 600)
         let box = CanvasClipboard.textBox(for: "Hello", in: bounds, safe: bounds.insetBy(dx: 40, dy: 40))
@@ -145,6 +171,8 @@ final class CanvasClipboardTests: XCTestCase {
         XCTAssertNil(cut.textBoxes)
         XCTAssertFalse(cut.hasStoryText)
         XCTAssertNil(cut.titleFrame)
+        XCTAssertNil(cut.typography, "a page's type style styles only its story")
+        XCTAssertTrue(copied.duplicatesOnItsPage)
         // Undo restores the page as it was: pasting then removing what was pasted gives the empty page back.
         let empty = book.pages[1]
         let pasted = copied.paste(into: empty, book: book)

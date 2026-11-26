@@ -20,7 +20,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 ### Copy and paste
 
 - **Edit › Cut, Copy, Paste** and **Edit › Duplicate** work on the selected canvas objects; while text is typed they keep their text meaning. Pasted objects keep their place and order and become the selection; stories become the page's story or a text box; photos stay in their own book and are not placed twice on a page. Plain text from other apps pastes as a text box, and copied text pastes as plain text elsewhere.
-- ⌘D duplicates the selected objects; with nothing selected on the canvas it still duplicates the page.
+- ⌘D duplicates the selected text boxes or story; otherwise, photos included, it still duplicates the page. While a sheet such as **Book & Print** is open the canvas takes no Cut, Copy or Paste.
 
 ### Multiple selection
 

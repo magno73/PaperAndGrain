@@ -188,7 +188,7 @@ extension EditorView {
         commands.moveEarlier = { move(-1) }
         commands.moveLater = { move(1) }
         commands.canDuplicatePage = canDuplicatePage
-        commands.canDuplicateObjects = canCopyObjects
+        commands.canDuplicateObjects = canDuplicateObjects
         commands.duplicateObjects = duplicateObjects
         commands.duplicatePage = { duplicatePage() }
         commands.deletePage = { if page != nil { showDelete = true } }

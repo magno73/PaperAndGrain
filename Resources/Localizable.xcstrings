@@ -474,6 +474,48 @@
         }
       }
     },
+    "%lld photos are no longer in this book and were not pasted.": {
+      "comment": "Canvas notice: copied photos deleted from the book before the paste.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo is no longer in this book and was not pasted."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos are no longer in this book and were not pasted."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non è più in questo libro e non è stata incollata."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld foto non sono più in questo libro e non sono state incollate."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld photos come from another book and were not pasted.": {
       "comment": "Canvas notice: photos copied from another book are skipped, since their image files are not in this one.",
       "extractionState": "manual",

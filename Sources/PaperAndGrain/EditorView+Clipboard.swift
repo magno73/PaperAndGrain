@@ -17,8 +17,14 @@ extension EditorView {
     }
 
     var canPasteObjects: Bool {
-        coverSide == nil && page != nil && cropSession == nil && !isTypingText
-            && editorInput.target != .navigatorCover && CanvasClipboard.canRead(from: .general)
+        editorInput.target == .canvas && coverSide == nil && page != nil && cropSession == nil && !isTypingText
+            && CanvasClipboard.canRead(from: .general)
+    }
+
+    /// ⌘D duplicates objects only when it adds something: a text box or the story. Photos alone cannot be on
+    /// their page twice, so ⌘D then stays **Duplicate Page**.
+    var canDuplicateObjects: Bool {
+        canCopyObjects && selectionClipboard?.clip.duplicatesOnItsPage == true
     }
 
     /// The selection as clipboard objects, in drawing order.
@@ -74,7 +80,7 @@ extension EditorView {
     /// A copy of the selection on the same page, without the pasteboard: text boxes move 12 pt, photos
     /// cannot be on a page twice and are skipped with a notice.
     func duplicateObjects() {
-        guard canCopyObjects, let (leaf, clip) = selectionClipboard else { return }
+        guard canDuplicateObjects, let (leaf, clip) = selectionClipboard else { return }
         place(clip, on: leaf, name: tr("Duplicate"))
     }
 
@@ -89,10 +95,13 @@ extension EditorView {
         }
         let onPage = pasted.skipped.filter { $0 == .alreadyOnPage }.count
         let elsewhere = pasted.skipped.filter { $0 == .otherBook }.count
+        let gone = pasted.skipped.filter { $0 == .notInBook }.count
         if onPage > 0 {
             showCanvasNotice(tr("%lld photos are already on this page and were not added.", onPage))
         } else if elsewhere > 0 {
             showCanvasNotice(tr("%lld photos come from another book and were not pasted.", elsewhere))
+        } else if gone > 0 {
+            showCanvasNotice(tr("%lld photos are no longer in this book and were not pasted.", gone))
         }
     }
 }

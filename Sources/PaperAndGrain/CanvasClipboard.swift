@@ -19,11 +19,12 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
     /// Back to front.
     var objects: [Object]
 
+    /// A photo and its whole placement on the page (crop, caption position and whatever comes later);
+    /// `frame` is where it was drawn, in points.
     struct Photo: Codable, Equatable, Sendable {
         var photoID: UUID
         var frame: CGRect
-        var crop: PhotoCrop?
-        var captionPosition: CaptionPosition?
+        var placement: PhotoPlacement?
     }
 
     struct Box: Codable, Equatable, Sendable {
@@ -78,9 +79,7 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
             switch layer {
             case let .photo(id):
                 guard let item = composition.photos.first(where: { $0.id == id }) else { continue }
-                let placement = page.photoPlacements?[id]
-                objects.append(.photo(Photo(photoID: id, frame: item.frame, crop: placement?.crop,
-                                            captionPosition: placement?.captionPosition)))
+                objects.append(.photo(Photo(photoID: id, frame: item.frame, placement: page.photoPlacements?[id])))
             case let .textBox(id):
                 guard let box = composition.textBoxes.first(where: { $0.id == id }) else { continue }
                 objects.append(.textBox(Box(box: box, frame: box.frame.rect(in: composition.bounds))))
@@ -117,6 +116,8 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
         case alreadyOnPage
         /// The photo belongs to another book: its image file is not in this one.
         case otherBook
+        /// The photo was removed from this book after it was copied.
+        case notInBook
     }
 
     struct Pasted: Equatable {
@@ -143,12 +144,14 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
         for object in objects {
             switch object {
             case let .photo(item):
-                guard sameBook, book.photo(item.photoID) != nil else { skipped.append(.otherBook); continue }
+                guard sameBook else { skipped.append(.otherBook); continue }
+                guard book.photo(item.photoID) != nil else { skipped.append(.notInBook); continue }
                 guard !result.photoIDs.contains(item.photoID) else { skipped.append(.alreadyOnPage); continue }
                 result.photoIDs.append(item.photoID)
                 var placements = result.photoPlacements ?? [:]
-                placements[item.photoID] = PhotoPlacement(frame: PageRect(item.frame, in: bounds).photoClamped, crop: item.crop,
-                                                          captionPosition: item.captionPosition)
+                var placement = item.placement ?? PhotoPlacement()
+                placement.frame = PageRect(Self.visible(item.frame, in: bounds), in: bounds).photoClamped
+                placements[item.photoID] = placement
                 result.photoPlacements = placements
                 layers.append(.photo(item.photoID))
             case let .textBox(item):
@@ -179,6 +182,14 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
             result.layerOrder = before.filter { !layers.contains($0) } + layers
         }
         return Pasted(page: result, layers: layers, skipped: skipped)
+    }
+
+    /// A photo frame on the destination page: kept as it is while at least half of it shows (a photo that
+    /// bleeds keeps its overflow), otherwise moved inside the page with its size, like a text frame.
+    static func visible(_ rect: CGRect, in bounds: CGRect) -> CGRect {
+        let shown = rect.intersection(bounds)
+        let area = shown.isNull ? 0 : shown.width * shown.height
+        return area >= rect.width * rect.height * 0.5 ? rect : kept(rect, in: bounds)
     }
 
     /// A rectangle moved inside `bounds` where it can be; one larger than the page keeps its top left on it.
@@ -225,8 +236,16 @@ struct CanvasClipboard: Codable, Equatable, Sendable {
         return nil
     }
 
+    /// True when a paste would bring something: objects this version can read, or plain text.
     static func canRead(from pasteboard: NSPasteboard) -> Bool {
-        pasteboard.availableType(from: [pasteboardType, .string]) != nil
+        guard pasteboard.availableType(from: [pasteboardType, .string]) != nil else { return false }
+        return read(from: pasteboard) != nil
+    }
+
+    /// Whether pasting on the page it came from adds anything: a text box or a story (which becomes a box
+    /// there). Photos alone cannot be on their page twice.
+    var duplicatesOnItsPage: Bool {
+        objects.contains { if case .photo = $0 { false } else { true } }
     }
 }
 
@@ -262,7 +281,8 @@ extension CanvasClipboard.Object: Codable {
 
 extension BookPage {
     /// Takes the given objects off the page, as **Cut** does: photos (back to the Photo Library), text boxes,
-    /// and the story's heading, text and frames.
+    /// and the story's heading, text, frames and type style. A page's `typography` styles only its story,
+    /// so it goes with it.
     mutating func removeObjects(_ layers: [PageLayer]) {
         for layer in layers {
             switch layer {
@@ -279,6 +299,7 @@ extension BookPage {
                 titleFrame = nil
                 storyFrame = nil
                 storyBackdropFrames = nil
+                typography = nil
             }
         }
         if let order = layerOrder {
