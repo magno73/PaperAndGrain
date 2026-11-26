@@ -96,6 +96,8 @@ final class PrintProfileCLITests: XCTestCase {
         XCTAssertTrue(text.contains("--spine-mm is only supported for print-service exports"), text)
         text = await exportMessage(["Source.papergrain", "--profile", "pixart", "--output", "Out.pdf", "--size", "a4"], in: root)
         XCTAssertTrue(text.contains("Unknown --size a4") && text.contains("21x21"), text)
+        text = await exportMessage(["Source.papergrain", "--profile", "peecho-hardcover", "--output", "Out.pdf", "--size", "210x297"], in: root)
+        XCTAssertTrue(text.contains("--size 210x297 is 210 × 297 mm, but the book is 210 × 210 mm"), "an explicit size is not replaced: " + text)
         text = await exportMessage(["Source.papergrain", "--profile", "pixart", "--output", "Out.pdf"], in: root)
         XCTAssertTrue(text.contains("needs the spine width"), text)
         text = await exportMessage(["Source.papergrain", "--profile", "pixart", "--output", "Out.pdf", "--spine-mm", "0"], in: root)

@@ -469,8 +469,6 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
     var color: ColorRules
     var sizes: [Size]
 
-    var separateFiles: Bool { files.arrangement == .separate }
-
     func size(_ id: String?) -> Size? { sizes.first { $0.id == id } }
 
     func size(matching format: BookFormat) -> Size? { sizes.first { $0.matches(format) } }

@@ -89,10 +89,11 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(profile.interior.safe.fixedValues, PrintProfile.EdgeValues(top: 5, bottom: 5, outer: 5, inner: 5))
         XCTAssertTrue(profile.interior.bleed.top.isTyped && profile.interior.bleed.bottom.isTyped && profile.interior.bleed.outer.isTyped)
         XCTAssertEqual(profile.interior.bleed.inner, .fixed(PrintProfile.Length(0)), "no bleed on the binding edge")
-        XCTAssertEqual(profile.separateFiles, true)
+        XCTAssertEqual(profile.files.arrangement, .separate)
         let cover = profile.cover
         XCTAssertTrue(cover.panel?.widthMM.isTyped == true && cover.panel?.heightMM.isTyped == true)
         XCTAssertTrue(cover.spine?.isTyped == true && cover.wrap?.isTyped == true && cover.hinge?.isTyped == true)
+        XCTAssertEqual(cover.hingeWithinPanel, true, "the fold lies inside each cover face")
         XCTAssertEqual(cover.hinge?.nominal, 11, "the fold takes 10 to 12 mm from the spine")
         XCTAssertTrue(cover.hinge?.accepts(10) == true && cover.hinge?.accepts(12) == true && cover.hinge?.accepts(13) == false)
         // Every size is a range around the printer's nominal size, and the nominal size is what a menu proposes.
@@ -144,10 +145,24 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(profile.interior.safe.fixedValues, PrintProfile.EdgeValues(top: 6.35, bottom: 6.35, outer: 6.35, inner: 12.7))
         XCTAssertEqual(profile.interior.pages.coverPagesCounted, 2)
         XCTAssertNil(profile.interior.pages.minimum, "page limits are shown per order")
+        XCTAssertEqual(profile.interior.pages.multiple, 2, "a sheet has two sides")
+        XCTAssertEqual(profile.size("a4-portrait")?.format, BookFormat(widthMM: 210, heightMM: 297))
+        XCTAssertEqual(profile.size("a5-landscape")?.format, BookFormat(widthMM: 210, heightMM: 148))
+        XCTAssertTrue(profile.size(matching: BookFormat(widthMM: 210, heightMM: 297)) != nil, "an A4 book matches")
         XCTAssertEqual(profile.cover.hinge?.nominal ?? 0, 5.08, accuracy: 0.001)
         XCTAssertEqual(profile.cover.bleed?.fixedValues, PrintProfile.EdgeValues(top: 20.32, bottom: 20.32, outer: 20.32, inner: 20.32))
         XCTAssertTrue(profile.cover.spine?.isTyped == true, "the spine is in the cart")
-        XCTAssertEqual(profile.separateFiles, true)
+        XCTAssertEqual(profile.files.arrangement, .separate)
+        // Page 1 is on the right, so a blank leads it (Mixam's blank page 2) and the count is made even at the end.
+        var even = Book(title: "Even", format: try XCTUnwrap(profile.size("digest-portrait")).format,
+                        pages: (0..<32).map { _ in BookPage(layout: .text, text: "x") })
+        even.cover = BookCover(title: "Even")
+        var evenPlan = PrintPlan(profile: profile, sizeID: "digest-portrait")
+        evenPlan.measures[.spine] = 10
+        XCTAssertEqual(BookPDF.interiorPageCount(even, plan: evenPlan), 34)
+        even.pages.removeLast()
+        XCTAssertEqual(BookPDF.interiorPageCount(even, plan: evenPlan) % 2, 0)
+
         // The printer's worked example: a 5.5 x 8.5 in digest with a 0.35 in spine is 11.75 x 8.5 in without bleed and
         // 13.35 x 10.1 in with it.
         var book = Book(title: "Digest", format: try XCTUnwrap(profile.size("digest-portrait")).format, pages: [BookPage(layout: .text, text: "x")])

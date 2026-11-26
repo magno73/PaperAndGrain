@@ -383,9 +383,14 @@ enum BookCLIMedia {
         var plan = PrintPlan(profile: profile, sizeID: settings?.profileSizeID, paperID: settings?.profilePaperID,
                              measures: settings?.profileMeasures ?? PrintMeasures())
         if let size = options["--size"] {
-            guard profile.size(size) != nil else {
+            guard let chosen = profile.size(size) else {
                 throw BookCLI.Failure("Unknown --size \(size) for \(profile.id). Sizes: "
                                       + profile.sizes.map(\.id).joined(separator: ", "))
+            }
+            // An explicit size is never replaced by another one that happens to fit the book.
+            guard chosen.matches(book.format) else {
+                throw BookCLI.Failure("--size \(size) is \(mm(chosen.format.widthMM)) × \(mm(chosen.format.heightMM)) mm, "
+                                      + "but the book is \(mm(book.format.widthMM)) × \(mm(book.format.heightMM)) mm")
             }
             plan.sizeID = size
         }

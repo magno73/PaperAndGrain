@@ -15,8 +15,8 @@
     "sourceURL": "https://mixam.com/support/hardcoversetup",
     "verifiedOn": "2026-11-26",
     "notes": {
-      "en": "Two files in a folder: the interior as single pages with 0.125 in (3.175 mm) bleed on all four sides, and the cover as one spread: back cover, 0.2 in (5.08 mm) hinge, spine, 0.2 in hinge, front cover, the height of the book, then 0.8 in (20.32 mm) of bleed on all four edges of the spread (the printer wraps it around the boards). The spine width is in your Mixam cart and in the order's Artwork tab (it depends on the page count and the paper): type it in the export sheet. Hardcovers have no inside covers and free endpapers; page 2 is blank and the first printed page is page 3, on the right. Mixam counts two pages for the cover in the total you enter in its calculator, and its calculator checks the page count. Interior text 0.25 in (6.35 mm) from the outer edges and 0.5 in (12.7 mm) from the binding; on the cover keep text 0.25 in from the outer edges and 0.6 in (15.2 mm) from the spine edge so it stays clear of the hinge (a binding-types page says 0.4 in). Mixam prefers CMYK files (GRACoL2006_Coated1v2) and converts RGB files itself; this export is sRGB. The sizes are those of the hardcover page's dust-jacket table. Page limits are shown by Mixam's calculator per order.",
-      "it": "Due file in una cartella: l'interno in pagine singole con 0,125 in (3,175 mm) di abbondanza su tutti e quattro i lati e la copertina in una sola doppia pagina: quarta, cerniera di 0,2 in (5,08 mm), dorso, cerniera di 0,2 in, copertina, alta come il libro, poi 0,8 in (20,32 mm) di abbondanza sui quattro bordi (lo stampatore la ripiega attorno ai cartoni). La larghezza del dorso è nel carrello Mixam e nella scheda Artwork dell'ordine (dipende da pagine e carta): inseriscila nella finestra di esportazione. Le copertine rigide non hanno risguardi stampati e hanno i risguardi gratis; la pagina 2 è bianca e la prima pagina stampata è la 3, a destra. Mixam conta due pagine per la copertina nel totale da inserire nel suo calcolatore, che controlla il numero di pagine. Testo interno a 0,25 in (6,35 mm) dai bordi esterni e a 0,5 in (12,7 mm) dalla rilegatura; in copertina tieni il testo a 0,25 in dai bordi esterni e a 0,6 in (15,2 mm) dal bordo del dorso, per restare fuori dalla cerniera (una pagina sulle rilegature dice 0,4 in). Mixam preferisce file CMYK (GRACoL2006_Coated1v2) e converte da sé gli RGB; questa esportazione è sRGB. I formati sono quelli della tabella delle sovraccoperte nella pagina sulle copertine rigide. I limiti di pagine li mostra il calcolatore di Mixam per ogni ordine."
+      "en": "Two files in a folder: the interior as single pages with 0.125 in (3.175 mm) bleed on all four sides, and the cover as one spread: back cover, 0.2 in (5.08 mm) hinge, spine, 0.2 in hinge, front cover, the height of the book, then 0.8 in (20.32 mm) of bleed on all four edges of the spread (the printer wraps it around the boards). The spine width is in your Mixam cart and in the order's Artwork tab (it depends on the page count and the paper): type it in the export sheet. Hardcovers have no inside covers and free endpapers; page 2 is blank and the first printed page is page 3, on the right. Mixam counts two pages for the cover in the total you enter in its calculator, and its calculator checks the page count. Interior text 0.25 in (6.35 mm) from the outer edges and 0.4 to 0.5 in from the binding (the hardcover page says 0.4–0.5 in; 0.5 in = 12.7 mm is used); on the cover keep text 0.25 in from the outer edges and 0.6 in (15.2 mm) from the spine edge so it stays clear of the hinge (a binding-types page says 0.4 in). Mixam prefers CMYK files (GRACoL2006_Coated1v2) and converts RGB files itself; this export is sRGB. The sizes are those of the hardcover page's dust-jacket table; A5 and A4 are the ISO sizes (148 × 210 and 210 × 297 mm; the page writes them as 5.8 × 8.3 and 8.3 × 11.7 in). Pages are counted in twos (a sheet has two sides; the multiple-of-four rule does not apply to hardcovers). Other page limits are shown by Mixam's calculator per order.",
+      "it": "Due file in una cartella: l'interno in pagine singole con 0,125 in (3,175 mm) di abbondanza su tutti e quattro i lati e la copertina in una sola doppia pagina: quarta, cerniera di 0,2 in (5,08 mm), dorso, cerniera di 0,2 in, copertina, alta come il libro, poi 0,8 in (20,32 mm) di abbondanza sui quattro bordi (lo stampatore la ripiega attorno ai cartoni). La larghezza del dorso è nel carrello Mixam e nella scheda Artwork dell'ordine (dipende da pagine e carta): inseriscila nella finestra di esportazione. Le copertine rigide non hanno risguardi stampati e hanno i risguardi gratis; la pagina 2 è bianca e la prima pagina stampata è la 3, a destra. Mixam conta due pagine per la copertina nel totale da inserire nel suo calcolatore, che controlla il numero di pagine. Testo interno a 0,25 in (6,35 mm) dai bordi esterni e da 0,4 a 0,5 in dalla rilegatura (la pagina sulle copertine rigide dice 0,4–0,5 in; si usa 0,5 in = 12,7 mm); in copertina tieni il testo a 0,25 in dai bordi esterni e a 0,6 in (15,2 mm) dal bordo del dorso, per restare fuori dalla cerniera (una pagina sulle rilegature dice 0,4 in). Mixam preferisce file CMYK (GRACoL2006_Coated1v2) e converte da sé gli RGB; questa esportazione è sRGB. I formati sono quelli della tabella delle sovraccoperte nella pagina sulle copertine rigide; A5 e A4 sono i formati ISO (148 × 210 e 210 × 297 mm; la pagina li scrive 5,8 × 8,3 e 8,3 × 11,7 in). Le pagine si contano a due a due (un foglio ha due facciate; la regola dei multipli di quattro non vale per le copertine rigide). Gli altri limiti di pagine li mostra il calcolatore di Mixam per ogni ordine."
     },
     "interior": {
       "layout": "single",
@@ -46,6 +46,7 @@
       "ends": "pages",
       "targetPPI": 300,
       "pages": {
+        "multiple": 2,
         "coverPagesCounted": 2
       }
     },
@@ -356,60 +357,60 @@
       {
         "id": "a5-portrait",
         "name": {
-          "en": "A5 portrait · 5.8 × 8.3 in",
-          "it": "A5 verticale · 5,8 × 8,3 in"
+          "en": "A5 portrait · 148 × 210 mm",
+          "it": "A5 verticale · 148 × 210 mm"
         },
         "widthMM": {
-          "mm": 147.32,
+          "mm": 148,
           "source": "5.8 in"
         },
         "heightMM": {
-          "mm": 210.82,
+          "mm": 210,
           "source": "8.3 in"
         }
       },
       {
         "id": "a5-landscape",
         "name": {
-          "en": "A5 landscape · 8.3 × 5.8 in",
-          "it": "A5 orizzontale · 8,3 × 5,8 in"
+          "en": "A5 landscape · 210 × 148 mm",
+          "it": "A5 orizzontale · 210 × 148 mm"
         },
         "widthMM": {
-          "mm": 210.82,
+          "mm": 210,
           "source": "8.3 in"
         },
         "heightMM": {
-          "mm": 147.32,
+          "mm": 148,
           "source": "5.8 in"
         }
       },
       {
         "id": "a4-portrait",
         "name": {
-          "en": "A4 portrait · 8.3 × 11.7 in",
-          "it": "A4 verticale · 8,3 × 11,7 in"
+          "en": "A4 portrait · 210 × 297 mm",
+          "it": "A4 verticale · 210 × 297 mm"
         },
         "widthMM": {
-          "mm": 210.82,
+          "mm": 210,
           "source": "8.3 in"
         },
         "heightMM": {
-          "mm": 297.18,
+          "mm": 297,
           "source": "11.7 in"
         }
       },
       {
         "id": "a4-landscape",
         "name": {
-          "en": "A4 landscape · 11.7 × 8.3 in",
-          "it": "A4 orizzontale · 11,7 × 8,3 in"
+          "en": "A4 landscape · 297 × 210 mm",
+          "it": "A4 orizzontale · 297 × 210 mm"
         },
         "widthMM": {
-          "mm": 297.18,
+          "mm": 297,
           "source": "11.7 in"
         },
         "heightMM": {
-          "mm": 210.82,
+          "mm": 210,
           "source": "8.3 in"
         }
       },
