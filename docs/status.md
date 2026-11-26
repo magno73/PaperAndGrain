@@ -4,7 +4,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 354 tests with no failures (two timing tests are skipped unless their environment variable names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 369 tests with no failures (two timing tests are skipped unless their environment variable names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
