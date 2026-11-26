@@ -11,7 +11,7 @@ final class CLIReleaseTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("papergrain-cli-\(UUID())", isDirectory: true)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
         addTeardownBlock {
-            _ = try? BookStorage.addOwnerWrite(url)
+            _ = BookStorage.addOwnerWrite(url)
             try? FileManager.default.removeItem(at: url)
         }
         return url

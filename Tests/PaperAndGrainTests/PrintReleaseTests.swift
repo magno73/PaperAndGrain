@@ -277,16 +277,16 @@ final class PrintReleaseTests: XCTestCase {
             func add(_ value: Double) { lock.lock(); all.append(value); lock.unlock() }
         }
         let proof = Values()
-        try BookPDF.write(book, directory: folder, to: folder.appendingPathComponent("proof.pdf"), progress: proof.add)
+        try BookPDF.write(book, directory: folder, to: folder.appendingPathComponent("proof.pdf"), progress: { proof.add($0) })
         XCTAssertEqual(proof.all, [0, 0.2, 0.4, 0.6, 0.8, 1, 1])
         let print = Values()
         book.printSettings = PrintSettings(spreads: true)
-        try BookPDF.writePrint(book, directory: folder, to: folder.appendingPathComponent("print"), progress: print.add)
+        try BookPDF.writePrint(book, directory: folder, to: folder.appendingPathComponent("print"), progress: { print.add($0) })
         // Three interior sheets and the cover.
         XCTAssertEqual(print.all, [0, 0.25, 0.5, 0.75, 1, 1])
         let pixart = Values()
         try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 6), to: folder.appendingPathComponent("pixart.pdf"),
-                                progress: pixart.add)
+                                progress: { pixart.add($0) })
         XCTAssertEqual(pixart.all.first, 0)
         XCTAssertEqual(pixart.all.last, 1)
         XCTAssertEqual(pixart.all, pixart.all.sorted())
