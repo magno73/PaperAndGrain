@@ -361,7 +361,18 @@ enum BookCLIMedia {
         let profile: PDFProfile = if let entry { .service(try plan(entry, book: book, options: options)) }
             else { name == "print" ? .print : .proof }
         let plan: PrintPlan? = if case let .service(plan) = profile { plan } else { nil }
-        try checkExportable(book, plan: plan)
+        // The checks and warnings read the color this export writes, `--color` included.
+        var checked = book
+        switch color {
+        case .srgb?: checked.printSettings?.colorOutput = nil
+        case let .cmyk(converter)?:
+            var settings = checked.printSettings ?? PrintSettings()
+            settings.colorOutput = .cmyk(ICCProfileReference(id: "cli", name: converter.name, filename: "",
+                                                             sha256: converter.info.sha256))
+            checked.printSettings = settings
+        case nil: break
+        }
+        try checkExportable(checked, plan: plan)
         try publish(output) { staged in
             switch profile {
             case .proof:
@@ -374,8 +385,8 @@ enum BookCLIMedia {
         }
         let warnings: [String] = switch profile {
         case .proof: []
-        case .print: BookPDF.printWarnings(book)
-        case let .service(plan): BookPDF.printWarnings(book, profile: .service(plan))
+        case .print: BookPDF.printWarnings(checked)
+        case let .service(plan): BookPDF.printWarnings(checked, profile: .service(plan))
         }
         let written: String = switch (name, color) {
         case ("proof", _), (_, .srgb?): "sRGB IEC61966-2.1"
@@ -500,6 +511,12 @@ enum BookCLIMedia {
         }
         guard let plan else { return }
         let profile = plan.profile
+        let writes: PrintProfile.ColorMode = book.printSettings?.writesCMYK == true ? .cmyk : .srgb
+        if !profile.color.accepts.contains(writes), let asked = profile.color.accepts.first {
+            throw BookCLI.Failure(asked == .cmyk
+                ? "\(profile.title("en")) takes CMYK only: pass --color cmyk, or set the book's color in Book & Print"
+                : "\(profile.title("en")) takes sRGB only: pass --color srgb, or set the book's color in Book & Print")
+        }
         guard plan.size(for: book) != nil else {
             let sizes = (plan.sizeID.flatMap(profile.size).map { [$0] } ?? profile.sizes(closestTo: format))
                 .map { "\(mm($0.format.widthMM)) × \(mm($0.format.heightMM)) mm" }

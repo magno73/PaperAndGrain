@@ -76,6 +76,41 @@ extension EditorView {
     }
 
     /// **Ignore in This Book** (one undo step) with **Learn Spelling** next to it.
+    /// Switches the book to the color mode its print service takes. CMYK takes the profile the printer
+    /// names when it is bundled, otherwise the first bundled one; it is copied into the package. One undo step.
+    func colorModeFix(_ asked: PrintProfile.ColorMode) -> IssueFix? {
+        switch asked {
+        case .srgb:
+            return IssueFix(title: tr("Switch to sRGB"), help: tr("Write the print PDFs in sRGB, as the printer asks"),
+                            systemImage: "paintpalette") { setColorOutput(nil) }
+        case .cmyk:
+            let named = PrintPlan(book: book)?.profile.color.iccProfile
+                .flatMap { ICCProfileSources.candidate(for: $0, installed: []) }
+            let profile: ICCProfileSources.Bundled? = if case let .bundled(found)? = named { found }
+                else { ICCProfileSources.bundled.first }
+            guard let profile, let data = ICCProfileSources.bundledData(profile) else { return nil }
+            return IssueFix(title: tr("Switch to CMYK"),
+                            help: tr("Write the print PDFs in CMYK with %@", ICCProfileInfo(data)?.name ?? profile.filename),
+                            systemImage: "paintpalette") {
+                guard let reference = try? BookStorage.importICCProfile(data, named: profile.filename, id: profile.id,
+                                                                        in: directory) else { return }
+                setColorOutput(.cmyk(reference))
+            }
+        }
+    }
+
+    private func setColorOutput(_ output: ColorOutput?) {
+        let previous = book.printSettings
+        var settings = previous ?? PrintSettings()
+        settings.colorOutput = output
+        book.printSettings = settings
+        if let undoManager {
+            undoTarget.registerPrintSettings(undoManager, binding: $book, bookID: book.id, previous: previous,
+                                             name: tr("Color"))
+        }
+        recheckIssues(immediately: true)
+    }
+
     func spellingFix(for word: String) -> IssueFix {
         let learn = IssueFix(title: tr("Learn Spelling"),
                              help: tr("Add the word to the Mac’s dictionary, for every app"),
@@ -106,11 +141,13 @@ extension EditorView {
         switch issue.problem {
         case .missingFile:
             relinkFix(for: issue)
+        case let .colorModeNotAccepted(asked):
+            colorModeFix(asked)
         case let .possibleMisspelling(word, _):
             spellingFix(for: word)
         case .invalidDimensions, .missingPhoto, .unreadableLUT, .lowResolution, .textOverflows,
              .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure,
-             .captionDoesNotFit, .colorProfileUnusable, .colorModeNotAccepted, .outOfGamut, .mapWithoutPlaces, .mapDataMissing:
+             .captionDoesNotFit, .colorProfileUnusable, .outOfGamut, .mapWithoutPlaces, .mapDataMissing:
             nil
         }
     }

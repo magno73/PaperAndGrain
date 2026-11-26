@@ -905,6 +905,23 @@
         }
       }
     },
+    "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Pagina › Duplica pagina** (⌘D) o il menu contestuale di Pagine mette una copia della pagina subito dopo. Taglia, copia e incolla funzionano su riquadri di testo e racconti; ⌘D allora duplica il riquadro o il racconto selezionato."
+          }
+        }
+      }
+    },
     "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Blurb, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering.": {
       "comment": "Help, Print topic.",
       "extractionState": "manual",
@@ -9489,6 +9506,23 @@
         }
       }
     },
+    "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto senza file mostrano un segnaposto grigio: **Problemi** le elenca e **Ricollega…** (o **Ricollega tutte da una cartella…**) le riporta a un file."
+          }
+        }
+      }
+    },
     "Place": {
       "extractionState": "manual",
       "localizations": {
@@ -11909,6 +11943,42 @@
         }
       }
     },
+    "Switch to CMYK": {
+      "comment": "Issue fix button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to CMYK"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a CMYK"
+          }
+        }
+      }
+    },
+    "Switch to sRGB": {
+      "comment": "Issue fix button.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to sRGB"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a sRGB"
+          }
+        }
+      }
+    },
     "System Default": {
       "extractionState": "manual",
       "localizations": {
@@ -14026,6 +14096,41 @@
         }
       }
     },
+    "Write the print PDFs in CMYK with %@": {
+      "comment": "The argument is an ICC profile name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the print PDFs in CMYK with %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi i PDF di stampa in CMYK con %@"
+          }
+        }
+      }
+    },
+    "Write the print PDFs in sRGB, as the printer asks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the print PDFs in sRGB, as the printer asks"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrivi i PDF di stampa in sRGB, come chiede lo stampatore"
+          }
+        }
+      }
+    },
     "Yellow": {
       "extractionState": "manual",
       "localizations": {
@@ -14897,40 +15002,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "⌃⌘S pagine · ⌥⌘I ispettore · ⌥⌘L fototeca · ⌘1 / ⌘2 pagina singola o doppia · ⌘+ ⌘− ⌘0 zoom · ⌥⌘↩ sfoglia il libro · ⇧⌘I segnalazioni"
-          }
-        }
-      }
-    },
-    "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "**Pagina › Duplica pagina** (⌘D) o il menu contestuale di Pagine mette una copia della pagina subito dopo. Taglia, copia e incolla funzionano su riquadri di testo e racconti; ⌘D allora duplica il riquadro o il racconto selezionato."
-          }
-        }
-      }
-    },
-    "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le foto senza file mostrano un segnaposto grigio: **Problemi** le elenca e **Ricollega…** (o **Ricollega tutte da una cartella…**) le riporta a un file."
           }
         }
       }

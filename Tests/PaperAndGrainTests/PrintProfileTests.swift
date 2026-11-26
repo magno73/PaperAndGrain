@@ -141,6 +141,9 @@ final class PrintProfileTests: XCTestCase {
         let wrap = try XCTUnwrap(catalog.profile("test-imagewrap"))
         book.format = wrap.sizes[1].format
         book.cover = BookCover(title: "T")
+        // This entry takes CMYK only: the book writes CMYK, so the color mode is not among the blockers.
+        book.printSettings = PrintSettings()
+        book.printSettings?.colorOutput = .cmyk(ICCProfileReference(id: "test", name: "Test CMYK", filename: "t.icc", sha256: "0"))
         book.pages = (0..<241).map { _ in BookPage(layout: .text, text: "x") }
         report = BookPDF.preflight(book, directory: nil, profile: .service(PrintPlan(profile: wrap)))
         let warnings = report.warnings.map { $0.message(language: "en") }
