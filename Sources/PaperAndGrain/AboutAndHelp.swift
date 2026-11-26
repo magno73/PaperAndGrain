@@ -108,7 +108,7 @@ struct HelpView: View, Localizing {
             Topic(id: "start", symbol: "1.circle", title: tr("Create the book"), lines: [
                 tr("**File › New Book from Photos** picks an album; **New Book from Files** uses Finder. Choose the size, then the book template: paper, type and margins."),
                 tr("Change the template any time with **Style** in the toolbar."),
-                tr("**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom. The map shows countries and regions, not streets."),
+                tr("**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom, and hides places the map should leave out. Double-click the map to move and zoom it, then **Done**. The map shows countries and regions, not streets."),
             ]),
             Topic(id: "pages", symbol: "2.circle", title: tr("Lay out pages"), lines: [
                 tr("Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it. The library menu has **Stack Similar Photos**, which groups near-duplicates; **Compare…** and **Use This One** pick the best."),

@@ -180,6 +180,8 @@ struct EditorView: View, Localizing {
     @State var groupDrag = CanvasGroupDrag()
     /// The bundled map data is in memory; read once, off the main thread, when the book has a map page.
     @State var mapDataReady = false
+    /// A map page being framed on the canvas.
+    @State var mapAdjust: MapAdjustSession?
 
     @State var issues = IssueMonitor(extra: EditorView.liveSpelling)
 
@@ -493,21 +495,7 @@ struct EditorView: View, Localizing {
         }
         .background { Theme.table.ignoresSafeArea() }
         .background(alignment: .topLeading) {
-            CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
-                                 onNudge: handleArrowKey, onClick: { selectObject(at: $0, modifiers: $1) },
-                                 onPointerDown: { point in
-                groupDrag.resetAll()
-                if dropFrames[.canvasViewport]?.contains(point) == true {
-                    editorInput.target = .canvas
-                } else if !isNavigatorPoint(point) {
-                    editorInput.target = .none
-                }
-            }, onKeyboardTraversal: { editorInput.target = .none },
-                                 onContextMenu: canvasMenu(at:), canTurnPages: canTurnPages(at:),
-                                 onTurnPage: turnCanvasPage, onSelectAll: selectAllObjects,
-                                 canBeginMarquee: canBeginMarquee(at:),
-                                 onMarquee: { updateMarquee(from: $0, to: $1, ended: $2) },
-                                 edit: canvasEditCommands)
+            canvasEventMonitor
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -533,7 +521,7 @@ struct EditorView: View, Localizing {
             pruneGroupSelection()
         }
         .onChange(of: canvasGroup) { groupDrag.resetAll() }
-        .onChange(of: selection) { groupDrag.resetAll() }
+        .onChange(of: selection) { selectionChanged() }
         // A single selection anywhere (a library photo, the cover) ends a selection of several.
         .onChange(of: selectedPhoto != nil || selectedBox != nil || selectedEditorial != nil || coverSide != nil) { _, single in
             if single, canvasGroup.isActive { canvasGroup = CanvasGroupSelection() }
@@ -581,6 +569,32 @@ struct EditorView: View, Localizing {
         }
         .animation(.snappy(duration: 0.22), value: showsNavigator)
         .animation(.snappy(duration: 0.22), value: showsTray)
+    }
+
+    /// Observes clicks, keys and scrolls in the window for the canvas (`CanvasDeleteShortcut`).
+    var canvasEventMonitor: CanvasDeleteShortcut {
+        CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
+                                 onNudge: handleArrowKey, onClick: { selectObject(at: $0, modifiers: $1) },
+                                 onPointerDown: { point in
+                groupDrag.resetAll()
+                if dropFrames[.canvasViewport]?.contains(point) == true {
+                    editorInput.target = .canvas
+                } else if !isNavigatorPoint(point) {
+                    editorInput.target = .none
+                }
+            }, onKeyboardTraversal: { editorInput.target = .none },
+                                 onContextMenu: canvasMenu(at:), canTurnPages: canTurnPages(at:),
+                                 onTurnPage: turnCanvasPage, onSelectAll: selectAllObjects,
+                                 canBeginMarquee: canBeginMarquee(at:),
+                                 onMarquee: { updateMarquee(from: $0, to: $1, ended: $2) },
+                                 onDoubleClick: doubleClickCanvas(at:), onScroll: scrollCanvas(at:delta:),
+                                 edit: canvasEditCommands)
+    }
+
+    /// A new page ends what belonged to the previous one: a drag in progress and the framing of its map.
+    func selectionChanged() {
+        groupDrag.resetAll()
+        if let session = mapAdjust, session.pageID != selection { endMapAdjust() }
     }
 
     /// `proof: false` keeps sRGB where the soft proof does not belong, such as the Compare sheet.

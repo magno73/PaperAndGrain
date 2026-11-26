@@ -156,14 +156,36 @@ struct MapComposition {
     let fillsTrim: Bool
     let geography: MapShapes?
     let route: [CGPoint]
+    /// The places shown. Hidden places are not drawn, not on the route and not fitted.
     let places: [Place]
-    /// No photo of the book has a location: the editor says so, the PDF draws nothing, Issues blocks.
-    var isEmpty: Bool { places.isEmpty }
+    /// The places the author hid, so the Page tab can list them and show them again.
+    let hiddenPlaces: [HiddenPlace]
+    /// No photo the map counts has a location: the editor says so, the PDF draws nothing, Issues blocks.
+    let isEmpty: Bool
+    /// The part of the world shown, after fitting, zoom and offset; nil for an empty map.
+    let region: MapGeometry.Region?
+
+    struct HiddenPlace: Identifiable {
+        var id: String { key }
+        let key: String
+        let suggestedName: String?
+    }
     /// The bundled geography could not be read; places and route still show.
     let missingGeography: Bool
 
     static let dotRadius: CGFloat = 2.4
+    /// The nearest town names a place within this distance on a regional map...
     static let labelReachKM = 50.0
+    /// ...and up to this on a wide one, where a dot covers more ground.
+    static let wideLabelReachKM = 150.0
+
+    /// How far a town may be from a place to name it: 5 % of the visible width, between 50 and 150 km.
+    static func labelReach(for region: MapGeometry.Region) -> Double {
+        let middle = (region.minY + region.maxY) / 2
+        let latitude = atan(sinh(middle * .pi / 180)) * 180 / .pi
+        let widthKM = region.width * 111.32 * cos(latitude * .pi / 180)
+        return min(wideLabelReachKM, max(labelReachKM, widthKM * 0.05))
+    }
 
     /// The photos a map counts, with a location, in capture order (book order for equal or missing dates).
     static func locatedPhotos(_ book: Book, settings: PageMap) -> [(photo: BookPhoto, coordinate: MapCoordinate)] {
@@ -206,25 +228,59 @@ struct MapComposition {
         self.frame = frame
         self.fillsTrim = fillsTrim
         let settings = page.map ?? PageMap()
-        let located = located ?? Self.locatedPhotos(book, settings: settings)
+        let all = located ?? Self.locatedPhotos(book, settings: settings)
         let world = store.loadedGeography
         missingGeography = world == nil
-        guard !located.isEmpty, frame.width > 1, frame.height > 1,
-              let region = MapGeometry.region(for: located.map(\.coordinate), aspect: frame.width / frame.height,
-                                              zoom: settings.resolvedZoom,
-                                              offset: CGSize(width: settings.centerOffset?.x ?? 0,
-                                                             height: settings.centerOffset?.y ?? 0)) else {
+        isEmpty = all.isEmpty
+        func fit(_ photos: [(photo: BookPhoto, coordinate: MapCoordinate)]) -> MapGeometry.Region? {
+            MapGeometry.region(for: photos.map(\.coordinate), aspect: frame.width / frame.height,
+                               zoom: settings.resolvedZoom,
+                               offset: CGSize(width: settings.centerOffset?.x ?? 0, height: settings.centerOffset?.y ?? 0))
+        }
+        // A hidden place leaves the map: its photos are taken out and the rest is fitted again, so hiding the
+        // places of the journey there frames the trip itself. Places merge at the map's scale, which changes
+        // as places go, so this repeats until no hidden place is left.
+        let hiddenKeys = Set(settings.labels?.filter { $0.hidden == true }.map(\.key) ?? [])
+        let threshold = hypot(frame.width, frame.height) * MapGeometry.mergeFraction
+        var located = all
+        var hidden: [HiddenPlace] = []
+        var fitted: (region: MapGeometry.Region, merged: [(point: CGPoint, members: [Int])])?
+        while frame.width > 1, frame.height > 1, !located.isEmpty, let region = fit(located) {
+            let merged = MapGeometry.merge(located.map { region.point($0.coordinate, in: frame) }, threshold: threshold)
+            let gone = merged.filter { hiddenKeys.contains(MapLabel.key(for: located[$0.members[0]].coordinate)) }
+            if gone.isEmpty {
+                fitted = (region, merged)
+                break
+            }
+            var removed = Set<Int>()
+            for entry in gone {
+                let coordinate = located[entry.members[0]].coordinate
+                let key = MapLabel.key(for: coordinate)
+                if !hidden.contains(where: { $0.key == key }) {
+                    let name = Self.photoPlaceName(entry.members.map { located[$0].photo })
+                        ?? world.flatMap { Self.nearestTown(to: coordinate, in: $0, language: language) }
+                    hidden.append(HiddenPlace(key: key, suggestedName: name))
+                }
+                removed.formUnion(entry.members)
+            }
+            located = located.enumerated().filter { !removed.contains($0.offset) }.map(\.element)
+        }
+        hiddenPlaces = hidden
+        // With every place hidden the map still shows the land around them, with no dot.
+        guard frame.width > 1, frame.height > 1,
+              let region = fitted?.region ?? (all.isEmpty ? nil : fit(all)) else {
+            self.region = nil
             geography = nil
             route = []
             places = []
             return
         }
+        self.region = region
         geography = world.map { MapShapeCache.shared.shapes(world: $0, region: region, frame: frame,
                                                             borders: settings.countryBorders, reach: fillsTrim ? 30 : 2) }
-        let points = located.map { region.point($0.coordinate, in: frame) }
-        let threshold = hypot(frame.width, frame.height) * MapGeometry.mergeFraction
-        let merged = MapGeometry.merge(points, threshold: threshold)
-        var visit = [Int](repeating: 0, count: points.count)
+        let merged = fitted?.merged ?? []
+        let reach = Self.labelReach(for: region)
+        var visit = [Int](repeating: 0, count: located.count)
         for (place, entry) in merged.enumerated() { for member in entry.members { visit[member] = place } }
         var sequence: [Int] = []
         for place in visit where sequence.last != place { sequence.append(place) }
@@ -236,10 +292,9 @@ struct MapComposition {
             let coordinate = located[entry.members[0]].coordinate
             let key = MapLabel.key(for: coordinate)
             let suggested = Self.photoPlaceName(entry.members.map { located[$0].photo })
-                ?? world.flatMap { Self.nearestTown(to: coordinate, in: $0, language: language) }
-            let override = settings.label(key)
-            let edited = override?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let name = override?.hidden == true ? nil : (edited?.isEmpty == false ? edited : suggested)
+                ?? world.flatMap { Self.nearestTown(to: coordinate, in: $0, language: language, within: reach) }
+            let edited = settings.label(key)?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let name = edited?.isEmpty == false ? edited : suggested
             named.append((key, coordinate, entry.point, entry.members.count, suggested, name))
         }
         let texts: [NSAttributedString?] = named.map { item in
@@ -276,13 +331,15 @@ struct MapComposition {
         return best
     }
 
-    /// The nearest populated place within 50 km, in `language`.
-    static func nearestTown(to coordinate: MapCoordinate, in world: MapGeography, language: String) -> String? {
+    /// The nearest populated place within `within` km (50 by default), in `language`.
+    static func nearestTown(to coordinate: MapCoordinate, in world: MapGeography, language: String,
+                            within reach: Double = labelReachKM) -> String? {
         var best: (distance: Double, place: MapGeography.Place)?
+        let degrees = reach / 111.0 + 0.01
         for place in world.places
-        where abs(place.coordinate.latitude - coordinate.latitude) < 1 {
+        where abs(place.coordinate.latitude - coordinate.latitude) < degrees {
             let distance = MapGeometry.distance(coordinate, place.coordinate)
-            if distance <= labelReachKM, distance < best?.distance ?? .infinity { best = (distance, place) }
+            if distance <= reach, distance < best?.distance ?? .infinity { best = (distance, place) }
         }
         return best?.place.name(language: language)
     }

@@ -117,15 +117,34 @@ extension EditorView {
                 .help(tr("Names next to the places, in the book's caption style"))
             Toggle(tr("Country borders"), isOn: mapBinding(leaf.id, \.countryBorders, name: tr("Country Borders")) { $0.showsBorders = $1 ? nil : false })
                 .help(tr("Borders as Natural Earth draws them; disputed ones are dashed"))
+            HStack(spacing: 6) {
+                Button(tr("Adjust Map")) { beginMapAdjust(on: leaf.id) }
+                    .help(tr("Drag the map to move it and pinch or scroll to zoom; Done or Esc to finish"))
+                Button(tr("Fit to Places")) { fitMapToPlaces(on: leaf.id) }
+                    .help(tr("Show every place again, centered"))
+                    .disabled(leaf.map?.zoom == nil && leaf.map?.centerOffset == nil)
+            }
             MapZoomSlider(zoom: leaf.map?.resolvedZoom ?? 1, language: language) { value in
-                changeMap(on: leaf.id, name: tr("Map Zoom")) { $0.zoom = abs(value - 1) < 0.001 ? nil : value }
+                // While the map is framed on the canvas the slider is part of that session's one undo step.
+                if let session = mapAdjust, session.pageID == leaf.id {
+                    zoomMap(by: value / session.baseZoom, ended: true)
+                } else {
+                    changeMap(on: leaf.id, name: tr("Map Zoom")) { $0.zoom = abs(value - 1) < 0.001 ? nil : value }
+                }
             }
             if let map, !map.isEmpty {
                 caption(tr("Places"))
                 ForEach(map.places) { place in
                     MapPlaceRow(name: leaf.map?.label(place.key)?.name ?? "", suggested: place.suggestedName,
-                                shownName: place.name ?? place.suggestedName,
-                                shown: leaf.map?.label(place.key)?.hidden != true, language: language,
+                                shownName: place.name ?? place.suggestedName, shown: true, language: language,
+                                rename: { changeMapLabel(place.key, on: leaf.id, name: $0) },
+                                show: { changeMapLabel(place.key, on: leaf.id, hidden: !$0) })
+                }
+                // Hidden places stay listed, switched off, so they can come back.
+                ForEach(map.hiddenPlaces) { place in
+                    let edited = leaf.map?.label(place.key)?.name
+                    MapPlaceRow(name: edited ?? "", suggested: place.suggestedName,
+                                shownName: edited ?? place.suggestedName, shown: false, language: language,
                                 rename: { changeMapLabel(place.key, on: leaf.id, name: $0) },
                                 show: { changeMapLabel(place.key, on: leaf.id, hidden: !$0) })
                 }
@@ -166,8 +185,8 @@ struct MapPlaceRow: View, Localizing {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .labelsHidden()
-                .accessibilityLabel(tr("Show the name") + ": " + (shownName ?? tr("No name")))
-                .help(tr("Show or hide this name"))
+                .accessibilityLabel(tr("Show this place") + ": " + (shownName ?? tr("No name")))
+                .help(tr("Show or hide this place: a hidden place has no dot, no name, is left off the route and the map no longer fits it"))
         }
     }
 
@@ -224,5 +243,174 @@ struct MapZoomSlider: View, Localizing {
     static func zoom(atStep step: Double) -> Double {
         let value = pow(2, step)
         return min(PageMap.zoomRange.upperBound, max(PageMap.zoomRange.lowerBound, (value * 20).rounded() / 20))
+    }
+}
+
+/// A map being framed on the canvas: the pages before it started (for its one undo step), and the zoom
+/// and offset a drag or a pinch started from.
+struct MapAdjustSession: Equatable {
+    let pageID: UUID
+    let before: [BookPage]
+    var baseZoom: Double
+    var baseOffset: MapOffset
+}
+
+/// Framing a map on the canvas, as cropping frames a photo: double-click the map (or **Adjust Map**), drag
+/// to move it, pinch, scroll or use the slider to zoom, **Done** or Esc to finish. The whole session is one
+/// undo step. Zoom and offset stay in `PageMap` as the region's own fractions, so every surface draws the
+/// same framing at any size.
+extension EditorView {
+    static let mapOffsetLimit = 2.0
+
+    func mapFrame(on leaf: BookPage) -> CGRect? {
+        pageComposition(leaf).map?.frame
+    }
+
+    func beginMapAdjust(on pageID: UUID) {
+        guard let leaf = book.pages.first(where: { $0.id == pageID }), leaf.isMapPage else { return }
+        if mapAdjust?.pageID == pageID { return }
+        endMapAdjust()
+        finishCrop()
+        endInlineTextEditing()
+        select(leaf)
+        clearCanvasSelection()
+        editorInput.target = .canvas
+        let map = leaf.map ?? PageMap()
+        mapAdjust = MapAdjustSession(pageID: pageID, before: book.pages, baseZoom: map.resolvedZoom,
+                                     baseOffset: map.centerOffset ?? MapOffset(x: 0, y: 0))
+    }
+
+    /// Ends the session and records it as one undo step when it changed anything.
+    func endMapAdjust() {
+        guard let session = mapAdjust else { return }
+        mapAdjust = nil
+        registerUndo(session.before, name: tr("Adjust Map"))
+    }
+
+    /// Writes the framing live, without an undo step of its own.
+    func setMapFraming(on pageID: UUID, zoom: Double?, offset: MapOffset?) {
+        guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }
+        var map = book.pages[index].map ?? PageMap()
+        map.zoom = zoom.map { min(PageMap.zoomRange.upperBound, max(PageMap.zoomRange.lowerBound, $0)) }
+            .flatMap { abs($0 - 1) < 0.001 ? nil : $0 }
+        map.centerOffset = offset.flatMap { abs($0.x) < 0.0005 && abs($0.y) < 0.0005 ? nil : $0 }
+        let next: PageMap? = map == PageMap() ? nil : map
+        if book.pages[index].map != next { book.pages[index].map = next }
+    }
+
+    /// A drag of `translation` displayed points on a map shown `size` points large moves the map with the
+    /// pointer: the offset is a share of the fitted region, divided by the zoom.
+    func panMap(by translation: CGSize, shownSize size: CGSize, ended: Bool) {
+        guard var session = mapAdjust, size.width > 0, size.height > 0 else { return }
+        let offset = MapGeometry.panned(session.baseOffset, by: translation, shownSize: size, zoom: session.baseZoom,
+                                        limit: Self.mapOffsetLimit)
+        setMapFraming(on: session.pageID, zoom: session.baseZoom, offset: offset)
+        if ended {
+            session.baseOffset = offset
+            mapAdjust = session
+        }
+    }
+
+    /// Zooms by `factor` from the zoom the gesture started at.
+    func zoomMap(by factor: Double, ended: Bool) {
+        guard var session = mapAdjust, factor.isFinite, factor > 0 else { return }
+        let zoom = min(PageMap.zoomRange.upperBound, max(PageMap.zoomRange.lowerBound, session.baseZoom * factor))
+        setMapFraming(on: session.pageID, zoom: zoom, offset: session.baseOffset)
+        if ended {
+            session.baseZoom = zoom
+            mapAdjust = session
+        }
+    }
+
+    /// Back to the fit of all shown places: in a session it is part of the session's step, otherwise its own.
+    func fitMapToPlaces(on pageID: UUID) {
+        if var session = mapAdjust, session.pageID == pageID {
+            setMapFraming(on: pageID, zoom: nil, offset: nil)
+            session.baseZoom = 1
+            session.baseOffset = MapOffset(x: 0, y: 0)
+            mapAdjust = session
+            return
+        }
+        changeMap(on: pageID, name: tr("Fit to Places")) {
+            $0.zoom = nil
+            $0.centerOffset = nil
+        }
+    }
+
+    /// A double-click on blank paper over a map starts framing it.
+    func doubleClickCanvas(at point: CGPoint) {
+        guard coverSide == nil, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil,
+              let leaf = pageUnder(point), leaf.isMapPage, canvasTarget(at: point, on: .canvasPage(leaf.id)) == .paper,
+              let local = pagePoint(point, on: leaf.id), mapFrame(on: leaf)?.contains(local) == true else { return }
+        beginMapAdjust(on: leaf.id)
+    }
+
+    /// While a map is framed, scrolling over it zooms instead of turning the page.
+    func scrollCanvas(at point: CGPoint, delta: CGFloat) -> Bool {
+        guard let session = mapAdjust, let leaf = pageUnder(point), leaf.id == session.pageID else { return false }
+        guard delta != 0 else { return true }
+        zoomMap(by: exp(Double(delta) * 0.006), ended: true)
+        return true
+    }
+
+    /// Whether a point of the editor lies on the map being framed.
+    func isOnAdjustedMap(_ point: CGPoint) -> Bool {
+        guard let session = mapAdjust, let leaf = book.pages.first(where: { $0.id == session.pageID }),
+              dropFrames[.canvasPage(leaf.id)]?.contains(point) == true,
+              let local = pagePoint(point, on: leaf.id) else { return false }
+        return mapFrame(on: leaf)?.contains(local) == true
+    }
+
+    /// The surface over the map while it is framed: drag to move, pinch to zoom.
+    @ViewBuilder func mapAdjustSurface(_ leaf: BookPage, map: MapComposition, scale: CGFloat) -> some View {
+        if mapAdjust?.pageID == leaf.id {
+            let frame = scaled(map.frame, by: scale)
+            positioned(
+                Rectangle()
+                    .fill(Color.clear)
+                    .contentShape(Rectangle())
+                    .overlay { Rectangle().strokeBorder(pine, style: StrokeStyle(lineWidth: 2, dash: [6, 3])) }
+                    .gesture(DragGesture(minimumDistance: 1)
+                        .onChanged { panMap(by: $0.translation, shownSize: frame.size, ended: false) }
+                        .onEnded { panMap(by: $0.translation, shownSize: frame.size, ended: true) })
+                    .simultaneousGesture(MagnifyGesture()
+                        .onChanged { zoomMap(by: $0.magnification, ended: false) }
+                        .onEnded { zoomMap(by: $0.magnification, ended: true) })
+                    .onHover { inside in if inside { NSCursor.openHand.push() } else { NSCursor.pop() } }
+                    .accessibilityElement()
+                    .accessibilityLabel(tr("Map framing"))
+                    .accessibilityHint(tr("Drag to move the map; pinch or scroll to zoom"))
+                    .accessibilityAction(named: Text(tr("Zoom In"))) { zoomMap(by: 1.25, ended: true) }
+                    .accessibilityAction(named: Text(tr("Zoom Out"))) { zoomMap(by: 0.8, ended: true) }
+                    .accessibilityAction(named: Text(tr("Fit to Places"))) { fitMapToPlaces(on: leaf.id) },
+                in: frame)
+        }
+    }
+
+    /// The floating bar while a map is framed, like the crop bar.
+    func mapAdjustToolbar(_ session: MapAdjustSession) -> some View {
+        let zoom = book.pages.first { $0.id == session.pageID }?.map?.resolvedZoom ?? 1
+        return HStack(spacing: 8) {
+            Label(tr("Adjust Map"), systemImage: "map")
+                .font(.system(size: 11, weight: .semibold))
+            Divider().frame(height: 17)
+            action("minus", tr("Zoom Out")) { zoomMap(by: 1 / 1.25, ended: true) }
+                .disabled(zoom <= PageMap.zoomRange.lowerBound)
+            Text(zoom.formatted(.percent.precision(.fractionLength(0))))
+                .font(.system(size: 11).monospacedDigit())
+                .frame(minWidth: 43)
+            action("plus", tr("Zoom In")) { zoomMap(by: 1.25, ended: true) }
+                .disabled(zoom >= PageMap.zoomRange.upperBound)
+            Divider().frame(height: 17)
+            Button(tr("Fit to Places")) { fitMapToPlaces(on: session.pageID) }
+                .help(tr("Show every place again, centered"))
+            Button(tr("Done")) { endMapAdjust() }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        }
+        .controlSize(.small)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .floatingCapsule()
     }
 }

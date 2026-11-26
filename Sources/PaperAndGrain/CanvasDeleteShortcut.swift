@@ -29,6 +29,10 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     var canBeginMarquee: (CGPoint) -> Bool = { _ in false }
     /// The selection rectangle from its origin to the pointer; `ended` on release.
     var onMarquee: (_ origin: CGPoint, _ point: CGPoint, _ ended: Bool) -> Void = { _, _, _ in }
+    /// A double-click (second press) at a point; it never consumes the event.
+    var onDoubleClick: (CGPoint) -> Void = { _ in }
+    /// A scroll at a point, with its vertical delta; true consumes it (a map being framed zooms).
+    var onScroll: (CGPoint, CGFloat) -> Bool = { _, _ in false }
     /// Edit › Cut, Copy and Paste for the canvas. They reach the window's responder chain only when no
     /// text view took them first, so text keeps its own meaning.
     var edit = CanvasEditCommands()
@@ -53,6 +57,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         anchor.canBeginMarquee = canBeginMarquee
         anchor.onMarquee = onMarquee
         anchor.editResponder.commands = edit
+        anchor.onDoubleClick = onDoubleClick
+        anchor.onScroll = onScroll
         anchor.joinResponderChain()
     }
 
@@ -118,6 +124,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         private var marqueeOrigin: CGPoint?
         private var marqueeActive = false
         let editResponder = CanvasEditResponder()
+        var onDoubleClick: (CGPoint) -> Void = { _ in }
+        var onScroll: (CGPoint, CGFloat) -> Bool = { _, _ in false }
         private weak var chainWindow: NSWindow?
 
         /// Puts the edit responder after the window in its responder chain, once.
@@ -196,6 +204,11 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 return event
             }
             if event.type == .scrollWheel {
+                if event.window === window {
+                    let point = convert(event.locationInWindow, from: nil)
+                    let delta = event.hasPreciseScrollingDeltas ? event.scrollingDeltaY : event.scrollingDeltaY * 8
+                    if bounds.contains(point), onScroll(point, delta) { return nil }
+                }
                 return turnPages(event, in: window) ? nil : event
             }
             if event.type == .rightMouseDown || (event.type == .leftMouseDown && event.modifierFlags.contains(.control)),
@@ -264,6 +277,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                     if canBeginMarquee(point) { marqueeOrigin = point }
                 } else {
                     pressOrigin = nil
+                }
+                if bounds.contains(point), event.clickCount == 2, !event.modifierFlags.contains(.control) {
+                    DispatchQueue.main.async { [weak self] in self?.onDoubleClick(point) }
                 }
             case .rightMouseDown, .otherMouseDown:
                 pressOrigin = nil

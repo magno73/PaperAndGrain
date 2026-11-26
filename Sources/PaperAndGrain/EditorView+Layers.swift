@@ -134,7 +134,15 @@ extension EditorView {
             case .storyGroup:
                 entries += layerEntries(LayerTarget(pageID: leaf.id, layer: .story))
                 entries.append(.separator)
-            case .paper, .coverText, .crop:
+            case .paper:
+                if leaf.isMapPage {
+                    entries += [
+                        EditorMenuEntry(tr("Adjust Map")) { beginMapAdjust(on: leaf.id) },
+                        EditorMenuEntry(tr("Fit to Places")) { fitMapToPlaces(on: leaf.id) },
+                        .separator
+                    ]
+                }
+            case .coverText, .crop:
                 break
             }
         }

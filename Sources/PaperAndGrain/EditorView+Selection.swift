@@ -10,6 +10,11 @@ extension EditorView {
     func selectObject(at point: CGPoint, modifiers: NSEvent.ModifierFlags = []) {
         // Buttons floating over the page act on the selection; they must not clear it.
         guard !isCanvasControl(point) else { return }
+        // While a map is framed, a click on it belongs to the framing; anywhere else ends it.
+        if mapAdjust != nil {
+            if isOnAdjustedMap(point) { return }
+            endMapAdjust()
+        }
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
         guard insideCanvas else {
             if showsTray, let id = libraryHitFrames.frames.photo(at: point) {
@@ -82,6 +87,10 @@ extension EditorView {
     }
 
     func deselectCanvas() -> Bool {
+        if mapAdjust != nil {
+            endMapAdjust()
+            return true
+        }
         guard editorInput.target == .canvas else { return false }
         if cropSession != nil {
             cropSession = nil
