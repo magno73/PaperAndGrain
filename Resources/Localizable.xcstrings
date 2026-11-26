@@ -887,20 +887,20 @@
         }
       }
     },
-    "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering.": {
+    "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Blurb, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering.": {
       "comment": "Help, Print topic.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering."
+            "value": "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Blurb, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Servizio di stampa** in **Libro e stampa** sceglie il prodotto e il formato di uno stampatore: imposta abbondanza e margini, aggiunge i controlli del prodotto a **Segnalazioni** e la sua esportazione a **Esporta PDF**. Il catalogo ha Pixartprinting, Saal Digital, Peecho, WhiteWall, Lulu e Mixam. Prima di ordinare controlla i requisiti attuali dello stampatore."
+            "value": "**Servizio di stampa** in **Libro e stampa** sceglie il prodotto e il formato di uno stampatore: imposta abbondanza e margini, aggiunge i controlli del prodotto a **Segnalazioni** e la sua esportazione a **Esporta PDF**. Il catalogo ha Pixartprinting, Saal Digital, Blurb, Peecho, WhiteWall, Lulu e Mixam. Prima di ordinare controlla i requisiti attuali dello stampatore."
           }
         }
       }

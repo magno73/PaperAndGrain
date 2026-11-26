@@ -59,6 +59,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ### Print services
 
+- Blurb: ImageWrap hardcover (five formats, four papers) and softcover (three formats). CMYK, not certified PDF/X-3:2002. The Standard Landscape spine is tabled; the other spines and cover panels are typed from Blurb's calculator.
 - Saal Digital: the hardcover photo book in five sizes, for the default cover and paper; one PDF page per double page, spine, fold-over and cover width from Saal's tables.
 - Mixam: the hardcover book in 24 sizes; the spine is typed from the Mixam cart.
 - Lulu: hardcover casewrap and paperback in seven trims; the hardcover spine from Lulu's table (24 to 800 pages), the paperback spine from its formula.

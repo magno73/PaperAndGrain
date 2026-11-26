@@ -1,0 +1,826 @@
+[
+  {
+    "id": "blurb-imagewrap-hardcover",
+    "service": "Blurb",
+    "product": {
+      "en": "Photo book, ImageWrap hardcover",
+      "it": "Fotolibro, copertina rigida ImageWrap"
+    },
+    "binding": "hardcover",
+    "regions": [
+      "US",
+      "GB",
+      "EU"
+    ],
+    "sourceURL": "https://www.blurb.com/pdf-to-book",
+    "verifiedOn": "2026-11-26",
+    "papers": [
+      {
+        "id": "premium",
+        "name": {
+          "en": "Premium",
+          "it": "Premium"
+        },
+        "pages": {
+          "maximum": 240
+        }
+      },
+      {
+        "id": "standard",
+        "name": {
+          "en": "Standard",
+          "it": "Standard"
+        },
+        "pages": {
+          "maximum": 240
+        }
+      },
+      {
+        "id": "prophoto-pearl",
+        "name": {
+          "en": "ProPhoto Pearl",
+          "it": "ProPhoto Pearl"
+        },
+        "pages": {
+          "maximum": 240
+        }
+      },
+      {
+        "id": "layflat-pearl",
+        "name": {
+          "en": "Layflat Pearl",
+          "it": "Layflat Pearl"
+        },
+        "pages": {
+          "maximum": 110
+        }
+      }
+    ],
+    "notes": {
+      "en": "Two PDFs in a folder: the cover as one page (back, spine, front) and the inside as single pages, not printer spreads. Blurb requires a PDF/X-3:2002 file, CMYK with body text in 100 % black, fonts embedded, images at 300 dpi or more, no marks, no password, at most 2 GB. This export is CMYK but is not certified PDF/X-3:2002: Blurb's upload check may refuse it, and whether a test upload passes has not been tried (see docs/status.md). Blurb names no ICC profile, so choose the CMYK profile in Book & Print. Inside pages have 9 pt (0.125 in) bleed on the top, bottom and outer edge and none on the binding edge; keep text 18 pt inside the outer edges and 45 pt from the binding. Pages: an even number, at least 20. The file starts with a single page (page 1, on the right): tick the first page on the right in Book & Print, or the export puts a blank page before it. The spine and the cover sizes depend on the cover, the paper and the page count: Blurb's book-size calculator gives them for your book. ImageWrap: the cover is printed on the whole board and wraps around it, so each panel is larger than the page and the cover has 22 pt (0.306 in) of bleed on every edge. The spine table is Blurb's for the Standard Landscape format only (in points, at 20, 40, 60, 80, 100, 120, 160, 200 and 240 pages); between those counts the next column's value is used, which can be wider than Blurb's. For the other four formats the spine and the panel width come from Blurb's calculator: type them. Blurb's papers stop at 240 pages (110 for layflat).",
+      "it": "Due PDF in una cartella: la copertina in una sola pagina (quarta, dorso, copertina) e l'interno in pagine singole, non in doppie da stampa. Blurb richiede un file PDF/X-3:2002, CMYK con il testo corrente in nero al 100 %, caratteri incorporati, immagini a 300 dpi o più, nessun segno, nessuna password, al massimo 2 GB. Questa esportazione è CMYK ma non è certificata PDF/X-3:2002: il controllo di Blurb in caricamento potrebbe rifiutarla, e non è stato provato se una prova di caricamento passa (vedi docs/status.md). Blurb non indica alcun profilo ICC, quindi scegli il profilo CMYK in Libro e stampa. Le pagine interne hanno 9 pt (0,125 in) di abbondanza in alto, in basso e sul lato esterno e nessuna sul lato rilegato; tieni il testo a 18 pt dai bordi esterni e a 45 pt dalla rilegatura. Pagine: numero pari, almeno 20. Il file comincia con una pagina singola (pagina 1, a destra): spunta la prima pagina a destra in Libro e stampa, altrimenti l'esportazione mette una pagina bianca prima. Il dorso e le misure della copertina dipendono da copertina, carta e numero di pagine: il calcolatore di formati di Blurb le dà per il tuo libro. ImageWrap: la copertina è stampata su tutto il cartone e vi si avvolge, quindi ogni pannello è più grande della pagina e la copertina ha 22 pt (0,306 in) di abbondanza su ogni bordo. La tabella del dorso è quella di Blurb per il solo formato Orizzontale standard (in punti, a 20, 40, 60, 80, 100, 120, 160, 200 e 240 pagine); fra questi numeri si usa il valore della colonna successiva, che può essere più largo di quello di Blurb. Per gli altri quattro formati dorso e larghezza del pannello vengono dal calcolatore di Blurb: inseriscili. Le carte di Blurb arrivano a 240 pagine (110 per il layflat)."
+    },
+    "interior": {
+      "layout": "single",
+      "bleed": {
+        "top": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "bottom": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "outer": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "inner": 0
+      },
+      "safe": {
+        "top": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "bottom": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "outer": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "inner": {
+          "mm": 15.875,
+          "source": "45 pt (36 pt in the table, 45 pt in the text)"
+        }
+      },
+      "firstPage": "right",
+      "ends": "pages",
+      "targetPPI": 300,
+      "pages": {
+        "minimum": 20,
+        "maximum": 240,
+        "multiple": 2,
+        "coverPagesCounted": 0
+      }
+    },
+    "cover": {
+      "kind": "flat",
+      "hinge": 0,
+      "wrap": 0,
+      "bleed": {
+        "mm": 7.761,
+        "source": "22 pt (ImageWrap cover bleed)"
+      },
+      "safe": {
+        "mm": 6.35,
+        "source": "18 pt (from the trim line)"
+      },
+      "spine": {
+        "quote": {
+          "minMM": 0,
+          "minExclusive": true,
+          "maxMM": 60
+        }
+      }
+    },
+    "files": {
+      "arrangement": "separate"
+    },
+    "color": {
+      "accepts": [
+        "cmyk"
+      ],
+      "standard": "PDF/X-3:2002"
+    },
+    "sizes": [
+      {
+        "id": "small-square",
+        "name": {
+          "en": "Small Square · 7 × 7 in",
+          "it": "Quadrato piccolo · 7 × 7 in"
+        },
+        "widthMM": {
+          "mm": 171.45,
+          "source": "486 pt (6.75 in)"
+        },
+        "heightMM": {
+          "mm": 168.275,
+          "source": "477 pt (6.625 in)"
+        },
+        "cover": {
+          "panel": {
+            "widthMM": {
+              "quote": {
+                "minMM": 100,
+                "maxMM": 500
+              }
+            },
+            "heightMM": {
+              "mm": 178.153,
+              "source": "505 pt (ImageWrap trim line height)"
+            }
+          },
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "standard-portrait",
+        "name": {
+          "en": "Standard Portrait · 8 × 10 in",
+          "it": "Verticale standard · 8 × 10 in"
+        },
+        "widthMM": {
+          "mm": 203.2,
+          "source": "576 pt (8 in)"
+        },
+        "heightMM": {
+          "mm": 254.0,
+          "source": "720 pt (10 in)"
+        },
+        "cover": {
+          "panel": {
+            "widthMM": {
+              "quote": {
+                "minMM": 100,
+                "maxMM": 500
+              }
+            },
+            "heightMM": {
+              "mm": 263.525,
+              "source": "747 pt (ImageWrap trim line height)"
+            }
+          },
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "standard-landscape",
+        "name": {
+          "en": "Standard Landscape · 10 × 8 in",
+          "it": "Orizzontale standard · 10 × 8 in"
+        },
+        "widthMM": {
+          "mm": 241.3,
+          "source": "684 pt (9.5 in)"
+        },
+        "heightMM": {
+          "mm": 203.2,
+          "source": "576 pt (8 in)"
+        },
+        "cover": {
+          "panel": {
+            "widthMM": {
+              "mm": 248.003,
+              "source": "703 pt (ImageWrap panel, Standard Landscape, 20 pages)"
+            },
+            "heightMM": {
+              "mm": 213.078,
+              "source": "604 pt (ImageWrap trim line height)"
+            }
+          },
+          "spine": {
+            "table": {
+              "source": "Standard Landscape ImageWrap spine in points by page count and paper (Blurb book-size calculator, as recorded in the PRD)",
+              "rows": [
+                {
+                  "upToPages": 20,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 40,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 60,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 80,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 100,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 120,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 160,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 200,
+                  "mm": {
+                    "mm": 23.283,
+                    "source": "66 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 240,
+                  "mm": {
+                    "mm": 27.869,
+                    "source": "79 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 20,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 40,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 60,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 80,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 100,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 120,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 160,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 200,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 240,
+                  "mm": {
+                    "mm": 23.283,
+                    "source": "66 pt"
+                  },
+                  "paper": "standard"
+                },
+                {
+                  "upToPages": 20,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 40,
+                  "mm": {
+                    "mm": 11.642,
+                    "source": "33 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 60,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 80,
+                  "mm": {
+                    "mm": 14.464,
+                    "source": "41 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 100,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 120,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 160,
+                  "mm": {
+                    "mm": 23.283,
+                    "source": "66 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 200,
+                  "mm": {
+                    "mm": 27.869,
+                    "source": "79 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 240,
+                  "mm": {
+                    "mm": 31.397,
+                    "source": "89 pt"
+                  },
+                  "paper": "prophoto-pearl"
+                },
+                {
+                  "upToPages": 20,
+                  "mm": {
+                    "mm": 14.111,
+                    "source": "40 pt"
+                  },
+                  "paper": "layflat-pearl"
+                },
+                {
+                  "upToPages": 40,
+                  "mm": {
+                    "mm": 18.697,
+                    "source": "53 pt"
+                  },
+                  "paper": "layflat-pearl"
+                },
+                {
+                  "upToPages": 60,
+                  "mm": {
+                    "mm": 28.575,
+                    "source": "81 pt"
+                  },
+                  "paper": "layflat-pearl"
+                },
+                {
+                  "upToPages": 80,
+                  "mm": {
+                    "mm": 36.689,
+                    "source": "104 pt"
+                  },
+                  "paper": "layflat-pearl"
+                },
+                {
+                  "upToPages": 100,
+                  "mm": {
+                    "mm": 50.8,
+                    "source": "144 pt"
+                  },
+                  "paper": "layflat-pearl"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "large-landscape",
+        "name": {
+          "en": "Large Landscape · 13 × 11 in",
+          "it": "Orizzontale grande · 13 × 11 in"
+        },
+        "widthMM": {
+          "mm": 317.5,
+          "source": "900 pt (12.5 in)"
+        },
+        "heightMM": {
+          "mm": 269.875,
+          "source": "765 pt (10.625 in)"
+        },
+        "cover": {
+          "panel": {
+            "widthMM": {
+              "quote": {
+                "minMM": 100,
+                "maxMM": 500
+              }
+            },
+            "heightMM": {
+              "mm": 279.753,
+              "source": "793 pt (ImageWrap trim line height)"
+            }
+          },
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "large-square",
+        "name": {
+          "en": "Large Square · 12 × 12 in",
+          "it": "Quadrato grande · 12 × 12 in"
+        },
+        "widthMM": {
+          "mm": 298.45,
+          "source": "846 pt (11.75 in)"
+        },
+        "heightMM": {
+          "mm": 298.45,
+          "source": "846 pt (11.75 in)"
+        },
+        "cover": {
+          "panel": {
+            "widthMM": {
+              "quote": {
+                "minMM": 100,
+                "maxMM": 500
+              }
+            },
+            "heightMM": {
+              "mm": 308.328,
+              "source": "874 pt (ImageWrap trim line height)"
+            }
+          },
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "blurb-softcover",
+    "service": "Blurb",
+    "product": {
+      "en": "Photo book, softcover",
+      "it": "Fotolibro, copertina morbida"
+    },
+    "binding": "softcover",
+    "regions": [
+      "US",
+      "GB",
+      "EU"
+    ],
+    "sourceURL": "https://www.blurb.com/pdf-to-book",
+    "verifiedOn": "2026-11-26",
+    "papers": [
+      {
+        "id": "premium",
+        "name": {
+          "en": "Premium",
+          "it": "Premium"
+        },
+        "pages": {
+          "maximum": 240
+        }
+      }
+    ],
+    "notes": {
+      "en": "Two PDFs in a folder: the cover as one page (back, spine, front) and the inside as single pages, not printer spreads. Blurb requires a PDF/X-3:2002 file, CMYK with body text in 100 % black, fonts embedded, images at 300 dpi or more, no marks, no password, at most 2 GB. This export is CMYK but is not certified PDF/X-3:2002: Blurb's upload check may refuse it, and whether a test upload passes has not been tried (see docs/status.md). Blurb names no ICC profile, so choose the CMYK profile in Book & Print. Inside pages have 9 pt (0.125 in) bleed on the top, bottom and outer edge and none on the binding edge; keep text 18 pt inside the outer edges and 45 pt from the binding. Pages: an even number, at least 20. The file starts with a single page (page 1, on the right): tick the first page on the right in Book & Print, or the export puts a blank page before it. The spine and the cover sizes depend on the cover, the paper and the page count: Blurb's book-size calculator gives them for your book. Softcover: the cover has 9 pt (0.125 in) of bleed on every edge and the board is the page, with no overhang. Softcover is offered in the three smaller formats only. The spine table is Blurb's Premium softcover for the Standard Landscape format only (in points, at 20, 40, 60, 80, 100, 120, 160, 200 and 240 pages); between those counts the next column's value is used. For Small Square and Standard Portrait the spine comes from Blurb's calculator: type it.",
+      "it": "Due PDF in una cartella: la copertina in una sola pagina (quarta, dorso, copertina) e l'interno in pagine singole, non in doppie da stampa. Blurb richiede un file PDF/X-3:2002, CMYK con il testo corrente in nero al 100 %, caratteri incorporati, immagini a 300 dpi o più, nessun segno, nessuna password, al massimo 2 GB. Questa esportazione è CMYK ma non è certificata PDF/X-3:2002: il controllo di Blurb in caricamento potrebbe rifiutarla, e non è stato provato se una prova di caricamento passa (vedi docs/status.md). Blurb non indica alcun profilo ICC, quindi scegli il profilo CMYK in Libro e stampa. Le pagine interne hanno 9 pt (0,125 in) di abbondanza in alto, in basso e sul lato esterno e nessuna sul lato rilegato; tieni il testo a 18 pt dai bordi esterni e a 45 pt dalla rilegatura. Pagine: numero pari, almeno 20. Il file comincia con una pagina singola (pagina 1, a destra): spunta la prima pagina a destra in Libro e stampa, altrimenti l'esportazione mette una pagina bianca prima. Il dorso e le misure della copertina dipendono da copertina, carta e numero di pagine: il calcolatore di formati di Blurb le dà per il tuo libro. Copertina morbida: la copertina ha 9 pt (0,125 in) di abbondanza su ogni bordo e il cartone è la pagina, senza sporgenza. La copertina morbida è offerta solo nei tre formati più piccoli. La tabella del dorso è quella di Blurb per la copertina morbida Premium nel solo formato Orizzontale standard (in punti, a 20, 40, 60, 80, 100, 120, 160, 200 e 240 pagine); fra questi numeri si usa il valore della colonna successiva. Per Quadrato piccolo e Verticale standard il dorso viene dal calcolatore di Blurb: inseriscilo."
+    },
+    "interior": {
+      "layout": "single",
+      "bleed": {
+        "top": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "bottom": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "outer": {
+          "mm": 3.175,
+          "source": "9 pt (0.125 in)"
+        },
+        "inner": 0
+      },
+      "safe": {
+        "top": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "bottom": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "outer": {
+          "mm": 6.35,
+          "source": "18 pt"
+        },
+        "inner": {
+          "mm": 15.875,
+          "source": "45 pt (36 pt in the table, 45 pt in the text)"
+        }
+      },
+      "firstPage": "right",
+      "ends": "pages",
+      "targetPPI": 300,
+      "pages": {
+        "minimum": 20,
+        "maximum": 240,
+        "multiple": 2,
+        "coverPagesCounted": 0
+      }
+    },
+    "cover": {
+      "kind": "flat",
+      "hinge": 0,
+      "wrap": 0,
+      "bleed": {
+        "mm": 3.175,
+        "source": "9 pt (softcover cover bleed)"
+      },
+      "safe": {
+        "mm": 6.35,
+        "source": "18 pt (from the trim line)"
+      },
+      "spine": {
+        "quote": {
+          "minMM": 0,
+          "minExclusive": true,
+          "maxMM": 60
+        }
+      }
+    },
+    "files": {
+      "arrangement": "separate"
+    },
+    "color": {
+      "accepts": [
+        "cmyk"
+      ],
+      "standard": "PDF/X-3:2002"
+    },
+    "sizes": [
+      {
+        "id": "small-square",
+        "name": {
+          "en": "Small Square · 7 × 7 in",
+          "it": "Quadrato piccolo · 7 × 7 in"
+        },
+        "widthMM": {
+          "mm": 171.45,
+          "source": "486 pt (6.75 in)"
+        },
+        "heightMM": {
+          "mm": 168.275,
+          "source": "477 pt (6.625 in)"
+        },
+        "cover": {
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "standard-portrait",
+        "name": {
+          "en": "Standard Portrait · 8 × 10 in",
+          "it": "Verticale standard · 8 × 10 in"
+        },
+        "widthMM": {
+          "mm": 203.2,
+          "source": "576 pt (8 in)"
+        },
+        "heightMM": {
+          "mm": 254.0,
+          "source": "720 pt (10 in)"
+        },
+        "cover": {
+          "spine": {
+            "quote": {
+              "minMM": 0,
+              "minExclusive": true,
+              "maxMM": 60
+            }
+          }
+        }
+      },
+      {
+        "id": "standard-landscape",
+        "name": {
+          "en": "Standard Landscape · 10 × 8 in",
+          "it": "Orizzontale standard · 10 × 8 in"
+        },
+        "widthMM": {
+          "mm": 241.3,
+          "source": "684 pt (9.5 in)"
+        },
+        "heightMM": {
+          "mm": 203.2,
+          "source": "576 pt (8 in)"
+        },
+        "cover": {
+          "spine": {
+            "table": {
+              "source": "Standard Landscape Premium softcover spine in points by page count (Blurb book-size calculator, as recorded in the PRD)",
+              "rows": [
+                {
+                  "upToPages": 20,
+                  "mm": {
+                    "mm": 1.411,
+                    "source": "4 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 40,
+                  "mm": {
+                    "mm": 3.175,
+                    "source": "9 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 60,
+                  "mm": {
+                    "mm": 4.586,
+                    "source": "13 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 80,
+                  "mm": {
+                    "mm": 6.35,
+                    "source": "18 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 100,
+                  "mm": {
+                    "mm": 7.761,
+                    "source": "22 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 120,
+                  "mm": {
+                    "mm": 9.525,
+                    "source": "27 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 160,
+                  "mm": {
+                    "mm": 12.7,
+                    "source": "36 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 200,
+                  "mm": {
+                    "mm": 15.875,
+                    "source": "45 pt"
+                  },
+                  "paper": "premium"
+                },
+                {
+                  "upToPages": 240,
+                  "mm": {
+                    "mm": 19.05,
+                    "source": "54 pt"
+                  },
+                  "paper": "premium"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+]

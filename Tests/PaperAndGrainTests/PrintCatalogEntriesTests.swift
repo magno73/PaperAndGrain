@@ -252,6 +252,82 @@ final class PrintCatalogEntriesTests: XCTestCase {
         }
     }
 
+    // MARK: Blurb
+
+    func testBlurbEntriesFollowTheSpecificationAndTheStandardLandscapeTable() throws {
+        let sizes = ["small-square", "standard-portrait", "standard-landscape", "large-landscape", "large-square"]
+        let bleed = PrintProfile.EdgeValues(top: 3.175, bottom: 3.175, outer: 3.175, inner: 0)
+        try verify([
+            Facts(id: "blurb-imagewrap-hardcover", service: "Blurb", binding: .hardcover, minimum: 20, maximum: 240, multiple: 2,
+                  coverCounted: 0, coverKind: .flat, interiorBleed: bleed, sizes: sizes, colors: [.cmyk]),
+            Facts(id: "blurb-softcover", service: "Blurb", binding: .softcover, minimum: 20, maximum: 240, multiple: 2,
+                  coverCounted: 0, coverKind: .flat, interiorBleed: bleed, sizes: Array(sizes.prefix(3)), colors: [.cmyk]),
+        ])
+        let imagewrap = try XCTUnwrap(catalog.profile("blurb-imagewrap-hardcover"))
+        let safe = imagewrap.interior.safe.fixedValues
+        for (value, expected) in zip(safe.all, [6.35, 6.35, 6.35, 15.875]) {
+            XCTAssertEqual(value, expected, accuracy: 0.001, "18 pt outside, 45 pt at the binding")
+        }
+        XCTAssertEqual(imagewrap.cover.bleed?.fixedValues.largest ?? 0, 22 * 25.4 / 72, accuracy: 0.001)
+        XCTAssertEqual(imagewrap.cover.safe?.mm ?? 0, 18 * 25.4 / 72, accuracy: 0.001)
+        XCTAssertEqual(imagewrap.color.standard, "PDF/X-3:2002")
+        XCTAssertNil(imagewrap.color.iccProfile, "Blurb names no ICC profile")
+        XCTAssertEqual(imagewrap.papers?.map(\.id), ["premium", "standard", "prophoto-pearl", "layflat-pearl"])
+        XCTAssertEqual(imagewrap.pageRules(for: imagewrap.size("large-square"), paper: imagewrap.papers?.last).maximum, 110)
+        XCTAssertEqual(imagewrap.pageRules(for: imagewrap.size("large-square"), paper: imagewrap.papers?.first).maximum, 240)
+        // Trims, in points, as the PRD's table gives them.
+        for (id, w, h) in [("small-square", 486.0, 477.0), ("standard-portrait", 576, 720), ("standard-landscape", 684, 576),
+                           ("large-landscape", 900, 765), ("large-square", 846, 846)] {
+            let format = try XCTUnwrap(imagewrap.size(id)).format
+            XCTAssertEqual(format.widthMM, w * 25.4 / 72, accuracy: 0.001, id)
+            XCTAssertEqual(format.heightMM, h * 25.4 / 72, accuracy: 0.001, id)
+        }
+        // Only Standard Landscape has a confirmed spine table; the others are typed from Blurb's calculator.
+        for id in sizes where id != "standard-landscape" {
+            XCTAssertTrue(imagewrap.coverRules(for: try XCTUnwrap(imagewrap.size(id))).spine?.isTyped == true, id)
+        }
+        let landscape = try XCTUnwrap(imagewrap.size("standard-landscape"))
+        let spine = try XCTUnwrap(imagewrap.coverRules(for: landscape).spine)
+        func points(_ pages: Int, _ paper: String) -> Double? { spine.value(pages: pages, paper: paper).map { ($0 * 72 / 25.4).rounded() } }
+        for (pages, paper, pt) in [(20, "premium", 33.0), (40, "premium", 33), (60, "premium", 41), (120, "premium", 54), (240, "premium", 79),
+                                   (20, "standard", 33), (80, "standard", 41), (240, "standard", 66),
+                                   (100, "prophoto-pearl", 54), (240, "prophoto-pearl", 89),
+                                   (20, "layflat-pearl", 40), (100, "layflat-pearl", 144)] {
+            XCTAssertEqual(points(pages, paper), pt, "\(paper) \(pages) pages")
+        }
+        XCTAssertNil(points(110, "layflat-pearl"), "past the table: the author types it")
+        let softcover = try XCTUnwrap(catalog.profile("blurb-softcover"))
+        let softSpine = try XCTUnwrap(softcover.coverRules(for: try XCTUnwrap(softcover.size("standard-landscape"))).spine)
+        XCTAssertEqual(softSpine.value(pages: 20, paper: "premium").map { ($0 * 72 / 25.4).rounded() }, 4)
+        XCTAssertEqual(softSpine.value(pages: 240, paper: "premium").map { ($0 * 72 / 25.4).rounded() }, 54)
+    }
+
+    /// The PRD's 20-page examples for Standard Landscape: ImageWrap cover 1483 x 648 pt (trim line 1439 x 604, spine 33) and
+    /// softcover cover 1390 x 594 pt (spine 4); the inside page is 693 x 594 pt.
+    func testBlurbStandardLandscapeRendersTheDocumentedPageAndCoverSizes() throws {
+        for (id, coverW, coverH, spinePT) in [("blurb-imagewrap-hardcover", 1483.0, 648.0, 33.0), ("blurb-softcover", 1390, 594, 4)] {
+            let profile = try XCTUnwrap(catalog.profile(id))
+            let size = try XCTUnwrap(profile.size("standard-landscape"))
+            var book = Book(title: "Blurb", format: size.format, pages: (0..<20).map { _ in BookPage(layout: .text, text: "x") })
+            book.cover = BookCover(title: "Blurb")
+            // Blurb's file starts with a single page, page 1 on the right, so the first page of the book is on the right.
+            book.printSettings = PrintSettings(firstPageOnRight: true)
+            let plan = PrintPlan(profile: profile, sizeID: "standard-landscape", paperID: "premium")
+            XCTAssertEqual(BookPDF.interiorPageCount(book, plan: plan), 20, id)
+            let spineMM = try XCTUnwrap(plan.value(.spine, for: book, interiorPages: 20), id)
+            XCTAssertEqual(spineMM * 72 / 25.4, spinePT, accuracy: 0.6, id)
+            let directory = try temporaryDirectory()
+            let output = directory.appendingPathComponent("Out")
+            try BookPDF.write(book, directory: directory, plan: plan, to: output)
+            let cover = try XCTUnwrap(CGPDFDocument(output.appendingPathComponent("Cover.pdf") as CFURL)?.page(at: 1), id)
+            XCTAssertEqual(cover.getBoxRect(.mediaBox).width, coverW, accuracy: 1.5, id + " cover width")
+            XCTAssertEqual(cover.getBoxRect(.mediaBox).height, coverH, accuracy: 1.5, id + " cover height")
+            let interior = try XCTUnwrap(CGPDFDocument(output.appendingPathComponent("Interior.pdf") as CFURL), id)
+            let widths = Set((1...interior.numberOfPages).compactMap { interior.page(at: $0)?.getBoxRect(.mediaBox).width.rounded() })
+            XCTAssertEqual(widths, [693], "every inside page is the trim plus 9 pt on the outer edge, none at the binding")
+        }
+    }
+
     // MARK: Text keeps inside the safe margin
 
     /// A page of text in every size of every entry stays inside the product's margin on the edges that are cut.

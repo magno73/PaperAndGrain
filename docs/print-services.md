@@ -83,15 +83,34 @@ File `mixam.json`; one entry, 24 sizes: the 11 book sizes of the hardcover page'
 - **Not added.** Mixam layflat: its binding page gives the margins (bleed 0.125 in, no quiet area at the binding, cover bleed 0.8 in) but the sizes and page limits are not on any page that could be read.
 - Sources: [hardcover setup](https://mixam.com/support/hardcoversetup), [print file setup](https://mixam.com/support/filesetup), [binding types](https://mixam.com/support/binding), [page counts](https://mixam.com/support/pagecount), [CMYK vs RGB](https://mixam.com/support/cmykvsrgb).
 
+### Blurb · ImageWrap hardcover, softcover (PDF to Book)
+
+File `blurb.json`; two entries. ImageWrap hardcover (`blurb-imagewrap-hardcover`) in five formats and softcover (`blurb-softcover`) in the three smaller ones (Blurb offers no softcover for the two large formats). Papers of the ImageWrap entry: Premium, Standard and ProPhoto Pearl (up to 240 pages) and Layflat Pearl (up to 110).
+
+| Id | Blurb's name | Trim (pt) | Trim (in) |
+|---|---|---|---|
+| `small-square` | Small Square "7 × 7" | 486 × 477 | 6.75 × 6.625 |
+| `standard-portrait` | Standard Portrait "8 × 10" | 576 × 720 | 8 × 10 |
+| `standard-landscape` | Standard Landscape "10 × 8" | 684 × 576 | 9.5 × 8 |
+| `large-landscape` | Large Landscape "13 × 11" | 900 × 765 | 12.5 × 10.625 |
+| `large-square` | Large Square "12 × 12" | 846 × 846 | 11.75 × 11.75 |
+
+- **What the export writes.** Two files in a folder: `Cover.pdf`, one page (back, spine, front), and `Interior.pdf`, single pages (Blurb's file starts with a single page, then spreads, and ends with a single page: page 1 is on the right, so tick the first page on the right in **Book & Print**). CMYK with body text in black only; the export sheet says the file is not a certified PDF/X-3:2002 and that Blurb's upload check may refuse it (decision D6). Blurb names no ICC profile, so the author chooses the CMYK profile.
+- **Pages.** An even number, at least 20 (24 for Blurb's trade formats, which are not in the catalog).
+- **Inside pages.** 9 pt (0.125 in) bleed on the top, bottom and outer edge and none on the binding edge, so the PDF page is the trim plus 9 pt in width and 18 pt in height (Standard Landscape: 693 × 594 pt). Text 18 pt from the outer edges and 45 pt from the binding (the calculator table says 36 pt, its text 45 pt; 45 pt is used).
+- **ImageWrap cover.** The cover wraps around the board, so each panel is larger than the page (Standard Landscape: 703 × 604 pt against a 684 × 576 pt page) and the bleed is 22 pt on every edge. At 20 pages the Standard Landscape cover is 1483 × 648 pt with a 33 pt spine; the trim line is 1439 × 604 pt. The panel heights of the other formats come from the trim-line heights of the table (505, 747, 793 and 874 pt). Text 18 pt from the trim line.
+- **Softcover cover.** Panel = page, 9 pt bleed on every edge, no wrap: Standard Landscape at 20 pages is 1390 × 594 pt with a 4 pt spine.
+- **Spine, tabled.** Standard Landscape only, from the PRD's table in points at 20, 40, 60, 80, 100, 120, 160, 200 and 240 pages: Premium, Standard and ProPhoto Pearl ImageWrap, Layflat Pearl ImageWrap (to 100 pages), Premium softcover (4 to 54 pt). Between two columns the next column's value is used, which can be wider than Blurb's real value; the exact page counts where each step changes were not readable, so check the spine in Blurb's calculator and type it if it differs (any tabled value can be overridden). Layflat Pearl from 101 to 110 pages is past the table: the export asks for the spine.
+- **Quote-typed.** For the other four ImageWrap formats and for the Small Square and Standard Portrait softcovers, the spine; for the other four ImageWrap formats, the panel width: both come from Blurb's book-size calculator (<https://www.blurb.com/make/pdf_to_book/booksize_calculator>), which gives the cover and page sizes of the chosen book.
+- **Differences from Appendix A and the page.** Blurb's PDF-to-Book page states the bleed as 0.125 in on all sides and the safe margin as 0.25 in; the calculator's page sizes show bleed on the outer edge only and Appendix A's 18 pt and 45 pt margins, which are used. The page gives 24 pages as the minimum for trade (paperback and hardcover) books and 20 for photo books. The page's list of paper limits is ambiguous (440 and 480 pages for some papers, 240 for Premium and Proline, and "over 80" for a case it does not name), so the maximums are the ones the spine table reaches: 240 pages (110 for layflat).
+- **Not added.** Mini Square (5 × 5 in; its table was not captured), the trade formats, magazines, dust-jacket and plain hardcover covers, and every number of the calculator that is not in the PRD's table.
+- Sources: [PDF to Book](https://www.blurb.com/pdf-to-book), [book size calculator](https://www.blurb.com/make/pdf_to_book/booksize_calculator) (its tables load by script; the numbers are those recorded in the PRD's Appendix A).
+
 ## Not added yet
 
 ### Pixartprinting, other sizes
 
 Waiting for the printer's cover templates for each size (and the instructions PDF of the user's own quote, which settles whether the interior wants CMYK). The 21 × 21 cm entry is the only one whose cover geometry is known; the other sizes are not scaled from it.
-
-### Blurb
-
-Waits for output color profiles (T12): Blurb asks for CMYK.
 
 ## Services that cannot be supported
 
