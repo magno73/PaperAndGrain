@@ -302,7 +302,7 @@ struct PageComposition {
                 for (index, id) in page.photoIDs.enumerated() where geometry.photos.indices.contains(index) {
                     guard page.photoPlacements?[id]?.frame == nil, let photo = lookup(id),
                           case let .some(requested) = CaptionSetter.request(photo, page.photoPlacements?[id]) else { continue }
-                    slotPositions[index] = requested ?? setter.automaticPosition(slot: geometry.photos[index])
+                    slotPositions[index] = setter.slotPosition(requested, slot: geometry.photos[index])
                     slotPhotos[index] = photo
                 }
             }
@@ -372,7 +372,7 @@ struct PageComposition {
                 for (index, photo) in autoImages.enumerated() {
                     let requested = CaptionSetter.request(photo, page.photoPlacements?[photo.id])
                     let slot = studioSlots.indices.contains(index) ? studioSlots[index] : area
-                    slotPositions.append(requested.map { $0 ?? setter.automaticPosition(slot: slot) })
+                    slotPositions.append(requested.map { setter.slotPosition($0, slot: slot) })
                     slotPhotos.append(requested == nil ? nil : photo)
                 }
             }

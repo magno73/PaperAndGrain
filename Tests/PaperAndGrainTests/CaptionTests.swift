@@ -219,34 +219,52 @@ final class CaptionTests: XCTestCase {
         XCTAssertEqual(issue.target, .caption(list[0].id))
         XCTAssertEqual(issue.destination(in: book), .page(page.id))
         XCTAssertTrue(issue.message(language: "en").hasSuffix("Caption does not fit"))
-        // Below a frame at the bottom edge, the caption crosses the trim.
+        // Below a frame at the bottom edge there is no room: the caption goes on the photo and fits.
         list[0].caption = "Short"
         book.photos = list
         book.pages[0].photoPlacements = [list[0].id: PhotoPlacement(frame: PageRect(x: 0.1, y: 0.7, width: 0.5, height: 0.3),
                                                                     captionPosition: .below)]
+        XCTAssertEqual(PageComposition(page: book.pages[0], book: book).captions.first?.position, .inside)
         report = BookPDF.preflight(book, directory: nil, profile: .print)
-        XCTAssertTrue(report.warnings.contains { $0.problem == .captionDoesNotFit })
+        XCTAssertFalse(report.warnings.contains { $0.problem == .captionDoesNotFit })
         book.pages[0].photoPlacements = nil
         report = BookPDF.preflight(book, directory: nil, profile: .print)
         XCTAssertFalse(report.warnings.contains { $0.problem == .captionDoesNotFit })
     }
 
-    func testACaptionOutsideTheSafeLineIsASafeMarginWarning() throws {
-        let list = photos(1, captions: ["Above the frame"])
-        var page = BookPage(photoIDs: list.map(\.id))
-        // Above a frame 12.6 mm from the top: inside the trim, outside the 10 mm safe line.
-        page.photoPlacements = [list[0].id: PhotoPlacement(frame: PageRect(x: 0.2, y: 0.06, width: 0.5, height: 0.3),
-                                                           captionPosition: .above)]
-        var book = Book(title: "T", photos: list, pages: [page], template: .atlas)
-        let caption = try XCTUnwrap(PageComposition(page: page, book: book).captions.first)
-        XCTAssertTrue(caption.fits)
-        var report = BookPDF.preflight(book, directory: nil, profile: .print)
-        let issue = try XCTUnwrap(report.warnings.first { $0.problem == .textOutsideSafeMargin })
-        XCTAssertEqual(issue.target, .caption(list[0].id))
-        XCTAssertTrue(issue.message(language: "en").contains("Caption “Above the frame”"))
-        book.pages[0].photoPlacements?[list[0].id]?.captionPosition = nil
-        report = BookPDF.preflight(book, directory: nil, profile: .print)
-        XCTAssertFalse(report.warnings.contains { $0.problem == .textOutsideSafeMargin })
+    func testABelowOrAboveCaptionNeverCrossesTheSafeMargin() throws {
+        let list = photos(1, captions: ["Etosha, 12 May 2024"])
+        let safe = CGRect(origin: .zero, size: BookFormat.square.pageSize).insetBy(dx: 10 * 72 / 25.4, dy: 10 * 72 / 25.4)
+        func check(_ page: BookPage, _ book: Book, line: UInt = #line) throws {
+            let composition = PageComposition(page: page, book: book)
+            let caption = try XCTUnwrap(composition.captions.first, line: line)
+            XCTAssertEqual(caption.position, .inside, "falls back onto the photo", line: line)
+            XCTAssertTrue(safe.insetBy(dx: -0.5, dy: -0.5).contains(caption.frame), line: line)
+            var printed = book
+            printed.pages = [page]
+            let report = BookPDF.preflight(printed, directory: nil, profile: .print)
+            XCTAssertFalse(report.warnings.contains { $0.problem == .textOutsideSafeMargin || $0.problem == .captionDoesNotFit },
+                           "\(report.warnings)", line: line)
+        }
+        for template in [BookTemplate.atlas, .essential, .nocturne] {
+            let book = Book(title: "T", photos: list, template: template)
+            // A full-bleed template with Below: the photo still reaches the edges.
+            var bleed = BookPage(layout: .fullPage, photoIDs: list.map(\.id), arrangement: .fullBleed)
+            bleed.photoPlacements = [list[0].id: PhotoPlacement(captionPosition: .below)]
+            try check(bleed, book)
+            XCTAssertEqual(PageComposition(page: bleed, book: book).photos[0].frame, PageComposition(page: bleed, book: book).bounds)
+            // The older full-page layout, and a frame placed by hand near the top with Above.
+            var full = BookPage(layout: .fullPage, photoIDs: list.map(\.id))
+            full.photoPlacements = [list[0].id: PhotoPlacement(captionPosition: .above)]
+            try check(full, book)
+            var manual = BookPage(photoIDs: list.map(\.id))
+            manual.photoPlacements = [list[0].id: PhotoPlacement(frame: PageRect(x: 0.2, y: 0.06, width: 0.5, height: 0.3),
+                                                                 captionPosition: .above)]
+            try check(manual, book)
+            // Where it fits, the author's choice stays.
+            manual.photoPlacements?[list[0].id]?.frame = PageRect(x: 0.2, y: 0.3, width: 0.5, height: 0.3)
+            XCTAssertEqual(PageComposition(page: manual, book: book).captions.first?.position, .above)
+        }
     }
 
     func testAPastedLongCaptionIsCutAndReported() throws {

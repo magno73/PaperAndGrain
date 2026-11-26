@@ -218,6 +218,15 @@ struct CaptionSetter {
         safe.insetBy(dx: -0.5, dy: -0.5).contains(slot) ? .below : .inside
     }
 
+    /// The position of a caption in a slot of an automatic layout. Below or above, even when the author
+    /// chose it, needs a slot inside the safe line; a slot that bleeds puts the caption on the photo, so the
+    /// photo keeps reaching the edge and the text never crosses the margin.
+    func slotPosition(_ requested: CaptionPosition?, slot: CGRect) -> CaptionPosition {
+        guard let requested else { return automaticPosition(slot: slot) }
+        if requested == .below || requested == .above, automaticPosition(slot: slot) == .inside { return .inside }
+        return requested
+    }
+
     /// Shrinks automatic slots so captions below or above fit: every slot gives up the same band, as tall
     /// as the tallest caption plus the gap. `layout(band)` returns the photo frames with that band kept.
     func carve(_ slots: [CGRect], positions: [CaptionPosition?], photos: [BookPhoto?], cap: CGFloat,
@@ -259,6 +268,11 @@ struct CaptionSetter {
             let onPaper = typeset(photo, overPhoto: false)
             let y = position == .below ? visible.maxY + gap : visible.minY - gap - paperHeight
             let rect = CGRect(x: x, y: y, width: width, height: paperHeight)
+            // Below or above, chosen or automatic, stays inside the safe line; where it cannot, the caption
+            // goes on the photo, which keeps its text inside the margin too.
+            guard safe.insetBy(dx: -0.5, dy: -0.5).contains(rect) || band != nil else {
+                return inside(photo, visible: visible)
+            }
             var fits = clear && !onPaper.cut && bounds.insetBy(dx: -0.5, dy: -0.5).contains(rect)
             if let band, paperHeight > band - gap + 0.5 { fits = false }
             return PageComposition.Caption(photoID: photo.id, frame: rect, band: nil, text: onPaper.text,
