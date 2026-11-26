@@ -4,9 +4,8 @@ import CoreText
 
 enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
     case diary, atlas, gallery, essential, swissGrid, berlinQuarter, japaneseInterval
-    case monograph, postcard, nocturne, slide = "kodachrome", roadLog
+    case monograph, postcard, nocturne, slide, roadLog
 
-    /// The stored value of `slide` stays `kodachrome`, so books saved before the rename open with the same template.
     var id: Self { self }
 
     /// Families shown as sections in the template chooser.

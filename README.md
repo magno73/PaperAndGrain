@@ -108,7 +108,7 @@ Choose **Style** in the toolbar, the **Book Template** row in the Page tab, or *
 
 - **Classics:** Journal, Atlas, Gallery and Essential.
 - **Studio:** Swiss Grid, Berlin Notebook and Japanese Interval.
-- **Photobook:** Monograph, Postcard, Nocturne, Slide and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's book *Kodachrome* (the template itself is called Slide) and *American Surfaces*.
+- **Photobook:** Monograph, Postcard, Nocturne, Slide and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's colour photographs and *American Surfaces*.
 
 Each template sets paper color, typefaces, margins, the automatic gallery, text-over-photo panels and a cover title scaled to the template. From a spine width of 5 mm, the spine carries the book title. **Show Page Numbers** turns printed folios on or off. [Template notes](docs/templates.md).
 

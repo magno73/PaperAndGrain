@@ -343,14 +343,11 @@ final class PageArrangementTests: XCTestCase {
     }
 }
 
-final class SlideTemplateRenameTests: XCTestCase {
-    /// The Slide template keeps the stored value it had under its earlier name, so saved books open unchanged.
-    func testSlideKeepsItsStoredId() throws {
-        XCTAssertEqual(BookTemplate.slide.rawValue, "kodachrome")
-        XCTAssertEqual(BookTemplate(rawValue: "kodachrome"), .slide)
-        let book = try JSONDecoder().decode(Book.self, from: Data(#"{"id":"7C1C4F0A-3B5D-4D6E-9F10-2A3B4C5D6E7F","title":"Old","format":{"widthMM":210,"heightMM":210},"template":"kodachrome","photos":[],"pages":[],"schemaVersion":1}"#.utf8))
+final class SlideTemplateTests: XCTestCase {
+    func testSlideIsStoredUnderItsOwnName() throws {
+        XCTAssertEqual(BookTemplate.slide.rawValue, "slide")
+        let book = try JSONDecoder().decode(Book.self, from: Data(#"{"id":"7C1C4F0A-3B5D-4D6E-9F10-2A3B4C5D6E7F","title":"Old","format":{"widthMM":210,"heightMM":210},"template":"slide","photos":[],"pages":[],"schemaVersion":1}"#.utf8))
         XCTAssertEqual(book.template, .slide)
-        XCTAssertTrue(String(decoding: try JSONEncoder().encode(book), as: UTF8.self).contains("\"kodachrome\""))
         XCTAssertEqual(BookTemplate.slide.englishName, "Slide")
         XCTAssertEqual(BookCLI.italianTemplateNames[.slide], "Diapositiva")
     }

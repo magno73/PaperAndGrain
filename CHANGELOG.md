@@ -6,7 +6,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ### Templates
 
-- The **Photobook** template that was called *Kodachrome* is now **Slide** (**Diapositiva** in Italian), because Kodachrome is a registered film name. Books saved with it open with the same template; the command line still lists and accepts it under its stored id, `kodachrome`.
+- The **Photobook** template **Slide** (**Diapositiva** in Italian) replaces the earlier template that carried a film brand name. Books saved with that earlier template can no longer be opened.
 
 ### Print services
 

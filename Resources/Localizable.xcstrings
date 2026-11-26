@@ -10736,7 +10736,7 @@
       }
     },
     "Slide": {
-      "comment": "Book template name (stored as “kodachrome”).",
+      "comment": "Book template name.",
       "extractionState": "manual",
       "localizations": {
         "en": {
