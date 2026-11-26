@@ -15,8 +15,11 @@ struct CanvasObjectControl<Content: View>: View {
     var swapTargetAt: ((CGPoint) -> CanvasPhotoSwap.Target?)? = nil
     var onSwap: ((UUID) -> Void)? = nil
     var onDoubleClick: (() -> Void)? = nil
+    /// A double-click with its point in the object's own coordinates; when set, it replaces `onDoubleClick`.
+    var onDoubleClickAt: ((CGPoint) -> Void)? = nil
     /// Drawn with the object, in the artboard's coordinates, from the frame shown now: a photo's
-    /// caption follows the photo while it is dragged or resized. It is not part of the object's hit area.
+    /// caption follows the photo while it is dragged or resized. It never takes a click, and it sits
+    /// under the selection handles, so the object's drag, resize and double-click always win.
     var attachment: ((CGRect) -> AnyView)? = nil
     let onSelect: () -> Void
     let onNudge: (CGSize) -> Bool
@@ -43,7 +46,9 @@ struct CanvasObjectControl<Content: View>: View {
             .clipped()
             .contentShape(ReachableFrame(rect: reachable))
             .gesture(drag())
-            .simultaneousGesture(TapGesture(count: 2).onEnded { onDoubleClick?() })
+            .simultaneousGesture(SpatialTapGesture(count: 2).onEnded { value in
+                if let onDoubleClickAt { onDoubleClickAt(value.location) } else { onDoubleClick?() }
+            })
             .focusable()
             // The app draws its own selection. The system focus ring stayed on the object
             // after a click on blank paper and looked like a selection that would not go away.
@@ -57,6 +62,14 @@ struct CanvasObjectControl<Content: View>: View {
             .accessibilityLabel(accessibilityName)
             .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
+            .overlay(alignment: .topLeading) {
+                if let attachment {
+                    attachment(visibleFrame)
+                        .offset(x: -visibleFrame.minX, y: -visibleFrame.minY)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
             .overlay(alignment: .topLeading) {
                 if selected, !reachable.isEmpty {
                     Rectangle()
@@ -72,7 +85,6 @@ struct CanvasObjectControl<Content: View>: View {
                 }
             }
             .position(x: visibleFrame.midX, y: visibleFrame.midY)
-            .overlay(alignment: .topLeading) { attachment?(visibleFrame) }
             .preference(key: CanvasGuidePreference.self, value: dragPreview?.placement.guides ?? [])
             .preference(key: CanvasSwapTargetPreference.self, value: dragPreview?.swapTarget)
             .onChange(of: frame) { _, _ in settlingFrame = nil }

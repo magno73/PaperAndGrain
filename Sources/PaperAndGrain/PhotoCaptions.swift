@@ -96,7 +96,14 @@ extension PageComposition {
 /// its text; it sits half a line below or above the frame, or on a band at the bottom of the photo;
 /// automatic placement prefers below and falls back to the photo when the text would cross the safe
 /// line. Automatic slots give up one shared band so photos keep a common size.
+///
+/// Each caption is typeset once per composition: its attributed text and framesetter are kept, and
+/// each width is measured once. A pasted long text is cut (`maximumCharacters`, `maximumLines`) so
+/// it cannot slow the editor down; a cut caption does not fit.
 struct CaptionSetter {
+    static let maximumCharacters = 600
+    static let maximumLines = 12
+
     let style: EditorialStyle
     let override: EditorialTextStyle
     let bounds: CGRect
@@ -106,8 +113,19 @@ struct CaptionSetter {
     let gap: CGFloat
     /// A story panel painted over the photos; a band on a photo moves to the top to stay visible.
     let storyPanel: CGRect?
+    private let memo = Memo()
 
-    init(book: Book, page: BookPage, bounds: CGRect, storyPanel: CGRect?) {
+    /// What one composition has typeset already.
+    private final class Memo {
+        struct Key: Hashable { let photo: UUID; let overPhoto: Bool }
+        struct Width: Hashable { let key: Key; let width: CGFloat }
+        var texts: [Key: (text: NSAttributedString, setter: CTFramesetter, cut: Bool)] = [:]
+        var heights: [Width: CGFloat] = [:]
+    }
+
+    /// Nil when no photo on the page has a caption to print, so a page without captions does no caption work.
+    init?(book: Book, page: BookPage, bounds: CGRect, storyPanel: CGRect?, lookup: (UUID) -> BookPhoto?) {
+        guard page.photoIDs.contains(where: { lookup($0)?.printedCaption != nil }) else { return nil }
         style = book.editorialStyle
         override = book.captionStyle
         self.bounds = bounds
@@ -125,31 +143,73 @@ struct CaptionSetter {
         return .some(placement?.captionPosition)
     }
 
-    func text(_ photo: BookPhoto, overPhoto: Bool) -> NSAttributedString {
-        style.captionTypography(photo.printedCaption ?? "", override: override, overPhoto: overPhoto)
+    /// The caption as printed: at most `maximumLines` lines and `maximumCharacters` characters, with an
+    /// ellipsis where it was cut.
+    static func printable(_ caption: String) -> (text: String, cut: Bool) {
+        var text = caption
+        var cut = false
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        if lines.count > maximumLines {
+            text = lines.prefix(maximumLines).joined(separator: "\n")
+            cut = true
+        }
+        if text.count > maximumCharacters {
+            text = String(text.prefix(maximumCharacters))
+            cut = true
+        }
+        return cut ? (text.trimmingCharacters(in: .whitespacesAndNewlines) + "…", true) : (text, false)
     }
 
-    /// The horizontal extent of the text: the photo's, kept inside the safe line and off the gutter
-    /// of a spread.
-    func column(_ minX: CGFloat, _ maxX: CGFloat) -> (CGFloat, CGFloat) {
+    private func typeset(_ photo: BookPhoto, overPhoto: Bool) -> (text: NSAttributedString, setter: CTFramesetter, cut: Bool) {
+        let key = Memo.Key(photo: photo.id, overPhoto: overPhoto)
+        if let known = memo.texts[key] { return known }
+        let printable = Self.printable(photo.printedCaption ?? "")
+        let text = style.captionTypography(printable.text, override: override, overPhoto: overPhoto)
+        let entry = (text, CTFramesetterCreateWithAttributedString(text), printable.cut)
+        memo.texts[key] = entry
+        return entry
+    }
+
+    /// The height of a caption at `width`, as `EditorialTypesetter.requiredHeight` measures it.
+    private func height(_ photo: BookPhoto, overPhoto: Bool, width: CGFloat) -> CGFloat {
+        let key = Memo.Width(key: Memo.Key(photo: photo.id, overPhoto: overPhoto), width: (width * 100).rounded() / 100)
+        if let known = memo.heights[key] { return known }
+        let entry = typeset(photo, overPhoto: overPhoto)
+        var measured: CGFloat = 0
+        if entry.text.length > 0, width > 0 {
+            let size = CTFramesetterSuggestFrameSizeWithConstraints(
+                entry.setter, CFRange(location: 0, length: 0), nil,
+                CGSize(width: width, height: .greatestFiniteMagnitude), nil)
+            measured = ceil(size.height) + 2
+        }
+        memo.heights[key] = measured
+        return measured
+    }
+
+    /// The horizontal extent of the text: the photo's, kept inside the safe line and off the gutter of a
+    /// spread. `clear` is false when the text has to cross the gutter because neither side has room.
+    func column(_ minX: CGFloat, _ maxX: CGFloat) -> (low: CGFloat, high: CGFloat, clear: Bool) {
         var low = max(minX, safe.minX)
         var high = min(maxX, safe.maxX)
         if high - low < min(36, (maxX - minX) * 0.5) { (low, high) = (minX, maxX) }
         if spread, low < bounds.midX, high > bounds.midX {
             let inset = safe.minX - bounds.minX
-            if bounds.midX - inset - low >= 36 { high = bounds.midX - inset } else { low = bounds.midX + inset }
+            let left = bounds.midX - inset - low
+            let right = high - (bounds.midX + inset)
+            // The wider side takes the text; when neither can hold it, it keeps the whole width.
+            if max(left, right) >= min(36, high - low) {
+                if left >= right { high = bounds.midX - inset } else { low = bounds.midX + inset }
+            } else {
+                return (low, high, false)
+            }
         }
-        return (low, max(low, high))
+        return (low, max(low, high), true)
     }
 
-    func paperColumn(of frame: CGRect) -> (x: CGFloat, width: CGFloat) {
+    func paperColumn(of frame: CGRect) -> (x: CGFloat, width: CGFloat, clear: Bool) {
         let visible = frame.intersection(bounds)
-        let (low, high) = column(visible.minX, visible.maxX)
-        return (low, high - low)
-    }
-
-    func height(_ text: NSAttributedString, width: CGFloat) -> CGFloat {
-        EditorialTypesetter.requiredHeight(text, width: width)
+        let column = column(visible.minX, visible.maxX)
+        return (column.low, column.high - column.low, column.clear)
     }
 
     /// Automatic placement for a slot of an automatic layout: below when the slot sits inside the safe
@@ -160,7 +220,7 @@ struct CaptionSetter {
 
     /// Shrinks automatic slots so captions below or above fit: every slot gives up the same band, as tall
     /// as the tallest caption plus the gap. `layout(band)` returns the photo frames with that band kept.
-    func carve(_ slots: [CGRect], positions: [CaptionPosition?], texts: [NSAttributedString?], cap: CGFloat,
+    func carve(_ slots: [CGRect], positions: [CaptionPosition?], photos: [BookPhoto?], cap: CGFloat,
                layout: (CGFloat) -> [CGRect]) -> (frames: [CGRect], band: CGFloat) {
         // A page without captions on the paper keeps its slots exactly.
         guard positions.contains(where: { $0 == .below || $0 == .above }), cap > 0 else { return (slots, 0) }
@@ -168,8 +228,8 @@ struct CaptionSetter {
         func needed(_ frames: [CGRect]) -> CGFloat {
             var tallest: CGFloat = 0
             for (index, frame) in frames.enumerated() where index < positions.count {
-                guard positions[index] == .below || positions[index] == .above, let text = texts[index] else { continue }
-                tallest = max(tallest, height(text, width: paperColumn(of: frame).width))
+                guard positions[index] == .below || positions[index] == .above, let photo = photos[index] else { continue }
+                tallest = max(tallest, height(photo, overPhoto: false, width: paperColumn(of: frame).width))
             }
             return min(cap, tallest + gap)
         }
@@ -191,17 +251,17 @@ struct CaptionSetter {
     func caption(_ photo: BookPhoto, frame: CGRect, requested: CaptionPosition?, band: CGFloat?) -> PageComposition.Caption? {
         let visible = frame.intersection(bounds)
         guard !visible.isNull, visible.width > 1, visible.height > 1 else { return nil }
-        let onPaper = text(photo, overPhoto: false)
-        let (x, width) = paperColumn(of: frame)
-        let paperHeight = height(onPaper, width: width)
+        let (x, width, clear) = paperColumn(of: frame)
+        let paperHeight = height(photo, overPhoto: false, width: width)
         let position = requested ?? (visible.maxY + gap + paperHeight <= safe.maxY + 0.5 ? .below : .inside)
         switch position {
         case .below, .above:
+            let onPaper = typeset(photo, overPhoto: false)
             let y = position == .below ? visible.maxY + gap : visible.minY - gap - paperHeight
             let rect = CGRect(x: x, y: y, width: width, height: paperHeight)
-            var fits = bounds.insetBy(dx: -0.5, dy: -0.5).contains(rect)
+            var fits = clear && !onPaper.cut && bounds.insetBy(dx: -0.5, dy: -0.5).contains(rect)
             if let band, paperHeight > band - gap + 0.5 { fits = false }
-            return PageComposition.Caption(photoID: photo.id, frame: rect, band: nil, text: onPaper,
+            return PageComposition.Caption(photoID: photo.id, frame: rect, band: nil, text: onPaper.text,
                                            position: position, fits: fits)
         case .inside:
             return inside(photo, visible: visible)
@@ -211,11 +271,11 @@ struct CaptionSetter {
     }
 
     private func inside(_ photo: BookPhoto, visible: CGRect) -> PageComposition.Caption {
-        let text = text(photo, overPhoto: true)
+        let entry = typeset(photo, overPhoto: true)
         let padding = gap
-        var (low, high) = column(visible.minX + padding * 1.5, visible.maxX - padding * 1.5)
+        var (low, high, clear) = column(visible.minX + padding * 1.5, visible.maxX - padding * 1.5)
         if high - low < 12 { (low, high) = (visible.minX, visible.maxX) }
-        let textHeight = height(text, width: high - low)
+        let textHeight = height(photo, overPhoto: true, width: high - low)
         let bottomBand = { () -> (CGRect, CGRect) in
             let bottom = min(visible.maxY - padding, self.safe.maxY)
             let top = bottom - textHeight
@@ -233,8 +293,10 @@ struct CaptionSetter {
             if !storyPanel.intersects(flipped.1) { (frame, band) = flipped }
         }
         band = band.intersection(visible)
-        let fits = textHeight <= visible.height / 2 && bounds.insetBy(dx: -0.5, dy: -0.5).contains(frame)
-        return PageComposition.Caption(photoID: photo.id, frame: frame, band: band, text: text,
+        if high - low < 12 { clear = true }
+        let fits = clear && !entry.cut && textHeight <= visible.height / 2
+            && bounds.insetBy(dx: -0.5, dy: -0.5).contains(frame)
+        return PageComposition.Caption(photoID: photo.id, frame: frame, band: band, text: entry.text,
                                        position: .inside, fits: fits)
     }
 }

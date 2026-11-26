@@ -194,7 +194,7 @@ extension EditorView {
             if selectedPhoto != nil { showPhotoSection(film: true) } else { showInspectorTab(.film) }
         }
         commands.removePhoto = { _ = deleteSelectedCanvasObject() }
-        commands.canCaptionPage = coverSide == nil && page.map { !automaticCaptions(on: $0).isEmpty } ?? false
+        commands.canCaptionPage = coverSide == nil && page.map(canCaptionPhotos) ?? false
         commands.captionPage = captionPhotosOnPage
         commands.toggleNavigator = { showsNavigator.toggle() }
         commands.toggleInspector = { showsInspector.toggle() }

@@ -287,20 +287,22 @@ struct PageComposition {
                 story = geometry.story.map { style.textArea(in: $0, mixed: mixed, fullColumn: fullColumn) }
                 storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
             }
-            let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: storyBackground)
+            let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: storyBackground, lookup: lookup)
             // Slots of photos without a manual frame give up a common band for captions below or above.
             var slotPositions = [CaptionPosition?](repeating: nil, count: geometry.photos.count)
-            var slotTexts = [NSAttributedString?](repeating: nil, count: geometry.photos.count)
-            for (index, id) in page.photoIDs.enumerated() where geometry.photos.indices.contains(index) {
-                guard page.photoPlacements?[id]?.frame == nil, let photo = lookup(id),
-                      case let .some(requested) = CaptionSetter.request(photo, page.photoPlacements?[id]) else { continue }
-                slotPositions[index] = requested ?? setter.automaticPosition(slot: geometry.photos[index])
-                slotTexts[index] = setter.text(photo, overPhoto: false)
+            var slotPhotos = [BookPhoto?](repeating: nil, count: geometry.photos.count)
+            if let setter {
+                for (index, id) in page.photoIDs.enumerated() where geometry.photos.indices.contains(index) {
+                    guard page.photoPlacements?[id]?.frame == nil, let photo = lookup(id),
+                          case let .some(requested) = CaptionSetter.request(photo, page.photoPlacements?[id]) else { continue }
+                    slotPositions[index] = requested ?? setter.automaticPosition(slot: geometry.photos[index])
+                    slotPhotos[index] = photo
+                }
             }
             let shortest = geometry.photos.map(\.height).min() ?? 0
-            let carved = setter.carve(geometry.photos, positions: slotPositions, texts: slotTexts, cap: shortest * 0.45) { band in
+            let carved: (frames: [CGRect], band: CGFloat) = setter?.carve(geometry.photos, positions: slotPositions, photos: slotPhotos, cap: shortest * 0.45) { band in
                 geometry.photos.map { CGRect(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height - band) }
-            }
+            } ?? (geometry.photos, 0)
             var captions: [Caption] = []
             photos = page.photoIDs.enumerated().compactMap { index, id in
                 guard let photo = lookup(id) else { return nil }
@@ -319,7 +321,7 @@ struct PageComposition {
                 } else {
                     return nil
                 }
-                if case .some = CaptionSetter.request(photo, placement),
+                if let setter, case .some = CaptionSetter.request(photo, placement),
                    let caption = setter.caption(photo, frame: frame, requested: requested, band: band) {
                     captions.append(caption)
                 }
@@ -342,7 +344,7 @@ struct PageComposition {
         let studioGallery = layout == .gallery
             ? book.template?.studioGallery(count: autoImages.count, in: safe, gap: style.imageGap)
             : nil
-        let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: nil)
+        let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: nil, lookup: lookup)
         let automaticFrames: [CGRect]
         var slotPositions: [CaptionPosition?] = []
         var band: CGFloat = 0
@@ -357,26 +359,28 @@ struct PageComposition {
             let area = mixed ? parts.photo : safe
             let ratios = autoImages.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) }
             let studioSlots = studioGallery ?? []
-            var texts: [NSAttributedString?] = []
-            for (index, photo) in autoImages.enumerated() {
-                let requested = CaptionSetter.request(photo, page.photoPlacements?[photo.id])
-                let slot = studioSlots.indices.contains(index) ? studioSlots[index] : area
-                slotPositions.append(requested.map { $0 ?? setter.automaticPosition(slot: slot) })
-                texts.append(requested == nil ? nil : setter.text(photo, overPhoto: false))
+            var slotPhotos: [BookPhoto?] = []
+            if let setter {
+                for (index, photo) in autoImages.enumerated() {
+                    let requested = CaptionSetter.request(photo, page.photoPlacements?[photo.id])
+                    let slot = studioSlots.indices.contains(index) ? studioSlots[index] : area
+                    slotPositions.append(requested.map { $0 ?? setter.automaticPosition(slot: slot) })
+                    slotPhotos.append(requested == nil ? nil : photo)
+                }
             }
             let carved: (frames: [CGRect], band: CGFloat)
             if let studioGallery {
                 let shortest = studioGallery.map(\.height).min() ?? 0
-                carved = setter.carve(studioGallery, positions: slotPositions, texts: texts, cap: shortest * 0.45) { band in
+                carved = setter?.carve(studioGallery, positions: slotPositions, photos: slotPhotos, cap: shortest * 0.45) { band in
                     studioGallery.map { CGRect(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height - band) }
-                }
+                } ?? (studioGallery, 0)
             } else {
                 let natural = BookLayoutGeometry.rectangles(for: ratios, in: area, gap: style.imageGap)
                 let rows = CGFloat(Set(natural.map { ($0.minY * 100).rounded() }).count)
-                carved = setter.carve(natural, positions: slotPositions, texts: texts,
-                                      cap: area.height * 0.4 / max(1, rows)) { band in
+                carved = setter?.carve(natural, positions: slotPositions, photos: slotPhotos,
+                                       cap: area.height * 0.4 / max(1, rows)) { band in
                     BookLayoutGeometry.rectangles(for: ratios, in: area, gap: style.imageGap, captionBand: band)
-                }
+                } ?? (natural, 0)
             }
             automaticFrames = carved.frames
             band = carved.band
@@ -401,7 +405,7 @@ struct PageComposition {
             } else {
                 return nil
             }
-            if case .some = CaptionSetter.request(photo, manual),
+            if let setter, case .some = CaptionSetter.request(photo, manual),
                let caption = setter.caption(photo, frame: frame, requested: requested, band: slotBand) {
                 captions.append(caption)
             }

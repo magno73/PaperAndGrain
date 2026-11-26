@@ -23,6 +23,17 @@ extension EditorView {
                               language: language)
     }
 
+    /// Whether the photo has a place or a date to write. Cheap, for menus and buttons; nothing is formatted.
+    func canFillCaption(_ photo: BookPhoto) -> Bool {
+        photo.capturedAt != nil
+            || !(photo.location?.name ?? placesRead[photo.id]?.name ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Whether **Caption Photos on This Page** has something to fill on the page.
+    func canCaptionPhotos(on leaf: BookPage) -> Bool {
+        leaf.photoIDs.contains { id in indexedPhoto(id).map { $0.printedCaption == nil && canFillCaption($0) } ?? false }
+    }
+
     func fillCaption(_ photoID: UUID) {
         guard let index = photoIndex(photoID), let text = automaticCaption(for: book.photos[index]) else { return }
         let previous = book.photos[index].caption
@@ -129,31 +140,45 @@ extension EditorView {
             } label: {
                 Label(tr("Fill from Place and Date"), systemImage: "mappin.and.ellipse")
             }
-            .disabled(automaticCaption(for: photo) == nil)
+            .disabled(!canFillCaption(photo))
             .help(tr("Write the photo’s place and capture date as its caption"))
         }
     }
 
     /// The caption over the page, following the photo's frame as it is shown now (also during a drag).
-    func canvasCaption(_ caption: PageComposition.Caption, photoFrame: CGRect, shown: CGRect, scale: CGFloat,
-                       leaf: BookPage) -> some View {
+    /// It is drawing only: clicks reach the photo and its handles (`CanvasObjectControl.attachment`).
+    func canvasCaption(_ caption: PageComposition.Caption, photoFrame: CGRect, shown: CGRect, scale: CGFloat) -> some View {
         let style = book.editorialStyle
         let text = Self.following(scaled(caption.frame, by: scale), from: photoFrame, to: shown)
         let band = caption.band.map { Self.following(scaled($0, by: scale), from: photoFrame, to: shown) }
-        let edit = { beginCaptionEditing(caption.photoID, in: leaf) }
         return ZStack(alignment: .topLeading) {
             if let band {
-                // The hit area is the band itself, never the whole page the positioned view spans.
-                positioned(Rectangle().fill(Color(cgColor: EditorialStyle.color(style.overlayPaper)))
-                    .opacity(style.overlayOpacity).contentShape(Rectangle()), in: band)
-                    .onTapGesture(count: 2, perform: edit)
-                    .accessibilityHidden(true)
+                positioned(Color(cgColor: EditorialStyle.color(style.overlayPaper)).opacity(style.overlayOpacity), in: band)
             }
-            positioned(editorialText(caption.text, scale: scale).contentShape(Rectangle()), in: text)
-                .onTapGesture(count: 2, perform: edit)
+            positioned(editorialText(caption.text, scale: scale), in: text)
+        }
+    }
+
+    /// Where a double-click types a caption that sits on the paper, below or above its photo. It is
+    /// layered just under its photo, so the photo, its handles and anything stacked above still win.
+    @ViewBuilder func canvasCaptionTarget(_ caption: PageComposition.Caption, leaf: BookPage, scale: CGFloat) -> some View {
+        if caption.band == nil {
+            positioned(Color.clear.contentShape(Rectangle()), in: scaled(caption.frame, by: scale))
+                .onTapGesture(count: 2) { beginCaptionEditing(caption.photoID, in: leaf) }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(tr("Caption") + ": " + caption.text.string)
-                .accessibilityAction(named: Text(tr("Edit Caption")), edit)
+                .accessibilityAction(named: Text(tr("Edit Caption"))) { beginCaptionEditing(caption.photoID, in: leaf) }
+        }
+    }
+
+    /// A double-click on a photo types its caption when it lands on a caption on the photo; elsewhere it crops.
+    func doubleClickPhoto(_ id: UUID, at point: CGPoint, frame: CGRect, composition: PageComposition, scale: CGFloat,
+                          leaf: BookPage) {
+        if let caption = composition.caption(for: id), caption.band != nil,
+           scaled(caption.area, by: scale).offsetBy(dx: -frame.minX, dy: -frame.minY).contains(point) {
+            beginCaptionEditing(id, in: leaf)
+        } else {
+            beginCrop(id, in: leaf)
         }
     }
 
@@ -170,11 +195,11 @@ extension EditorView {
     /// Typing a caption on the page, over everything else, like a text box.
     @ViewBuilder func canvasCaptionEditor(_ leaf: BookPage, composition: PageComposition, scale: CGFloat) -> some View {
         if case let .caption(pageID, photoID)? = editingEditorial, pageID == leaf.id,
-           let item = composition.photos.first(where: { $0.id == photoID }) {
+           composition.photos.contains(where: { $0.id == photoID }) {
             let style = book.editorialStyle
             let type = style.defaultCaptionStyle.applying(book.captionStyle)
             let caption = composition.caption(for: photoID)
-            let frame = captionEditingFrame(caption, photo: item.frame, in: composition)
+            let frame = captionEditingFrame(photoID, on: leaf, in: composition)
             let onPhoto = caption?.position == .inside || caption == nil
             let font = type.fontName.flatMap { NSFont(name: $0, size: 12)?.fontName } ?? style.bodyFont
             let alignment: TextAlignment = type.alignment == .center ? .center : (type.alignment == .right ? .trailing : .leading)
@@ -199,22 +224,28 @@ extension EditorView {
         }
     }
 
-    /// Where the caption is typed: its own frame, or for a new caption two lines at the bottom of the
-    /// photo, a little taller than the text so the cursor never hides.
-    func captionEditingFrame(_ caption: PageComposition.Caption?, photo: CGRect,
-                             in composition: PageComposition) -> CGRect {
+    /// Where the caption is typed: its own frame, a little taller than the text so the cursor never hides.
+    /// A new caption opens where the page will put it.
+    func captionEditingFrame(_ photoID: UUID, on leaf: BookPage, in composition: PageComposition) -> CGRect {
         let style = book.editorialStyle
         let size = book.captionStyle.normalizedSize ?? style.defaultCaptionStyle.pointSize ?? style.bodySize
         let minimum = size * 2.6
-        if let caption {
-            let frame = caption.frame
+        var caption = composition.caption(for: photoID)
+        if caption == nil, let index = photoIndex(photoID) {
+            // A new caption opens where its first letter will put it: lay the page out with one.
+            var probe = book
+            probe.photos[index].caption = "M"
+            caption = PageComposition(page: leaf, book: probe).caption(for: photoID)
+        }
+        if let frame = caption?.frame {
             return CGRect(x: frame.minX - 4, y: frame.minY - 3, width: frame.width + 8,
                           height: max(minimum, frame.height + 6))
         }
-        let visible = photo.intersection(composition.bounds)
-        guard !visible.isNull else { return .zero }
-        return CGRect(x: visible.minX, y: max(visible.minY, visible.maxY - minimum), width: visible.width,
-                      height: min(minimum, visible.height))
+        // Hidden on this page: type it at the bottom of the photo.
+        guard let photo = composition.photos.first(where: { $0.id == photoID })?.frame.intersection(composition.bounds),
+              !photo.isNull else { return .zero }
+        return CGRect(x: photo.minX, y: max(photo.minY, photo.maxY - minimum), width: photo.width,
+                      height: min(minimum, photo.height))
     }
 
     /// The caption in a thumbnail or **Browse the Book**, at the composition's scale.

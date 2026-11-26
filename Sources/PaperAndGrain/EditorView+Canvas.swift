@@ -342,8 +342,14 @@ extension EditorView {
                         .zIndex(Double(composition.rank(.photo(item.id))))
                 }
             }
+            ForEach(composition.captions) { caption in
+                if editingEditorial != .caption(page: leaf.id, photo: caption.photoID) {
+                    canvasCaptionTarget(caption, leaf: leaf, scale: scale)
+                        .zIndex(Double(composition.rank(.photo(caption.photoID))) - 0.25)
+                }
+            }
             canvasStory(leaf, composition: composition, blocks: blocks, backings: backings, bounds: bounds, scale: scale)
-                .zIndex(editingEditorial?.pageID == leaf.id ? 10_000 : Double(composition.rank(.story)))
+                .zIndex(editsStory(on: leaf.id) ? 10_000 : Double(composition.rank(.story)))
             ForEach(composition.textBoxes) { box in
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id), blocks: blocks)
                 canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
@@ -463,6 +469,12 @@ extension EditorView {
         }
     }
 
+    /// True while the page's heading or story is typed in place; a caption being typed leaves the story where it is.
+    func editsStory(on pageID: UUID) -> Bool {
+        if case let .page(id, _)? = editingEditorial { return id == pageID }
+        return false
+    }
+
     func storyGroupFrame(_ blocks: [PageComposition.TextBlock], backings: [CGRect]) -> CGRect? {
         let visible = blocks.filter { !$0.frame.isEmpty }
         let occupied = visible.lazy.filter { $0.text.length > 0 }.count
@@ -503,8 +515,8 @@ extension EditorView {
             regions.append(Region(frame: block.frame, target: .story(role)))
         }
         if case let .caption(id, photoID)? = editingEditorial, id == leaf.id,
-           let item = composition.photos.first(where: { $0.id == photoID }) {
-            let frame = captionEditingFrame(composition.caption(for: photoID), photo: item.frame, in: composition)
+           composition.photos.contains(where: { $0.id == photoID }) {
+            let frame = captionEditingFrame(photoID, on: leaf, in: composition)
             regions.append(Region(frame: frame, target: .caption(photoID)))
         }
         if let inlineEditingBox, let box = composition.textBoxes.first(where: { $0.id == inlineEditingBox }) {
@@ -562,7 +574,7 @@ extension EditorView {
         // The caption is drawn with its photo, so it shares the photo's layer and follows a drag.
         let caption = editingEditorial == .caption(page: leaf.id, photo: item.id) ? nil : composition.caption(for: item.id)
         let attachment: ((CGRect) -> AnyView)? = caption.map { caption in
-            { shown in AnyView(canvasCaption(caption, photoFrame: frame, shown: shown, scale: scale, leaf: leaf)) }
+            { shown in AnyView(canvasCaption(caption, photoFrame: frame, shown: shown, scale: scale)) }
         }
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
@@ -571,6 +583,8 @@ extension EditorView {
                                    moveSpace: .named(leaf.id), swapTargetAt: swapTargetAt,
                                    onSwap: { swapPhoto(item.id, with: $0, on: leaf.id) },
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
+                                   onDoubleClickAt: { doubleClickPhoto(item.id, at: $0, frame: frame, composition: composition,
+                                                                       scale: scale, leaf: leaf) },
                                    attachment: attachment,
                                    onSelect: { activateCanvas { selectCanvasPhoto(item.id, in: leaf) } },
                                    onNudge: { nudgeFromKeyboard($0) { selectCanvasPhoto(item.id, in: leaf) } },
@@ -582,6 +596,9 @@ extension EditorView {
                 }
         }
         .accessibilityAction(named: Text(tr("Crop Photo"))) { beginCrop(item.id, in: leaf) }
+        .accessibilityAction(named: Text(item.photo.printedCaption == nil ? tr("Add Caption") : tr("Edit Caption"))) {
+            beginCaptionEditing(item.id, in: leaf)
+        }
         .accessibilityAction(named: Text(tr("Remove from Page", key: "canvas.remove_box_from_page"))) {
             deleteCanvasPhoto(item.id, from: leaf.id)
         }

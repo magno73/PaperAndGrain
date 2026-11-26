@@ -249,6 +249,53 @@ final class CaptionTests: XCTestCase {
         XCTAssertFalse(report.warnings.contains { $0.problem == .textOutsideSafeMargin })
     }
 
+    func testAPastedLongCaptionIsCutAndReported() throws {
+        let list = photos(2, captions: [String(repeating: "word ", count: 2000), "Short"])
+        let page = BookPage(photoIDs: list.map(\.id))
+        let book = Book(title: "T", photos: list, pages: [page], template: .diary)
+        let composition = PageComposition(page: page, book: book)
+        let long = try XCTUnwrap(composition.caption(for: list[0].id))
+        XCTAssertLessThanOrEqual(long.text.length, CaptionSetter.maximumCharacters + 1)
+        XCTAssertTrue(long.text.string.hasSuffix("…"))
+        XCTAssertFalse(long.fits)
+        XCTAssertEqual(composition.caption(for: list[1].id)?.fits, true)
+        XCTAssertTrue(BookPDF.preflight(book, directory: nil, profile: .print).warnings.contains {
+            $0.problem == .captionDoesNotFit && $0.target == .caption(list[0].id)
+        })
+        let lines = CaptionSetter.printable((1...40).map(String.init).joined(separator: "\n"))
+        XCTAssertTrue(lines.cut)
+        XCTAssertEqual(lines.text.split(separator: "\n").count, CaptionSetter.maximumLines)
+        XCTAssertFalse(CaptionSetter.printable("Etosha").cut)
+    }
+
+    func testAFrameAcrossTheGutterKeepsAReadableCaption() throws {
+        let list = photos(1, captions: ["Across the fold"])
+        var page = BookPage(layout: .fullSpread, photoIDs: list.map(\.id))
+        // Mostly on the right page: the caption moves to the right of the gutter.
+        page.photoPlacements = [list[0].id: PhotoPlacement(frame: PageRect(x: 0.48, y: 0.2, width: 0.3, height: 0.3),
+                                                           captionPosition: .below)]
+        let book = Book(title: "T", photos: list, pages: [page], template: .atlas)
+        var composition = PageComposition(page: page, book: book)
+        var caption = try XCTUnwrap(composition.captions.first)
+        XCTAssertGreaterThan(caption.frame.minX, composition.bounds.midX)
+        XCTAssertGreaterThan(caption.frame.width, 36)
+        XCTAssertTrue(caption.fits)
+        // Straddling it evenly with no room on either side: the full width, and a warning.
+        page.photoPlacements?[list[0].id]?.frame = PageRect(x: 0.47, y: 0.2, width: 0.06, height: 0.3)
+        composition = PageComposition(page: page, book: book)
+        caption = try XCTUnwrap(composition.captions.first)
+        XCTAssertEqual(caption.frame.width, composition.photos[0].frame.width, accuracy: 0.01)
+        XCTAssertFalse(caption.fits)
+    }
+
+    func testAPageWithoutCaptionsDoesNoCaptionWork() {
+        let list = photos(3)
+        let page = BookPage(photoIDs: list.map(\.id))
+        let book = Book(title: "T", photos: list, template: .diary)
+        XCTAssertNil(CaptionSetter(book: book, page: page, bounds: CGRect(x: 0, y: 0, width: 500, height: 500),
+                                   storyPanel: nil, lookup: book.photo))
+    }
+
     // MARK: Text
 
     func testAutomaticCaptionFromPlaceAndDate() {
