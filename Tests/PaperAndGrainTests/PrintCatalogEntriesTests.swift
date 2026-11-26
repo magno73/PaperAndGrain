@@ -180,6 +180,78 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(cover.getBoxRect(.mediaBox).height, 10.1 * inch, accuracy: 0.1)
     }
 
+    // MARK: Saal Digital
+
+    private struct Pinned {
+        var size: String
+        var spreadPX: (Int, Int)
+        var spreadDPI: Double
+        var coverDPI: Double
+        var coverHeightPX: Int
+        /// Pages, cover width, spine and fold-over in pixels, as Saal's Professional Zone tables give them.
+        var rows: [(Int, Int, Int, Int)]
+    }
+
+    private var saalPins: [Pinned] { [
+        Pinned(size: "8.5x11", spreadPX: (5031, 3260), spreadDPI: 300, coverDPI: 300, coverHeightPX: 3402,
+               rows: [(26, 5415, 142, 106), (56, 5463, 213, 130), (86, 5520, 283, 154), (160, 5702, 425, 201)]),
+        Pinned(size: "11x11", spreadPX: (6449, 3260), spreadDPI: 300, coverDPI: 300, coverHeightPX: 3402,
+               rows: [(26, 6833, 142, 106), (56, 6880, 213, 130), (86, 6938, 283, 154), (160, 7120, 425, 201)]),
+        Pinned(size: "11x7.5", spreadPX: (6730, 2307), spreadDPI: 302, coverDPI: 302, coverHeightPX: 2449,
+               rows: [(26, 7115, 143, 107), (56, 7174, 214, 131), (86, 7222, 285, 155), (160, 7405, 428, 202)]),
+        Pinned(size: "16.5x11", spreadPX: (9992, 3260), spreadDPI: 300, coverDPI: 300, coverHeightPX: 3402,
+               rows: [(26, 10382, 142, 106), (56, 10429, 213, 130), (86, 10487, 283, 154), (130, 10557, 366, 177)]),
+        Pinned(size: "7.5x7.5", spreadPX: (4527, 2299), spreadDPI: 301, coverDPI: 302, coverHeightPX: 2449,
+               rows: [(26, 4927, 143, 107), (56, 4987, 202, 131), (86, 5034, 285, 155), (130, 5104, 369, 178)]),
+    ] }
+
+    /// Rows of Saal's tables (default cover and paper) render to the cover width, spine and fold-over the table gives,
+    /// and every size's spreads match the spread size.
+    func testSaalTablesRenderTheDimensionsOfTheProfessionalZone() throws {
+        let profile = try XCTUnwrap(catalog.profile("saal-digital-photobook-hardcover"))
+        XCTAssertEqual(profile.binding, .hardcover)
+        XCTAssertEqual(profile.interior.layout, .spread)
+        XCTAssertEqual(profile.interior.ends, .insideCovers)
+        XCTAssertEqual(profile.interior.pages.minimum, 26)
+        XCTAssertEqual(profile.interior.pages.multiple, 2)
+        XCTAssertEqual(profile.interior.pages.coverPagesCounted, 0, "the stated page count does not include the cover")
+        XCTAssertEqual(profile.files.arrangement, .separate)
+        XCTAssertEqual(profile.color.accepts, [.srgb])
+        XCTAssertEqual(profile.sizes.map(\.id), ["8.5x11", "11x11", "11x7.5", "16.5x11", "7.5x7.5"])
+        XCTAssertEqual(try XCTUnwrap(profile.size("16.5x11")).pages?.maximum, 130)
+        XCTAssertEqual(try XCTUnwrap(profile.size("7.5x7.5")).pages?.maximum, 130)
+        XCTAssertNil(try XCTUnwrap(profile.size("8.5x11")).pages?.maximum)
+        XCTAssertEqual(profile.size("8.5x11")?.format, BookFormat(widthMM: 210, heightMM: 270),
+                       "the trim is read from the spread: (5031 - 2 x 35) / 2 px at 300 dpi")
+        for pin in saalPins {
+            let size = try XCTUnwrap(profile.size(pin.size), pin.size)
+            XCTAssertEqual(profile.pageRules(for: size).maximum ?? 160, pin.rows.last?.0, pin.size)
+            for (pages, coverPX, spinePX, foldPX) in pin.rows {
+                let context = "\(pin.size) \(pages) pages"
+                var book = Book(title: "Saal", format: size.format, pages: (0..<pages).map { _ in BookPage(layout: .text, text: "x") })
+                book.cover = BookCover(title: "Saal")
+                let plan = PrintPlan(profile: profile, sizeID: pin.size)
+                XCTAssertEqual(BookPDF.interiorPageCount(book, plan: plan), pages, context)
+                let spine = try XCTUnwrap(plan.value(.spine, for: book, interiorPages: pages), context)
+                let fold = try XCTUnwrap(plan.value(.hinge, for: book, interiorPages: pages), context)
+                XCTAssertEqual(spine, Double(spinePX) * 25.4 / pin.coverDPI, accuracy: 0.002, context + " spine")
+                XCTAssertEqual(fold, Double(foldPX) * 25.4 / pin.coverDPI, accuracy: 0.002, context + " fold-over")
+                let directory = try temporaryDirectory()
+                let output = directory.appendingPathComponent("Out")
+                try BookPDF.write(book, directory: directory, plan: plan, to: output)
+                let cover = try XCTUnwrap(CGPDFDocument(output.appendingPathComponent("Cover.pdf") as CFURL)?.page(at: 1), context)
+                let media = cover.getBoxRect(.mediaBox)
+                XCTAssertEqual(media.width / points, Double(coverPX) * 25.4 / pin.coverDPI, accuracy: 0.05, context + " cover width")
+                XCTAssertEqual(media.height / points, Double(pin.coverHeightPX) * 25.4 / pin.coverDPI, accuracy: 0.05, context + " cover height")
+                let interior = try XCTUnwrap(CGPDFDocument(output.appendingPathComponent("Interior.pdf") as CFURL), context)
+                XCTAssertEqual(interior.numberOfPages, pages / 2, context + " one PDF page per double page")
+                let spread = try XCTUnwrap(interior.page(at: 1)).getBoxRect(.mediaBox)
+                XCTAssertEqual(spread.width / points, Double(pin.spreadPX.0) * 25.4 / pin.spreadDPI, accuracy: 0.2, context + " spread width")
+                XCTAssertEqual(spread.height / points, Double(pin.spreadPX.1) * 25.4 / pin.spreadDPI, accuracy: 0.2, context + " spread height")
+            }
+        }
+    }
+
     // MARK: Text keeps inside the safe margin
 
     /// A page of text in every size of every entry stays inside the product's margin on the edges that are cut.

@@ -41,6 +41,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ### Print services
 
+- Saal Digital: the hardcover photo book in five sizes, for the default cover and paper; one PDF page per double page, spine, fold-over and cover width from Saal's tables.
 - Mixam: the hardcover book in 24 sizes; the spine is typed from the Mixam cart.
 - Lulu: hardcover casewrap and paperback in seven trims; the hardcover spine from Lulu's table (24 to 800 pages), the paperback spine from its formula.
 - WhiteWall: the Coffee Table Book in six sizes and six papers; the exact page and cover sizes, bleed, fold, wrap and spine are typed from WhiteWall's configurator.

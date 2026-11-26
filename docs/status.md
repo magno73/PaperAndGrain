@@ -87,7 +87,7 @@ Peecho: the three entries were read from Peecho's help articles (through the hel
 
 Entries left out because a number could not be confirmed on the printer's own page:
 
-- **Saal Digital, all products.** The dimension tables (spread, cover, spine, fold-over in pixels at 300 dpi) are not in the pages' text: they load by script on the Professional Zone page, on the EU, US, German and Italian sites alike, and a fetch of the HTML holds none (searched for the example values 5031 and 3260 too). The 21 × 28 cm page gives the closed size as 21.5 × 27.5 cm, which does not agree with the 210 × 280 mm trim Appendix A implies, and the example spread in Appendix A (5031 × 3260 px) works out to a 270 mm trim height, not 280 mm. Needs the tables read in a browser or the downloadable templates. See `docs/print-services.md`.
+- **Saal Digital, other cover and paper options and the three small sizes.** (The default options were added from the tables the lead read in a browser; see `docs/print-services.md`.) Formerly: all products. The dimension tables (spread, cover, spine, fold-over in pixels at 300 dpi) are not in the pages' text: they load by script on the Professional Zone page, on the EU, US, German and Italian sites alike, and a fetch of the HTML holds none (searched for the example values 5031 and 3260 too). The 21 × 28 cm page gives the closed size as 21.5 × 27.5 cm, which does not agree with the 210 × 280 mm trim Appendix A implies, and the example spread in Appendix A (5031 × 3260 px) works out to a 270 mm trim height, not 280 mm. Needs the tables read in a browser or the downloadable templates. See `docs/print-services.md`.
 
 ### Captions (T4)
 

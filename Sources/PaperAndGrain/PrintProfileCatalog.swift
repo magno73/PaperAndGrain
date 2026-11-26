@@ -184,8 +184,9 @@ extension PrintProfile {
         }
         func coverRules(_ rules: Cover, _ name: String) {
             if let panel = rules.panel {
-                measure(panel.widthMM, "\(name).panel.widthMM", positive: true, fixedOrQuote: true)
-                measure(panel.heightMM, "\(name).panel.heightMM", positive: true, fixedOrQuote: true)
+                // A board width can follow the page count (Saal Digital gives the cover width per count).
+                measure(panel.widthMM, "\(name).panel.widthMM", positive: true)
+                measure(panel.heightMM, "\(name).panel.heightMM", positive: true)
             }
             measure(rules.hinge, "\(name).hinge")
             measure(rules.spine, "\(name).spine")

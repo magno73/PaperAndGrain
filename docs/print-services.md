@@ -22,6 +22,29 @@ Three entries (`peecho-hardcover`, `peecho-layflat`, `peecho-softcover`), file `
 - **Differences from the PRD's Appendix A.** Layflat content pages need no margin on the inner (binding) edge (Appendix A says 10 mm on every side); the page's orientation labels (for example "A5 Landscape 148 × 210") do not agree with the dimensions, so the entry uses the dimensions as written. The numbers of the three products otherwise agree.
 - Sources: [hardcover](https://support.peecho.com/hc/en-us/articles/19730953142428), [layflat](https://support.peecho.com/hc/en-us/articles/19732208244252), [softcover](https://support.peecho.com/hc/en-us/articles/19731377793564) (help articles updated 9 September, 24 November and 22 October 2026).
 
+### Saal Digital · photo book, hardcover (default options)
+
+File `saal-digital.json`; one entry, five sizes, **for the default cover and paper options only** (glossy unpadded cover, matte photo paper, standard barcode, no finishing). The tables were read in a real browser on 26 November 2026 from the Professional Zone page and saved as a text file by the lead (`reports/saal-professional-zone-2026-11-26.txt` in the integration checkout, not part of the repository).
+
+| Id | Saal's size | Trim per page | Pages |
+|---|---|---|---|
+| `8.5x11` | 21 × 28 cm (8.5 × 11 in) | 210 × 270 mm | 26 to 160 |
+| `11x11` | 28 × 28 cm (11 × 11 in) | 270 × 270 mm | 26 to 160 |
+| `11x7.5` | 28 × 19 cm (11 × 7.5 in) | 280 × 188 mm | 26 to 160 |
+| `16.5x11` | 42 × 28 cm (16.5 × 11 in) | 420 × 270 mm | 26 to 130 |
+| `7.5x7.5` | 19 × 19 cm (7.5 × 7.5 in) | 188 × 188 mm | 26 to 130 |
+
+- **Trim.** Read from the spread, not from the size's name: (spread − 2 × 35 px bleed) ÷ 2 at 300 dpi, so the "21 × 28" book is 210 × 270 mm per page (4961 px = 420 mm; 3190 px = 270.1 mm).
+- **What the export writes.** Two files in a folder. `Interior.pdf` has one PDF page per double page, the first spread starting on the left; the first page of the first spread and the last page of the last spread are the printed inside covers (leave them empty for white). `Cover.pdf` is one flat spread. sRGB, fonts embedded, no marks. The stated page count does not include the cover; counts run in twos.
+- **Tables.** Every size has its own table by page count (they differ between sizes: the spine at 30 pages is 154 px for 21 × 28 and 142 px for 28 × 28). The spine and the fold-over are Saal's own columns. Saal's cover width is not a constant board plus the spine (the side panel is 2526.5 px at 26 pages, 2515 at 56 and 2528.5 at 160 for 21 × 28), so each size's **board width, fold-over included**, is a table worked out from the cover width: (width − 2 × side bleed − spine) ÷ 2, with the fold-over lying inside the board (`hingeWithinPanel`). That makes the cover exactly as wide as Saal's table at every page count. The engine needed one change: a board width may be a table (it was a length or a quote). Values are kept in millimetres with the pixels in `source`.
+- **Cover.** Bleed on the sides and the top and bottom as Saal gives it (110 and 83 px at 300 dpi, for example); no wrap.
+- **Bleed of the interior.** 35 px (2.96 mm) for every size. The two smaller sizes are tabled at 302 dpi with 36 px (3.03 mm), so their spreads come out up to 0.1 mm narrower than Saal's.
+- **Margins.** About 1 cm from the trim (Saal's advice for content that does not cover the page).
+- **What the author enters.** Nothing; the spine and fold come from the tables.
+- **Not read.** Other cover and paper options (glossy, matte, leatherette, padded covers, silk and other papers; they may change the spine and the fold-over), the three smaller sizes (8.5 × 6, 6 × 8.5 and 6 × 6 in: their tables have other columns), XT books, Professional Line and softcover. The standard option prints a small barcode (92 × 66 px) on the back cover and the last page.
+- **Difference from Appendix A.** The trim: Appendix A's example spread of 5031 × 3260 px is 210 × 270 mm per page, not 280 mm. The EU product page's "exact size 21.5 × 27.5 cm" is a different figure and is not used.
+- Source: [Professional Zone](https://www.saal-digital.com/photo-book/professional-zone/).
+
 ### WhiteWall · Coffee Table Book, hardcover
 
 File `whitewall.json`; one entry, six sizes (cm): Portfolio A3 portrait 27 × 35.6 and landscape 38.2 × 29, Gallery square 29 × 29, Exhibition A4 portrait 20.5 × 27 and landscape 27 × 20.5, Story square 20.5 × 20.5. Six papers: three inkjet (up to 200 pages) and three Fuji Crystal Archive photo papers (up to 112).
@@ -61,21 +84,6 @@ File `mixam.json`; one entry, 24 sizes: the 11 book sizes of the hardcover page'
 - Sources: [hardcover setup](https://mixam.com/support/hardcoversetup), [print file setup](https://mixam.com/support/filesetup), [binding types](https://mixam.com/support/binding), [page counts](https://mixam.com/support/pagecount), [CMYK vs RGB](https://mixam.com/support/cmykvsrgb).
 
 ## Not added yet
-
-### Saal Digital
-
-Not in the catalog. Saal publishes the numbers that a cover and spread need (spread size, cover size, spine and fold-over by page count, for each size and cover type) as tables in pixels at 300 dpi on its Professional Zone page, but the tables are filled in by a script after the page loads: the page's own text, fetched as HTML, holds none of them, and neither the product pages nor the InDesign and Photoshop guides give them. Without the tables the product cannot be described without guessing, so it is left out. What the pages do state, for when the tables are available:
-
-- Each double page is one page of the PDF; the first page of the first spread and the last page of the last spread are the inside covers, which are printed (leave them empty for a white inside cover). The stated page count does not include the cover.
-- sRGB (IEC 61966-2.1), fonts embedded, no marks. Bleed and the joint apply to each page, so double them for a spread.
-- The 21 × 28 cm product page gives the closed size as 21.5 × 27.5 cm and 26 to 160 pages in steps of two.
-- The standard option prints a small barcode on the back cover and the last page.
-
-To add it: download the template PDFs of the sizes wanted from the Professional Zone, or read the tables in a browser, and give the numbers (the engine already has spreads, inside covers, a fold-over inside the board and tables by page count).
-
-### Mixam layflat
-
-Not in the catalog. The binding page gives the margins (bleed 0.125 in, no quiet area at the binding, 0.25 in elsewhere, cover bleed 0.8 in), but no page states the layflat sizes or page limits, and the spine is per order. Add it with the sizes from Mixam's calculator.
 
 ### Pixartprinting, other sizes
 

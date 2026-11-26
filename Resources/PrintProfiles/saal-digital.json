@@ -1,0 +1,6880 @@
+[
+ {
+  "id": "saal-digital-photobook-hardcover",
+  "service": "Saal Digital",
+  "product": {
+   "en": "Photo book, hardcover (glossy unpadded cover, matte photo paper)",
+   "it": "Fotolibro, copertina rigida (copertina lucida non imbottita, carta fotografica opaca)"
+  },
+  "binding": "hardcover",
+  "regions": [
+   "EU",
+   "GB",
+   "US"
+  ],
+  "sourceURL": "https://www.saal-digital.com/photo-book/professional-zone/",
+  "verifiedOn": "2026-11-26",
+  "notes": {
+   "en": "For the default options only: glossy unpadded cover, matte photo paper, standard barcode, no finishing. Saal's tables change with the cover and paper options (they were not read), so another cover or paper can need other spine and fold-over values. Two files in a folder: the inside as one PDF page per double page (the first page of the first spread and the last page of the last spread are the printed inside covers; leave them empty for white), and the cover as one flat spread (back, spine, front). Saal's tables are in pixels at 300 dpi (302 for the two smaller sizes); the entry keeps each value in millimetres with the pixels in its source. The cover width is not a constant board plus the spine, so the board of each face (fold-over included) is a table by page count worked out from Saal's cover width (width − 2 × side bleed − spine, halved), and the spine and the fold-over are Saal's own columns. The trim of each size is read from the spread (spread − 2 × 35 px bleed, halved). The interior bleed is 35 px (2.96 mm) for every size; the two smaller sizes use 36 px (3.03 mm) at 302 dpi, so their spreads are up to 0.1 mm narrower than Saal's. The stated page count does not include the cover. Page counts from 26, in twos; 160 at most (130 for 42 × 28 cm and 19 × 19 cm). sRGB (IEC 61966-2.1), fonts embedded, no marks. Keep important content about 1 cm from the trim. The standard option prints a small barcode (92 × 66 px) on the back cover and the last page.",
+   "it": "Solo per le opzioni predefinite: copertina lucida non imbottita, carta fotografica opaca, codice a barre standard, nessuna finitura. Le tabelle di Saal cambiano con le opzioni di copertina e carta (non lette), quindi un'altra copertina o carta può richiedere altri valori di dorso e risvolto. Due file in una cartella: l'interno con una pagina PDF per ogni doppia pagina (la prima pagina della prima doppia e l'ultima dell'ultima sono le facciate interne stampate delle copertine; lasciale vuote per averle bianche) e la copertina in una sola doppia pagina (quarta, dorso, copertina). Le tabelle di Saal sono in pixel a 300 dpi (302 per i due formati più piccoli); la voce tiene ogni valore in millimetri con i pixel in source. La larghezza della copertina non è un cartone costante più il dorso, quindi il cartone di ogni facciata (risvolto compreso) è una tabella per numero di pagine ricavata dalla larghezza di copertina di Saal (larghezza − 2 × abbondanza laterale − dorso, diviso due); dorso e risvolto sono le colonne di Saal. Il formato rifilato di ogni misura si legge dalla doppia pagina (doppia − 2 × 35 px di abbondanza, diviso due). L'abbondanza interna è di 35 px (2,96 mm) per tutti i formati; i due più piccoli usano 36 px (3,03 mm) a 302 dpi, quindi le loro doppie pagine sono più strette di Saal fino a 0,1 mm. Il numero di pagine indicato non comprende la copertina. Pagine da 26, a due a due; al massimo 160 (130 per 42 × 28 cm e 19 × 19 cm). sRGB (IEC 61966-2.1), caratteri incorporati, nessun segno. Tieni il contenuto importante a circa 1 cm dal taglio. L'opzione standard stampa un piccolo codice a barre (92 × 66 px) sulla quarta di copertina e sull'ultima pagina."
+  },
+  "interior": {
+   "layout": "spread",
+   "bleed": {
+    "top": {
+     "mm": 2.963,
+     "source": "35 px at 300 dpi"
+    },
+    "bottom": {
+     "mm": 2.963,
+     "source": "35 px at 300 dpi"
+    },
+    "outer": {
+     "mm": 2.963,
+     "source": "35 px at 300 dpi"
+    },
+    "inner": 0
+   },
+   "safe": {
+    "mm": 10,
+    "source": "about 1 cm from the trim"
+   },
+   "firstPage": "left",
+   "ends": "insideCovers",
+   "targetPPI": 300,
+   "pages": {
+    "minimum": 26,
+    "maximum": 160,
+    "multiple": 2,
+    "coverPagesCounted": 0
+   }
+  },
+  "cover": {
+   "kind": "flat",
+   "wrap": 0,
+   "hingeWithinPanel": true
+  },
+  "files": {
+   "arrangement": "separate"
+  },
+  "color": {
+   "accepts": [
+    "srgb"
+   ],
+   "iccProfile": "sRGB IEC61966-2.1"
+  },
+  "sizes": [
+   {
+    "id": "8.5x11",
+    "name": {
+     "en": "21 × 28 cm (8.5 × 11 in)",
+     "it": "21 × 28 cm (8,5 × 11 in)"
+    },
+    "widthMM": {
+     "mm": 210,
+     "source": "spread 5031 px − 2 × 35 px bleed, ÷ 2, at 300 dpi = 210.016 mm"
+    },
+    "heightMM": {
+     "mm": 270,
+     "source": "spread 3260 px − 2 × 35 px bleed at 300 dpi = 270.087 mm"
+    },
+    "cover": {
+     "panel": {
+      "widthMM": {
+       "table": {
+        "source": "Saal Digital Professional Zone: cover width per page count, less the bleed and the spine, halved",
+        "rows": [
+         {
+          "upToPages": 26,
+          "mm": {
+           "mm": 213.91,
+           "source": "(cover width 5415 − 2 × 110 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 28,
+          "mm": {
+           "mm": 213.91,
+           "source": "(cover width 5415 − 2 × 110 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 30,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5415 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 32,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5415 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 34,
+          "mm": {
+           "mm": 214.08,
+           "source": "(cover width 5431 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 36,
+          "mm": {
+           "mm": 213.614,
+           "source": "(cover width 5431 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 38,
+          "mm": {
+           "mm": 213.614,
+           "source": "(cover width 5431 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 40,
+          "mm": {
+           "mm": 213.614,
+           "source": "(cover width 5431 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 42,
+          "mm": {
+           "mm": 213.953,
+           "source": "(cover width 5451 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 44,
+          "mm": {
+           "mm": 213.953,
+           "source": "(cover width 5451 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 46,
+          "mm": {
+           "mm": 213.953,
+           "source": "(cover width 5451 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 48,
+          "mm": {
+           "mm": 213.445,
+           "source": "(cover width 5451 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 50,
+          "mm": {
+           "mm": 213.445,
+           "source": "(cover width 5451 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 52,
+          "mm": {
+           "mm": 213.953,
+           "source": "(cover width 5463 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 54,
+          "mm": {
+           "mm": 212.937,
+           "source": "(cover width 5463 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 56,
+          "mm": {
+           "mm": 212.937,
+           "source": "(cover width 5463 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 58,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5474 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 60,
+          "mm": {
+           "mm": 212.937,
+           "source": "(cover width 5474 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 62,
+          "mm": {
+           "mm": 212.937,
+           "source": "(cover width 5474 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 64,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5485 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 66,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5485 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 68,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5485 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 70,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5497 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 72,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5497 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 74,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5497 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 76,
+          "mm": {
+           "mm": 213.402,
+           "source": "(cover width 5509 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 78,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5509 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 80,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5509 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 82,
+          "mm": {
+           "mm": 213.36,
+           "source": "(cover width 5520 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 84,
+          "mm": {
+           "mm": 212.386,
+           "source": "(cover width 5520 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 86,
+          "mm": {
+           "mm": 212.386,
+           "source": "(cover width 5520 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 88,
+          "mm": {
+           "mm": 212.767,
+           "source": "(cover width 5529 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 90,
+          "mm": {
+           "mm": 212.259,
+           "source": "(cover width 5529 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 92,
+          "mm": {
+           "mm": 212.767,
+           "source": "(cover width 5541 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 94,
+          "mm": {
+           "mm": 212.767,
+           "source": "(cover width 5541 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 96,
+          "mm": {
+           "mm": 212.259,
+           "source": "(cover width 5541 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 98,
+          "mm": {
+           "mm": 212.598,
+           "source": "(cover width 5549 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 100,
+          "mm": {
+           "mm": 212.598,
+           "source": "(cover width 5549 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 102,
+          "mm": {
+           "mm": 212.09,
+           "source": "(cover width 5549 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 104,
+          "mm": {
+           "mm": 212.429,
+           "source": "(cover width 5557 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 106,
+          "mm": {
+           "mm": 212.429,
+           "source": "(cover width 5557 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 108,
+          "mm": {
+           "mm": 211.921,
+           "source": "(cover width 5557 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 110,
+          "mm": {
+           "mm": 212.259,
+           "source": "(cover width 5565 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 112,
+          "mm": {
+           "mm": 212.259,
+           "source": "(cover width 5565 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 114,
+          "mm": {
+           "mm": 211.751,
+           "source": "(cover width 5565 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 116,
+          "mm": {
+           "mm": 212.132,
+           "source": "(cover width 5574 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 118,
+          "mm": {
+           "mm": 212.132,
+           "source": "(cover width 5574 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 120,
+          "mm": {
+           "mm": 211.667,
+           "source": "(cover width 5574 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 122,
+          "mm": {
+           "mm": 212.005,
+           "source": "(cover width 5582 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 124,
+          "mm": {
+           "mm": 212.005,
+           "source": "(cover width 5582 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 126,
+          "mm": {
+           "mm": 211.497,
+           "source": "(cover width 5582 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 128,
+          "mm": {
+           "mm": 211.836,
+           "source": "(cover width 5590 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 130,
+          "mm": {
+           "mm": 211.836,
+           "source": "(cover width 5590 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 132,
+          "mm": {
+           "mm": 211.328,
+           "source": "(cover width 5590 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 134,
+          "mm": {
+           "mm": 211.667,
+           "source": "(cover width 5598 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 136,
+          "mm": {
+           "mm": 211.667,
+           "source": "(cover width 5598 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 138,
+          "mm": {
+           "mm": 211.159,
+           "source": "(cover width 5598 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 140,
+          "mm": {
+           "mm": 212.513,
+           "source": "(cover width 5630 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 142,
+          "mm": {
+           "mm": 212.725,
+           "source": "(cover width 5635 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 144,
+          "mm": {
+           "mm": 212.429,
+           "source": "(cover width 5640 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 146,
+          "mm": {
+           "mm": 212.979,
+           "source": "(cover width 5653 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 148,
+          "mm": {
+           "mm": 213.148,
+           "source": "(cover width 5657 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 150,
+          "mm": {
+           "mm": 212.894,
+           "source": "(cover width 5662 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 152,
+          "mm": {
+           "mm": 213.445,
+           "source": "(cover width 5675 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 154,
+          "mm": {
+           "mm": 213.656,
+           "source": "(cover width 5680 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 156,
+          "mm": {
+           "mm": 213.36,
+           "source": "(cover width 5685 − 2 × 110 bleed − spine 425) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 158,
+          "mm": {
+           "mm": 213.91,
+           "source": "(cover width 5698 − 2 × 110 bleed − spine 425) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 160,
+          "mm": {
+           "mm": 214.08,
+           "source": "(cover width 5702 − 2 × 110 bleed − spine 425) ÷ 2 px at 300 dpi"
+          }
+         }
+        ]
+       }
+      },
+      "heightMM": {
+       "mm": 273.981,
+       "source": "cover height 3402 px − 2 × 83 px at 300 dpi"
+      }
+     },
+     "hinge": {
+      "table": {
+       "source": "fold-over per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "spine": {
+      "table": {
+       "source": "spine per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 35.983,
+          "source": "425 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 35.983,
+          "source": "425 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 35.983,
+          "source": "425 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "bleed": {
+      "top": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "bottom": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "outer": {
+       "mm": 9.313,
+       "source": "110 px at 300 dpi"
+      },
+      "inner": 0
+     }
+    }
+   },
+   {
+    "id": "11x11",
+    "name": {
+     "en": "28 × 28 cm (11 × 11 in)",
+     "it": "28 × 28 cm (11 × 11 in)"
+    },
+    "widthMM": {
+     "mm": 270,
+     "source": "spread 6449 px − 2 × 35 px bleed, ÷ 2, at 300 dpi = 270.044 mm"
+    },
+    "heightMM": {
+     "mm": 270,
+     "source": "spread 3260 px − 2 × 35 px bleed at 300 dpi = 270.087 mm"
+    },
+    "cover": {
+     "panel": {
+      "widthMM": {
+       "table": {
+        "source": "Saal Digital Professional Zone: cover width per page count, less the bleed and the spine, halved",
+        "rows": [
+         {
+          "upToPages": 26,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6833 − 2 × 110 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 28,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6833 − 2 × 110 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 30,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6833 − 2 × 110 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 32,
+          "mm": {
+           "mm": 273.431,
+           "source": "(cover width 6833 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 34,
+          "mm": {
+           "mm": 274.066,
+           "source": "(cover width 6848 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 36,
+          "mm": {
+           "mm": 274.066,
+           "source": "(cover width 6848 − 2 × 110 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 38,
+          "mm": {
+           "mm": 273.6,
+           "source": "(cover width 6848 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 40,
+          "mm": {
+           "mm": 273.6,
+           "source": "(cover width 6848 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 42,
+          "mm": {
+           "mm": 274.447,
+           "source": "(cover width 6868 − 2 × 110 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 44,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6868 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 46,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6868 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 48,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6868 − 2 × 110 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 50,
+          "mm": {
+           "mm": 273.431,
+           "source": "(cover width 6868 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 52,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6880 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 54,
+          "mm": {
+           "mm": 273.939,
+           "source": "(cover width 6880 − 2 × 110 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 56,
+          "mm": {
+           "mm": 272.923,
+           "source": "(cover width 6880 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 58,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6891 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 60,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6891 − 2 × 110 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 62,
+          "mm": {
+           "mm": 272.923,
+           "source": "(cover width 6891 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 64,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6902 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 66,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6902 − 2 × 110 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 68,
+          "mm": {
+           "mm": 272.881,
+           "source": "(cover width 6902 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 70,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6914 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 72,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6914 − 2 × 110 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 74,
+          "mm": {
+           "mm": 272.881,
+           "source": "(cover width 6914 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 76,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6926 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 78,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6926 − 2 × 110 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 80,
+          "mm": {
+           "mm": 272.881,
+           "source": "(cover width 6926 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 82,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6938 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 84,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 6938 − 2 × 110 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 86,
+          "mm": {
+           "mm": 272.415,
+           "source": "(cover width 6938 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 88,
+          "mm": {
+           "mm": 272.754,
+           "source": "(cover width 6946 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 90,
+          "mm": {
+           "mm": 272.754,
+           "source": "(cover width 6946 − 2 × 110 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 92,
+          "mm": {
+           "mm": 272.754,
+           "source": "(cover width 6958 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 94,
+          "mm": {
+           "mm": 272.754,
+           "source": "(cover width 6958 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 96,
+          "mm": {
+           "mm": 272.754,
+           "source": "(cover width 6958 − 2 × 110 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 98,
+          "mm": {
+           "mm": 272.584,
+           "source": "(cover width 6966 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 100,
+          "mm": {
+           "mm": 272.584,
+           "source": "(cover width 6966 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 102,
+          "mm": {
+           "mm": 272.584,
+           "source": "(cover width 6966 − 2 × 110 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 104,
+          "mm": {
+           "mm": 272.415,
+           "source": "(cover width 6974 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 106,
+          "mm": {
+           "mm": 272.415,
+           "source": "(cover width 6974 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 108,
+          "mm": {
+           "mm": 272.415,
+           "source": "(cover width 6974 − 2 × 110 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 110,
+          "mm": {
+           "mm": 272.288,
+           "source": "(cover width 6983 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 112,
+          "mm": {
+           "mm": 272.288,
+           "source": "(cover width 6983 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 114,
+          "mm": {
+           "mm": 272.288,
+           "source": "(cover width 6983 − 2 × 110 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 116,
+          "mm": {
+           "mm": 272.119,
+           "source": "(cover width 6991 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 118,
+          "mm": {
+           "mm": 272.119,
+           "source": "(cover width 6991 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 120,
+          "mm": {
+           "mm": 272.119,
+           "source": "(cover width 6991 − 2 × 110 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 122,
+          "mm": {
+           "mm": 271.992,
+           "source": "(cover width 6999 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 124,
+          "mm": {
+           "mm": 271.992,
+           "source": "(cover width 6999 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 126,
+          "mm": {
+           "mm": 271.992,
+           "source": "(cover width 6999 − 2 × 110 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 128,
+          "mm": {
+           "mm": 271.822,
+           "source": "(cover width 7007 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 130,
+          "mm": {
+           "mm": 271.822,
+           "source": "(cover width 7007 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 132,
+          "mm": {
+           "mm": 271.822,
+           "source": "(cover width 7007 − 2 × 110 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 134,
+          "mm": {
+           "mm": 271.695,
+           "source": "(cover width 7016 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 136,
+          "mm": {
+           "mm": 271.695,
+           "source": "(cover width 7016 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 138,
+          "mm": {
+           "mm": 271.695,
+           "source": "(cover width 7016 − 2 × 110 bleed − spine 378) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 140,
+          "mm": {
+           "mm": 272.542,
+           "source": "(cover width 7048 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 142,
+          "mm": {
+           "mm": 272.711,
+           "source": "(cover width 7052 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 144,
+          "mm": {
+           "mm": 272.923,
+           "source": "(cover width 7057 − 2 × 110 bleed − spine 390) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 146,
+          "mm": {
+           "mm": 272.965,
+           "source": "(cover width 7070 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 148,
+          "mm": {
+           "mm": 273.177,
+           "source": "(cover width 7075 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 150,
+          "mm": {
+           "mm": 273.389,
+           "source": "(cover width 7080 − 2 × 110 bleed − spine 402) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 152,
+          "mm": {
+           "mm": 273.473,
+           "source": "(cover width 7093 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 154,
+          "mm": {
+           "mm": 273.643,
+           "source": "(cover width 7097 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 156,
+          "mm": {
+           "mm": 273.854,
+           "source": "(cover width 7102 − 2 × 110 bleed − spine 413) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 158,
+          "mm": {
+           "mm": 273.897,
+           "source": "(cover width 7115 − 2 × 110 bleed − spine 425) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 160,
+          "mm": {
+           "mm": 274.108,
+           "source": "(cover width 7120 − 2 × 110 bleed − spine 425) ÷ 2 px at 300 dpi"
+          }
+         }
+        ]
+       }
+      },
+      "heightMM": {
+       "mm": 273.981,
+       "source": "cover height 3402 px − 2 × 83 px at 300 dpi"
+      }
+     },
+     "hinge": {
+      "table": {
+       "source": "fold-over per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 17.018,
+          "source": "201 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "spine": {
+      "table": {
+       "source": "spine per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 32.004,
+          "source": "378 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 33.02,
+          "source": "390 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 34.036,
+          "source": "402 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 34.967,
+          "source": "413 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 35.983,
+          "source": "425 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 35.983,
+          "source": "425 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "bleed": {
+      "top": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "bottom": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "outer": {
+       "mm": 9.313,
+       "source": "110 px at 300 dpi"
+      },
+      "inner": 0
+     }
+    }
+   },
+   {
+    "id": "11x7.5",
+    "name": {
+     "en": "28 × 19 cm (11 × 7.5 in)",
+     "it": "28 × 19 cm (11 × 7,5 in)"
+    },
+    "widthMM": {
+     "mm": 280,
+     "source": "spread 6730 px − 2 × 36 px bleed, ÷ 2, at 302 dpi = 279.989 mm"
+    },
+    "heightMM": {
+     "mm": 188,
+     "source": "spread 2307 px − 2 × 36 px bleed at 302 dpi = 187.977 mm"
+    },
+    "cover": {
+     "panel": {
+      "widthMM": {
+       "table": {
+        "source": "Saal Digital Professional Zone: cover width per page count, less the bleed and the spine, halved",
+        "rows": [
+         {
+          "upToPages": 26,
+          "mm": {
+           "mm": 283.017,
+           "source": "(cover width 7115 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 28,
+          "mm": {
+           "mm": 283.017,
+           "source": "(cover width 7115 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 30,
+          "mm": {
+           "mm": 283.017,
+           "source": "(cover width 7115 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 32,
+          "mm": {
+           "mm": 282.596,
+           "source": "(cover width 7117 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 34,
+          "mm": {
+           "mm": 283.185,
+           "source": "(cover width 7131 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 36,
+          "mm": {
+           "mm": 283.185,
+           "source": "(cover width 7131 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 38,
+          "mm": {
+           "mm": 282.722,
+           "source": "(cover width 7131 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 40,
+          "mm": {
+           "mm": 282.722,
+           "source": "(cover width 7131 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 42,
+          "mm": {
+           "mm": 283.059,
+           "source": "(cover width 7139 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 44,
+          "mm": {
+           "mm": 282.554,
+           "source": "(cover width 7139 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 46,
+          "mm": {
+           "mm": 282.89,
+           "source": "(cover width 7147 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 48,
+          "mm": {
+           "mm": 282.89,
+           "source": "(cover width 7147 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 50,
+          "mm": {
+           "mm": 282.89,
+           "source": "(cover width 7159 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 52,
+          "mm": {
+           "mm": 282.89,
+           "source": "(cover width 7159 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 54,
+          "mm": {
+           "mm": 282.89,
+           "source": "(cover width 7159 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 56,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7174 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 58,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7174 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 60,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7174 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 62,
+          "mm": {
+           "mm": 282.007,
+           "source": "(cover width 7174 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 64,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7186 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 66,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7186 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 68,
+          "mm": {
+           "mm": 282.007,
+           "source": "(cover width 7186 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 70,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7198 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 72,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7198 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 74,
+          "mm": {
+           "mm": 282.007,
+           "source": "(cover width 7198 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 76,
+          "mm": {
+           "mm": 282.68,
+           "source": "(cover width 7214 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 78,
+          "mm": {
+           "mm": 282.68,
+           "source": "(cover width 7214 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 80,
+          "mm": {
+           "mm": 282.175,
+           "source": "(cover width 7214 − 2 × 121 bleed − spine 262) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 82,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7222 − 2 × 121 bleed − spine 262) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 84,
+          "mm": {
+           "mm": 282.512,
+           "source": "(cover width 7222 − 2 × 121 bleed − spine 262) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 86,
+          "mm": {
+           "mm": 281.545,
+           "source": "(cover width 7222 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 88,
+          "mm": {
+           "mm": 281.839,
+           "source": "(cover width 7229 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 90,
+          "mm": {
+           "mm": 281.839,
+           "source": "(cover width 7229 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 92,
+          "mm": {
+           "mm": 281.334,
+           "source": "(cover width 7229 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 94,
+          "mm": {
+           "mm": 281.881,
+           "source": "(cover width 7242 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 96,
+          "mm": {
+           "mm": 281.881,
+           "source": "(cover width 7242 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 98,
+          "mm": {
+           "mm": 281.713,
+           "source": "(cover width 7250 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 100,
+          "mm": {
+           "mm": 281.713,
+           "source": "(cover width 7250 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 102,
+          "mm": {
+           "mm": 281.713,
+           "source": "(cover width 7250 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 104,
+          "mm": {
+           "mm": 281.587,
+           "source": "(cover width 7259 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 106,
+          "mm": {
+           "mm": 281.587,
+           "source": "(cover width 7259 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 108,
+          "mm": {
+           "mm": 281.587,
+           "source": "(cover width 7259 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 110,
+          "mm": {
+           "mm": 281.419,
+           "source": "(cover width 7267 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 112,
+          "mm": {
+           "mm": 281.419,
+           "source": "(cover width 7267 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 114,
+          "mm": {
+           "mm": 281.419,
+           "source": "(cover width 7267 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 116,
+          "mm": {
+           "mm": 281.25,
+           "source": "(cover width 7275 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 118,
+          "mm": {
+           "mm": 281.25,
+           "source": "(cover width 7275 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 120,
+          "mm": {
+           "mm": 281.25,
+           "source": "(cover width 7275 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 122,
+          "mm": {
+           "mm": 281.124,
+           "source": "(cover width 7284 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 124,
+          "mm": {
+           "mm": 281.124,
+           "source": "(cover width 7284 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 126,
+          "mm": {
+           "mm": 281.124,
+           "source": "(cover width 7284 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 128,
+          "mm": {
+           "mm": 280.956,
+           "source": "(cover width 7292 − 2 × 121 bleed − spine 369) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 130,
+          "mm": {
+           "mm": 280.956,
+           "source": "(cover width 7292 − 2 × 121 bleed − spine 369) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 132,
+          "mm": {
+           "mm": 280.956,
+           "source": "(cover width 7292 − 2 × 121 bleed − spine 369) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 134,
+          "mm": {
+           "mm": 280.83,
+           "source": "(cover width 7300 − 2 × 121 bleed − spine 380) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 136,
+          "mm": {
+           "mm": 280.83,
+           "source": "(cover width 7300 − 2 × 121 bleed − spine 380) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 138,
+          "mm": {
+           "mm": 280.83,
+           "source": "(cover width 7300 − 2 × 121 bleed − spine 380) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 140,
+          "mm": {
+           "mm": 281.671,
+           "source": "(cover width 7332 − 2 × 121 bleed − spine 392) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 142,
+          "mm": {
+           "mm": 281.881,
+           "source": "(cover width 7337 − 2 × 121 bleed − spine 392) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 144,
+          "mm": {
+           "mm": 282.091,
+           "source": "(cover width 7342 − 2 × 121 bleed − spine 392) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 146,
+          "mm": {
+           "mm": 282.133,
+           "source": "(cover width 7355 − 2 × 121 bleed − spine 404) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 148,
+          "mm": {
+           "mm": 282.344,
+           "source": "(cover width 7360 − 2 × 121 bleed − spine 404) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 150,
+          "mm": {
+           "mm": 282.554,
+           "source": "(cover width 7365 − 2 × 121 bleed − spine 404) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 152,
+          "mm": {
+           "mm": 282.596,
+           "source": "(cover width 7378 − 2 × 121 bleed − spine 416) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 154,
+          "mm": {
+           "mm": 282.764,
+           "source": "(cover width 7382 − 2 × 121 bleed − spine 416) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 156,
+          "mm": {
+           "mm": 282.975,
+           "source": "(cover width 7387 − 2 × 121 bleed − spine 416) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 158,
+          "mm": {
+           "mm": 283.017,
+           "source": "(cover width 7400 − 2 × 121 bleed − spine 428) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 160,
+          "mm": {
+           "mm": 283.227,
+           "source": "(cover width 7405 − 2 × 121 bleed − spine 428) ÷ 2 px at 302 dpi"
+          }
+         }
+        ]
+       }
+      },
+      "heightMM": {
+       "mm": 192.014,
+       "source": "cover height 2449 px − 2 × 83 px at 302 dpi"
+      }
+     },
+     "hinge": {
+      "table": {
+       "source": "fold-over per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "spine": {
+      "table": {
+       "source": "spine per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 22.036,
+          "source": "262 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 22.036,
+          "source": "262 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 22.036,
+          "source": "262 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 31.035,
+          "source": "369 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 31.035,
+          "source": "369 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 132,
+         "mm": {
+          "mm": 31.035,
+          "source": "369 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 134,
+         "mm": {
+          "mm": 31.96,
+          "source": "380 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 136,
+         "mm": {
+          "mm": 31.96,
+          "source": "380 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 138,
+         "mm": {
+          "mm": 31.96,
+          "source": "380 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 140,
+         "mm": {
+          "mm": 32.97,
+          "source": "392 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 142,
+         "mm": {
+          "mm": 32.97,
+          "source": "392 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 144,
+         "mm": {
+          "mm": 32.97,
+          "source": "392 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 146,
+         "mm": {
+          "mm": 33.979,
+          "source": "404 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 148,
+         "mm": {
+          "mm": 33.979,
+          "source": "404 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 150,
+         "mm": {
+          "mm": 33.979,
+          "source": "404 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 152,
+         "mm": {
+          "mm": 34.988,
+          "source": "416 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 154,
+         "mm": {
+          "mm": 34.988,
+          "source": "416 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 156,
+         "mm": {
+          "mm": 34.988,
+          "source": "416 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 158,
+         "mm": {
+          "mm": 35.997,
+          "source": "428 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 160,
+         "mm": {
+          "mm": 35.997,
+          "source": "428 px at 302 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "bleed": {
+      "top": {
+       "mm": 6.981,
+       "source": "83 px at 302 dpi"
+      },
+      "bottom": {
+       "mm": 6.981,
+       "source": "83 px at 302 dpi"
+      },
+      "outer": {
+       "mm": 10.177,
+       "source": "121 px at 302 dpi"
+      },
+      "inner": 0
+     }
+    }
+   },
+   {
+    "id": "16.5x11",
+    "name": {
+     "en": "42 × 28 cm (16.5 × 11 in)",
+     "it": "42 × 28 cm (16,5 × 11 in)"
+    },
+    "widthMM": {
+     "mm": 420,
+     "source": "spread 9992 px − 2 × 35 px bleed, ÷ 2, at 300 dpi = 420.031 mm"
+    },
+    "heightMM": {
+     "mm": 270,
+     "source": "spread 3260 px − 2 × 35 px bleed at 300 dpi = 270.087 mm"
+    },
+    "cover": {
+     "panel": {
+      "widthMM": {
+       "table": {
+        "source": "Saal Digital Professional Zone: cover width per page count, less the bleed and the spine, halved",
+        "rows": [
+         {
+          "upToPages": 26,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10382 − 2 × 112 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 28,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10382 − 2 × 112 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 30,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10382 − 2 × 112 bleed − spine 142) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 32,
+          "mm": {
+           "mm": 423.503,
+           "source": "(cover width 10382 − 2 × 112 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 34,
+          "mm": {
+           "mm": 424.138,
+           "source": "(cover width 10397 − 2 × 112 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 36,
+          "mm": {
+           "mm": 424.138,
+           "source": "(cover width 10397 − 2 × 112 bleed − spine 154) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 38,
+          "mm": {
+           "mm": 423.672,
+           "source": "(cover width 10397 − 2 × 112 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 40,
+          "mm": {
+           "mm": 423.672,
+           "source": "(cover width 10397 − 2 × 112 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 42,
+          "mm": {
+           "mm": 424.519,
+           "source": "(cover width 10417 − 2 × 112 bleed − spine 165) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 44,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10417 − 2 × 112 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 46,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10417 − 2 × 112 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 48,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10417 − 2 × 112 bleed − spine 177) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 50,
+          "mm": {
+           "mm": 423.503,
+           "source": "(cover width 10417 − 2 × 112 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 52,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10429 − 2 × 112 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 54,
+          "mm": {
+           "mm": 424.011,
+           "source": "(cover width 10429 − 2 × 112 bleed − spine 189) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 56,
+          "mm": {
+           "mm": 422.995,
+           "source": "(cover width 10429 − 2 × 112 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 58,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10440 − 2 × 112 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 60,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10440 − 2 × 112 bleed − spine 213) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 62,
+          "mm": {
+           "mm": 422.995,
+           "source": "(cover width 10440 − 2 × 112 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 64,
+          "mm": {
+           "mm": 423.503,
+           "source": "(cover width 10452 − 2 × 112 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 66,
+          "mm": {
+           "mm": 423.503,
+           "source": "(cover width 10452 − 2 × 112 bleed − spine 224) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 68,
+          "mm": {
+           "mm": 422.995,
+           "source": "(cover width 10452 − 2 × 112 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 70,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10463 − 2 × 112 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 72,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10463 − 2 × 112 bleed − spine 236) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 74,
+          "mm": {
+           "mm": 422.952,
+           "source": "(cover width 10463 − 2 × 112 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 76,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10475 − 2 × 112 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 78,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10475 − 2 × 112 bleed − spine 248) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 80,
+          "mm": {
+           "mm": 422.952,
+           "source": "(cover width 10475 − 2 × 112 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 82,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10487 − 2 × 112 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 84,
+          "mm": {
+           "mm": 423.46,
+           "source": "(cover width 10487 − 2 × 112 bleed − spine 260) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 86,
+          "mm": {
+           "mm": 422.487,
+           "source": "(cover width 10487 − 2 × 112 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 88,
+          "mm": {
+           "mm": 422.825,
+           "source": "(cover width 10495 − 2 × 112 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 90,
+          "mm": {
+           "mm": 422.825,
+           "source": "(cover width 10495 − 2 × 112 bleed − spine 283) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 92,
+          "mm": {
+           "mm": 422.825,
+           "source": "(cover width 10507 − 2 × 112 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 94,
+          "mm": {
+           "mm": 422.825,
+           "source": "(cover width 10507 − 2 × 112 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 96,
+          "mm": {
+           "mm": 422.825,
+           "source": "(cover width 10507 − 2 × 112 bleed − spine 295) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 98,
+          "mm": {
+           "mm": 422.656,
+           "source": "(cover width 10515 − 2 × 112 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 100,
+          "mm": {
+           "mm": 422.656,
+           "source": "(cover width 10515 − 2 × 112 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 102,
+          "mm": {
+           "mm": 422.656,
+           "source": "(cover width 10515 − 2 × 112 bleed − spine 307) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 104,
+          "mm": {
+           "mm": 422.529,
+           "source": "(cover width 10524 − 2 × 112 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 106,
+          "mm": {
+           "mm": 422.529,
+           "source": "(cover width 10524 − 2 × 112 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 108,
+          "mm": {
+           "mm": 422.529,
+           "source": "(cover width 10524 − 2 × 112 bleed − spine 319) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 110,
+          "mm": {
+           "mm": 422.36,
+           "source": "(cover width 10532 − 2 × 112 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 112,
+          "mm": {
+           "mm": 422.36,
+           "source": "(cover width 10532 − 2 × 112 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 114,
+          "mm": {
+           "mm": 422.36,
+           "source": "(cover width 10532 − 2 × 112 bleed − spine 331) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 116,
+          "mm": {
+           "mm": 422.19,
+           "source": "(cover width 10540 − 2 × 112 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 118,
+          "mm": {
+           "mm": 422.19,
+           "source": "(cover width 10540 − 2 × 112 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 120,
+          "mm": {
+           "mm": 422.19,
+           "source": "(cover width 10540 − 2 × 112 bleed − spine 343) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 122,
+          "mm": {
+           "mm": 422.063,
+           "source": "(cover width 10548 − 2 × 112 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 124,
+          "mm": {
+           "mm": 422.063,
+           "source": "(cover width 10548 − 2 × 112 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 126,
+          "mm": {
+           "mm": 422.063,
+           "source": "(cover width 10548 − 2 × 112 bleed − spine 354) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 128,
+          "mm": {
+           "mm": 421.936,
+           "source": "(cover width 10557 − 2 × 112 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         },
+         {
+          "upToPages": 130,
+          "mm": {
+           "mm": 421.936,
+           "source": "(cover width 10557 − 2 × 112 bleed − spine 366) ÷ 2 px at 300 dpi"
+          }
+         }
+        ]
+       }
+      },
+      "heightMM": {
+       "mm": 273.981,
+       "source": "cover height 3402 px − 2 × 83 px at 300 dpi"
+      }
+     },
+     "hinge": {
+      "table": {
+       "source": "fold-over per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 8.975,
+          "source": "106 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 11.007,
+          "source": "130 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "spine": {
+      "table": {
+       "source": "spine per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 12.023,
+          "source": "142 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 13.039,
+          "source": "154 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 13.97,
+          "source": "165 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 14.986,
+          "source": "177 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 16.002,
+          "source": "189 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 18.034,
+          "source": "213 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 18.965,
+          "source": "224 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 19.981,
+          "source": "236 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 20.997,
+          "source": "248 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 22.013,
+          "source": "260 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 23.961,
+          "source": "283 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 24.977,
+          "source": "295 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 25.993,
+          "source": "307 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 27.009,
+          "source": "319 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 28.025,
+          "source": "331 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 29.041,
+          "source": "343 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 29.972,
+          "source": "354 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 30.988,
+          "source": "366 px at 300 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "bleed": {
+      "top": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "bottom": {
+       "mm": 7.027,
+       "source": "83 px at 300 dpi"
+      },
+      "outer": {
+       "mm": 9.483,
+       "source": "112 px at 300 dpi"
+      },
+      "inner": 0
+     }
+    },
+    "pages": {
+     "maximum": 130
+    }
+   },
+   {
+    "id": "7.5x7.5",
+    "name": {
+     "en": "19 × 19 cm (7.5 × 7.5 in)",
+     "it": "19 × 19 cm (7,5 × 7,5 in)"
+    },
+    "widthMM": {
+     "mm": 188,
+     "source": "spread 4527 px − 2 × 36 px bleed, ÷ 2, at 301 dpi = 187.968 mm"
+    },
+    "heightMM": {
+     "mm": 188,
+     "source": "spread 2299 px − 2 × 36 px bleed at 301 dpi = 187.926 mm"
+    },
+    "cover": {
+     "panel": {
+      "widthMM": {
+       "table": {
+        "source": "Saal Digital Professional Zone: cover width per page count, less the bleed and the spine, halved",
+        "rows": [
+         {
+          "upToPages": 26,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 4927 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 28,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 4927 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 30,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 4927 − 2 × 121 bleed − spine 143) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 32,
+          "mm": {
+           "mm": 190.5,
+           "source": "(cover width 4927 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 34,
+          "mm": {
+           "mm": 191.215,
+           "source": "(cover width 4944 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 36,
+          "mm": {
+           "mm": 191.215,
+           "source": "(cover width 4944 − 2 × 121 bleed − spine 155) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 38,
+          "mm": {
+           "mm": 190.752,
+           "source": "(cover width 4944 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 40,
+          "mm": {
+           "mm": 190.752,
+           "source": "(cover width 4944 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 42,
+          "mm": {
+           "mm": 191.047,
+           "source": "(cover width 4951 − 2 × 121 bleed − spine 166) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 44,
+          "mm": {
+           "mm": 190.542,
+           "source": "(cover width 4951 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 46,
+          "mm": {
+           "mm": 190.878,
+           "source": "(cover width 4959 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 48,
+          "mm": {
+           "mm": 190.878,
+           "source": "(cover width 4959 − 2 × 121 bleed − spine 178) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 50,
+          "mm": {
+           "mm": 190.878,
+           "source": "(cover width 4971 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 52,
+          "mm": {
+           "mm": 190.878,
+           "source": "(cover width 4971 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 54,
+          "mm": {
+           "mm": 190.878,
+           "source": "(cover width 4971 − 2 × 121 bleed − spine 190) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 56,
+          "mm": {
+           "mm": 191.047,
+           "source": "(cover width 4987 − 2 × 121 bleed − spine 202) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 58,
+          "mm": {
+           "mm": 191.047,
+           "source": "(cover width 4987 − 2 × 121 bleed − spine 202) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 60,
+          "mm": {
+           "mm": 191.047,
+           "source": "(cover width 4987 − 2 × 121 bleed − spine 202) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 62,
+          "mm": {
+           "mm": 190.542,
+           "source": "(cover width 4987 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 64,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 4998 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 66,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 4998 − 2 × 121 bleed − spine 214) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 68,
+          "mm": {
+           "mm": 190.5,
+           "source": "(cover width 4998 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 70,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5010 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 72,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5010 − 2 × 121 bleed − spine 226) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 74,
+          "mm": {
+           "mm": 190.5,
+           "source": "(cover width 5010 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 76,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5022 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 78,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5022 − 2 × 121 bleed − spine 238) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 80,
+          "mm": {
+           "mm": 190.5,
+           "source": "(cover width 5022 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 82,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5034 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 84,
+          "mm": {
+           "mm": 191.005,
+           "source": "(cover width 5034 − 2 × 121 bleed − spine 250) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 86,
+          "mm": {
+           "mm": 189.533,
+           "source": "(cover width 5034 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 88,
+          "mm": {
+           "mm": 189.827,
+           "source": "(cover width 5041 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 90,
+          "mm": {
+           "mm": 189.827,
+           "source": "(cover width 5041 − 2 × 121 bleed − spine 285) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 92,
+          "mm": {
+           "mm": 189.323,
+           "source": "(cover width 5041 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 94,
+          "mm": {
+           "mm": 189.869,
+           "source": "(cover width 5054 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 96,
+          "mm": {
+           "mm": 189.869,
+           "source": "(cover width 5054 − 2 × 121 bleed − spine 297) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 98,
+          "mm": {
+           "mm": 189.743,
+           "source": "(cover width 5063 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 100,
+          "mm": {
+           "mm": 189.743,
+           "source": "(cover width 5063 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 102,
+          "mm": {
+           "mm": 189.743,
+           "source": "(cover width 5063 − 2 × 121 bleed − spine 309) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 104,
+          "mm": {
+           "mm": 189.575,
+           "source": "(cover width 5071 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 106,
+          "mm": {
+           "mm": 189.575,
+           "source": "(cover width 5071 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 108,
+          "mm": {
+           "mm": 189.575,
+           "source": "(cover width 5071 − 2 × 121 bleed − spine 321) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 110,
+          "mm": {
+           "mm": 189.407,
+           "source": "(cover width 5079 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 112,
+          "mm": {
+           "mm": 189.407,
+           "source": "(cover width 5079 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 114,
+          "mm": {
+           "mm": 189.407,
+           "source": "(cover width 5079 − 2 × 121 bleed − spine 333) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 116,
+          "mm": {
+           "mm": 189.28,
+           "source": "(cover width 5088 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 118,
+          "mm": {
+           "mm": 189.28,
+           "source": "(cover width 5088 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 120,
+          "mm": {
+           "mm": 189.28,
+           "source": "(cover width 5088 − 2 × 121 bleed − spine 345) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 122,
+          "mm": {
+           "mm": 189.112,
+           "source": "(cover width 5096 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 124,
+          "mm": {
+           "mm": 189.112,
+           "source": "(cover width 5096 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 126,
+          "mm": {
+           "mm": 189.112,
+           "source": "(cover width 5096 − 2 × 121 bleed − spine 357) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 128,
+          "mm": {
+           "mm": 188.944,
+           "source": "(cover width 5104 − 2 × 121 bleed − spine 369) ÷ 2 px at 302 dpi"
+          }
+         },
+         {
+          "upToPages": 130,
+          "mm": {
+           "mm": 188.944,
+           "source": "(cover width 5104 − 2 × 121 bleed − spine 369) ÷ 2 px at 302 dpi"
+          }
+         }
+        ]
+       }
+      },
+      "heightMM": {
+       "mm": 192.014,
+       "source": "cover height 2449 px − 2 × 83 px at 302 dpi"
+      }
+     },
+     "hinge": {
+      "table": {
+       "source": "fold-over per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 8.999,
+          "source": "107 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 11.018,
+          "source": "131 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "spine": {
+      "table": {
+       "source": "spine per page count, px at the cover's dpi",
+       "rows": [
+        {
+         "upToPages": 26,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 28,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 30,
+         "mm": {
+          "mm": 12.027,
+          "source": "143 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 32,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 34,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 36,
+         "mm": {
+          "mm": 13.036,
+          "source": "155 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 38,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 40,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 42,
+         "mm": {
+          "mm": 13.962,
+          "source": "166 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 44,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 46,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 48,
+         "mm": {
+          "mm": 14.971,
+          "source": "178 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 50,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 52,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 54,
+         "mm": {
+          "mm": 15.98,
+          "source": "190 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 56,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 58,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 60,
+         "mm": {
+          "mm": 16.989,
+          "source": "202 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 62,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 64,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 66,
+         "mm": {
+          "mm": 17.999,
+          "source": "214 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 68,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 70,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 72,
+         "mm": {
+          "mm": 19.008,
+          "source": "226 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 74,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 76,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 78,
+         "mm": {
+          "mm": 20.017,
+          "source": "238 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 80,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 82,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 84,
+         "mm": {
+          "mm": 21.026,
+          "source": "250 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 86,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 88,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 90,
+         "mm": {
+          "mm": 23.97,
+          "source": "285 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 92,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 94,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 96,
+         "mm": {
+          "mm": 24.979,
+          "source": "297 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 98,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 100,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 102,
+         "mm": {
+          "mm": 25.989,
+          "source": "309 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 104,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 106,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 108,
+         "mm": {
+          "mm": 26.998,
+          "source": "321 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 110,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 112,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 114,
+         "mm": {
+          "mm": 28.007,
+          "source": "333 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 116,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 118,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 120,
+         "mm": {
+          "mm": 29.017,
+          "source": "345 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 122,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 124,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 126,
+         "mm": {
+          "mm": 30.026,
+          "source": "357 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 128,
+         "mm": {
+          "mm": 31.035,
+          "source": "369 px at 302 dpi"
+         }
+        },
+        {
+         "upToPages": 130,
+         "mm": {
+          "mm": 31.035,
+          "source": "369 px at 302 dpi"
+         }
+        }
+       ]
+      }
+     },
+     "bleed": {
+      "top": {
+       "mm": 6.981,
+       "source": "83 px at 302 dpi"
+      },
+      "bottom": {
+       "mm": 6.981,
+       "source": "83 px at 302 dpi"
+      },
+      "outer": {
+       "mm": 10.177,
+       "source": "121 px at 302 dpi"
+      },
+      "inner": 0
+     }
+    },
+    "pages": {
+     "maximum": 130
+    }
+   }
+  ]
+ }
+]
