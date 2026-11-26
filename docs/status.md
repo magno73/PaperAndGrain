@@ -88,7 +88,9 @@ Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-e
 5. Drag a text box so its edge crosses the dashed line: within a second **Issues** shows "Text crosses the safe margin" under the page, and the row selects the box. Drag a photo so its left edge is 1.5 mm inside the page edge: a row says "Photo ends 1.5 mm inside the trim…". Move it to the edge: the row goes.
 6. Dragging, selecting and cropping work with guides on (the overlay ignores the pointer).
 7. Italian: **Vista › Mostra guide di stampa**, the legend and both rows. Dark appearance: both lines are visible on white and on a dark photo.
-8. Not done: guides on the cover faces, and the two warnings for the cover.
+8. Shadow: with the guides on, the soft shadow is around the page edge only, not around the dashed or bleed lines. With them off, the page looks as in 0.10. Covers keep their shadow.
+9. Scroll padding: set **Bleed** to 25 mm in **Book & Print**, turn the guides on and choose **Fit Width** zoom. The outer bleed line must be fully visible on all four sides after scrolling to the edges (it may need a little horizontal scrolling), never cut off by the canvas edge. The page itself must not change size when the guides are toggled. With 3 mm bleed at Fit Width, nothing scrolls extra.
+10. Not done: guides on the cover faces, and the two warnings for the cover.
 
 ### Print-service profiles (T10)
 
