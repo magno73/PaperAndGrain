@@ -502,7 +502,8 @@ struct EditorView: View, Localizing {
                                  onContextMenu: canvasMenu(at:), canTurnPages: canTurnPages(at:),
                                  onTurnPage: turnCanvasPage, onSelectAll: selectAllObjects,
                                  canBeginMarquee: canBeginMarquee(at:),
-                                 onMarquee: { updateMarquee(from: $0, to: $1, ended: $2) })
+                                 onMarquee: { updateMarquee(from: $0, to: $1, ended: $2) },
+                                 edit: canvasEditCommands)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)

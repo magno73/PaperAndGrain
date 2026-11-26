@@ -36,6 +36,8 @@ struct EditorCommandSet {
     var gutterGuide = false
     var printGuides = false
     var canDuplicatePage = false
+    /// Canvas objects are selected and no text is typed: ⌘D duplicates them instead of the page.
+    var canDuplicateObjects = false
     var canBringForward = false
     var canSendBackward = false
     var canCaptionPage = false
@@ -72,6 +74,7 @@ struct EditorCommandSet {
     var togglePrintGuides: () -> Void = {}
     var browse: () -> Void = {}
     var moveLayer: (PageLayer.Move) -> Void = { _ in }
+    var duplicateObjects: () -> Void = {}
     var align: (CanvasGroupGeometry.Alignment) -> Void = { _ in }
     /// True distributes horizontally.
     var distribute: (Bool) -> Void = { _ in }
@@ -97,6 +100,11 @@ struct EditorMenus: Commands, Localizing {
     let language: String
 
     var body: some Commands {
+        CommandGroup(after: .pasteboard) {
+            Button(tr("Duplicate", key: "edit.duplicate")) { editor?.duplicateObjects() }
+                .keyboardShortcut(editor?.canDuplicateObjects == true ? KeyboardShortcut("d", modifiers: .command) : nil)
+                .disabled(editor?.canDuplicateObjects != true)
+        }
         CommandGroup(before: .toolbar) {
             Button(editor?.showsNavigator == false ? tr("Show Pages") : tr("Hide Pages")) {
                 editor?.toggleNavigator()
@@ -181,8 +189,9 @@ struct EditorMenus: Commands, Localizing {
                 .keyboardShortcut("]", modifiers: [.command, .option])
                 .disabled(editor?.canMoveLater != true)
             Divider()
+            // ⌘D duplicates the selected canvas objects when there are any (Edit › Duplicate), the page otherwise.
             Button(tr("Duplicate Page")) { editor?.duplicatePage() }
-                .keyboardShortcut("d", modifiers: .command)
+                .keyboardShortcut(editor?.canDuplicateObjects == true ? nil : KeyboardShortcut("d", modifiers: .command))
                 .disabled(editor?.canDuplicatePage != true)
             Button(tr("Delete Page…")) { editor?.deletePage() }
                 .disabled(editor?.hasPage != true)
