@@ -142,13 +142,20 @@ extension EditorView {
     func printGuidePages(_ spread: [BookPage], blankLeft: Bool, scale: CGFloat) -> [PrintGuidesOverlay.Page] {
         let size = book.format.pageSize
         let settings = book.printSettings ?? PrintSettings()
+        // A print service adds its binding margin; the side comes from the printed imposition.
+        let plan = PrintPlan(book: book)
+        let right = plan == nil ? [] : BookPDF.rightPageIDs(book)
         var x = blankLeft ? size.width * scale : 0
         return spread.map { leaf in
-            let width = leaf.effectiveLayout == .fullSpread ? size.width * 2 : size.width
+            let wide = leaf.effectiveLayout == .fullSpread
+            let width = wide ? size.width * 2 : size.width
             defer { x += width * scale }
+            let pageSize = CGSize(width: width, height: size.height)
+            let zones = plan?.guideZones(pageSize: pageSize, onRight: right.contains(leaf.id), spread: wide,
+                                         safeMM: settings.safeMM) ?? []
             return PrintGuidesOverlay.Page(
                 origin: CGPoint(x: x, y: 0),
-                guides: PrintGuides.frames(pageSize: CGSize(width: width, height: size.height), settings: settings))
+                guides: PrintGuides.frames(pageSize: pageSize, settings: settings, zones: zones))
         }
     }
 

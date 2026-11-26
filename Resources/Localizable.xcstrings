@@ -19,6 +19,24 @@
         }
       }
     },
+    "%1$@: the printer’s table stops at %2$lld pages. Enter the value from the quote": {
+      "comment": "Preflight blocker; the first argument is a measure such as Spine width.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: the printer’s table stops at %2$lld pages. Enter the value from the quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: la tabella dello stampatore arriva a %2$lld pagine. Inserisci il valore dal preventivo"
+          }
+        }
+      }
+    },
     "%1$lld photos · %2$lld unused": {
       "comment": "Photo library header: photos in the book, and how many are not placed on a page.",
       "extractionState": "manual",
@@ -139,6 +157,24 @@
         }
       }
     },
+    "%@ from the quote": {
+      "comment": "Field label; the argument is a measure such as Spine width.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ from the quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ dal preventivo"
+          }
+        }
+      }
+    },
     "%@ is in a read-only location. Changes will not be saved until you use Save As to copy it somewhere else.": {
       "comment": "The argument is the quoted book title, or “This book”.",
       "extractionState": "manual",
@@ -153,6 +189,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ si trova in una posizione in sola lettura. Le modifiche non verranno salvate finché non usi Salva con nome per copiarlo altrove."
+          }
+        }
+      }
+    },
+    "%@ missing: enter it from the printer’s quote": {
+      "comment": "Preflight blocker; the argument is a measure such as Spine width.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ missing: enter it from the printer’s quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valore mancante, %@: inseriscilo dal preventivo dello stampatore"
           }
         }
       }
@@ -1803,6 +1857,42 @@
         }
       }
     },
+    "Board height": {
+      "comment": "Height of a hardcover board, in mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Board height"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altezza del cartone"
+          }
+        }
+      }
+    },
+    "Board width": {
+      "comment": "Width of a hardcover board, in mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Board width"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Larghezza del cartone"
+          }
+        }
+      }
+    },
     "Body Text": {
       "extractionState": "manual",
       "localizations": {
@@ -3030,6 +3120,23 @@
         }
       }
     },
+    "Cover bleed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover bleed"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbondanza della copertina"
+          }
+        }
+      }
+    },
     "Cover title": {
       "extractionState": "manual",
       "localizations": {
@@ -3061,41 +3168,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Risvolto della copertina"
-          }
-        }
-      }
-    },
-    "Cover wrap from the quote": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cover wrap from the quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Risvolto dal preventivo"
-          }
-        }
-      }
-    },
-    "Cover wrap missing: enter it from the printer’s quote": {
-      "comment": "Preflight blocker.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cover wrap missing: enter it from the printer’s quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manca il risvolto della copertina: inseriscilo dal preventivo dello stampatore"
           }
         }
       }
@@ -4889,41 +4961,6 @@
         }
       }
     },
-    "Hinge width from the quote": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hinge width from the quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cerniera dal preventivo"
-          }
-        }
-      }
-    },
-    "Hinge width missing: enter it from the printer’s quote": {
-      "comment": "Preflight blocker.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hinge width missing: enter it from the printer’s quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manca la larghezza della cerniera: inseriscila dal preventivo dello stampatore"
-          }
-        }
-      }
-    },
     "Hue": {
       "extractionState": "manual",
       "localizations": {
@@ -5301,6 +5338,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Interni"
+          }
+        }
+      }
+    },
+    "Interior bleed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interior bleed"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbondanza dell’interno"
           }
         }
       }
@@ -6209,38 +6263,20 @@
         }
       }
     },
-    "Needs a multiple of %1$lld pages (has %2$lld)": {
-      "comment": "Preflight warning from a print-service profile.",
+    "Needs at least %1$lld pages; the printer counts %2$lld (%3$lld in the book)": {
+      "comment": "Preflight warning; the printer's count includes blanks and the cover pages it counts.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Needs a multiple of %1$lld pages (has %2$lld)"
+            "value": "Needs at least %1$lld pages; the printer counts %2$lld (%3$lld in the book)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Servono pagine in multipli di %1$lld (ne ha %2$lld)"
-          }
-        }
-      }
-    },
-    "Needs at least %1$lld pages (has %2$lld)": {
-      "comment": "Preflight warning from a print-service profile.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Needs at least %1$lld pages (has %2$lld)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Servono almeno %1$lld pagine (ne ha %2$lld)"
+            "value": "Servono almeno %1$lld pagine; lo stampatore ne conta %2$lld (%3$lld nel libro)"
           }
         }
       }
@@ -7760,6 +7796,24 @@
         }
       }
     },
+    "Print Service Measures": {
+      "comment": "Undo action name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Print Service Measures"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Misure del servizio di stampa"
+          }
+        }
+      }
+    },
     "Print service": {
       "extractionState": "manual",
       "localizations": {
@@ -9126,6 +9180,23 @@
         }
       }
     },
+    "Some print-service files could not be read: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some print-service files could not be read: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alcuni file dei servizi di stampa non si possono leggere: %@"
+          }
+        }
+      }
+    },
     "Sort by": {
       "extractionState": "manual",
       "localizations": {
@@ -9225,41 +9296,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Larghezza del dorso (mm)"
-          }
-        }
-      }
-    },
-    "Spine width from the quote": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spine width from the quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dorso dal preventivo"
-          }
-        }
-      }
-    },
-    "Spine width missing: enter it from the printer’s quote": {
-      "comment": "Preflight blocker.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spine width missing: enter it from the printer’s quote"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manca la larghezza del dorso: inseriscila dal preventivo dello stampatore"
           }
         }
       }
@@ -9468,20 +9504,20 @@
         }
       }
     },
-    "Takes at most %1$lld pages (has %2$lld)": {
-      "comment": "Preflight warning from a print-service profile.",
+    "Takes at most %1$lld pages; the printer counts %2$lld (%3$lld in the book)": {
+      "comment": "Preflight warning; the printer's count includes blanks and the cover pages it counts.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Takes at most %1$lld pages (has %2$lld)"
+            "value": "Takes at most %1$lld pages; the printer counts %2$lld (%3$lld in the book)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accetta al massimo %1$lld pagine (ne ha %2$lld)"
+            "value": "Accetta al massimo %1$lld pagine; lo stampatore ne conta %2$lld (%3$lld nel libro)"
           }
         }
       }
@@ -11489,6 +11525,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "dal libro"
+          }
+        }
+      }
+    },
+    "from the quote": {
+      "comment": "Placeholder of a measure field with no value yet.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "from the quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dal preventivo"
           }
         }
       }

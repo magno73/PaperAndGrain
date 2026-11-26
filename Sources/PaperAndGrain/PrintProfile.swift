@@ -80,39 +80,47 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
         }
     }
 
-    /// A length per edge of a page. `inner` is the binding edge; on a flat cover `outer` is the left and
-    /// right edge and `inner` is not used. One length (a number or a `Length` object) sets every edge.
+    /// A value per edge of a page. `inner` is the binding edge; on a flat cover `outer` is the left and
+    /// right edge and `inner` is not used. Each edge is a fixed length or a value from the printer's quote
+    /// (`{"quote": …}`); one value sets every edge, or all four are named.
     struct Edges: Codable, Hashable, Sendable {
-        var top: Length
-        var bottom: Length
-        var outer: Length
-        var inner: Length
+        var top: Measure
+        var bottom: Measure
+        var outer: Measure
+        var inner: Measure
 
         init(_ all: Double) { self.init(top: all, bottom: all, outer: all, inner: all) }
 
         init(top: Double, bottom: Double, outer: Double, inner: Double) {
-            self.top = Length(top)
-            self.bottom = Length(bottom)
-            self.outer = Length(outer)
-            self.inner = Length(inner)
+            self.top = .fixed(Length(top))
+            self.bottom = .fixed(Length(bottom))
+            self.outer = .fixed(Length(outer))
+            self.inner = .fixed(Length(inner))
         }
 
-        private enum CodingKeys: String, CodingKey { case top, bottom, outer, inner }
+        private enum CodingKeys: String, CodingKey, CaseIterable { case top, bottom, outer, inner }
 
         init(from decoder: Decoder) throws {
-            if let keyed = try? decoder.container(keyedBy: CodingKeys.self), keyed.contains(.top) {
-                top = try keyed.decode(Length.self, forKey: .top)
-                bottom = try keyed.decode(Length.self, forKey: .bottom)
-                outer = try keyed.decode(Length.self, forKey: .outer)
-                inner = try keyed.decode(Length.self, forKey: .inner)
+            if let keyed = try? decoder.container(keyedBy: CodingKeys.self),
+               CodingKeys.allCases.contains(where: keyed.contains) {
+                let missing = CodingKeys.allCases.filter { !keyed.contains($0) }.map(\.rawValue)
+                guard missing.isEmpty else {
+                    throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription:
+                        "Edges need top, bottom, outer and inner, or one value for all (missing: "
+                        + missing.joined(separator: ", ") + ")"))
+                }
+                top = try keyed.decode(Measure.self, forKey: .top)
+                bottom = try keyed.decode(Measure.self, forKey: .bottom)
+                outer = try keyed.decode(Measure.self, forKey: .outer)
+                inner = try keyed.decode(Measure.self, forKey: .inner)
             } else {
-                let all = try Length(from: decoder)
+                let all = try Measure(from: decoder)
                 (top, bottom, outer, inner) = (all, all, all, all)
             }
         }
 
         func encode(to encoder: Encoder) throws {
-            if Set([top, bottom, outer, inner]).count == 1 {
+            if Set(all).count == 1 {
                 try top.encode(to: encoder)
             } else {
                 var container = encoder.container(keyedBy: CodingKeys.self)
@@ -123,20 +131,83 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
             }
         }
 
-        var all: [Length] { [top, bottom, outer, inner] }
-        var largest: Double { all.map(\.mm).max() ?? 0 }
+        var all: [Measure] { [top, bottom, outer, inner] }
+
+        /// True when an edge is given per order and the author types it.
+        var isTyped: Bool { all.contains(where: \.isTyped) }
+
+        /// The millimetres per edge, with `typed` for the edges given per order; nil when one is missing.
+        func values(typed: Double?) -> EdgeValues? {
+            func value(_ measure: Measure) -> Double? {
+                if case let .fixed(length) = measure { return length.mm }
+                guard let typed, measure.accepts(typed) else { return nil }
+                return typed
+            }
+            guard let top = value(top), let bottom = value(bottom), let outer = value(outer), let inner = value(inner)
+            else { return nil }
+            return EdgeValues(top: top, bottom: bottom, outer: outer, inner: inner)
+        }
+
+        /// The fixed edges, with 0 for an edge given per order: for display and the safe margins.
+        var fixedValues: EdgeValues {
+            func value(_ measure: Measure) -> Double { if case let .fixed(length) = measure { length.mm } else { 0 } }
+            return EdgeValues(top: value(top), bottom: value(bottom), outer: value(outer), inner: value(inner))
+        }
     }
 
-    /// A cover measure that can depend on the page count. The author can always type another value.
+    /// Millimetres per edge, resolved.
+    struct EdgeValues: Hashable, Sendable {
+        var top: Double, bottom: Double, outer: Double, inner: Double
+
+        static let zero = EdgeValues(top: 0, bottom: 0, outer: 0, inner: 0)
+
+        var all: [Double] { [top, bottom, outer, inner] }
+        var largest: Double { all.max() ?? 0 }
+        /// The largest margin of the edges that are cut: top, bottom and outer.
+        var largestOuter: Double { max(top, bottom, outer) }
+    }
+
+    /// A measure that can depend on the order or the page count. The author can always type another value.
     enum Measure: Codable, Hashable, Sendable {
         /// The same for every book.
         case fixed(Length)
         /// Given only in the printer's quote or configurator: the author types it, within the range.
-        case quote(minMM: Double, maxMM: Double)
+        case quote(Quote)
         /// `baseMM + mmPerPage × pages`, for example a paperback spine from the paper thickness.
         case formula(baseMM: Double, mmPerPage: Double, source: String?)
         /// Stepped by page count, optionally per paper: the first row whose `upToPages` reaches the count.
         case table(rows: [Row], source: String?)
+
+        /// The range a typed value must fall in. `typicalMM` is the value to propose (for a trim, the size
+        /// the menus show).
+        struct Quote: Codable, Hashable, Sendable {
+            var minMM: Double
+            var maxMM: Double
+            /// True when `minMM` itself is not accepted (a spine of 0 mm, for example).
+            var minExclusive: Bool?
+            var typicalMM: Double?
+
+            init(minMM: Double = 0, maxMM: Double = 100, minExclusive: Bool? = nil, typicalMM: Double? = nil) {
+                self.minMM = minMM
+                self.maxMM = maxMM
+                self.minExclusive = minExclusive
+                self.typicalMM = typicalMM
+            }
+
+            private enum CodingKeys: String, CodingKey { case minMM, maxMM, minExclusive, typicalMM }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                minMM = try container.decodeIfPresent(Double.self, forKey: .minMM) ?? 0
+                maxMM = try container.decodeIfPresent(Double.self, forKey: .maxMM) ?? 100
+                minExclusive = try container.decodeIfPresent(Bool.self, forKey: .minExclusive)
+                typicalMM = try container.decodeIfPresent(Double.self, forKey: .typicalMM)
+            }
+
+            func accepts(_ mm: Double) -> Bool {
+                mm.isFinite && (minExclusive == true ? mm > minMM : mm >= minMM) && mm <= maxMM
+            }
+        }
 
         struct Row: Codable, Hashable, Sendable {
             var paper: String?
@@ -146,14 +217,13 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
         }
 
         private enum CodingKeys: String, CodingKey { case quote, formula, table }
-        private struct Quote: Codable { var minMM: Double?; var maxMM: Double? }
         private struct Formula: Codable { var baseMM: Double; var mmPerPage: Double; var source: String? }
         private struct Table: Codable { var rows: [Row]; var source: String? }
 
         init(from decoder: Decoder) throws {
             if let keyed = try? decoder.container(keyedBy: CodingKeys.self) {
                 if let quote = try keyed.decodeIfPresent(Quote.self, forKey: .quote) {
-                    self = .quote(minMM: quote.minMM ?? 0, maxMM: quote.maxMM ?? 100)
+                    self = .quote(quote)
                     return
                 }
                 if let formula = try keyed.decodeIfPresent(Formula.self, forKey: .formula) {
@@ -171,9 +241,9 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
         func encode(to encoder: Encoder) throws {
             switch self {
             case let .fixed(length): try length.encode(to: encoder)
-            case let .quote(minMM, maxMM):
+            case let .quote(quote):
                 var container = encoder.container(keyedBy: CodingKeys.self)
-                try container.encode(Quote(minMM: minMM, maxMM: maxMM), forKey: .quote)
+                try container.encode(quote, forKey: .quote)
             case let .formula(baseMM, mmPerPage, source):
                 var container = encoder.container(keyedBy: CodingKeys.self)
                 try container.encode(Formula(baseMM: baseMM, mmPerPage: mmPerPage, source: source), forKey: .formula)
@@ -195,16 +265,47 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
             }
         }
 
+        /// The largest page count the table covers for `paper`; nil for a measure that is not a table.
+        func tableLimit(paper: String?) -> Int? {
+            guard case let .table(rows, _) = self else { return nil }
+            return rows.filter { $0.paper == nil || $0.paper == paper }.map(\.upToPages).max()
+        }
+
         var isTyped: Bool {
             if case .quote = self { return true }
             return false
         }
 
+        var isFixedOrTyped: Bool {
+            switch self {
+            case .fixed, .quote: true
+            case .formula, .table: false
+            }
+        }
+
+        /// The value a menu shows for a fixed length or a length from the quote.
+        var nominal: Double? {
+            switch self {
+            case let .fixed(length): length.mm
+            case let .quote(quote): quote.typicalMM ?? (quote.minMM + quote.maxMM) / 2
+            case .formula, .table: nil
+            }
+        }
+
         /// Whether a typed value is one the printer could accept.
         func accepts(_ mm: Double) -> Bool {
             guard mm.isFinite, mm >= 0 else { return false }
-            if case let .quote(minimum, maximum) = self { return mm > minimum && mm <= maximum }
+            if case let .quote(quote) = self { return quote.accepts(mm) }
             return mm <= 1000
+        }
+
+        /// Whether `mm` is this length: equal to a fixed one, inside the range of one from the quote.
+        func matches(_ mm: Double) -> Bool {
+            switch self {
+            case let .fixed(length): abs(mm - length.mm) < 0.01
+            case let .quote(quote): quote.accepts(mm)
+            case .formula, .table: false
+            }
         }
     }
 
@@ -264,9 +365,10 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
             case flat
         }
 
+        /// Fixed, or `{"quote": …}` when the printer gives the board per order.
         struct Panel: Codable, Hashable, Sendable {
-            var widthMM: Length
-            var heightMM: Length
+            var widthMM: Measure
+            var heightMM: Measure
         }
 
         var kind: Kind?
@@ -278,6 +380,9 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
         var spine: Measure?
         /// The material folded around the board, outside the trim line.
         var wrap: Measure?
+        /// True when the hinge (Saal's fold-over) lies inside the board width, so the cover keeps the same
+        /// outer width at every page count and only the hinge zone grows.
+        var hingeWithinPanel: Bool?
         /// Beyond the wrap, per edge (`outer` is left and right).
         var bleed: Edges?
         /// From the trim line of each face.
@@ -286,7 +391,8 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
         /// Fields set here replace the product's.
         func over(_ base: Cover) -> Cover {
             Cover(kind: kind ?? base.kind, panel: panel ?? base.panel, hinge: hinge ?? base.hinge,
-                  spine: spine ?? base.spine, wrap: wrap ?? base.wrap, bleed: bleed ?? base.bleed,
+                  spine: spine ?? base.spine, wrap: wrap ?? base.wrap,
+                  hingeWithinPanel: hingeWithinPanel ?? base.hingeWithinPanel, bleed: bleed ?? base.bleed,
                   safe: safe ?? base.safe)
         }
     }
@@ -319,20 +425,25 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
     struct Paper: Codable, Hashable, Sendable, Identifiable {
         var id: String
         var name: Text
+        /// Page limits of this paper, over the size's and the product's.
+        var pages: PageRules?
     }
 
+    /// A trim the product offers. Width and height are fixed, or `{"quote": …}` when the printer gives
+    /// the exact page size per order: then any book size in the range is this size.
     struct Size: Codable, Hashable, Sendable, Identifiable {
         var id: String
         var name: Text?
-        var widthMM: Length
-        var heightMM: Length
+        var widthMM: Measure
+        var heightMM: Measure
         var pages: PageRules?
         var cover: Cover?
 
-        var format: BookFormat { BookFormat(widthMM: widthMM.mm, heightMM: heightMM.mm) }
+        /// The trim a menu proposes: the fixed size, or the typical one of a size given per order.
+        var format: BookFormat { BookFormat(widthMM: widthMM.nominal ?? 0, heightMM: heightMM.nominal ?? 0) }
 
         func matches(_ format: BookFormat) -> Bool {
-            abs(format.widthMM - widthMM.mm) < 0.01 && abs(format.heightMM - heightMM.mm) < 0.01
+            widthMM.matches(format.widthMM) && heightMM.matches(format.heightMM)
         }
 
         /// The printer's name for the size when it has one, else the trim in centimetres.
@@ -366,7 +477,7 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
     func sizes(closestTo format: BookFormat) -> [Size] {
         sizes.enumerated().sorted { a, b in
             func distance(_ size: Size) -> Double {
-                hypot(size.widthMM.mm - format.widthMM, size.heightMM.mm - format.heightMM)
+                hypot(size.format.widthMM - format.widthMM, size.format.heightMM - format.heightMM)
             }
             return (distance(a.element), a.offset) < (distance(b.element), b.offset)
         }.map(\.element)
@@ -374,7 +485,11 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
 
     func coverRules(for size: Size) -> Cover { size.cover?.over(cover) ?? cover }
 
-    func pageRules(for size: Size) -> PageRules { size.pages?.over(interior.pages) ?? interior.pages }
+    /// The page limits: the paper's over the size's over the product's.
+    func pageRules(for size: Size?, paper: Paper? = nil) -> PageRules {
+        let sized = size?.pages?.over(interior.pages) ?? interior.pages
+        return paper?.pages?.over(sized) ?? sized
+    }
 
     var verifiedDate: Date? {
         let formatter = DateFormatter()
@@ -389,14 +504,51 @@ struct PrintProfile: Codable, Hashable, Sendable, Identifiable {
     func title(_ language: String) -> String { service + " · " + product(language) }
 }
 
-/// The measures the author typed for the chosen print service, which replace the profile's values.
+/// The measures the author typed for the chosen print service, which replace the profile's values or
+/// give the ones the printer states per order.
 struct PrintMeasures: Codable, Hashable, Sendable {
     var spineMM: Double?
     var hingeMM: Double?
     var wrapMM: Double?
+    var panelWidthMM: Double?
+    var panelHeightMM: Double?
+    var coverBleedMM: Double?
+    var interiorBleedMM: Double?
+
+    subscript(_ measure: PrintMeasure) -> Double? {
+        get {
+            switch measure {
+            case .spine: spineMM
+            case .hinge: hingeMM
+            case .wrap: wrapMM
+            case .panelWidth: panelWidthMM
+            case .panelHeight: panelHeightMM
+            case .coverBleed: coverBleedMM
+            case .interiorBleed: interiorBleedMM
+            }
+        }
+        set {
+            switch measure {
+            case .spine: spineMM = newValue
+            case .hinge: hingeMM = newValue
+            case .wrap: wrapMM = newValue
+            case .panelWidth: panelWidthMM = newValue
+            case .panelHeight: panelHeightMM = newValue
+            case .coverBleed: coverBleedMM = newValue
+            case .interiorBleed: interiorBleedMM = newValue
+            }
+        }
+    }
 }
 
-/// The cover measures the profile depends on, named for messages and for the author's values.
+/// The measures a profile can leave to the order or compute, named for messages and the author's values.
 enum PrintMeasure: String, CaseIterable, Hashable, Sendable {
-    case spine, hinge, wrap
+    case spine, hinge, wrap, panelWidth, panelHeight, coverBleed, interiorBleed
+
+    /// The command-line option that types it, such as `--panel-width-mm`.
+    var option: String {
+        "--" + rawValue.reduce(into: "") { text, character in
+            text += character.isUppercase ? "-" + character.lowercased() : String(character)
+        } + "-mm"
+    }
 }

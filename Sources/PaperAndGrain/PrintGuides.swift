@@ -41,11 +41,28 @@ struct PrintGuides: Equatable, Sendable {
                            bleedMM: bleedMM, zones: zones)
     }
 
-    /// True when `frame` lies inside the safe line (a hair of tolerance for rounding).
+    /// Where text may go: the safe area less the zones a print service keeps clear of text (the wider
+    /// margin along the binding). The canvas draws its outline as the dashed line.
+    var textSafe: CGRect {
+        var area = safe
+        for zone in zones where zone.kind == .innerMargin || zone.kind == .hinge {
+            if zone.rect.minX <= trim.minX + 0.01 {
+                let left = max(area.minX, zone.rect.maxX)
+                area = CGRect(x: left, y: area.minY, width: max(0, area.maxX - left), height: area.height)
+            } else if zone.rect.maxX >= trim.maxX - 0.01 {
+                area.size.width = max(0, min(area.maxX, zone.rect.minX) - area.minX)
+            }
+        }
+        return area
+    }
+
+    /// True when `frame` lies inside the area text may use (a hair of tolerance for rounding). The one
+    /// check for every kind of text: headings, stories, text boxes and captions.
     func keepsInsideSafe(_ frame: CGRect) -> Bool {
         let slack = 0.01
-        return frame.minX >= safe.minX - slack && frame.maxX <= safe.maxX + slack
-            && frame.minY >= safe.minY - slack && frame.maxY <= safe.maxY + slack
+        let area = textSafe
+        return frame.minX >= area.minX - slack && frame.maxX <= area.maxX + slack
+            && frame.minY >= area.minY - slack && frame.maxY <= area.maxY + slack
     }
 
     /// Edges of a photo frame that stop inside the trim by more than 0.25 mm and less than the bleed:

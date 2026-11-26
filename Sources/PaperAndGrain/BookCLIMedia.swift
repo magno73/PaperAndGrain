@@ -16,7 +16,8 @@ enum BookCLIMedia {
         "film-looks",
         "import-lut SOURCE.papergrain (--file PATH | --builtin LOOK_ID) [--photo UUID] --output OUTPUT.papergrain",
         "export-pdf SOURCE.papergrain --profile proof|print|pixart|PROFILE_ID --output PATH [--size SIZE_ID] "
-            + "[--paper PAPER_ID] [--spine-mm MM] [--hinge-mm MM] [--wrap-mm MM]",
+            + "[--paper PAPER_ID] [--spine-mm MM] [--hinge-mm MM] [--wrap-mm MM] [--panel-width-mm MM] "
+            + "[--panel-height-mm MM] [--cover-bleed-mm MM] [--interior-bleed-mm MM]",
         "print-profiles",
     ]
 
@@ -66,7 +67,7 @@ enum BookCLIMedia {
             return try importLUT(options, currentDirectory: currentDirectory)
         case "export-pdf":
             options = try Options(arguments, positional: true,
-                                  values: ["--profile", "--output", "--size", "--paper", "--spine-mm", "--hinge-mm", "--wrap-mm"])
+                                  values: Set(["--profile", "--output", "--size", "--paper"] + PrintMeasure.allCases.map(\.option)))
             return try exportPDF(options, currentDirectory: currentDirectory)
         case "print-profiles":
             _ = try Options(arguments)
@@ -345,7 +346,7 @@ enum BookCLIMedia {
             }
             entry = found
         } else {
-            for option in ["--size", "--paper", "--spine-mm", "--hinge-mm", "--wrap-mm"] where options[option] != nil {
+            for option in ["--size", "--paper"] + PrintMeasure.allCases.map(\.option) where options[option] != nil {
                 throw BookCLI.Failure(option + " is only supported for print-service exports")
             }
         }
@@ -399,22 +400,19 @@ enum BookCLIMedia {
             plan.paperID = paper
         }
         for measure in PrintMeasure.allCases {
-            let option = "--\(measure.rawValue)-mm"
+            let option = measure.option
             guard let text = options[option] else { continue }
             guard let rule = plan.rule(measure, for: book) else {
                 throw BookCLI.Failure("\(option) is not used by \(profile.id)")
             }
             guard let value = Double(text), rule.accepts(value) else {
-                if case let .quote(minimum, maximum) = rule {
-                    throw BookCLI.Failure("\(option) must be greater than \(mm(minimum)) and at most \(mm(maximum))")
+                if case let .quote(quote) = rule {
+                    throw BookCLI.Failure("\(option) must be \(quote.minExclusive == true ? "greater than" : "at least") "
+                                          + "\(mm(quote.minMM)) and at most \(mm(quote.maxMM))")
                 }
                 throw BookCLI.Failure("\(option) must be a length in millimetres from 0 to 1000")
             }
-            switch measure {
-            case .spine: plan.measures.spineMM = value
-            case .hinge: plan.measures.hingeMM = value
-            case .wrap: plan.measures.wrapMM = value
-            }
+            plan.measures[measure] = value
         }
         return plan
     }
@@ -438,16 +436,17 @@ enum BookCLIMedia {
         let profile = plan.profile
         guard plan.size(for: book) != nil else {
             let sizes = (plan.sizeID.flatMap(profile.size).map { [$0] } ?? profile.sizes(closestTo: format))
-                .map { "\(mm($0.widthMM.mm)) × \(mm($0.heightMM.mm)) mm" }
+                .map { "\(mm($0.format.widthMM)) × \(mm($0.format.heightMM)) mm" }
             throw BookCLI.Failure("\(profile.title("en")) requires a book of " + sizes.joined(separator: " or ")
                 + "; this book is \(mm(format.widthMM)) × \(mm(format.heightMM)) mm")
         }
-        guard plan.coverKind(for: book) == .flat else { return }
         let pages = BookPDF.interiorPageCount(book, plan: plan)
-        for measure in PrintMeasure.allCases where plan.value(measure, for: book, interiorPages: pages) == nil {
-            throw BookCLI.Failure(measure == .spine
-                ? "\(profile.title("en")) needs the spine width: set cover.spineMM or pass --spine-mm"
-                : "\(profile.title("en")) needs the \(measure.rawValue) width: pass --\(measure.rawValue)-mm")
+        if let missing = plan.missingMeasures(for: book, interiorPages: pages).first {
+            let name = missing.measure.label("en").lowercased()
+            let beyond = missing.tableLimit.map { " (the printer's table stops at \($0) pages; this book has \(pages))" } ?? ""
+            throw BookCLI.Failure(missing.measure == .spine
+                ? "\(profile.title("en")) needs the spine width\(beyond): set cover.spineMM or pass --spine-mm"
+                : "\(profile.title("en")) needs the \(name)\(beyond): pass \(missing.measure.option)")
         }
     }
 

@@ -40,14 +40,16 @@ final class PrintProfileTests: XCTestCase {
             XCTAssertEqual(profile.problems, [], profile.id)
             XCTAssertEqual(profile.sourceURL.scheme, "https", profile.id)
             XCTAssertNotNil(profile.verifiedDate, profile.id)
-            var lengths = profile.interior.bleed.all + profile.interior.safe.all
+            var lengths = profile.interior.bleed.fixedValues.all + profile.interior.safe.fixedValues.all
             for size in profile.sizes {
-                XCTAssertGreaterThan(size.widthMM.mm, 0)
-                XCTAssertGreaterThan(size.heightMM.mm, 0)
+                XCTAssertGreaterThan(size.format.widthMM, 0)
+                XCTAssertGreaterThan(size.format.heightMM, 0)
+                XCTAssertTrue(size.matches(size.format), "\(profile.id) \(size.id)")
                 let cover = profile.coverRules(for: size)
-                lengths += (cover.bleed?.all ?? []) + [cover.panel?.widthMM, cover.panel?.heightMM, cover.safe].compactMap { $0 }
+                lengths += (cover.bleed?.fixedValues.all ?? []) + [cover.panel?.widthMM.nominal, cover.panel?.heightMM.nominal,
+                                                                  cover.safe?.mm].compactMap { $0 }
             }
-            for length in lengths { XCTAssertTrue(length.mm.isFinite && length.mm >= 0, profile.id) }
+            for length in lengths { XCTAssertTrue(length.isFinite && length >= 0, profile.id) }
             // Encoding and decoding again gives the same entry.
             let data = try JSONEncoder().encode(profile)
             XCTAssertEqual(try JSONDecoder().decode(PrintProfile.self, from: data), profile, profile.id)
@@ -134,8 +136,7 @@ final class PrintProfileTests: XCTestCase {
         XCTAssertEqual(report.blockers, [])
         // 9 pages, one blank so page 1 is on the left of a right-first product: 10 interior + 2 cover pages.
         let messages = report.warnings.map { $0.message(language: "en") }
-        XCTAssertTrue(messages.contains("Needs at least 24 pages (has 12)"), "\(messages)")
-        XCTAssertFalse(messages.contains { $0.contains("multiple") }, "\(messages)")
+        XCTAssertTrue(messages.contains("Needs at least 24 pages; the printer counts 12 (9 in the book)"), "\(messages)")
 
         let wrap = try XCTUnwrap(catalog.profile("test-imagewrap"))
         book.format = wrap.sizes[1].format
@@ -143,14 +144,22 @@ final class PrintProfileTests: XCTestCase {
         book.pages = (0..<241).map { _ in BookPage(layout: .text, text: "x") }
         report = BookPDF.preflight(book, directory: nil, profile: .service(PrintPlan(profile: wrap)))
         let warnings = report.warnings.map { $0.message(language: "en") }
-        XCTAssertTrue(warnings.contains("Takes at most 200 pages (has 242)"), "\(warnings)")
-        XCTAssertEqual(report.blockers.map(\.problem), [.missingMeasure(.spine)], "beyond the spine table")
+        XCTAssertTrue(warnings.contains("Takes at most 200 pages; the printer counts 242 (241 in the book)"), "\(warnings)")
+        XCTAssertEqual(report.blockers.map(\.problem), [.missingMeasure(.spine, tableLimit: 240)], "beyond the spine table")
         XCTAssertEqual(report.blockers.first?.message(language: "en"),
-                       "Cover · Spine width missing: enter it from the printer’s quote")
+                       "Cover · Spine width: the printer’s table stops at 240 pages. Enter the value from the quote")
+        // An odd count is padded with a trailing blank to the product's step, so no page-count warning.
         book.pages.removeLast(43)
         report = BookPDF.preflight(book, directory: nil, profile: .service(PrintPlan(profile: wrap)))
-        XCTAssertTrue(report.warnings.contains { $0.message(language: "en") == "Needs a multiple of 2 pages (has 199)" })
+        XCTAssertEqual(BookPDF.interiorPageCount(book, plan: PrintPlan(profile: wrap)), 200)
+        XCTAssertFalse(report.warnings.contains { $0.problem.kind.hasPrefix("pageCount") }, "\(report.warnings)")
+        XCTAssertTrue(report.warnings.contains { $0.problem == .blankPages([1, 200]) }, "\(report.warnings)")
         XCTAssertEqual(report.blockers, [])
+        // Page limits per paper: the standard paper takes at most 120 pages.
+        report = BookPDF.preflight(book, directory: nil, profile: .service(PrintPlan(profile: wrap, paperID: "standard")))
+        XCTAssertTrue(report.warnings.contains {
+            $0.message(language: "en") == "Takes at most 120 pages; the printer counts 200 (198 in the book)"
+        }, "\(report.warnings.map { $0.message(language: "en") })")
     }
 
     func testTheBookChoosesItsProfileAndOlderBooksStayGeneric() throws {
@@ -183,9 +192,9 @@ final class PrintProfileTests: XCTestCase {
         var book = Book(title: "T", pages: [BookPage(layout: .text)])
         book.cover = BookCover(spineMM: 7)
         let zones = PrintPlan.pixart().zones(for: book, interiorPages: 2)
-        XCTAssertEqual(zones.safe.inner.mm, 15)
-        XCTAssertEqual(zones.safe.outer.mm, 5)
-        XCTAssertEqual(zones.bleed.inner.mm, 3)
+        XCTAssertEqual(zones.safe.inner, 15)
+        XCTAssertEqual(zones.safe.outer, 5)
+        XCTAssertEqual(zones.bleed.inner, 3)
         XCTAssertEqual(zones.coverHingeMM, 11)
         // The binding strip for T2's guides: on the left of a right page, 15 mm wide, none on a spread.
         let size = CGSize(width: 595.276, height: 595.276)
@@ -214,7 +223,13 @@ final class PrintProfileTests: XCTestCase {
                                 pages: [BookPage(layout: .text, text: "First"), BookPage(layout: .fullSpread),
                                         BookPage(layout: .text, text: "Last")])
                 book.cover = BookCover(title: "Boxes", spineMM: 8)
-                let plan = PrintPlan(profile: profile, sizeID: size.id)
+                var plan = PrintPlan(profile: profile, sizeID: size.id)
+                // Measures given per order get their typical value, as an author would type it.
+                for measure in plan.editableMeasures(for: book) {
+                    if case let .quote(quote)? = plan.rule(measure, for: book), measure != .spine {
+                        plan.measures[measure] = quote.typicalMM ?? quote.minMM
+                    }
+                }
                 let separate = profile.files.arrangement == .separate
                 let output = directory.appendingPathComponent(separate ? "Out" : "Out.pdf")
                 try BookPDF.write(book, directory: directory, plan: plan, to: output)
@@ -241,41 +256,43 @@ final class PrintProfileTests: XCTestCase {
                 }
                 if let coverSheet {
                     let rules = plan.coverRules(for: book)
-                    let panelW = rules.panel?.widthMM.mm ?? size.widthMM.mm
-                    let panelH = rules.panel?.heightMM.mm ?? size.heightMM.mm
                     let hinge = try XCTUnwrap(plan.value(.hinge, for: book, interiorPages: interiorPages))
+                    let panelW = try XCTUnwrap(plan.value(.panelWidth, for: book, interiorPages: interiorPages))
+                        - (rules.hingeWithinPanel == true ? hinge : 0)
+                    let panelH = try XCTUnwrap(plan.value(.panelHeight, for: book, interiorPages: interiorPages))
                     let spine = try XCTUnwrap(plan.value(.spine, for: book, interiorPages: interiorPages))
                     let wrap = try XCTUnwrap(plan.value(.wrap, for: book, interiorPages: interiorPages))
-                    let bleed = rules.bleed ?? PrintProfile.Edges(0)
+                    let bleed = try XCTUnwrap(plan.coverBleed(for: book))
                     check(coverSheet, trimWidth: 2 * (panelW + hinge) + spine, trimHeight: panelH,
-                          left: wrap + bleed.outer.mm, right: wrap + bleed.outer.mm,
-                          top: wrap + bleed.top.mm, bottom: wrap + bleed.bottom.mm, context + " cover")
+                          left: wrap + bleed.outer, right: wrap + bleed.outer,
+                          top: wrap + bleed.top, bottom: wrap + bleed.bottom, context + " cover")
                 }
-                let bleed = profile.interior.bleed
+                let bleed = try XCTUnwrap(plan.interiorBleed(for: book), context)
+                let trimW = book.format.widthMM, trimH = book.format.heightMM
                 if kind == .interiorPages {
                     let front = pages.removeFirst(), back = pages.removeLast()
-                    check(front, trimWidth: size.widthMM.mm, trimHeight: size.heightMM.mm, left: bleed.inner.mm,
-                          right: bleed.outer.mm, top: bleed.top.mm, bottom: bleed.bottom.mm, context + " front")
-                    check(back, trimWidth: size.widthMM.mm, trimHeight: size.heightMM.mm, left: bleed.outer.mm,
-                          right: bleed.inner.mm, top: bleed.top.mm, bottom: bleed.bottom.mm, context + " back")
+                    check(front, trimWidth: trimW, trimHeight: trimH, left: bleed.inner,
+                          right: bleed.outer, top: bleed.top, bottom: bleed.bottom, context + " front")
+                    check(back, trimWidth: trimW, trimHeight: trimH, left: bleed.outer,
+                          right: bleed.inner, top: bleed.top, bottom: bleed.bottom, context + " back")
                 }
                 let spread = profile.interior.layout == .spread
                 XCTAssertEqual(pages.count, spread ? interiorPages / 2 : interiorPages, context)
                 for (index, page) in pages.enumerated() {
                     if spread {
-                        check(page, trimWidth: 2 * size.widthMM.mm, trimHeight: size.heightMM.mm, left: bleed.outer.mm,
-                              right: bleed.outer.mm, top: bleed.top.mm, bottom: bleed.bottom.mm, context + " spread \(index)")
+                        check(page, trimWidth: 2 * trimW, trimHeight: trimH, left: bleed.outer,
+                              right: bleed.outer, top: bleed.top, bottom: bleed.bottom, context + " spread \(index)")
                     } else {
                         let right = !(index + (profile.interior.firstPage == .right ? 1 : 0)).isMultiple(of: 2)
-                        check(page, trimWidth: size.widthMM.mm, trimHeight: size.heightMM.mm,
-                              left: right ? bleed.inner.mm : bleed.outer.mm, right: right ? bleed.outer.mm : bleed.inner.mm,
-                              top: bleed.top.mm, bottom: bleed.bottom.mm, context + " page \(index)")
+                        check(page, trimWidth: trimW, trimHeight: trimH,
+                              left: right ? bleed.inner : bleed.outer, right: right ? bleed.outer : bleed.inner,
+                              top: bleed.top, bottom: bleed.bottom, context + " page \(index)")
                     }
                 }
             }
         }
         XCTAssertEqual(checked, profiles.map(\.sizes.count).reduce(0, +))
-        XCTAssertGreaterThanOrEqual(checked, 7, "the Pixart size and two sizes of each test-only entry")
+        XCTAssertGreaterThanOrEqual(checked, 11, "the Pixart size and two sizes of each test-only entry")
     }
 
     func testABookOfTheWrongSizeOrWithoutSpineIsRefused() throws {

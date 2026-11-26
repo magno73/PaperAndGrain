@@ -9,7 +9,11 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Book & Print › Print service** chooses a printer's product and size. It sets bleed and safe margin from the product, lists its page-count and margin rules, and offers the product's sizes, closest first, when the book's size is not one of them; the size changes only when you click **Use …**.
 - **Export PDF** lists the book's print service and **Other print service…** for any product in the catalog, with the date the specification was checked, a link to the printer's page and a note that Paper & Grain is not affiliated with the printer.
 - **Issues** checks the book against its print service: a size the product does not offer, a page count below the minimum, above the maximum or not in the product's steps, and a missing spine width.
-- The new-book size menu can show only the sizes of one print service.
+- The new-book size menu can show only the sizes of one print service, with the printer's notice.
+- Measures a printer gives only in the quote (spine, hinge, wrap, board, bleed) have fields in **Book & Print › Print service**; values typed in the export sheet are kept in the book (one undo step).
+- An odd page count is padded with blank pages to the product's step; glued endpapers are printed blank. Page-count warnings give both the printer's count and the book's pages.
+- With a print service, **Print Guides** and the safe-margin warning follow the product's wider margin along the binding.
+- A print-service file that cannot be read is skipped and named in **Book & Print**; the others stay available.
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 

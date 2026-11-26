@@ -60,9 +60,9 @@ struct PrintServiceRules: View, Localizing {
         }
         if let multiple = rules.multiple, multiple > 1 { lines.append(tr("Page count in steps of %lld", multiple)) }
         if let cover = rules.coverPagesCounted, cover > 0 { lines.append(tr("The count includes %lld cover pages", cover)) }
-        let safe = plan.profile.interior.safe
+        let safe = plan.safe
         lines.append(tr("Keep text %1$@ mm from the edges and %2$@ mm from the binding",
-                        mm(max(safe.top.mm, safe.bottom.mm, safe.outer.mm)), mm(safe.inner.mm)))
+                        mm(safe.largestOuter), mm(safe.inner)))
         switch plan.profile.interior.ends ?? .pages {
         case .pages: break
         case .insideCovers: lines.append(tr("The first and last pages print on the inside of the covers"))
@@ -77,21 +77,16 @@ struct PrintServiceRules: View, Localizing {
 }
 
 extension PrintMeasure {
-    /// The field label when the value comes from the printer's quote.
-    func quoteLabel(_ language: String) -> String {
-        switch self {
-        case .spine: L10n.string("Spine width from the quote", language: language)
-        case .hinge: L10n.string("Hinge width from the quote", language: language)
-        case .wrap: L10n.string("Cover wrap from the quote", language: language)
-        }
-    }
-
-    /// The field label when the profile computes the value and the author may type another.
+    /// The name of the measure in fields and messages.
     func label(_ language: String) -> String {
         switch self {
         case .spine: L10n.string("Spine width", language: language)
         case .hinge: L10n.string("Hinge width", language: language)
         case .wrap: L10n.string("Cover wrap", language: language)
+        case .panelWidth: L10n.string("Board width", language: language)
+        case .panelHeight: L10n.string("Board height", language: language)
+        case .coverBleed: L10n.string("Cover bleed", language: language)
+        case .interiorBleed: L10n.string("Interior bleed", language: language)
         }
     }
 }

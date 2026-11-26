@@ -26,7 +26,7 @@ enum BookPDF {
             case .coverTextOverflow: L10n.string("Text overflows on the cover", language: language)
             case .sizeNotOffered: L10n.string("The print service does not offer the book’s size", language: language)
             case let .missingMeasure(measure):
-                PreflightIssue(problem: .missingMeasure(measure)).message(language: language)
+                PreflightIssue(problem: .missingMeasure(measure, tableLimit: nil)).message(language: language)
             }
         }
     }
@@ -35,7 +35,7 @@ enum BookPDF {
     /// exporting thread.
     static func write(_ book: Book, directory: URL, to destination: URL,
                       progress: (@Sendable (Double) -> Void)? = nil) throws {
-        let meter = ProgressMeter(total: sheetCount(book, settings: nil, firstPageRight: false), report: progress)
+        let meter = ProgressMeter(total: sheetCount(book, settings: nil), report: progress)
         try render(book, directory: directory, output: Output(settings: nil), to: destination, meter: meter)
         meter.finish()
     }
@@ -43,7 +43,7 @@ enum BookPDF {
     static func writePrint(_ book: Book, directory: URL, to destination: URL,
                            progress: (@Sendable (Double) -> Void)? = nil) throws {
         let settings = book.printSettings ?? PrintSettings()
-        let meter = ProgressMeter(total: sheetCount(book, settings: settings, firstPageRight: false) + (book.cover == nil ? 0 : 1),
+        let meter = ProgressMeter(total: sheetCount(book, settings: settings) + (book.cover == nil ? 0 : 1),
                                   report: progress)
         let bleed = PageBleed(uniform: settings.bleedMM * pointsPerMM)
         try writeFolder(destination, names: ["Interior.pdf", "Cover.pdf"]) { scratch in
@@ -64,14 +64,19 @@ enum BookPDF {
                       progress: (@Sendable (Double) -> Void)? = nil) throws {
         guard plan.size(for: book) != nil else { throw ExportError.sizeNotOffered }
         let settings = plan.interiorSettings(for: book)
-        let interiorPages = leaves(book.pages, settings: settings, firstPageRight: plan.firstPageRight).count
+        let imposition = plan.imposition(for: book)
+        let interiorPages = leaves(book.pages, settings: settings, imposition: imposition).count
+        if let missing = plan.missingMeasures(for: book, interiorPages: interiorPages).first {
+            throw ExportError.missingMeasure(missing.measure)
+        }
         let kind = plan.coverKind(for: book)
         let flat = kind == .flat ? try flatCover(book, plan: plan, interiorPages: interiorPages) : nil
-        let bleed = PageBleed(plan.profile.interior.bleed)
+        guard let interiorBleed = plan.interiorBleed(for: book) else { throw ExportError.missingMeasure(.interiorBleed) }
+        let bleed = PageBleed(interiorBleed)
         let coverPages = kind == .interiorPages
-        let meter = ProgressMeter(total: sheetCount(book, settings: settings, firstPageRight: plan.firstPageRight)
+        let meter = ProgressMeter(total: sheetCount(book, settings: settings, imposition: imposition)
                                   + (flat == nil ? 0 : 1) + (coverPages ? 2 : 0), report: progress)
-        let interior = Output(settings: settings, bleed: bleed, coverPages: coverPages, firstPageRight: plan.firstPageRight)
+        let interior = Output(settings: settings, bleed: bleed, coverPages: coverPages, imposition: imposition)
         let files = plan.profile.files
         switch files.arrangement {
         case .single:
@@ -118,17 +123,36 @@ enum BookPDF {
     /// The flat cover of a product, in points: faces, hinges and spine from the profile and the author's
     /// measures. A measure that is neither typed nor computable stops the export.
     private static func flatCover(_ book: Book, plan: PrintPlan, interiorPages: Int) throws -> FlatCover {
-        let rules = plan.coverRules(for: book)
         func measure(_ kind: PrintMeasure) throws -> Double {
             guard let mm = plan.value(kind, for: book, interiorPages: interiorPages) else { throw ExportError.missingMeasure(kind) }
             return mm * pointsPerMM
         }
-        let panel = rules.panel.map { CGSize(width: $0.widthMM.mm * pointsPerMM, height: $0.heightMM.mm * pointsPerMM) }
-            ?? book.format.pageSize
-        let bleed = rules.bleed ?? PrintProfile.Edges(0)
-        return FlatCover(panel: panel, hinge: try measure(.hinge), spine: try measure(.spine), wrap: try measure(.wrap),
-                         bleedTop: bleed.top.mm * pointsPerMM, bleedBottom: bleed.bottom.mm * pointsPerMM,
-                         bleedOuter: bleed.outer.mm * pointsPerMM)
+        guard let bleed = plan.coverBleed(for: book) else { throw ExportError.missingMeasure(.coverBleed) }
+        let hinge = try measure(.hinge)
+        var panel = CGSize(width: try measure(.panelWidth), height: try measure(.panelHeight))
+        // A hinge inside the board (Saal's fold-over) keeps the outer width and narrows the face drawn.
+        if plan.coverRules(for: book).hingeWithinPanel == true { panel.width -= hinge }
+        return FlatCover(panel: panel, hinge: hinge, spine: try measure(.spine), wrap: try measure(.wrap),
+                         bleedTop: bleed.top * pointsPerMM, bleedBottom: bleed.bottom * pointsPerMM,
+                         bleedOuter: bleed.outer * pointsPerMM)
+    }
+
+    /// How a product lays out the interior: side of the first PDF page, glued endpapers, and the step of
+    /// the page count the printer takes (with the cover pages it counts).
+    struct Imposition: Hashable, Sendable {
+        var firstPageRight = false
+        var endpapers = false
+        var multiple: Int?
+        var coverPagesCounted = 0
+    }
+
+    /// The face a product's flat cover draws on, in points: the board, less a hinge that lies inside it.
+    private static func flatFace(_ book: Book, plan: PrintPlan, interiorPages: Int) -> CGSize {
+        let width = plan.value(.panelWidth, for: book, interiorPages: interiorPages) ?? book.format.widthMM
+        let height = plan.value(.panelHeight, for: book, interiorPages: interiorPages) ?? book.format.heightMM
+        let hinge = plan.coverRules(for: book).hingeWithinPanel == true
+            ? plan.value(.hinge, for: book, interiorPages: interiorPages) ?? 0 : 0
+        return CGSize(width: (width - hinge) * pointsPerMM, height: height * pointsPerMM)
     }
 
     /// Counts rendered sheets and reports the completed fraction.
@@ -151,15 +175,25 @@ enum BookPDF {
         func finish() { report?(1) }
     }
 
-    private static func sheetCount(_ book: Book, settings: PrintSettings?, firstPageRight: Bool) -> Int {
-        let slots = leaves(book.pages, settings: settings, firstPageRight: firstPageRight).count
+    private static func sheetCount(_ book: Book, settings: PrintSettings?, imposition: Imposition = Imposition()) -> Int {
+        let slots = leaves(book.pages, settings: settings, imposition: imposition).count
         return settings?.spreads == true ? (slots + 1) / 2 : slots
     }
 
     /// The interior pages a product's PDF holds, compensation blanks included: the count its formulas
     /// and tables read.
     static func interiorPageCount(_ book: Book, plan: PrintPlan) -> Int {
-        leaves(book.pages, settings: plan.interiorSettings(for: book), firstPageRight: plan.firstPageRight).count
+        leaves(book.pages, settings: plan.interiorSettings(for: book), imposition: plan.imposition(for: book)).count
+    }
+
+    /// Which pages sit on the right in print, by page id: the side the binding is on. Products keep the
+    /// book's sides (their blanks come in pairs or at the end), so this is the generic imposition.
+    static func rightPageIDs(_ book: Book) -> Set<UUID> {
+        let slots = leaves(book.pages, settings: book.printSettings ?? PrintSettings())
+        return Set(slots.indices.compactMap { index in
+            guard let leaf = slots[index], leaf.half == 0, !index.isMultiple(of: 2) else { return nil }
+            return leaf.page.id
+        })
     }
 
     /// The exports; the preflight checks what each of them will render.
@@ -235,9 +269,10 @@ enum BookPDF {
             }
         }
 
-        let slots = leaves(book.pages, settings: settings, firstPageRight: plan?.firstPageRight == true)
+        let slots = leaves(book.pages, settings: settings, imposition: plan?.imposition(for: book) ?? Imposition())
         if let plan {
-            let product = plan.issues(for: book, interiorPages: slots.count)
+            let bookPages = slots.filter { $0 != nil }.count
+            let product = plan.issues(for: book, interiorPages: slots.count, bookPages: bookPages)
             report.blockers += product.blockers
             report.warnings += product.warnings
         }
@@ -266,11 +301,16 @@ enum BookPDF {
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
             let story = composition.storyDrawingBlocks(page: page, book: book)
-            let guides = settings.map { PrintGuides.frames(pageSize: composition.bounds.size, settings: $0) }
+            // `leaves` puts the first slot on the left, except for a product whose first page is a right page.
+            let onRight = plan?.firstPageRight == true ? position.isMultiple(of: 2) : !position.isMultiple(of: 2)
+            let guides = settings.map {
+                PrintGuides.frames(pageSize: composition.bounds.size, settings: $0,
+                                   zones: plan?.guideZones(pageSize: composition.bounds.size, onRight: onRight,
+                                                           spread: page.effectiveLayout == .fullSpread,
+                                                           safeMM: $0.safeMM) ?? [])
+            }
             if let guides {
                 // The binding edge of a single page is not cut, so it can hold a photo near it.
-                // `leaves` puts the first slot on the left, except for a product whose first page is a right page.
-                let onRight = plan?.firstPageRight == true ? position.isMultiple(of: 2) : !position.isMultiple(of: 2)
                 let bound: Set<PrintGuides.Edge> = page.effectiveLayout == .fullSpread ? []
                     : onRight ? [.left] : [.right]
                 var placedAgain = [UUID: Int]()
@@ -323,9 +363,7 @@ enum BookPDF {
             switch plan.coverKind(for: book) {
             case .none: nil
             case .interiorPages: .some(book.format.pageSize)
-            case .flat: .some(plan.coverRules(for: book).panel.map {
-                CGSize(width: $0.widthMM.mm * pointsPerMM, height: $0.heightMM.mm * pointsPerMM)
-            } ?? book.format.pageSize)
+            case .flat: .some(flatFace(book, plan: plan, interiorPages: slots.count))
             }
         }
         if let cover = book.cover, let faceSize {
@@ -361,9 +399,12 @@ enum BookPDF {
         let number: Int
     }
 
-    /// The interior slots in PDF order; nil is a compensation blank. The generic imposition starts with a
-    /// left page; `firstPageRight` shifts it by one for products whose first interior page is a right page.
-    private static func leaves(_ pages: [BookPage], settings: PrintSettings?, firstPageRight: Bool = false) -> [Leaf?] {
+    /// The interior slots in PDF order; nil is a blank. The generic imposition starts with a left page; a
+    /// product whose first interior page is a right page shifts it by one. Glued endpapers become blank
+    /// first and last pages (two blanks at the start when the book's first page must keep its side), and
+    /// trailing blanks bring the count the printer takes to its step.
+    private static func leaves(_ pages: [BookPage], settings: PrintSettings?,
+                               imposition: Imposition = Imposition()) -> [Leaf?] {
         var leaves = [Leaf?]()
         if settings?.firstPageOnRight == true { leaves.append(nil) }
         // Folios follow the editor's numbering, so blanks added for the imposition are not counted.
@@ -377,10 +418,23 @@ enum BookPDF {
             }
         }
         if settings?.spreads == true && !leaves.count.isMultiple(of: 2) { leaves.append(nil) }
-        if firstPageRight {
+        if imposition.firstPageRight {
             // Generic imposition starts at a left slot; this product's first physical interior page is right.
             if settings?.firstPageOnRight == true { leaves.removeFirst() }
             else { leaves.insert(nil, at: 0) }
+        }
+        if imposition.endpapers {
+            if leaves.first.map({ $0 != nil }) ?? true { leaves.insert(contentsOf: [nil, nil], at: 0) }
+            if leaves.last.map({ $0 != nil }) ?? true { leaves.append(nil) }
+        }
+        if let multiple = imposition.multiple, multiple > 1 {
+            let spreads = settings?.spreads == true
+            var guardCount = 0
+            while (!(leaves.count + imposition.coverPagesCounted).isMultiple(of: multiple)
+                   || (spreads && !leaves.count.isMultiple(of: 2))) && guardCount < 2 * multiple + 2 {
+                leaves.append(nil)
+                guardCount += 1
+            }
         }
         return leaves
     }
@@ -432,11 +486,11 @@ enum BookPDF {
 
         init(uniform value: Double) { (top, bottom, outer, inner) = (value, value, value, value) }
 
-        init(_ edges: PrintProfile.Edges) {
-            top = edges.top.mm * BookPDF.pointsPerMM
-            bottom = edges.bottom.mm * BookPDF.pointsPerMM
-            outer = edges.outer.mm * BookPDF.pointsPerMM
-            inner = edges.inner.mm * BookPDF.pointsPerMM
+        init(_ edges: PrintProfile.EdgeValues) {
+            top = edges.top * BookPDF.pointsPerMM
+            bottom = edges.bottom * BookPDF.pointsPerMM
+            outer = edges.outer * BookPDF.pointsPerMM
+            inner = edges.inner * BookPDF.pointsPerMM
         }
 
         var all: [Double] { [top, bottom, outer, inner] }
@@ -472,8 +526,8 @@ enum BookPDF {
         /// The front cover as the first page and the back cover as the last, at the page size.
         var coverPages = false
         var interior = true
-        /// The first interior page of the PDF is a right page.
-        var firstPageRight = false
+        /// How the interior is laid out; the generic imposition by default.
+        var imposition = Imposition()
     }
 
     /// The margins of the media box around the trim box, in points.
@@ -609,14 +663,14 @@ enum BookPDF {
         }
         if output.coverPages { try coverPage(front: true) }
         if output.interior {
-            let slots = leaves(book.pages, settings: settings, firstPageRight: output.firstPageRight)
+            let slots = leaves(book.pages, settings: settings, imposition: output.imposition)
             let size = settings?.spreads == true ? 2 : 1
             for first in stride(from: 0, to: slots.count, by: size) {
                 let sheet = slots[first..<(first + size)]
                 try Task.checkCancellation()
                 let insets = size == 2
                     ? Insets(left: bleed.outer, right: bleed.outer, top: bleed.top, bottom: bleed.bottom)
-                    : pageInsets(right: !(first + (output.firstPageRight ? 1 : 0)).isMultiple(of: 2))
+                    : pageInsets(right: !(first + (output.imposition.firstPageRight ? 1 : 0)).isMultiple(of: 2))
                 begin(width: Double(sheet.count)*w, height: h, insets: insets)
                 try autoreleasepool {
                     for (index,slot) in sheet.enumerated() {

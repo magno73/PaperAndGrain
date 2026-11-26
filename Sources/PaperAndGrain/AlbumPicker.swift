@@ -184,6 +184,10 @@ struct AlbumPicker: View, Localizing {
                         }
                     }
                 }
+                if let profile = serviceProfile {
+                    PrintServiceNotice(profile: profile, language: language)
+                        .frame(maxWidth: 460, alignment: .leading)
+                }
                 Picker(tr("Book Size"), selection: $formatChoice) {
                     if let profile = serviceProfile {
                         ForEach(profile.sizes) { size in Text(size.title(language)).tag("size:" + size.id) }

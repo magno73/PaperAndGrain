@@ -23,7 +23,7 @@
     "cover": {
       "kind": "flat",
       "hinge": { "mm": 11, "source": "hardcover template 21 × 21 cm" },
-      "spine": { "quote": { "minMM": 0, "maxMM": 100 } },
+      "spine": { "quote": { "minMM": 0, "minExclusive": true, "maxMM": 100 } },
       "wrap": { "mm": 19, "source": "hardcover template 21 × 21 cm: turn-in and bleed" }
     },
     "files": { "arrangement": "single" },

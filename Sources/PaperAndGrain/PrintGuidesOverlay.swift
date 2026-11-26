@@ -19,7 +19,12 @@ struct PrintGuidesOverlay: View {
             Path(CGRect.union(of: pages.map { scaled($0.guides.bleed, $0.origin) }))
                 .stroke(color.opacity(0.75), lineWidth: 0.75)
             ForEach(pages.indices, id: \.self) { index in
-                Path(scaled(pages[index].guides.safe, pages[index].origin))
+                // A print service's binding margin is tinted and the dashed line follows it.
+                ForEach(pages[index].guides.zones.indices, id: \.self) { zone in
+                    Path(scaled(pages[index].guides.zones[zone].rect, pages[index].origin))
+                        .fill(color.opacity(0.07))
+                }
+                Path(scaled(pages[index].guides.textSafe, pages[index].origin))
                     .stroke(color, style: StrokeStyle(lineWidth: 1, dash: [5, 3]))
             }
         }

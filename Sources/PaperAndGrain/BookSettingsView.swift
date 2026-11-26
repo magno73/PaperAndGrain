@@ -141,10 +141,36 @@ struct BookSettingsView: View, Localizing {
 
     private var chosenProfile: PrintProfile? { catalog.profile(printProfile.profileID) }
 
-    /// The product size chosen, or the one with the book's trim, or the product's first.
+    /// The product size chosen if the book has its trim, else the size with the book's trim, else the
+    /// one chosen, else the product's first.
     private var chosenSize: PrintProfile.Size? {
         guard let profile = chosenProfile else { return nil }
-        return profile.size(printProfile.profileSizeID) ?? profile.size(matching: format) ?? profile.sizes.first
+        let stored = profile.size(printProfile.profileSizeID)
+        if let stored, stored.matches(format) { return stored }
+        return profile.size(matching: format) ?? stored ?? profile.sizes.first
+    }
+
+    /// Keeps the saved size in step with the book's size, so a size change never leaves a stale choice.
+    private func syncSize() {
+        guard let profile = chosenProfile, let size = chosenSize, size.matches(format) else { return }
+        if printProfile.profileSizeID != size.id, profile.size(size.id) != nil { printProfile.profileSizeID = size.id }
+    }
+
+    /// A field for a measure the author can type: one given per order, or a computed one to replace.
+    private func measureField(_ measure: PrintMeasure, plan: PrintPlan) -> some View {
+        let rule = plan.rule(measure, for: previewBook)
+        let pages = BookPDF.interiorPageCount(previewBook, plan: plan)
+        let computed = rule?.value(pages: pages, paper: plan.paper?.id)
+        let label = rule?.isTyped == true ? tr("%@ from the quote", measure.label(language)) : measure.label(language)
+        let value = Binding<Double?>(get: { printProfile.profileMeasures?[measure] }, set: { newValue in
+            var measures = printProfile.profileMeasures ?? PrintMeasures()
+            measures[measure] = newValue
+            printProfile.profileMeasures = measures == PrintMeasures() ? nil : measures
+        })
+        return TextField(label + " (mm)", value: value, format: number,
+                         prompt: Text(computed.map { $0.formatted(number) } ?? tr("from the quote")))
+            .help(rule?.isTyped == true ? tr("Copy the value from the printer’s quote.")
+                                        : tr("Computed from the page count; type a value to replace it."))
     }
 
     /// `profile|size`, or empty for generic print.
@@ -178,6 +204,13 @@ struct BookSettingsView: View, Localizing {
                 }
             }
             .help(tr("Choosing a printer’s product sets bleed and safe margin from its specification."))
+            .onChange(of: format) { _, _ in syncSize() }
+            if !catalog.skipped.isEmpty {
+                Text(tr("Some print-service files could not be read: %@", catalog.skipped.map(\.file).joined(separator: ", ")))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .help(catalog.skipped.map(\.errorDescription).compactMap { $0 }.joined(separator: "\n"))
+            }
             if let profile = chosenProfile, let size = chosenSize {
                 if let papers = profile.papers, papers.count > 1 {
                     Picker(tr("Paper"), selection: Binding(get: { printProfile.profilePaperID ?? papers[0].id },
@@ -198,6 +231,9 @@ struct BookSettingsView: View, Localizing {
                 }
                 let plan = PrintPlan(profile: profile, sizeID: size.id, paperID: printProfile.profilePaperID,
                                      measures: printProfile.profileMeasures ?? PrintMeasures())
+                ForEach(plan.editableMeasures(for: previewBook), id: \.self) { measure in
+                    measureField(measure, plan: plan)
+                }
                 PrintServiceRules(plan: plan, book: previewBook, language: language)
                 PrintServiceNotice(profile: profile, language: language)
             }

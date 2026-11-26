@@ -1,0 +1,37 @@
+{
+  "id": "test-perorder",
+  "service": "Test Per Order",
+  "product": "Test coffee table book with every measure from the order",
+  "binding": "hardcover",
+  "regions": ["EU"],
+  "sourceURL": "https://example.com/per-order",
+  "verifiedOn": "2026-11-26",
+  "notes": "Test-only entry: page size, board, hinge, wrap, spine and both bleeds are typed from the order (WhiteWall).",
+  "interior": {
+    "layout": "single",
+    "bleed": { "top": { "quote": { "minMM": 0, "maxMM": 10, "typicalMM": 3 } },
+               "bottom": { "quote": { "minMM": 0, "maxMM": 10, "typicalMM": 3 } },
+               "outer": { "quote": { "minMM": 0, "maxMM": 10, "typicalMM": 3 } },
+               "inner": 0 },
+    "safe": 5,
+    "firstPage": "right",
+    "pages": { "minimum": 28, "maximum": 200, "multiple": 4 }
+  },
+  "cover": {
+    "kind": "flat",
+    "panel": { "widthMM": { "quote": { "minMM": 100, "maxMM": 500, "typicalMM": 300 } },
+               "heightMM": { "quote": { "minMM": 100, "maxMM": 500, "typicalMM": 300 } } },
+    "hinge": { "quote": { "minMM": 0, "maxMM": 20, "typicalMM": 10 } },
+    "spine": { "quote": { "minMM": 0, "minExclusive": true, "maxMM": 60 } },
+    "wrap": { "quote": { "minMM": 0, "maxMM": 30, "typicalMM": 15 } },
+    "bleed": { "quote": { "minMM": 0, "maxMM": 10, "typicalMM": 0 } }
+  },
+  "files": { "arrangement": "separate" },
+  "color": { "accepts": ["srgb"] },
+  "sizes": [
+    { "id": "29x29", "widthMM": { "quote": { "minMM": 285, "maxMM": 295, "typicalMM": 290 } },
+      "heightMM": { "quote": { "minMM": 285, "maxMM": 295, "typicalMM": 290 } } },
+    { "id": "20.5x20.5", "widthMM": { "quote": { "minMM": 200, "maxMM": 210, "typicalMM": 205 } },
+      "heightMM": { "quote": { "minMM": 200, "maxMM": 210, "typicalMM": 205 } } }
+  ]
+}
