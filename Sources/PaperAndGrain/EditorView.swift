@@ -94,6 +94,16 @@ struct EditorView: View, Localizing {
 
     @State var missingFileTask: Task<Void, Never>?
 
+    /// Stack Similar in the Photo Library; kept between launches.
+    @AppStorage("libraryStacksSimilar") var stacksSimilar = false
+
+    @State var similarGroups: [[UUID]] = []
+
+    /// Opened stacks, by the first member of their group.
+    @State var expandedStacks: Set<UUID> = []
+
+    @State var comparison: SimilarComparison?
+
     @GestureState var dragging: EditorDragPreview?
 
     @State var showSpread = true
@@ -435,6 +445,7 @@ struct EditorView: View, Localizing {
                     finishFilmEdit()
                 }
             }
+            .sheet(item: $comparison) { comparisonSheet($0) }
             .alert(tr("Delete the page?"), isPresented: $showDelete) {
                 Button(tr("Cancel"), role: .cancel) {}
                 Button(tr("Delete"), role: .destructive, action: deletePage)

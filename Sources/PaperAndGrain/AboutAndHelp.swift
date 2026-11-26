@@ -110,7 +110,7 @@ struct HelpView: View, Localizing {
                 tr("Change the template any time with **Style** in the toolbar."),
             ]),
             Topic(id: "pages", symbol: "2.circle", title: tr("Lay out pages"), lines: [
-                tr("Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it."),
+                tr("Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it. The library menu has **Stack Similar Photos**, which groups near-duplicates; **Compare…** and **Use This One** pick the best."),
                 tr("**Layout** picks the page layout. Drag the **Pages** thumbnails to reorder; ← → and ↑ ↓ move between pages and spreads."),
                 tr("Right-click an object for crop, adjustments and **Bring to Front / Send to Back**. Double-click a photo to crop it."),
                 tr("When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Drag further to pull it away, or hold ⌥ to move freely."),

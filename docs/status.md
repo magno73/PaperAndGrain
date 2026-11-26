@@ -77,6 +77,18 @@ Unit tests cover the copy (only the page id and box ids differ, the layer order 
 5. Italian: **Pagina › Duplica pagina**, and the undo item reads "Annulla Duplica pagina".
 6. Close and reopen the book: the copy is still there.
 
+### Similar photos (T8)
+
+Unit tests (`SimilarPhotosTests`) cover transitive groups, the time rule at 9, 10 and 11 bits and at 119 s, 121 s and without dates, photos without a hash, stable results for shuffled input, the choice of the shown photo, `substitutePhoto` (frame, crop, layer, duplicate on the page), generated pictures (a brightened copy always groups, 2 % shifts mostly, different scenes never) and the 1,000-photo timing: about 0.3 ms release, 40 ms debug. Not seen on screen. With the sample book (it has few near-duplicates: add a copy of a photo by importing the same file twice, and a slightly brightened or cropped copy exported from Preview):
+
+1. Analyse the photos, then **Photo Library menu › Stack Similar Photos**: near-duplicates show as one thumbnail with a count badge at the top right; the menu item has a check and the choice survives a restart. Turn it off: the library is exactly as before.
+2. Click the badge: the group opens in place, the other members have a dashed outline; click again: it closes. Dragging a stack's thumbnail drags the photo shown (check the click on the badge does not start a drag, and a click elsewhere on the tile still selects it).
+3. Place one member on a page: it becomes the one shown. Remove it: the sharpest is shown.
+4. Right-click a stack or one of its members: **Compare…** shows up to four photos side by side with size, date and page; with five or more members **Next** and **Previous** page through them. **Use This One** on one: every placement of the others (also on the cover) now shows it in the same frame; one ⌘Z restores all; the photos stay in the library.
+5. Sorting, **Unused**, **On Page** and the search field with stacks on. Add a new photo while analysis runs: the stacks update when it ends.
+6. Italian: menu item, badge help, sheet.
+7. With 1,000 photos, turn stacks on and scroll: no stall.
+
 ### Relink (T7)
 
 Unit tests (`PhotoRelinkTests`) cover, with a real workspace and package: one asset deleted, then relinked to an image with other proportions (id, placements and page kept, new file in the package, blocker gone, manifest saved, proportion warning reported); a text file refused with the photo unchanged; a read-only book refuses; folder matching with other case and extension, subfolders, hidden files and non-images; the 1 % proportion rule. Not seen on screen. With a copy of the sample book (never a draft), after deleting one or two files from its `assets` folder in Finder:

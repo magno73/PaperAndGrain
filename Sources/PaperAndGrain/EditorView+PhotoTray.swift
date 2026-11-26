@@ -67,6 +67,10 @@ extension EditorView {
                         importedPhotoToReveal = id
                     }
                 }
+                Toggle(isOn: $stacksSimilar) {
+                    Label(tr("Stack Similar Photos"), systemImage: "square.stack")
+                }
+                .help(tr("Show near-duplicate photos as one thumbnail with a count"))
                 if !analysisStatus.isEmpty {
                     Divider()
                     Text(analysisStatus)
@@ -100,8 +104,13 @@ extension EditorView {
         case .unused: results.photos.filter { photoLocations[$0.id]?.isEmpty ?? true }
         case .onPage: results.photos.filter { assigned.contains($0.id) }
         }
+        // A stack is filed under the photo it shows: the photos behind it leave the list until it is opened.
+        let stackIndex = SimilarStackIndex(stacksSimilar
+            ? SimilarPhotos.stacks(similarGroups, photos: book.photos,
+                                   placed: Set(photoLocations.filter { !$0.value.isEmpty }.keys))
+            : [])
         let sections = libraryOrdering.groups(
-            for: filtered, order: photoOrder, locale: Locale(identifier: language),
+            for: filtered.filter { !stackIndex.behind.contains($0.id) }, order: photoOrder, locale: Locale(identifier: language),
             places: placesRead, used: photoOrder == .usage ? Set(photoLocations.keys) : []
         )
         let unused = book.photos.filter { photoLocations[$0.id]?.isEmpty ?? true }.count
@@ -152,9 +161,11 @@ extension EditorView {
                                         .lineLimit(1)
                                         .accessibilityAddTraits(.isHeader)
                                     LazyHStack(spacing: 8) {
-                                        ForEach(section.photos) { photo in
-                                            photoLibraryTile(photo, used: assigned.contains(photo.id),
-                                                             locations: photoLocations[photo.id] ?? [])
+                                        ForEach(stackIndex.laidOut(section.photos, opened: expandedStacks,
+                                                                   photo: { indexedPhoto($0) }), id: \.photo.id) { item in
+                                            photoLibraryTile(item.photo, used: assigned.contains(item.photo.id),
+                                                             locations: photoLocations[item.photo.id] ?? [],
+                                                             stack: stackIndex.byShown[item.photo.id], behind: item.behind)
                                         }
                                     }
                                 }
@@ -211,6 +222,8 @@ extension EditorView {
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
         .task(id: pendingPlaces) { await readPhotoPlaces(pendingPlaces) }
+        // Stacks follow the analysis: groups update when hashes arrive, and when the mode changes.
+        .task(id: similarKey) { await refreshSimilarGroups() }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(tr("Photo Library"))
     }
@@ -299,7 +312,8 @@ extension EditorView {
         .disabled(concepts.isEmpty)
     }
 
-    func photoLibraryTile(_ photo: BookPhoto, used: Bool, locations: [PhotoUsageIndex.Location]) -> some View {
+    func photoLibraryTile(_ photo: BookPhoto, used: Bool, locations: [PhotoUsageIndex.Location],
+                          stack: SimilarPhotos.Stack? = nil, behind: Bool = false) -> some View {
         let active = photo.id == selectedPhoto
         let orientation = photoOrientation(photo)
         let details = ([orientation.label] + locations.map(usageDescription)).joined(separator: " · ")
@@ -333,8 +347,19 @@ extension EditorView {
                         .accessibilityHidden(true)
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if let stack { stackBadge(stack) }
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: 4).strokeBorder(active ? pine : .clear, lineWidth: 2)
+            }
+            .overlay {
+                // A photo opened from behind a stack is marked, so the group reads as one.
+                if behind {
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(pine.opacity(0.55), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                        .allowsHitTesting(false)
+                }
             }
             .contentShape(Rectangle())
             .gesture(editorDrag(.photo(photo.id)))
@@ -357,6 +382,10 @@ extension EditorView {
                 Button(used ? tr("Remove from page")
                             : tr("Add to page")) { togglePhoto(photo.id) }
                 .disabled(page == nil && coverSide == nil)
+                if let members = similarMembers(of: photo.id, stack: stack) {
+                    Divider()
+                    Button(tr("Compare…")) { compare(members) }
+                }
                 if isFileMissing(photo.id) {
                     Divider()
                     Button(tr("Relink…")) { relink(photo.id) }.disabled(!canRelink)
@@ -367,6 +396,13 @@ extension EditorView {
             }
             .libraryPhotoFrame(photo.id)
             .id(photo.id)
+    }
+
+    /// The members of the group a tile belongs to, when stacks are on and it is in one.
+    func similarMembers(of id: UUID, stack: SimilarPhotos.Stack?) -> [UUID]? {
+        guard stacksSimilar else { return nil }
+        if let stack { return stack.members }
+        return similarGroups.first { $0.contains(id) }
     }
 
     func photoOrientation(_ photo: BookPhoto) -> (symbol: String, label: String) {

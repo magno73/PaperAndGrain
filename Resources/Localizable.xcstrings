@@ -19,6 +19,23 @@
         }
       }
     },
+    "%1$lld of %2$lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld of %2$lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld di %2$lld"
+          }
+        }
+      }
+    },
     "%1$lld photos · %2$lld unused": {
       "comment": "Photo library header: photos in the book, and how many are not placed on a page.",
       "extractionState": "manual",
@@ -439,6 +456,23 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "%lld similar photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld similar photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld foto simili"
           }
         }
       }
@@ -2858,6 +2892,23 @@
         }
       }
     },
+    "Compare Similar Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare Similar Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confronta foto simili"
+          }
+        }
+      }
+    },
     "Compare with original": {
       "extractionState": "manual",
       "localizations": {
@@ -2871,6 +2922,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Confronta con l’originale"
+          }
+        }
+      }
+    },
+    "Compare…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confronta…"
           }
         }
       }
@@ -3662,19 +3730,19 @@
         }
       }
     },
-    "Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it.": {
+    "Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it. The library menu has **Stack Similar Photos**, which groups near-duplicates; **Compare…** and **Use This One** pick the best.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it."
+            "value": "Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it. The library menu has **Stack Similar Photos**, which groups near-duplicates; **Compare…** and **Use This One** pick the best."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Trascina le foto dalla **Fototeca** in basso sulla pagina. Su una foto la sostituisce senza ritagliarla di nascosto; su uno spazio vuoto lo riempie."
+            "value": "Trascina le foto dalla **Fototeca** in basso sulla pagina. Su una foto la sostituisce senza ritagliarla di nascosto; su uno spazio vuoto lo riempie. Il menu della libreria ha **Raggruppa foto simili**, che unisce le quasi identiche; **Confronta…** e **Usa questa** scelgono la migliore."
           }
         }
       }
@@ -4952,6 +5020,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nascondi guide di stampa"
+          }
+        }
+      }
+    },
+    "Hide the similar photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide the similar photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi le foto simili"
           }
         }
       }
@@ -6466,6 +6551,23 @@
         }
       }
     },
+    "Next": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanti"
+          }
+        }
+      }
+    },
     "Next Page": {
       "extractionState": "manual",
       "localizations": {
@@ -6870,6 +6972,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Non trovate: %@"
+          }
+        }
+      }
+    },
+    "Not on a page": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not on a page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non su una pagina"
           }
         }
       }
@@ -7930,6 +8049,23 @@
         }
       }
     },
+    "Previous": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indietro"
+          }
+        }
+      }
+    },
     "Previous Page": {
       "extractionState": "manual",
       "localizations": {
@@ -8424,6 +8560,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sostituisci foto"
+          }
+        }
+      }
+    },
+    "Replace the other photos of this group with this one wherever they are placed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace the other photos of this group with this one wherever they are placed"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sostituisci le altre foto di questo gruppo con questa, ovunque siano collocate"
           }
         }
       }
@@ -9244,6 +9397,23 @@
         }
       }
     },
+    "Show near-duplicate photos as one thumbnail with a count": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show near-duplicate photos as one thumbnail with a count"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra le foto quasi identiche come una sola miniatura con un conteggio"
+          }
+        }
+      }
+    },
     "Show problems and warnings found in the book": {
       "extractionState": "manual",
       "localizations": {
@@ -9274,6 +9444,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra sulle pagine il margine sicuro e l’abbondanza"
+          }
+        }
+      }
+    },
+    "Show the similar photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the similar photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra le foto simili"
           }
         }
       }
@@ -9583,6 +9770,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Manca la larghezza del dorso: inseriscila dal preventivo dello stampatore"
+          }
+        }
+      }
+    },
+    "Stack Similar Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stack Similar Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raggruppa foto simili"
           }
         }
       }
@@ -11036,6 +11240,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Usa carattere ereditato"
+          }
+        }
+      }
+    },
+    "Use This One": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use This One"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa questa"
+          }
+        }
+      }
+    },
+    "Use This Photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use This Photo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa questa foto"
           }
         }
       }
