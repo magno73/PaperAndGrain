@@ -32,6 +32,10 @@ private final class Gate: @unchecked Sendable {
 final class IssuesTests: XCTestCase {
     typealias Issue = BookPDF.PreflightIssue
 
+    /// Some messages are read in Italian, which needs the compiled catalog; install it so the test does not
+    /// depend on the order the classes run in.
+    override func setUpWithError() throws { try CompiledCatalog.install() }
+
     private func lowPhoto(_ name: String, side: Int = 2400) -> BookPhoto {
         BookPhoto(name: name, filename: name, pixelWidth: side, pixelHeight: side)
     }
