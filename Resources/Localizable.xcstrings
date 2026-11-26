@@ -10945,6 +10945,23 @@
         }
       }
     },
+    "Text is checked for spelling as you type, in Italian or English: a red underline marks a possible mistake, and **Edit › Spelling and Grammar** has the system’s options. **Issues** also lists possible misspellings; **Ignore in This Book** or **Learn Spelling** on a row stops it. **Settings** can turn the list off.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text is checked for spelling as you type, in Italian or English: a red underline marks a possible mistake, and **Edit › Spelling and Grammar** has the system’s options. **Issues** also lists possible misspellings; **Ignore in This Book** or **Learn Spelling** on a row stops it. **Settings** can turn the list off."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il testo è controllato mentre scrivi, in italiano o in inglese: una sottolineatura rossa segnala un possibile errore e **Modifica › Ortografia e grammatica** ha le opzioni del sistema. **Problemi** elenca anche le possibili parole errate; **Ignora in questo libro** o **Impara parola** su una riga la fa sparire. In **Impostazioni** si può disattivare l’elenco."
+          }
+        }
+      }
+    },
     "Text only": {
       "extractionState": "manual",
       "localizations": {

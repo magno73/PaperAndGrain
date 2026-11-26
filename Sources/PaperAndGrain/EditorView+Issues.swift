@@ -68,13 +68,11 @@ extension EditorView {
         .frame(width: 360, alignment: .leading)
     }
 
-    /// The check the live list runs: the preflight, and the spelling of the book's texts when Settings allows it.
-    nonisolated static let liveCheck: IssueMonitor.Check = { book, directory, profile in
-        var report = BookPDF.preflight(book, directory: directory, profile: profile)
-        if UserDefaults.standard.object(forKey: "checkSpellingInIssues") as? Bool ?? true {
-            report.warnings += BookSpelling.shared.issues(in: book)
-        }
-        return report
+    /// The spelling of the book's texts, when Settings allows it. It runs on the main actor, one text at a
+    /// time, after the preflight.
+    nonisolated static let liveSpelling: IssueMonitor.Extra = { book in
+        guard UserDefaults.standard.object(forKey: "checkSpellingInIssues") as? Bool ?? true else { return [] }
+        return await BookSpelling.shared.issues(in: book)
     }
 
     /// **Ignore in This Book** (one undo step) with **Learn Spelling** next to it.

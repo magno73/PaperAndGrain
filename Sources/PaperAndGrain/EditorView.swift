@@ -173,7 +173,7 @@ struct EditorView: View, Localizing {
 
     @State var cropSession: CropSession?
 
-    @State var issues = IssueMonitor(check: EditorView.liveCheck)
+    @State var issues = IssueMonitor(extra: EditorView.liveSpelling)
 
     /// Whether the issues list checks spelling (Settings); on unless switched off.
     @AppStorage("checkSpellingInIssues") var checksSpellingInIssues = true

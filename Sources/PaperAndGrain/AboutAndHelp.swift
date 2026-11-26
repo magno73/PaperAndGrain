@@ -117,6 +117,7 @@ struct HelpView: View, Localizing {
             ]),
             Topic(id: "text", symbol: "3.circle", title: tr("Write"), lines: [
                 tr("**Insert › Text Box** or **Page Heading**. Double-click to type on the page."),
+                tr("Text is checked for spelling as you type, in Italian or English: a red underline marks a possible mistake, and **Edit › Spelling and Grammar** has the system’s options. **Issues** also lists possible misspellings; **Ignore in This Book** or **Learn Spelling** on a row stops it. **Settings** can turn the list off."),
                 tr("The **Text** tab of the inspector sets font, size, color, alignment, line spacing, and the box background and border."),
                 tr("Select a photo and type its **Caption** at the top of the **Photo** tab; it follows the photo onto every page. **Position** puts it below, above or on the photo for this page. Double-click a caption on the page to edit it; **Photo › Caption Photos on This Page** writes place and date."),
             ]),

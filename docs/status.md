@@ -101,7 +101,7 @@ Unit tests cover the copy (only the page id and box ids differ, the layer order 
 
 ### Spelling (T9)
 
-Unit tests (`SpellingTests`, with a fake checker) cover the page and target of each row (story, text box, caption, back cover), skipped words (ignored, learned, place names, capitals, digits, short), one row per word, stable unique ids, re-checking only the changed text, captions checked once and only when placed, the context text, and a 0.10 book decoding without `ignoredSpellings`. A smoke test with the real `NSSpellChecker` found "bellisima" in an Italian sentence and "markett" in an English one on this Mac (skipped where the dictionaries are missing). `BookCLITests` builds a book with `ignoredSpellings`. Not seen on screen:
+Unit tests (`SpellingTests`, with a fake checker) cover the page and target of each row (story, text box, caption, back cover), skipped words (ignored, learned, place names, capitals, digits, short), one row per word, stable unique ids, re-checking only the changed text, captions checked once and only when placed, the context text, and a 0.10 book decoding without `ignoredSpellings`. Tests with the real `NSSpellChecker` (skipped where the dictionaries are missing) found "bellisima" in an Italian sentence and "markett" in an English one, left ordinary Italian headings unflagged, checked a German sentence as German, and measured the first pass over 50 stories: about 220 ms in all, the first text 7 ms, then about 4.3 ms each. A literal 0.10 manifest decodes unchanged. The export sheet does not show spelling rows (by design). `BookCLITests` builds a book with `ignoredSpellings`. Not seen on screen:
 
 1. In a book, double-click a story on the canvas and type "una giornata bellisima": the word gets a red underline while typing; type "the markett" in a text box: underlined too. Do the same in the Page tab's story field, a text box in the Text tab, the page heading field, a photo's caption (Photo tab and in place), the cover title and the back cover text. If a field shows no underline, **Edit › Spelling and Grammar › Check Spelling While Typing** must be ticked; report which field ignored `checksSpelling()`.
 2. Repeat with **Settings › App Language** on Italian and on English: the Edit menu reads "Ortografia e grammatica" in Italian, and both languages are underlined in both.
@@ -109,7 +109,9 @@ Unit tests (`SpellingTests`, with a fake checker) cover the page and target of e
 4. **Ignore in This Book** on the row: it goes; ⌘Z brings it back; ignore again, save, quit and reopen the book: the row stays away. **Learn Spelling** on another word: it goes, and the word is accepted in other apps too (remove it with System Settings › Keyboard › Text Replacements is not needed; use Edit › Spelling and Grammar › Show Spelling and Grammar › Forget).
 5. A place name from the photos' metadata (for example a town in the Photo Library's place sort) and a word in capitals do not appear.
 6. **Settings › Check spelling in the issues list** off: the rows disappear at once; on: they return.
-7. Typing stays smooth in a 50-page book (the check runs off the main thread and only the changed text is asked again).
+7. Typing stays smooth in a 50-page book (the check runs on the main actor in slices of a few milliseconds and only the changed text is asked again). With the cursor in a text field of the inspector (page heading, caption) and then in the photo search field or a numeric typography field: only the book text fields underline; the others do not.
+8. Edit › Spelling and Grammar › Check Spelling While Typing, set off by hand, stays off in the search field after you have typed in a caption (the probe restores the field editor).
+9. Help › Text topic has a spelling line in both languages.
 
 ### Similar photos (T8)
 

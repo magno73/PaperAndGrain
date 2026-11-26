@@ -11,16 +11,21 @@ final class IssueMonitor {
 
     typealias Sleep = @Sendable (Duration) async throws -> Void
     typealias Check = @Sendable (Book, URL?, BookPDF.Profile) -> BookPDF.Preflight
+    /// Extra warnings found on the main actor, such as the spelling check, which yields between texts.
+    typealias Extra = @MainActor @Sendable (Book) async -> [BookPDF.PreflightIssue]
 
     @ObservationIgnored private let delay: Duration
     @ObservationIgnored private let sleep: Sleep
     @ObservationIgnored private let check: Check
+    @ObservationIgnored private let extra: Extra?
     @ObservationIgnored private var task: Task<Void, Never>?
 
     /// `sleep` and `check` are injected so tests can control the clock and count the runs.
     init(delay: Duration = .milliseconds(600),
          sleep: @escaping Sleep = { try await Task.sleep(for: $0) },
-         check: @escaping Check = { BookPDF.preflight($0, directory: $1, profile: $2) }) {
+         check: @escaping Check = { BookPDF.preflight($0, directory: $1, profile: $2) },
+         extra: Extra? = nil) {
+        self.extra = extra
         self.delay = delay
         self.sleep = sleep
         self.check = check
@@ -32,6 +37,7 @@ final class IssueMonitor {
         let delay = immediately ? nil : delay
         let sleep = sleep
         let check = check
+        let extra = extra
         task = Task { [weak self] in
             if let delay {
                 do { try await sleep(delay) } catch { return }
@@ -41,7 +47,12 @@ final class IssueMonitor {
             // An overtaken run also cancels the check itself, which stops at the next page.
             let found = await withTaskCancellationHandler { await work.value } onCancel: { work.cancel() }
             if Task.isCancelled { return }
-            self?.report = found
+            var merged = found
+            if let extra {
+                merged.warnings += await extra(book)
+                if Task.isCancelled { return }
+            }
+            self?.report = merged
         }
     }
 

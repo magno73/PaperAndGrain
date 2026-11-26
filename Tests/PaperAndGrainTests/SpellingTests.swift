@@ -3,18 +3,18 @@ import XCTest
 @testable import PaperAndGrain
 
 /// A checker that knows which words are wrong and how often it was asked.
-private final class FakeChecker: SpellChecking, @unchecked Sendable {
-    private let lock = NSLock()
+@MainActor
+private final class FakeChecker: SpellChecking {
     private var calls: [String] = []
     private var learned: Set<String> = []
     let wrong: Set<String>
 
     init(wrong: Set<String>) { self.wrong = wrong }
 
-    var asked: [String] { lock.withLock { calls } }
+    var asked: [String] { calls }
 
     func misspellings(in text: String) -> [NSRange] {
-        lock.withLock { calls.append(text) }
+        calls.append(text)
         var found: [NSRange] = []
         let string = text as NSString
         string.enumerateSubstrings(in: NSRange(location: 0, length: string.length), options: .byWords) { word, range, _, _ in
@@ -23,10 +23,11 @@ private final class FakeChecker: SpellChecking, @unchecked Sendable {
         return found
     }
 
-    func hasLearned(_ word: String) -> Bool { lock.withLock { learned.contains(word.lowercased()) } }
-    func learn(_ word: String) { lock.withLock { _ = learned.insert(word.lowercased()) } }
+    func hasLearned(_ word: String) -> Bool { learned.contains(word.lowercased()) }
+    func learn(_ word: String) { learned.insert(word.lowercased()) }
 }
 
+@MainActor
 final class SpellingTests: XCTestCase {
     private func words(_ issues: [BookPDF.PreflightIssue]) -> [String] {
         issues.compactMap { if case let .possibleMisspelling(word, _) = $0.problem { word } else { nil } }
@@ -46,10 +47,10 @@ final class SpellingTests: XCTestCase {
 
     private let wrong: Set<String> = ["bellisima", "markett", "sbagliatto", "viaggiatto", "swakopmund", "windhoek", "nasa", "ab"]
 
-    func testIssuesCarryThePageAndTheTextTheyBelongTo() {
+    func testIssuesCarryThePageAndTheTextTheyBelongTo() async {
         let (book, photo) = book()
         let checker = BookSpelling(checker: FakeChecker(wrong: wrong))
-        let issues = checker.issues(in: book)
+        let issues = await checker.issues(in: book)
         // Swakopmund is a place name, Windhoek is not (no photo there): it is listed.
         XCTAssertEqual(Set(words(issues)), ["bellisima", "markett", "Windhoek", "sbagliatto", "viaggiatto"])
         let byWord = Dictionary(uniqueKeysWithValues: issues.map { (words([$0])[0].lowercased(), $0) })
@@ -61,37 +62,40 @@ final class SpellingTests: XCTestCase {
         XCTAssertEqual(byWord["viaggiatto"]?.target, .cover(front: false))
         XCTAssertEqual(byWord["viaggiatto"]?.location, .cover)
         XCTAssertEqual(Set(issues.map(\.id)).count, issues.count, "ids are unique")
-        XCTAssertEqual(issues.map(\.id), checker.issues(in: book).map(\.id), "and stable between runs")
+        let again = await checker.issues(in: book)
+        XCTAssertEqual(issues.map(\.id), again.map(\.id), "and stable between runs")
     }
 
-    func testIgnoredLearnedPlaceCapitalNumberAndShortWordsAreSkipped() {
+    func testIgnoredLearnedPlaceCapitalNumberAndShortWordsAreSkipped() async {
         var (book, _) = book()
         book.pages[0].text = "bellisima NASA ab 42markett bellisima"
         book.ignoredSpellings = ["MARKETT"]
         let fake = FakeChecker(wrong: wrong.union(["42markett"]))
         let spelling = BookSpelling(checker: fake)
-        XCTAssertEqual(Set(words(spelling.issues(in: book))), ["bellisima", "Windhoek", "sbagliatto", "viaggiatto"],
+        let first = await spelling.issues(in: book)
+        XCTAssertEqual(Set(words(first)), ["bellisima", "Windhoek", "sbagliatto", "viaggiatto"],
                        "caps, digits, short words and the place name are skipped; markett is ignored in this book")
         book.ignoredSpellings = ["bellisima", "windhoek", "sbagliatto", "markett"]
         fake.learn("viaggiatto")
-        XCTAssertEqual(words(spelling.issues(in: book)), [])
+        let second = await spelling.issues(in: book)
+        XCTAssertEqual(words(second), [])
         // The same word twice in one text is one row.
         book.ignoredSpellings = nil
-        let rows = words(BookSpelling(checker: FakeChecker(wrong: wrong)).issues(in: book)).filter { $0 == "bellisima" }
-        XCTAssertEqual(rows.count, 1)
+        let third = await BookSpelling(checker: FakeChecker(wrong: wrong)).issues(in: book)
+        XCTAssertEqual(words(third).filter { $0 == "bellisima" }.count, 1)
     }
 
-    func testChangingOneTextRechecksOnlyThatText() {
+    func testChangingOneTextRechecksOnlyThatText() async {
         var (book, _) = book()
         let fake = FakeChecker(wrong: wrong)
         let spelling = BookSpelling(checker: fake)
-        _ = spelling.issues(in: book)
+        _ = await spelling.issues(in: book)
         let first = fake.asked.count
         XCTAssertEqual(first, Set(BookSpelling.texts(of: book).map(\.text)).count, "each different text once")
-        _ = spelling.issues(in: book)
+        _ = await spelling.issues(in: book)
         XCTAssertEqual(fake.asked.count, first, "nothing changed, nothing asked")
         book.pages[0].textBoxes?[0].text = "Seen at the markett again"
-        _ = spelling.issues(in: book)
+        _ = await spelling.issues(in: book)
         XCTAssertEqual(fake.asked.count, first + 1)
         XCTAssertEqual(fake.asked.last, "Seen at the markett again")
     }
@@ -115,17 +119,63 @@ final class SpellingTests: XCTestCase {
         XCTAssertEqual(issue.message(language: "en"), "p. 3 · “bellisima” · molto bellisima nel")
     }
 
-    func testOldBooksWithoutIgnoredSpellingsDecodeAndStayUnchanged() throws {
-        let (book, _) = book()
-        let data = try JSONEncoder().encode(book)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    func testALiteral010ManifestWithoutIgnoredSpellingsDecodesUnchanged() throws {
+        let manifest = """
+        {"id":"7C1C4F0A-3B5D-4D6E-9F10-2A3B4C5D6E7F","title":"Namibia","schemaVersion":1,
+         "format":{"widthMM":210,"heightMM":210},"photos":[],
+         "pages":[{"id":"0F1E2D3C-4B5A-4978-8695-A4B3C2D1E0F9","layout":"text","photoIDs":[],"text":"Una giornata bellissima"}],
+         "writerVersion":1}
+        """
+        let book = try JSONDecoder().decode(Book.self, from: Data(manifest.utf8))
+        XCTAssertNil(book.ignoredSpellings)
+        XCTAssertEqual(book.pages[0].text, "Una giornata bellissima")
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(book)) as? [String: Any])
         XCTAssertNil(json["ignoredSpellings"], "an unset field is not written")
-        let decoded = try JSONDecoder().decode(Book.self, from: data)
-        XCTAssertNil(decoded.ignoredSpellings)
-        XCTAssertEqual(decoded, book)
         var changed = book
         changed.ignoredSpellings = ["markett"]
         XCTAssertEqual(try JSONDecoder().decode(Book.self, from: JSONEncoder().encode(changed)).ignoredSpellings, ["markett"])
+    }
+
+    func testHeadingAndStoryShareOneRowPerWord() async {
+        var (book, _) = book()
+        book.pages[0].heading = "Bellisima"
+        book.pages[0].text = "Una giornata bellisima, davvero bellisima"
+        let issues = await BookSpelling(checker: FakeChecker(wrong: wrong)).issues(in: book)
+        XCTAssertEqual(words(issues).filter { $0.lowercased() == "bellisima" }.count, 1)
+        XCTAssertEqual(Set(issues.map(\.id)).count, issues.count)
+    }
+
+    func testElisionsHyphensAndCurlyApostrophes() async {
+        var (book, _) = book()
+        book.photos[0].location = PhotoLocation(name: "Etosha National Park", latitude: -19, longitude: 16)
+        book.pages[0].text = "Siamo stati nell’Etosha e dell'Etosha, a Walvis-Etosha, in Sossusvlei"
+        let fake = FakeChecker(wrong: ["etosha", "nell’etosha", "dell'etosha", "walvis-etosha", "sossusvlei", "nell", "dell", "walvis"])
+        // The fake flags whole tokens as the system does for these forms.
+        let spelling = BookSpelling(checker: fake)
+        var seen = words(await spelling.issues(in: book))
+        XCTAssertEqual(seen.filter { $0.lowercased().contains("etosha") }, [], "a place name covers its elided and hyphenated forms")
+        XCTAssertTrue(seen.contains("Sossusvlei"))
+        book.ignoredSpellings = ["dell’Sossusvlei"]
+        seen = words(await spelling.issues(in: book))
+        XCTAssertFalse(seen.contains("Sossusvlei"), "ignoring an elided form covers the bare word")
+        XCTAssertEqual(BookSpelling.variants(of: "dell’Etosha"), ["dell'etosha", "etosha"])
+        XCTAssertEqual(BookSpelling.variants(of: "Walvis-Bay"), ["walvis-bay"])
+        XCTAssertTrue(BookSpelling.isKnown("l’Etosha-Bay", in: ["etosha", "bay"]), "each hyphen part, elided or not")
+        XCTAssertTrue(BookSpelling.isKnown("Walvis-Bay", in: ["walvis", "bay"]))
+        XCTAssertFalse(BookSpelling.isKnown("Walvis-Bay", in: ["walvis"]))
+    }
+
+    func testACancelledRunKeepsTheAnswers() async {
+        let (book, _) = book()
+        let fake = FakeChecker(wrong: wrong)
+        let spelling = BookSpelling(checker: fake)
+        _ = await spelling.issues(in: book)
+        let asked = fake.asked.count
+        let run = Task { await spelling.issues(in: book) }
+        run.cancel()
+        _ = await run.value
+        _ = await spelling.issues(in: book)
+        XCTAssertEqual(fake.asked.count, asked, "nothing was dropped by the cancelled run")
     }
 
     /// Needs the Mac's Italian and English dictionaries, so it is skipped where they are missing.
@@ -135,10 +185,42 @@ final class SpellingTests: XCTestCase {
         let checker = SystemSpellChecker()
         let italian = "Una giornata bellisima nel deserto, con il cielo azzurro e la sabbia rossa."
         let english = "We had lunch at the markett before the long drive back to the camp."
-        let it = checker.misspellings(in: italian).map { (italian as NSString).substring(with: $0) }
-        let en = checker.misspellings(in: english).map { (english as NSString).substring(with: $0) }
-        XCTAssertEqual(it, ["bellisima"])
-        XCTAssertEqual(en, ["markett"])
-        print("SPELL system checker flagged \(it) and \(en)")
+        func flagged(_ text: String) -> [String] { checker.misspellings(in: text).map { (text as NSString).substring(with: $0) } }
+        XCTAssertEqual(flagged(italian), ["bellisima"])
+        XCTAssertEqual(flagged(english), ["markett"])
+        // Ordinary headings are never flagged whole (the orthography results of `check(_:…)` did that).
+        for heading in ["Cena al ristorante", "Deserto del Namib", "Il tramonto sul mare", "Giorno uno"] {
+            XCTAssertFalse(flagged(heading).contains(heading), heading)
+        }
+    }
+
+    /// The language detected for a text is the one used: a German sentence is not checked as English.
+    func testSystemCheckerUsesTheDetectedLanguage() throws {
+        let languages = NSSpellChecker.shared.availableLanguages
+        try XCTSkipUnless(languages.contains { $0.hasPrefix("de") })
+        let german = "Wir haben gestern einen langen Spaziergang durch die Wüste gemacht und viel gesehen."
+        XCTAssertEqual(SystemSpellChecker.candidateLanguages(for: german), ["de"])
+        XCTAssertEqual(SystemSpellChecker().misspellings(in: german).count, 0)
+    }
+
+    /// The first pass over a 50-page book: the total, and the longest time the main thread is held at once.
+    func testFirstPassOverAFiftyPageBookIsSliced() async throws {
+        let languages = NSSpellChecker.shared.availableLanguages
+        try XCTSkipUnless(languages.contains { $0.hasPrefix("it") })
+        let story = String(repeating: "Una giornata bellisima nel deserto con il cielo azzurro e la sabbia rossa. ", count: 12)
+        var book = Book(title: "Big", pages: (0..<50).map { BookPage(layout: .text, text: story + String($0)) })
+        book.pages[0].text += " markettt"
+        let checker = SystemSpellChecker()
+        var longest = 0.0, total = 0.0
+        var slices: [Double] = []
+        for page in book.pages {
+            let start = ContinuousClock.now
+            _ = checker.misspellings(in: page.text)
+            let ms = Double((ContinuousClock.now - start).components.attoseconds) / 1e15
+            longest = max(longest, ms); total += ms; slices.append(ms)
+        }
+        let rest = slices.dropFirst().sorted()
+        print(String(format: "SPELL 50 stories (900 chars): %.0f ms in all; first (cold) slice %.1f ms, then median %.1f ms, longest %.1f ms", total, slices[0], rest[rest.count / 2], rest.last ?? 0))
+        XCTAssertLessThan(rest.last ?? 0, 40)
     }
 }
