@@ -349,6 +349,8 @@ extension EditorView {
                 canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
                     .zIndex(inlineEditingBox == box.id ? 10_000 : Double(composition.rank(.textBox(box.id))))
             }
+            canvasCaptionEditor(leaf, composition: composition, scale: scale)
+                .zIndex(10_000)
             if let folio = composition.folio {
                 let label = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
                 positioned(editorialText(label, scale: scale), in: scaled(folio, by: scale))
@@ -479,6 +481,9 @@ extension EditorView {
                 if let item = composition.photos.first(where: { $0.id == id }) {
                     regions.append(Region(frame: item.frame, target: .photo(id)))
                 }
+                if let caption = composition.caption(for: id) {
+                    regions.append(Region(frame: caption.area, target: .caption(id)))
+                }
             case .story:
                 regions += backings.map { Region(frame: $0, target: group == nil ? .paper : .storyGroup) }
                 regions += blocks.map { Region(frame: $0.frame, target: .story($0.role)) }
@@ -496,6 +501,11 @@ extension EditorView {
         if let editingEditorial, case let .page(id, role) = editingEditorial, id == leaf.id,
            let block = blocks.first(where: { $0.role == role }) {
             regions.append(Region(frame: block.frame, target: .story(role)))
+        }
+        if case let .caption(id, photoID)? = editingEditorial, id == leaf.id,
+           let item = composition.photos.first(where: { $0.id == photoID }) {
+            let frame = captionEditingFrame(composition.caption(for: photoID), photo: item.frame, in: composition)
+            regions.append(Region(frame: frame, target: .caption(photoID)))
         }
         if let inlineEditingBox, let box = composition.textBoxes.first(where: { $0.id == inlineEditingBox }) {
             regions.append(Region(frame: box.frame.rect(in: composition.bounds), target: .textBox(box.id)))
@@ -549,6 +559,11 @@ extension EditorView {
             guard dropFrames[.canvasViewport]?.contains(editorPoint) == true else { return nil }
             return photoSwapTarget(item.id, at: location, in: bounds, composition: composition, textFrames: textFrames)
         }
+        // The caption is drawn with its photo, so it shares the photo's layer and follows a drag.
+        let caption = editingEditorial == .caption(page: leaf.id, photo: item.id) ? nil : composition.caption(for: item.id)
+        let attachment: ((CGRect) -> AnyView)? = caption.map { caption in
+            { shown in AnyView(canvasCaption(caption, photoFrame: frame, shown: shown, scale: scale, leaf: leaf)) }
+        }
         return CanvasObjectControl(frame: frame, bounds: bounds, selected: active,
                                    minimumSize: CGSize(width: 40 * scale, height: 40 * scale),
                                    accessibilityName: item.photo.name, alignmentTargets: alignmentTargets,
@@ -556,6 +571,7 @@ extension EditorView {
                                    moveSpace: .named(leaf.id), swapTargetAt: swapTargetAt,
                                    onSwap: { swapPhoto(item.id, with: $0, on: leaf.id) },
                                    onDoubleClick: { beginCrop(item.id, in: leaf) },
+                                   attachment: attachment,
                                    onSelect: { activateCanvas { selectCanvasPhoto(item.id, in: leaf) } },
                                    onNudge: { nudgeFromKeyboard($0) { selectCanvasPhoto(item.id, in: leaf) } },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in

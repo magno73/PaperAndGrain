@@ -36,7 +36,7 @@ PaperAndGrain cli rank Trip-analysed.papergrain "elephants at the Etosha waterho
 PaperAndGrain cli similar Trip-analysed.papergrain UUID --by near-duplicate --limit 5
 ```
 
-- `photos` returns UUID, local path, ISO 8601 date, dimensions, pages, cover assignments, labels and themes. `--photo UUID` selects one image and returns its full data. `--details` returns the full data for the whole list. `--filter QUERY` searches the name and the analysis data.
+- `photos` returns UUID, local path, ISO 8601 date, dimensions, caption, pages, cover assignments, labels and themes. `--photo UUID` selects one image and returns its full data. `--details` returns the full data for the whole list. `--filter QUERY` searches the name and the analysis data.
 - `analyze` processes on the Mac the images that have no recent analysis. It accepts `--photo UUID` several times and `--force` to repeat the analysis. The result holds the outcome, the data and any error per photo. To store the results in the project, use `--output`: the destination is checked before the analysis starts. With the report alone, you can keep the data in the process that ran the command.
 - `rank` returns only candidates with a match and includes `evidence` with the recognized term, its source (`subject`, `text` or `concept`) and its contribution to the score. The score orders the candidates. `--unused` excludes photos assigned to pages or the cover. The same filter works for `photos` and `similar`.
 - `similar --by subjects` compares labels weighted by confidence. `--by near-duplicate` orders by the distance between visual fingerprints. The results show both values when available. Use the previews to judge close shots.
@@ -54,10 +54,11 @@ The Apple Vision animal detector locates dogs and cats. For wildlife, `rank` use
   "format": { "widthMM": 210, "heightMM": 210 },
   "template": "atlas",
   "typography": { "body": { "fontName": "Georgia", "pointSize": 11, "lineSpacing": 1.3 } },
-  "assets": [{ "id": "horizon", "path": "photos/horizon.jpg" }],
+  "assets": [{ "id": "horizon", "path": "photos/horizon.jpg", "caption": "Etosha, 12 May 2024" }],
   "pages": [
     { "arrangement": "textBesidePhoto", "photos": ["horizon"], "heading": "Departure", "text": "We cross the plain in the morning.",
-      "typography": { "title": { "color": 9109504, "alignment": "left" } } },
+      "typography": { "title": { "color": 9109504, "alignment": "left" } },
+      "photoPlacements": { "horizon": { "captionPosition": "inside" } } },
     { "layout": "fullSpread", "photos": ["horizon"],
       "textBoxes": [{ "id": "6F1C2A4E-1B7D-4C55-9F0A-3C2E8D1B5A77", "text": "Etosha, 6 am",
                       "frame": { "x": 0.06, "y": 0.82, "width": 0.3, "height": 0.1 },
@@ -70,7 +71,7 @@ The Apple Vision animal detector locates dogs and cats. For wildlife, `rank` use
 ```
 
 - `version`, a non-empty `title`, `assets` (possibly empty) and at least one entry in `pages` are required. The default size is 210 × 210 mm. Without `template`, the app's classic style is used. `showPageNumbers` is an optional boolean that turns the numbering on the interior pages with margins on or off. When it is missing, the template's setting applies.
-- Each asset has a unique ID and a file path, absolute or relative to the spec. A symbolic link is resolved. The command copies the originals into the package. The spec IDs are valid during the build. The app assigns UUIDs to the imported photos.
+- Each asset has a unique ID and a file path, absolute or relative to the spec. `caption` is optional: the text printed with the photo on every page where it appears. A symbolic link is resolved. The command copies the originals into the package. The spec IDs are valid during the build. The app assigns UUIDs to the imported photos.
 - The order of `pages` is the book order. The order of `photos` assigns the slots on the page. A photo can appear on several pages and on the cover. Each page accepts only one occurrence of the same ID.
 - `templates` lists the book template IDs, page types and page templates with their capacity and matching layout. A page with neither `layout` nor `arrangement` uses `gallery`. The arrangement determines the layout. `mixed` and `text` can include `heading` and `text`. `fullSpread` places one photo across two pages. It can also be given as `arrangement` to select it as the page template.
 - The cover is optional. It accepts `title`, `frontPhoto`, `backPhoto`, `backText`, a spine width `spineMM` in millimeters and `typography` for the title on the front and the text on the back.
@@ -78,6 +79,8 @@ The Apple Vision animal detector locates dogs and cats. For wildlife, `rank` use
 - `typography` applies to the book (the root of the spec), to a page and to the cover, with the same fields as the manifest: `title` and `body`, each with `fontName`, `pointSize`, `alignment` (`left`, `center`, `right`, `justified`), `color` and `lineSpacing` (a multiple of the line height, from 0.8 to 2). A page style inherits the missing fields from the book style.
 - `textBoxes` adds text boxes to the page with the manifest fields: a required `frame` (`x`, `y`, `width`, `height` as fractions of the page, origin at the top left, width and height greater than 0), `text`, `typography` (one style with the fields above), `usesFullWidth` (the text fills the box with no inner margin), `backgroundColor`, `hidesBackground` (transparent box), `borderColor` and `borderWidth` in points from 0 to 12. `id` is optional: a UUID chosen by the agent, useful for `layerOrder`; when it is missing, the command assigns a new one.
 - Colors are `0xRRGGBB` integers written in decimal in the JSON, from 0 (black) to 16777215 (`0xFFFFFF`, white); for example `0x8B0000` is `9109504`. Without a color, the template's ink and paper apply.
+- `photoPlacements` maps an asset ID placed on the page to the manifest's placement: `captionPosition` (`below`, `above`, `inside` for a band on the photo, `hidden`; without it the caption is placed automatically), and optionally `frame` (fractions of the page) and `crop` (`x`, `y` from 0 to 1, `zoom` from 1 to 12). An asset not on the page is an error.
+- The caption style is one per book: `typography.caption` at the root of the spec, with the same fields as `title` and `body`. Pages and the cover do not accept `caption` in their `typography`.
 - `layerOrder` lists the objects on the page from bottom to top: `story` (heading, story and background together), `photo:<asset ID>` for a photo on the same page and `box:<UUID>` for a box on the same page. In the manifest, photos become `photo:<UUID>`. An entry that does not match an object on the page is an error in `build`. Objects not listed keep their default position: photos below, boxes above.
 - Each object accepts only the keys listed. An unknown or misspelled key stops the command with an error that names the key, the object (for example `pages[0]`) and the valid keys.
 

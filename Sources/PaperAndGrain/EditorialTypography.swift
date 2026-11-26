@@ -51,6 +51,11 @@ struct EditorialTextStyle: Codable, Hashable, Sendable {
 struct EditorialTypography: Codable, Hashable, Sendable {
     var title: EditorialTextStyle?
     var body: EditorialTextStyle?
+    /// The book's caption style (`Book.typography` only); absent in older books.
+    var caption: EditorialTextStyle? = nil
+
+    /// True when no style is set, so the book can store nil instead.
+    var isEmpty: Bool { title == nil && body == nil && caption == nil }
 }
 
 extension Book {
@@ -65,6 +70,9 @@ extension Book {
     func bodyStyle(for box: PageTextBox) -> EditorialTextStyle {
         (box.typography ?? EditorialTextStyle()).inheriting(typography?.body)
     }
+
+    /// The book's changes to the template's caption style. Captions have one style per book.
+    var captionStyle: EditorialTextStyle { typography?.caption ?? EditorialTextStyle() }
 
     func coverTextStyle(front: Bool) -> EditorialTextStyle {
         let face = front ? cover?.typography?.title : cover?.typography?.body

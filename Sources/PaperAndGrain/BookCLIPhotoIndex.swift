@@ -15,6 +15,7 @@ enum BookCLIPhotoIndex {
         let capturedAt: String?
         let width: Int
         let height: Int
+        let caption: String?
         let pages: [UUID]
         let onFrontCover: Bool
         let onBackCover: Bool
@@ -43,7 +44,7 @@ enum BookCLIPhotoIndex {
         func record(_ photo: BookPhoto, details: Bool = false) -> Record {
             Record(id: photo.id, name: photo.name, assetPath: asset(for: photo).path,
                    capturedAt: photo.capturedAt.map(dates.string(from:)), width: photo.pixelWidth, height: photo.pixelHeight,
-                   pages: pages[photo.id] ?? [], onFrontCover: photo.id == book.cover?.frontPhotoID,
+                   caption: photo.caption, pages: pages[photo.id] ?? [], onFrontCover: photo.id == book.cover?.frontPhotoID,
                    onBackCover: photo.id == book.cover?.backPhotoID, labels: photo.analysis?.labels ?? [],
                    concepts: photo.analysis?.concepts ?? [], analysisRevision: photo.analysis?.revision,
                    analysis: details ? photo.analysis : nil)

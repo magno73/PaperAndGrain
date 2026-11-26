@@ -89,6 +89,10 @@ extension EditorView {
                 Button(tr("Add to page")) { togglePhoto(photo.id) }
                     .disabled(page == nil && coverSide == nil)
             }
+            // The cover shows no captions, so a cover photo has no caption field.
+            if canvasPhotoSelection?.pageID != nil || canvasPhotoSelection == nil {
+                captionInspector(photo)
+            }
             inspectorSection(tr("Adjust"), expanded: $showsAdjustSection) {
                 photoAdjustmentsInspector
             }

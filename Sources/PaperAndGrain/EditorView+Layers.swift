@@ -71,10 +71,12 @@ extension EditorView {
             }
         } else if let (leaf, target) = pageTarget(at: point) {
             switch target {
-            case let .photo(id):
+            case let .photo(id), let .caption(id):
                 let layer = LayerTarget(pageID: leaf.id, layer: .photo(id))
                 entries += relinkEntries(for: id)
+                let captioned = indexedPhoto(id)?.printedCaption != nil
                 entries += [
+                    EditorMenuEntry(captioned ? tr("Edit Caption") : tr("Add Caption")) { beginCaptionEditing(id, in: leaf) },
                     EditorMenuEntry(tr("Crop")) { beginCrop(id, in: leaf) },
                     EditorMenuEntry(tr("Adjust Photo…")) { showPhotoSection(film: false) },
                     EditorMenuEntry(tr("Auto Enhance")) {

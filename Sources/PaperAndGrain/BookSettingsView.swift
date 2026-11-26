@@ -91,6 +91,18 @@ struct BookSettingsView: View, Localizing {
                             .frame(maxWidth: 320, alignment: .leading)
                             .padding(.top, 6)
                     }
+                    // One caption style for the whole book; captions have no style of their own.
+                    DisclosureGroup(tr("Captions")) {
+                        let style = book.editorialStyle
+                        EditorialTypographyControls(style: $typography.caption,
+                                                   inherited: style.defaultCaptionStyle,
+                                                   language: language, updatesSizeWhileTyping: true,
+                                                   sampleText: tr("Etosha, 12 May 2024"),
+                                                   defaultInk: style.captionInk,
+                                                   palette: [style.captionInk, style.ink, style.accent, 0x000000, 0xFFFFFF])
+                            .frame(maxWidth: 320, alignment: .leading)
+                            .padding(.top, 6)
+                    }
                 }
                 Section(tr("Interior")) {
                     TextField(tr("Bleed (mm)"), value: $printProfile.bleedMM, format: number)
@@ -120,7 +132,7 @@ struct BookSettingsView: View, Localizing {
                 Spacer()
                 Button(tr("Cancel"), action: close).keyboardShortcut(.cancelAction)
                 Button(tr("Apply")) {
-                    let type = typography.title == nil && typography.body == nil ? nil : typography
+                    let type = typography.isEmpty ? nil : typography
                     var updatedCover = cover
                     if cover.frontPhotoID != book.cover?.frontPhotoID { updatedCover.frontPhotoPlacement = nil }
                     if cover.backPhotoID != book.cover?.backPhotoID { updatedCover.backPhotoPlacement = nil }

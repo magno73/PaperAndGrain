@@ -256,7 +256,7 @@ extension EditorView {
     }
 
     static func photoCrops(from placements: [UUID: PhotoPlacement]?) -> [UUID: PhotoPlacement]? {
-        let crops = placements?.compactMapValues { $0.crop.map { PhotoPlacement(crop: $0) } } ?? [:]
+        let crops = placements?.compactMapValues(\.withoutFrame) ?? [:]
         return crops.isEmpty ? nil : crops
     }
 

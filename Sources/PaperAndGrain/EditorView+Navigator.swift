@@ -314,6 +314,10 @@ extension EditorView {
                                in: scaled(item.frame, by: scale))
                         .zIndex(Double(composition.rank(.photo(item.id))))
                 }
+                ForEach(composition.captions) { caption in
+                    miniCaption(caption, scale: scale)
+                        .zIndex(Double(composition.rank(.photo(caption.photoID))) + 0.5)
+                }
                 ZStack(alignment: .topLeading) {
                     storyBacking(backings, scale: scale)
                     ForEach(blocks) { block in

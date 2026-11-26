@@ -31,6 +31,28 @@ Japanese Interval uses empty space as an invitation to interpretation. [Kenya Ha
 
 `Book.template` and `BookPage.heading` are optional fields in schema v1. A project with no template uses the basic style. `BookTemplate.swift` holds the colors, typefaces and rules shared by the editor and the PDF. Core Text draws and measures text with the same parameters on both paths. The template margin also respects the minimum print margin. Cover PDFs use the template's composition.
 
+## Captions
+
+Each template has one caption style (`EditorialStyle.defaultCaptionStyle`), which **Book & Print › Book Typography › Captions** can change for the whole book. By default it is the body typeface at 80 % of the body size (rounded to a quarter point, never under 8.5 pt), left aligned, in the template's ink mixed with the paper (74 % ink) so it prints as a solid, quieter color. On the photo, the band takes the panel color of **Text over photo** and the text uses that panel's ink at 82 %. Swiss Grid and Postcard add 0.1 pt of tracking.
+
+Checked on 26 November 2026 by exporting a synthetic book (gallery of three, four-photo grid, full bleed, text beside photo, a manual frame, two stacked bleed photos, text over photo, a panorama) in every template and looking at the pages. Three templates use another face of their family because the body face read badly at caption size or clashed with the template's voice:
+
+| Template | Caption face | Size | Ink on paper |
+|---|---|---|---|
+| Journal | Baskerville | 12 pt | #5D5852 |
+| Atlas | Avenir Next Regular | 9.75 pt | #5B6059 |
+| Gallery | Optima | 10 pt | #BDB8AD |
+| Essential | Helvetica Neue | 10.75 pt | #565658 |
+| Swiss Grid | Helvetica Neue | 9.5 pt | #525251 |
+| Berlin Notebook | Georgia | 10.5 pt | #BBBEBB |
+| Japanese Interval | Hiragino Mincho W3 (instead of Palatino) | 10 pt | #68685E |
+| Monograph | Iowan Old Style Italic (instead of Roman) | 9.5 pt | #5F5B57 |
+| Postcard | Avenir Next Regular | 9.5 pt | #565656 |
+| Nocturne | Avenir Next Regular | 9.25 pt | #B5B2AD |
+| Kodachrome | Palatino | 10 pt | #5F5D59 |
+| Road Log | American Typewriter (instead of Georgia) | 9.5 pt | #5E584E |
+| Basic (no template) | Baskerville | 11.25 pt | #636260 |
+
 ## Cover and spine
 
 Each template has a scale for the cover title (`EditorialStyle.coverTitleScale`). A title that does not fit the band at full scale falls back to the page heading size. If the spine is at least 5 mm wide, the print PDF and the flat cover of a print-service profile carry the title on it, reading top to bottom with the foot towards the front, in the template's heading typeface and color.

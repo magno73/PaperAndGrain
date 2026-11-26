@@ -33,6 +33,9 @@ extension EditorView {
                   let leaf = id == page?.id ? page : book.pages.first(where: { $0.id == id }) else { continue }
             switch target {
             case let .photo(photoID): selectCanvasPhoto(photoID, in: leaf)
+            case let .caption(photoID):
+                // A caption selects its photo; a click inside the caption being typed keeps typing.
+                if editingEditorial != .caption(page: id, photo: photoID) { selectCanvasPhoto(photoID, in: leaf) }
             case let .textBox(boxID):
                 if inlineEditingBox != boxID { selectTextBox(boxID, in: leaf) }
             case let .story(role):

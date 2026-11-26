@@ -326,7 +326,7 @@ struct EditorialStyle {
         return CGRect(x: panel.minX, y: top, width: panel.width, height: bottom - top)
     }
 
-    private func attributes(font: String, override: EditorialTextStyle?, size: Double, color: UInt32, paragraph: NSParagraphStyle,
+    func attributes(font: String, override: EditorialTextStyle?, size: Double, color: UInt32, paragraph: NSParagraphStyle,
                             tracking: Double = 0) -> [NSAttributedString.Key: Any] {
         let pointSize = override?.normalizedSize ?? size
         let available = override?.fontName.flatMap { NSFont(name: $0, size: pointSize) }

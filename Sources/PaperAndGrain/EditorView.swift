@@ -308,10 +308,12 @@ struct EditorView: View, Localizing {
         case page(UUID, PageComposition.TextRole)
         case storyGroup(UUID)
         case cover(CoverSide)
+        /// The caption of a photo on a page, while it is typed in place.
+        case caption(page: UUID, photo: UUID)
 
         var pageID: UUID? {
             switch self {
-            case let .page(id, _), let .storyGroup(id): id
+            case let .page(id, _), let .storyGroup(id), let .caption(id, _): id
             case .cover: nil
             }
         }
@@ -755,6 +757,23 @@ final class EditorUndo {
             let current = binding.wrappedValue.film
             binding.wrappedValue.film = previous
             target.registerBookFilm(manager, binding: binding, bookID: bookID, previous: current, name: name)
+        }
+        manager.setActionName(name)
+    }
+
+    /// Captions of several photos as one step, for **Caption Photos on This Page**.
+    func registerCaptions(_ manager: UndoManager, binding: Binding<Book>, bookID: UUID,
+                          previous: [UUID: String?], name: String) {
+        manager.registerUndo(withTarget: self) { [weak manager] target in
+            guard let manager, binding.wrappedValue.id == bookID else { return }
+            var current: [UUID: String?] = [:]
+            for index in binding.wrappedValue.photos.indices {
+                let id = binding.wrappedValue.photos[index].id
+                guard let caption = previous[id] else { continue }
+                current[id] = binding.wrappedValue.photos[index].caption
+                binding.wrappedValue.photos[index].caption = caption
+            }
+            target.registerCaptions(manager, binding: binding, bookID: bookID, previous: current, name: name)
         }
         manager.setActionName(name)
     }

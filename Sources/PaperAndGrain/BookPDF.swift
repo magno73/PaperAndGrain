@@ -265,6 +265,12 @@ enum BookPDF {
                 checkFiles(slot.photo, at: place)
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
+            for caption in composition.captions where !caption.fits {
+                var place = at
+                place.target = .caption(caption.photoID)
+                place.excerpt = Self.excerpt(of: caption.text.string)
+                report.warnings.append(place.issue(.captionDoesNotFit))
+            }
             let story = composition.storyDrawingBlocks(page: page, book: book)
             let guides = settings.map { PrintGuides.frames(pageSize: composition.bounds.size, settings: $0) }
             if let guides {
@@ -295,6 +301,13 @@ enum BookPDF {
                     var place = at
                     place.target = .textBox(box.id)
                     place.excerpt = Self.excerpt(of: box.text)
+                    report.warnings.append(place.issue(.textOutsideSafeMargin))
+                }
+                // A caption that does not fit is already its own warning.
+                for caption in composition.captions where caption.fits && !guides.keepsInsideSafe(caption.frame) {
+                    var place = at
+                    place.target = .caption(caption.photoID)
+                    place.excerpt = Self.excerpt(of: caption.text.string)
                     report.warnings.append(place.issue(.textOutsideSafeMargin))
                 }
             }
@@ -666,6 +679,7 @@ enum BookPDF {
         }
         let stitchedSlots = page.arrangement.map { $0.isFullBleed && $0.photoCapacity == composition.photos.count } == true
             && page.photoPlacements?.values.contains(where: { $0.frame != nil }) != true
+            && composition.captionBand == 0
         let storyBlocks = composition.storyDrawingBlocks(page: page, book: book)
         let backgrounds = composition.storyBackgroundFrames(page: page, blocks: storyBlocks)
         for layer in composition.layers {
@@ -680,6 +694,10 @@ enum BookPDF {
                 try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop, images: images,
                           book: book, directory: directory, context: context, underlap: underlap,
                           trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
+                if let caption = composition.caption(for: id) {
+                    drawCaption(caption, style: style, trim: composition.bounds,
+                                outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed), context: context)
+                }
             case .story:
                 if !backgrounds.isEmpty {
                     context.saveGState()
@@ -717,6 +735,21 @@ enum BookPDF {
             _ = EditorialTypesetter.draw(style.typography(String(pageNumber), heading: nil, mixed: false),
                                          in: folio, context: context)
         }
+    }
+
+    /// A caption belongs to its photo's layer. Its band takes the template's panel for text over a photo
+    /// and, where it reaches the trim, continues into the bleed like the photo under it.
+    static func drawCaption(_ caption: PageComposition.Caption, style: EditorialStyle, trim: CGRect, outer: CGRect,
+                            context: CGContext) {
+        if let band = caption.band {
+            context.saveGState()
+            context.setAlpha(style.overlayOpacity)
+            context.setFillColor(EditorialStyle.color(style.overlayPaper))
+            context.fill(bleedArea(of: band, trim: trim, outer: outer))
+            context.restoreGState()
+        }
+        // The frame is as tall as the text needs, so nothing is cut; a caption that does not fit is an issue.
+        EditorialTypesetter.draw(caption.text, in: caption.frame, context: context)
     }
 
     /// How far a photo extends under each neighbor painted after it.

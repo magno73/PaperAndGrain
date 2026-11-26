@@ -40,6 +40,14 @@ struct BookPhoto: Identifiable, Codable, Hashable, Sendable {
     var film: FilmSettings? = nil
     var adjustments: PhotoAdjustments? = nil
     var location: PhotoLocation? = nil
+    /// Text printed with the photo wherever it is placed; absent in older books.
+    var caption: String? = nil
+
+    /// The caption without surrounding blanks, or nil when there is nothing to print.
+    var printedCaption: String? {
+        let text = caption?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return text.isEmpty ? nil : text
+    }
 }
 
 enum PageLayout: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -109,11 +117,7 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
         photoIDs.insert(id, at: 0)
         var placements = photoPlacements ?? [:]
         for photoID in Set([previous, id].compactMap { $0 }) {
-            if let crop = placements[photoID]?.crop {
-                placements[photoID] = PhotoPlacement(crop: crop)
-            } else {
-                placements.removeValue(forKey: photoID)
-            }
+            placements[photoID] = placements[photoID]?.withoutFrame
         }
         photoPlacements = placements.isEmpty ? nil : placements
     }
@@ -202,7 +206,8 @@ enum BookLayoutGeometry {
                 CGRect(x: rect.minX, y: boundary + gap, width: rect.width, height: rect.maxY - boundary - gap))
     }
 
-    static func rectangles(for ratios: [Double], in rect: CGRect, gap: Double) -> [CGRect] {
+    /// `captionBand` is kept free under each row, for captions below the photos; 0 lays out as before.
+    static func rectangles(for ratios: [Double], in rect: CGRect, gap: Double, captionBand: Double = 0) -> [CGRect] {
         guard !ratios.isEmpty, rect.width > 0, rect.height > 0 else { return [] }
         let aspects = ratios.map { $0.isFinite && $0 > 0 ? min(100, max(0.01, $0)) : 1 }
         let count = aspects.count
@@ -221,8 +226,9 @@ enum BookLayoutGeometry {
         }
         let height = rowSizes.reduce(0) { $0 + $1.1 }
         let gutters = spacing * Double(rows - 1)
-        let scale = min(1, (rect.height - gutters) / height)
-        var y = rect.midY - (height * scale + gutters) / 2
+        let bands = captionBand * Double(rows)
+        let scale = min(1, (rect.height - gutters - bands) / height)
+        var y = rect.midY - (height * scale + bands + gutters) / 2
         var frames: [CGRect] = []
         for (range, naturalHeight) in rowSizes {
             let h = naturalHeight * scale
@@ -233,7 +239,7 @@ enum BookLayoutGeometry {
                 frames.append(CGRect(x: x, y: y, width: width, height: h))
                 x += width + spacing
             }
-            y += h + spacing
+            y += h + captionBand + spacing
         }
         return frames
     }

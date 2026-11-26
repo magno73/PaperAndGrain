@@ -38,6 +38,7 @@ struct EditorCommandSet {
     var canDuplicatePage = false
     var canBringForward = false
     var canSendBackward = false
+    var canCaptionPage = false
 
     var insertPage: () -> Void = {}
     var insertTextBox: () -> Void = {}
@@ -55,6 +56,7 @@ struct EditorCommandSet {
     var autoEnhance: () -> Void = {}
     var film: () -> Void = {}
     var removePhoto: () -> Void = {}
+    var captionPage: () -> Void = {}
     var toggleNavigator: () -> Void = {}
     var toggleInspector: () -> Void = {}
     var toggleTray: () -> Void = {}
@@ -189,6 +191,10 @@ struct EditorMenus: Commands, Localizing {
                 .disabled(editor?.hasPhotoSelection != true)
             Button(tr("Film Look")) { editor?.film() }
                 .disabled(editor == nil)
+            Divider()
+            Button(tr("Caption Photos on This Page")) { editor?.captionPage() }
+                .disabled(editor?.canCaptionPage != true)
+                .help(tr("Write the place and date under every photo on this page that has no caption"))
             Divider()
             Button(tr("Remove from Page")) { editor?.removePhoto() }
                 .disabled(editor?.hasPhotoSelection != true)

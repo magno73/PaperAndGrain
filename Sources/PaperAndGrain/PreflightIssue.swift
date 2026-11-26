@@ -110,6 +110,8 @@ extension BookPDF {
             case pageCount(PageLimit, has: Int)
             /// A cover measure the product needs is neither typed nor computable for this page count.
             case missingMeasure(PrintMeasure)
+            /// A caption on its photo taller than half the photo, or a caption that crosses the trim.
+            case captionDoesNotFit
 
             /// The kind without its details, for the issue's id.
             var kind: String {
@@ -126,6 +128,7 @@ extension BookPDF {
                 case .sizeNotOffered: "sizeNotOffered"
                 case let .pageCount(limit, _): "pageCount." + limit.key
                 case let .missingMeasure(measure): "missingMeasure." + measure.rawValue
+                case .captionDoesNotFit: "captionDoesNotFit"
                 }
             }
 
@@ -144,6 +147,7 @@ extension BookPDF {
                 case .sizeNotOffered: "aspectratio"
                 case .pageCount: "book.pages"
                 case .missingMeasure: "ruler"
+                case .captionDoesNotFit: "text.below.photo"
                 }
             }
         }
@@ -210,7 +214,9 @@ extension BookPDF {
             case .textBox?:
                 excerpt.map { "“" + $0 + "”" } ?? L10n.string("Text Box", language: language)
             case let .cover(front)?: L10n.string(front ? "Front" : "Back", language: language)
-            case .photo?, .caption?, nil: nil
+            case .caption?:
+                L10n.string("Caption", language: language) + (excerpt.map { " “" + $0 + "”" } ?? "")
+            case .photo?, nil: nil
             }
         }
 
@@ -251,6 +257,7 @@ extension BookPDF {
                 [place, L10n.format("Needs a multiple of %1$lld pages (has %2$lld)", language: language, [limit, count])]
             case let .missingMeasure(measure):
                 [place, L10n.string(Self.missingText(measure), language: language)]
+            case .captionDoesNotFit: [place, excerpt.map { "“" + $0 + "”" }, L10n.string("Caption does not fit", language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")
         }

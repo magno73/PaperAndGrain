@@ -87,6 +87,21 @@ struct PhotoCrop: Codable, Hashable, Sendable {
 struct PhotoPlacement: Codable, Hashable, Sendable {
     var frame: PageRect? = nil
     var crop: PhotoCrop? = nil
+    /// Where this page shows the photo's caption; nil places it automatically.
+    var captionPosition: CaptionPosition? = nil
+
+    /// The placement after its frame is reset: crop and caption position stay, nil when nothing is left.
+    var withoutFrame: Self? {
+        var copy = self
+        copy.frame = nil
+        return copy == Self() ? nil : copy
+    }
+}
+
+/// Where a caption sits relative to its photo. `inside` is a band at the bottom of the picture.
+enum CaptionPosition: String, Codable, CaseIterable, Identifiable, Sendable {
+    case below, above, inside, hidden
+    var id: Self { self }
 }
 
 struct PageTextBox: Identifiable, Codable, Hashable, Sendable {
@@ -236,6 +251,12 @@ struct PageComposition {
     let folio: CGRect?
     /// Back-to-front stacking of photos, story and text boxes.
     let layers: [PageLayer]
+    /// Captions of the photos shown, in the order of `photos`. Each is drawn right after its photo.
+    let captions: [Caption]
+    /// The height every automatic slot gave up for captions below or above; 0 when none did.
+    let captionBand: CGFloat
+
+    func caption(for photoID: UUID) -> Caption? { captions.first { $0.photoID == photoID } }
 
     init(page: BookPage, book: Book, bleed: Double = 0, photoForID: ((UUID) -> BookPhoto?)? = nil) {
         let size = book.format.pageSize
@@ -266,22 +287,48 @@ struct PageComposition {
                 story = geometry.story.map { style.textArea(in: $0, mixed: mixed, fullColumn: fullColumn) }
                 storyBackground = geometry.storyBackground != nil && page.hasStoryText ? geometry.storyBackground : nil
             }
+            let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: storyBackground)
+            // Slots of photos without a manual frame give up a common band for captions below or above.
+            var slotPositions = [CaptionPosition?](repeating: nil, count: geometry.photos.count)
+            var slotTexts = [NSAttributedString?](repeating: nil, count: geometry.photos.count)
+            for (index, id) in page.photoIDs.enumerated() where geometry.photos.indices.contains(index) {
+                guard page.photoPlacements?[id]?.frame == nil, let photo = lookup(id),
+                      case let .some(requested) = CaptionSetter.request(photo, page.photoPlacements?[id]) else { continue }
+                slotPositions[index] = requested ?? setter.automaticPosition(slot: geometry.photos[index])
+                slotTexts[index] = setter.text(photo, overPhoto: false)
+            }
+            let shortest = geometry.photos.map(\.height).min() ?? 0
+            let carved = setter.carve(geometry.photos, positions: slotPositions, texts: slotTexts, cap: shortest * 0.45) { band in
+                geometry.photos.map { CGRect(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height - band) }
+            }
+            var captions: [Caption] = []
             photos = page.photoIDs.enumerated().compactMap { index, id in
                 guard let photo = lookup(id) else { return nil }
                 let placement = page.photoPlacements?[id]
                 let frame: CGRect
+                var requested: CaptionPosition?
+                var band: CGFloat?
                 if let manual = placement?.frame {
                     frame = manual.photoRect(in: bounds, bleed: bleed)
+                    requested = placement?.captionPosition
                 } else if geometry.photos.indices.contains(index) {
-                    let slot = geometry.photos[index]
+                    let slot = carved.frames[index]
                     frame = PageRect.extendingToBleed(slot, in: bounds, bleed: bleed)
+                    requested = slotPositions[index]
+                    band = carved.band
                 } else {
                     return nil
+                }
+                if case .some = CaptionSetter.request(photo, placement),
+                   let caption = setter.caption(photo, frame: frame, requested: requested, band: band) {
+                    captions.append(caption)
                 }
                 let alignment = full && geometry.photos.count == 1 ? page.framing ?? 0.5 : 0.5
                 return Photo(photo: photo, frame: frame, fills: true,
                              crop: placement?.crop ?? PhotoCrop(x: alignment, y: alignment))
             }
+            self.captions = captions
+            captionBand = carved.band
             layers = page.stackingOrder(photos: photos.map(\.id), boxes: textBoxes.map(\.id))
             return
         }
@@ -295,7 +342,10 @@ struct PageComposition {
         let studioGallery = layout == .gallery
             ? book.template?.studioGallery(count: autoImages.count, in: safe, gap: style.imageGap)
             : nil
+        let setter = CaptionSetter(book: book, page: page, bounds: bounds, storyPanel: nil)
         let automaticFrames: [CGRect]
+        var slotPositions: [CaptionPosition?] = []
+        var band: CGFloat = 0
         switch page.layout {
         case .fullPage, .fullSpread:
             // Converting the hero to a manual frame must keep any stored, unused photos hidden.
@@ -304,19 +354,64 @@ struct PageComposition {
         case .text:
             automaticFrames = []
         case .mixed, .gallery:
-            automaticFrames = studioGallery ?? BookLayoutGeometry.rectangles(
-                for: autoImages.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) },
-                in: mixed ? parts.photo : safe, gap: style.imageGap)
+            let area = mixed ? parts.photo : safe
+            let ratios = autoImages.map { Double($0.pixelWidth) / Double(max(1, $0.pixelHeight)) }
+            let studioSlots = studioGallery ?? []
+            var texts: [NSAttributedString?] = []
+            for (index, photo) in autoImages.enumerated() {
+                let requested = CaptionSetter.request(photo, page.photoPlacements?[photo.id])
+                let slot = studioSlots.indices.contains(index) ? studioSlots[index] : area
+                slotPositions.append(requested.map { $0 ?? setter.automaticPosition(slot: slot) })
+                texts.append(requested == nil ? nil : setter.text(photo, overPhoto: false))
+            }
+            let carved: (frames: [CGRect], band: CGFloat)
+            if let studioGallery {
+                let shortest = studioGallery.map(\.height).min() ?? 0
+                carved = setter.carve(studioGallery, positions: slotPositions, texts: texts, cap: shortest * 0.45) { band in
+                    studioGallery.map { CGRect(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height - band) }
+                }
+            } else {
+                let natural = BookLayoutGeometry.rectangles(for: ratios, in: area, gap: style.imageGap)
+                let rows = CGFloat(Set(natural.map { ($0.minY * 100).rounded() }).count)
+                carved = setter.carve(natural, positions: slotPositions, texts: texts,
+                                      cap: area.height * 0.4 / max(1, rows)) { band in
+                    BookLayoutGeometry.rectangles(for: ratios, in: area, gap: style.imageGap, captionBand: band)
+                }
+            }
+            automaticFrames = carved.frames
+            band = carved.band
         }
         var slots = automaticFrames.makeIterator()
+        var slotIndex = 0
+        var captions: [Caption] = []
         photos = images.compactMap { photo in
             let manual = page.photoPlacements?[photo.id]
-            guard let frame = manual?.frame?.photoRect(in: bounds, bleed: bleed) ?? slots.next() else { return nil }
+            let frame: CGRect
+            var requested = manual?.captionPosition
+            var slotBand: CGFloat?
+            if let manualFrame = manual?.frame?.photoRect(in: bounds, bleed: bleed) {
+                frame = manualFrame
+            } else if let next = slots.next() {
+                frame = next
+                if slotPositions.indices.contains(slotIndex) {
+                    requested = slotPositions[slotIndex]
+                    slotBand = band
+                }
+                slotIndex += 1
+            } else {
+                return nil
+            }
+            if case .some = CaptionSetter.request(photo, manual),
+               let caption = setter.caption(photo, frame: frame, requested: requested, band: slotBand) {
+                captions.append(caption)
+            }
             let alignment = full ? page.framing ?? 0.5 : 0.5
             return Photo(photo: photo, frame: frame,
                          fills: full || studioGallery != nil || manual?.frame != nil || manual?.crop != nil,
                          crop: manual?.crop ?? PhotoCrop(x: alignment, y: alignment))
         }
+        self.captions = captions
+        captionBand = band
         layers = page.stackingOrder(photos: photos.map(\.id), boxes: textBoxes.map(\.id))
     }
 

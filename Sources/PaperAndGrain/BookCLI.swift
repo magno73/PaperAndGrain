@@ -14,6 +14,8 @@ enum BookCLI {
         struct Asset: Decodable {
             let id: String
             let path: String
+            /// `BookPhoto.caption`: printed with the photo on every page.
+            let caption: String?
         }
         /// The model's text box, with an optional id: a new UUID is assigned when it is absent.
         struct TextBox: Decodable {
@@ -37,6 +39,8 @@ enum BookCLI {
             let textBoxes: [TextBox]?
             /// `story`, `photo:<asset id>` or `box:<text box UUID>`, back to front.
             let layerOrder: [String]?
+            /// The manifest's `PhotoPlacement` (frame, crop, captionPosition), keyed by asset id.
+            let photoPlacements: [String: PhotoPlacement]?
         }
         /// A print-service product from `print-profiles`: it sets the print settings, and the format when
         /// the spec gives none.
@@ -224,9 +228,11 @@ enum BookCLI {
     static let textStyleKeys = ["fontName", "pointSize", "alignment", "color", "lineSpacing"]
     static let frameKeys = ["x", "y", "width", "height"]
 
-    private static func checkTypographyKeys(_ value: Any?, at path: String) throws {
-        try checkKeys(value, ["title", "body"], at: path)
+    /// `caption` is a book style only: pages and the cover have no caption style of their own.
+    private static func checkTypographyKeys(_ value: Any?, at path: String, caption: Bool = false) throws {
+        try checkKeys(value, caption ? ["title", "body", "caption"] : ["title", "body"], at: path)
         let typography = value as? [String: Any]
+        try checkKeys(typography?["caption"], textStyleKeys, at: path + ".caption")
         try checkKeys(typography?["title"], textStyleKeys, at: path + ".title")
         try checkKeys(typography?["body"], textStyleKeys, at: path + ".body")
     }
@@ -270,12 +276,23 @@ enum BookCLI {
         guard let spec = root as? [String: Any] else { return }
         try checkKeys(spec["format"], ["widthMM", "heightMM"], at: "format")
         try checkKeys(spec["printService"], ["profile", "size", "paper"], at: "printService")
-        try checkTypographyKeys(spec["typography"], at: "typography")
-        try checkEachKeys(spec["assets"], ["id", "path"], at: "assets")
+        try checkTypographyKeys(spec["typography"], at: "typography", caption: true)
+        try checkEachKeys(spec["assets"], ["id", "path", "caption"], at: "assets")
         try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text", "typography", "textBoxes",
-                                          "layerOrder"], at: "pages")
+                                          "layerOrder", "photoPlacements"], at: "pages")
         for (index, page) in (spec["pages"] as? [[String: Any]] ?? []).enumerated() {
             try checkTypographyKeys(page["typography"], at: "pages[\(index)].typography")
+            if let placements = page["photoPlacements"], !(placements is NSNull) {
+                guard let map = placements as? [String: Any] else {
+                    throw Failure("Expected an object at pages[\(index)].photoPlacements")
+                }
+                for (asset, placement) in map {
+                    let path = "pages[\(index)].photoPlacements.\(asset)"
+                    try checkKeys(placement, ["frame", "crop", "captionPosition"], at: path)
+                    try checkKeys((placement as? [String: Any])?["frame"], frameKeys, at: path + ".frame")
+                    try checkKeys((placement as? [String: Any])?["crop"], ["x", "y", "zoom"], at: path + ".crop")
+                }
+            }
             let path = "pages[\(index)].textBoxes"
             try checkEachKeys(page["textBoxes"], ["id", "text", "frame", "typography", "usesFullWidth", "backgroundColor",
                                                   "hidesBackground", "borderColor", "borderWidth"], at: path)
@@ -344,7 +361,9 @@ enum BookCLI {
             } catch where BookCLI.isUnreadableImage(error) {
                 throw Failure("Image unavailable or unreadable for asset \"\(asset.id)\": " + asset.path)
             }
-            book.photos.append(photo)
+            var captioned = photo
+            captioned.caption = asset.caption?.isEmpty == false ? asset.caption : nil
+            book.photos.append(captioned)
             ids[asset.id] = photo.id
         }
         func photoID(_ key: String) throws -> UUID {
@@ -363,6 +382,17 @@ enum BookCLI {
                                  photoIDs: try (page.photos ?? []).map(photoID), text: page.text ?? "",
                                  heading: page.heading, textBoxes: boxes, arrangement: page.arrangement,
                                  typography: page.typography)
+            if let placements = page.photoPlacements, !placements.isEmpty {
+                var resolved: [UUID: PhotoPlacement] = [:]
+                for (asset, placement) in placements {
+                    guard let id = ids[asset], built.photoIDs.contains(id) else {
+                        throw Failure("Page \(index + 1) (pages[\(index)]) photoPlacements key \"\(asset)\" "
+                            + "does not name an asset placed on this page")
+                    }
+                    resolved[id] = placement
+                }
+                built.photoPlacements = resolved
+            }
             built.layerOrder = try page.layerOrder.map { entries in
                 try entries.map { entry in try layer(entry, on: built, photoID: { ids[$0] }, at: index) }
             }

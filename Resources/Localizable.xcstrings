@@ -210,6 +210,48 @@
         }
       }
     },
+    "%lld captions filled.": {
+      "comment": "Canvas notice after Caption Photos on This Page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld caption filled."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld captions filled."
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld didascalia compilata."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld didascalie compilate."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld images were unavailable": {
       "comment": "Followed by a period, or by a colon and the file names.",
       "extractionState": "manual",
@@ -707,6 +749,24 @@
         }
       }
     },
+    "Above": {
+      "comment": "Caption position: above the photo.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Above"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sopra"
+          }
+        }
+      }
+    },
     "Access to Photos": {
       "extractionState": "manual",
       "localizations": {
@@ -720,6 +780,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Accesso a Foto"
+          }
+        }
+      }
+    },
+    "Add Caption": {
+      "comment": "Canvas context menu on a photo without a caption.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi didascalia"
           }
         }
       }
@@ -2224,6 +2302,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "Annulla"
+          }
+        }
+      }
+    },
+    "Caption": {
+      "comment": "Photo tab: the caption field, and its accessibility label.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didascalia"
+          }
+        }
+      }
+    },
+    "Caption Photos": {
+      "comment": "Undo action name for Photo › Caption Photos on This Page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didascalie alle foto"
+          }
+        }
+      }
+    },
+    "Caption Photos on This Page": {
+      "comment": "Photo menu: fill empty captions on the page from place and date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption Photos on This Page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didascalie alle foto della pagina"
+          }
+        }
+      }
+    },
+    "Caption Position": {
+      "comment": "Undo action name and accessibility label of the caption position picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption Position"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posizione della didascalia"
+          }
+        }
+      }
+    },
+    "Caption does not fit": {
+      "comment": "Issue: a caption on its photo taller than half of it, or crossing the trim.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption does not fit"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La didascalia non entra"
+          }
+        }
+      }
+    },
+    "Captions": {
+      "comment": "Book & Print › Book Typography: the caption style row.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Didascalie"
           }
         }
       }
@@ -3866,6 +4052,24 @@
         }
       }
     },
+    "Edit Caption": {
+      "comment": "Canvas context menu and accessibility action on a caption.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifica didascalia"
+          }
+        }
+      }
+    },
     "Edit Text": {
       "extractionState": "manual",
       "localizations": {
@@ -3913,6 +4117,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Essenziale"
+          }
+        }
+      }
+    },
+    "Etosha, 12 May 2024": {
+      "comment": "Sample caption in the caption font preview.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etosha, 12 May 2024"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etosha, 12 maggio 2024"
           }
         }
       }
@@ -4202,6 +4424,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recupera di nuovo l’originale dalla libreria di Foto"
+          }
+        }
+      }
+    },
+    "Fill Caption": {
+      "comment": "Undo action name for Fill from Place and Date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill Caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compila didascalia"
+          }
+        }
+      }
+    },
+    "Fill from Place and Date": {
+      "comment": "Photo tab: writes the photo's place and date as its caption.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill from Place and Date"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compila con luogo e data"
           }
         }
       }
@@ -4952,6 +5210,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Altezza in mm"
+          }
+        }
+      }
+    },
+    "Hidden": {
+      "comment": "Caption position: the caption is not shown on this page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascosta"
           }
         }
       }
@@ -6942,6 +7218,24 @@
         }
       }
     },
+    "No photo on this page needs a caption with a place or date.": {
+      "comment": "Canvas notice when Caption Photos on This Page has nothing to fill.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photo on this page needs a caption with a place or date."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto della pagina ha bisogno di una didascalia con luogo o data."
+          }
+        }
+      }
+    },
     "No problems found": {
       "extractionState": "manual",
       "localizations": {
@@ -7125,6 +7419,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "In pagina"
+          }
+        }
+      }
+    },
+    "On Photo": {
+      "comment": "Caption position: on a band at the bottom of the photo.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On Photo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sulla foto"
           }
         }
       }
@@ -8032,6 +8344,24 @@
         }
       }
     },
+    "Place, date or a few words": {
+      "comment": "Placeholder of the caption field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place, date or a few words"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luogo, data o poche parole"
+          }
+        }
+      }
+    },
     "Portrait": {
       "extractionState": "manual",
       "localizations": {
@@ -8079,6 +8409,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ritratto standard"
+          }
+        }
+      }
+    },
+    "Position": {
+      "comment": "Photo tab: label of the caption position picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Position"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posizione"
           }
         }
       }
@@ -8267,6 +8615,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stampa: %@"
+          }
+        }
+      }
+    },
+    "Printed with the photo on every page where it appears": {
+      "comment": "Help text of the caption field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Printed with the photo on every page where it appears"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stampata con la foto in ogni pagina in cui compare"
           }
         }
       }
@@ -9087,6 +9453,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seleziona un box"
+          }
+        }
+      }
+    },
+    "Select a photo and type its **Caption** at the top of the **Photo** tab; it follows the photo onto every page. **Position** puts it below, above or on the photo for this page. Double-click a caption on the page to edit it; **Photo › Caption Photos on This Page** writes place and date.": {
+      "comment": "Help: the Write topic, about photo captions.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a photo and type its **Caption** at the top of the **Photo** tab; it follows the photo onto every page. **Position** puts it below, above or on the photo for this page. Double-click a caption on the page to edit it; **Photo › Caption Photos on This Page** writes place and date."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleziona una foto e scrivi la **Didascalia** in cima alla scheda **Foto**: segue la foto in ogni pagina. **Posizione** la mette sotto, sopra o sulla foto in questa pagina. Fai doppio clic su una didascalia nella pagina per modificarla; **Foto › Didascalie alle foto della pagina** scrive luogo e data."
           }
         }
       }
@@ -11671,6 +12055,24 @@
         }
       }
     },
+    "Where this page shows the caption. Automatic puts it below the photo, or on the photo when there is no room.": {
+      "comment": "Help text of the caption position picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where this page shows the caption. Automatic puts it below the photo, or on the photo when there is no room."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dove questa pagina mostra la didascalia. Automatica la mette sotto la foto, o sulla foto quando manca lo spazio."
+          }
+        }
+      }
+    },
     "White": {
       "extractionState": "manual",
       "localizations": {
@@ -11804,6 +12206,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scrivi di un luogo, un animale o un soggetto per vedere le foto abbinate."
+          }
+        }
+      }
+    },
+    "Write the photo’s place and capture date as its caption": {
+      "comment": "Help text of Fill from Place and Date.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the photo’s place and capture date as its caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrive come didascalia il luogo e la data di scatto della foto"
+          }
+        }
+      }
+    },
+    "Write the place and date under every photo on this page that has no caption": {
+      "comment": "Help text of Photo › Caption Photos on This Page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write the place and date under every photo on this page that has no caption"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scrive luogo e data sotto ogni foto della pagina senza didascalia"
           }
         }
       }
@@ -12079,6 +12517,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rimuovi dalla pagina"
+          }
+        }
+      }
+    },
+    "caption.automatic": {
+      "comment": "Caption position: placed automatically (feminine in Italian, for didascalia).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatica"
           }
         }
       }

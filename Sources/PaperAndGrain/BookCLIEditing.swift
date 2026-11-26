@@ -155,11 +155,16 @@ enum BookCLIEditing {
                 throw Failure("\(path).lineSpacing must be between 0.8 and 2 (found \(spacing))")
             }
         }
-        func typography(_ value: EditorialTypography?, _ path: String) throws {
+        func typography(_ value: EditorialTypography?, _ path: String, caption: Bool = false) throws {
             try style(value?.title, path + ".title")
             try style(value?.body, path + ".body")
+            if caption {
+                try style(value?.caption, path + ".caption")
+            } else if value?.caption != nil {
+                throw Failure("\(path).caption is not used: captions have one style per book, in typography.caption")
+            }
         }
-        try typography(book.typography, "typography")
+        try typography(book.typography, "typography", caption: true)
         try typography(book.cover?.typography, "cover.typography")
         for (index, page) in book.pages.enumerated() {
             let name = "Page \(index + 1) (pages[\(index)])"

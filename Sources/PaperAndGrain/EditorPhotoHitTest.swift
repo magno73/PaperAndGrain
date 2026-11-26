@@ -3,7 +3,8 @@ import SwiftUI
 /// The same geometry used to draw the artboard, in back-to-front order.
 struct CanvasHitMap: Equatable {
     enum Target: Equatable {
-        case photo(UUID), textBox(UUID), story(PageComposition.TextRole), storyGroup, coverText, crop, paper
+        /// `caption` is the caption of the photo with that id.
+        case photo(UUID), caption(UUID), textBox(UUID), story(PageComposition.TextRole), storyGroup, coverText, crop, paper
     }
 
     struct Region: Equatable {

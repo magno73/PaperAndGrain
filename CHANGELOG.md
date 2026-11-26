@@ -13,6 +13,15 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 
+### Captions
+
+- A photo can have a **Caption**, typed at the top of the **Photo** tab or on the page with a double-click. It follows the photo onto every page where it is placed.
+- **Position**, per page: **Automatic**, **Below**, **Above**, **On Photo** (a band at the bottom of the picture) or **Hidden**. Automatic puts it below, or on the photo when there is no room, as with full-bleed photos and panoramas. In galleries and fixed layouts the photos make room together, so they keep a common size and the captions line up.
+- **Fill from Place and Date** writes the place and capture date in the interface language; **Photo › Caption Photos on This Page** fills every empty caption on the page in one step.
+- One caption style per book, from the template, in **Book & Print › Book Typography › Captions**.
+- The Issues list warns when a caption does not fit: on its photo and taller than half of it, or across the trim; the safe-margin warning covers captions too.
+- Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
+
 ### Issues
 
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.

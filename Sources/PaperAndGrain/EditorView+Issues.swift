@@ -75,7 +75,8 @@ extension EditorView {
         case .missingFile:
             relinkFix(for: issue)
         case .invalidDimensions, .missingPhoto, .unreadableLUT, .lowResolution, .textOverflows,
-             .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure:
+             .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure,
+             .captionDoesNotFit:
             nil
         }
     }
@@ -98,9 +99,9 @@ extension EditorView {
                 if leaf.textBoxes?.contains(where: { $0.id == boxID }) == true { selectTextBox(boxID, in: leaf) }
             case .story:
                 if let role = storyRole(of: leaf) { selectEditorial(.page(leaf.id, role), on: leaf) }
-            case .caption:
-                // Captions arrive with T4; until then the page itself is the destination.
-                break
+            case let .caption(photoID):
+                // A caption belongs to its photo: select the photo, whose tab edits the caption.
+                if book.photo(photoID) != nil, leaf.photoIDs.contains(photoID) { selectCanvasPhoto(photoID, in: leaf) }
             case .cover:
                 break
             }

@@ -118,6 +118,7 @@ struct HelpView: View, Localizing {
             Topic(id: "text", symbol: "3.circle", title: tr("Write"), lines: [
                 tr("**Insert › Text Box** or **Page Heading**. Double-click to type on the page."),
                 tr("The **Text** tab of the inspector sets font, size, color, alignment, line spacing, and the box background and border."),
+                tr("Select a photo and type its **Caption** at the top of the **Photo** tab; it follows the photo onto every page. **Position** puts it below, above or on the photo for this page. Double-click a caption on the page to edit it; **Photo › Caption Photos on This Page** writes place and date."),
             ]),
             Topic(id: "photos", symbol: "4.circle", title: tr("Finish the photos"), lines: [
                 tr("Select a photo: the **Photo** tab has **Adjust** (with **Auto Enhance**) and **Film**, which changes only that photo."),
