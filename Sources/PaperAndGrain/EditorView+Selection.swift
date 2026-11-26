@@ -32,7 +32,9 @@ extension EditorView {
             guard case let .canvasPage(id) = surface, let target = canvasTarget(at: point, on: surface),
                   let leaf = id == page?.id ? page : book.pages.first(where: { $0.id == id }) else { continue }
             // ⇧ or ⌘ adds an object to the selection or takes it out; on blank paper it changes nothing.
+            // On the text being typed the click belongs to the text (⇧-click extends a text selection).
             if CanvasDeleteShortcut.extendsSelection(modifiers) {
+                if isBeingTyped(target, on: id) { return }
                 if layer(for: target) != nil {
                     endInlineTextEditing()
                     toggleSelection(target, on: leaf)
@@ -280,7 +282,8 @@ extension EditorView {
 
     /// Scrolling over the page turns it while the whole page fits; zoomed pages keep scrolling.
     func canTurnPages(at point: CGPoint) -> Bool {
-        guard zoom == .fitPage, dropFrames[.canvasViewport]?.contains(point) == true, cropSession == nil,
+        // Never under a selection being dragged or a selection rectangle being drawn.
+        guard zoom == .fitPage, !groupDrag.isActive, dropFrames[.canvasViewport]?.contains(point) == true, cropSession == nil,
               inlineEditingBox == nil, editingEditorial == nil, browsingSpread == nil, dragging == nil else { return false }
         return !book.pages.isEmpty
     }

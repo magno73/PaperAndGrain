@@ -73,8 +73,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         return (keyCode == 53 && shortcut.isEmpty) || (keyCode == 0 && shortcut == [.command, .shift])
     }
 
-    nonisolated static func isSelectAllKey(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags, isRepeat: Bool) -> Bool {
-        !isRepeat && keyCode == 0 && modifiers.intersection([.command, .control, .option, .shift]) == .command
+    /// ⌘A by the character, not the key position: on an AZERTY keyboard the A key position types Q.
+    nonisolated static func isSelectAllKey(_ characters: String?, modifiers: NSEvent.ModifierFlags, isRepeat: Bool) -> Bool {
+        !isRepeat && characters?.lowercased() == "a" && modifiers.intersection([.command, .control, .option, .shift]) == .command
     }
 
     /// ⇧ or ⌘ held with a click adds the object to the selection or removes it.
@@ -181,7 +182,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             if CanvasDeleteShortcut.isDeselectKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
                 return onDeselect() ? nil : event
             }
-            if CanvasDeleteShortcut.isSelectAllKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
+            if CanvasDeleteShortcut.isSelectAllKey(event.charactersIgnoringModifiers, modifiers: event.modifierFlags,
+                                                   isRepeat: event.isARepeat) {
                 return onSelectAll() ? nil : event
             }
             if let offset = CanvasDeleteShortcut.nudgeOffset(event.keyCode, modifiers: event.modifierFlags) {

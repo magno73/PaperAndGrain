@@ -4,7 +4,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 302 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 304 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
@@ -59,7 +59,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 
 ### Multiple selection (T5)
 
-- Unit tests (`GroupSelectionTests`): ⇧/⌘ toggling and a click on the other page of a spread; the selection rectangle drawn both ways, touching versus missing, and an empty one; the group move clamped at each of the four page edges and for a bleeding photo; a group move on a page keeps page, photo and box ids, fixes the other automatic frames and moves the box; the story moves as one group; the six alignments, also to a safe area; distribution of four frames of unequal size, outer two fixed, equal gaps, horizontally and vertically; same width and same height from the last selected, with and without proportions; front, back, forward and backward on a selection of non-adjacent layers keep their order, and nothing moves past the top. The ⌘A and modifier tests of the monitor.
+- Unit tests (`GroupSelectionTests`): ⇧/⌘ toggling and a click on the other page of a spread; the selection rectangle drawn both ways, touching versus missing, and an empty one; the group move clamped at each of the four page edges and for a bleeding photo; a group move on a page keeps page, photo and box ids, fixes the other automatic frames and moves the box; the story moves as one group; the six alignments, also to a safe area; distribution of four frames of unequal size, outer two fixed, equal gaps, horizontally and vertically; same width and same height from the last selected, with and without proportions; front, back, forward and backward on a selection of non-adjacent layers keep their order, and nothing moves past the top. The ⌘A and modifier tests of the monitor (⌘A by character, so ⌘Q on AZERTY stays Quit). After review: a bleeding photo no longer freezes a group (members clamp by their own limits), and one text object aligns inside a print service's binding margin on both sides.
 
 ## Not yet verified
 
@@ -72,7 +72,8 @@ Nothing of T5 was seen on screen (no GUI access). With a bundle from `./scripts/
 3. **Distribute Horizontally** with three objects, **Make Same Width** with two photos (proportions kept) and with two boxes; the inspector buttons and the context menu on a selected object show the same actions. **Bring Forward** with two objects keeps their order.
 4. Delete with photos and a box selected: they leave the page, the photos are back in the Photo Library; ⌘Z returns them.
 5. A selected photo with a caption: the caption follows the group drag. Drop a selection onto another photo: no swap.
-6. Single-selection regression list, each to check: click; double-click to crop; double-click to type in a box and in the story; resize by a corner and by a side handle; swap by drop; ⌥-drag to overlap without snapping; context menu on a photo, box and story; layer commands; Delete and ⌘Z; arrow keys; ⌘D duplicates the page.
+6. While typing in a box, a story or a caption, ⇧-click inside the text extends the text selection and the object stays edited. Start a group drag and turn the page with the trackpad: the page does not turn; draw a rectangle, then open a sheet mid-drag: nothing stays drawn.
+7. Single-selection regression list, each to check: click; double-click to crop; double-click to type in a box and in the story; resize by a corner and by a side handle; swap by drop; ⌥-drag to overlap without snapping; context menu on a photo, box and story; layer commands; Delete and ⌘Z; arrow keys; ⌘D duplicates the page.
 
 ### Captions (T4)
 

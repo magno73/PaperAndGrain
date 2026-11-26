@@ -18,6 +18,17 @@ import SwiftUI
         if translation != .zero { translation = .zero }
         if !guides.isEmpty { guides = [] }
     }
+
+    /// Forgets the drag and the rectangle: a gesture that never reported its end (a page turned under it,
+    /// a sheet that took the pointer) leaves nothing drawn.
+    func resetAll() {
+        reset()
+        if marquee != nil { marquee = nil }
+        if marqueePage != nil { marqueePage = nil }
+    }
+
+    /// True while a selection is dragged or a selection rectangle is drawn.
+    var isActive: Bool { pageID != nil || marquee != nil }
 }
 
 /// Shows an object at the selection's drag offset while the selection is dragged.
@@ -84,11 +95,12 @@ extension EditorView {
     }
 
     /// The selectable objects of a page with their frames in page points, back to front. The story counts
-    /// when it has text: heading, story and backdrop are one object.
-    func selectableObjects(on leaf: BookPage) -> [(layer: PageLayer, frame: CGRect)] {
+    /// when it has text: heading, story and backdrop are one object. `only` limits the work to those
+    /// layers, so the story is not typeset unless it is asked for.
+    func selectableObjects(on leaf: BookPage, only: Set<PageLayer>? = nil) -> [(layer: PageLayer, frame: CGRect)] {
         let composition = pageComposition(leaf)
         var result: [(layer: PageLayer, frame: CGRect)] = []
-        for layer in composition.layers {
+        for layer in composition.layers where only?.contains(layer) ?? true {
             switch layer {
             case let .photo(id):
                 if let frame = composition.photos.first(where: { $0.id == id })?.frame { result.append((layer, frame)) }
@@ -101,6 +113,16 @@ extension EditorView {
             }
         }
         return result
+    }
+
+    /// How far each selected object may move: a photo as far as a single drag allows, text within the page.
+    func groupMembers(_ objects: [(layer: PageLayer, frame: CGRect)], bounds: CGRect) -> [CanvasGroupGeometry.Member] {
+        objects.map { object in
+            let limits = if case .photo = object.layer {
+                CanvasPhotoGeometry.movementBounds(for: object.frame.size, in: bounds)
+            } else { bounds }
+            return CanvasGroupGeometry.Member(frame: object.frame, limits: limits)
+        }
     }
 
     func storyExtent(of leaf: BookPage, in composition: PageComposition) -> CGRect? {
@@ -148,6 +170,16 @@ extension EditorView {
         case let .textBox(id): .textBox(id)
         case .story, .storyGroup: .story
         case .coverText, .crop, .paper: nil
+        }
+    }
+
+    /// Whether a click target is the text being typed in place: a text box, a heading or story, a caption.
+    func isBeingTyped(_ target: CanvasHitMap.Target, on pageID: UUID) -> Bool {
+        switch target {
+        case let .textBox(id): inlineEditingBox == id
+        case let .story(role): editingEditorial == .page(pageID, role)
+        case let .caption(photoID): editingEditorial == .caption(page: pageID, photo: photoID)
+        case .photo, .storyGroup, .coverText, .crop, .paper: false
         }
     }
 
@@ -215,32 +247,39 @@ extension EditorView {
 
     // MARK: Moving
 
-    /// A drag of any selected object moves the selection. `translation` is in displayed points.
+    /// A drag of any selected object moves the selection. `translation` is in displayed points. On release
+    /// it commits exactly the move last shown, snapping included.
     func dragGroup(by translation: CGSize, on leaf: BookPage, scale: CGFloat, ended: Bool) {
-        guard canvasGroup.isActive, canvasGroup.pageID == leaf.id, scale > 0 else { return }
+        guard canvasGroup.isActive, canvasGroup.pageID == leaf.id, scale > 0 else {
+            groupDrag.reset()
+            return
+        }
+        if ended {
+            let shown = groupDrag.pageID == leaf.id ? groupDrag.translation : .zero
+            groupDrag.reset()
+            if shown != .zero {
+                moveGroup(by: CGSize(width: shown.width / scale, height: shown.height / scale), on: leaf.id)
+            }
+            return
+        }
         let objects = selectableObjects(on: leaf)
         let chosen = Set(canvasGroup.layers)
-        let extent = CanvasGroupGeometry.extent(objects.filter { chosen.contains($0.layer) }.map(\.frame))
+        let selected = objects.filter { chosen.contains($0.layer) }
+        let extent = CanvasGroupGeometry.extent(selected.map(\.frame))
         guard !extent.isNull else { return }
-        let bounds = pageComposition(leaf).bounds
-        let shown = scaled(extent, by: scale), page = scaled(bounds, by: scale)
-        let clamped = CanvasGroupGeometry.clampedTranslation(translation, extent: shown, bounds: page)
+        let page = scaled(pageComposition(leaf).bounds, by: scale)
+        let members = groupMembers(selected.map { ($0.layer, scaled($0.frame, by: scale)) }, bounds: page)
+        let shown = scaled(extent, by: scale)
+        let clamped = CanvasGroupGeometry.clampedTranslation(translation, members: members)
         // Snapping uses the selection's bounding box against the page and the objects left out of it.
         let others = objects.filter { !chosen.contains($0.layer) }.map { scaled($0.frame, by: scale).intersection(page) }
         let result = CanvasAlignment.duringDrag(shown.offsetBy(dx: clamped.width, dy: clamped.height), to: others,
-                                                edges: page, within: CanvasGroupGeometry.movementArea(extent: shown, bounds: page))
+                                                edges: page, within: CanvasGroupGeometry.movementArea(members))
         let snapped = CanvasGroupGeometry.clampedTranslation(
-            CGSize(width: result.frame.minX - shown.minX, height: result.frame.minY - shown.minY), extent: shown, bounds: page)
-        if ended {
-            groupDrag.reset()
-            if snapped != .zero {
-                moveGroup(by: CGSize(width: snapped.width / scale, height: snapped.height / scale), on: leaf.id)
-            }
-        } else {
-            groupDrag.pageID = leaf.id
-            groupDrag.translation = snapped
-            groupDrag.guides = result.guides
-        }
+            CGSize(width: result.frame.minX - shown.minX, height: result.frame.minY - shown.minY), members: members)
+        groupDrag.pageID = leaf.id
+        groupDrag.translation = snapped
+        groupDrag.guides = result.guides
     }
 
     /// The drag handler of a selected object while two or more are selected; nil otherwise.
@@ -253,12 +292,9 @@ extension EditorView {
     func moveGroup(by translation: CGSize, on pageID: UUID, name: String? = nil) {
         guard canvasGroup.isActive, canvasGroup.pageID == pageID,
               let leaf = book.pages.first(where: { $0.id == pageID }) else { return }
-        let objects = selectableObjects(on: leaf)
-        let chosen = Set(canvasGroup.layers)
-        let selected = objects.filter { chosen.contains($0.layer) }
-        let extent = CanvasGroupGeometry.extent(selected.map(\.frame))
-        let delta = CanvasGroupGeometry.clampedTranslation(translation, extent: extent,
-                                                           bounds: pageComposition(leaf).bounds)
+        let selected = selectableObjects(on: leaf, only: Set(canvasGroup.layers))
+        let delta = CanvasGroupGeometry.clampedTranslation(
+            translation, members: groupMembers(selected, bounds: pageComposition(leaf).bounds))
         guard delta != .zero else { return }
         var frames: [PageLayer: CGRect] = [:]
         for object in selected { frames[object.layer] = object.frame.offsetBy(dx: delta.width, dy: delta.height) }
@@ -276,12 +312,15 @@ extension EditorView {
 
     // MARK: Align, distribute, same size
 
-    /// The selection's objects and frames on the current page, in the order they were selected.
+    /// The selection's objects and frames on the current page, in the order they were selected. Only the
+    /// selected objects are measured; call it when acting, not to enable a command.
     var selectedObjects: (leaf: BookPage, objects: [(layer: PageLayer, frame: CGRect)])? {
         guard coverSide == nil, let selection = selectionLayers,
               let leaf = book.pages.first(where: { $0.id == selection.pageID }) else { return nil }
         var frames: [PageLayer: CGRect] = [:]
-        for object in selectableObjects(on: leaf) where frames[object.layer] == nil { frames[object.layer] = object.frame }
+        for object in selectableObjects(on: leaf, only: Set(selection.layers)) where frames[object.layer] == nil {
+            frames[object.layer] = object.frame
+        }
         var objects: [(layer: PageLayer, frame: CGRect)] = []
         for layer in selection.layers {
             if let frame = frames[layer] { objects.append((layer: layer, frame: frame)) }
@@ -290,23 +329,34 @@ extension EditorView {
         return (leaf: leaf, objects: objects)
     }
 
-    var canAlignSelection: Bool { selectedObjects != nil }
+    // The enabling checks read only the selection, never a frame: menus redraw while the author types.
+    var canAlignSelection: Bool { coverSide == nil && selectionLayers != nil }
 
-    var canDistributeSelection: Bool { (selectedObjects?.objects.count ?? 0) > 2 }
+    var canDistributeSelection: Bool { coverSide == nil && canvasGroup.isActive && canvasGroup.layers.count > 2 }
 
     /// Two or more photos, or two or more text boxes.
     var canMakeSameSize: Bool {
-        guard let objects = selectedObjects?.objects, objects.count > 1 else { return false }
-        let photos = objects.allSatisfy { if case .photo = $0.layer { true } else { false } }
-        let boxes = objects.allSatisfy { if case .textBox = $0.layer { true } else { false } }
-        return photos || boxes
+        guard coverSide == nil, canvasGroup.isActive else { return false }
+        let layers = canvasGroup.layers
+        return layers.allSatisfy { if case .photo = $0 { true } else { false } }
+            || layers.allSatisfy { if case .textBox = $0 { true } else { false } }
     }
 
     func alignSelection(_ alignment: CanvasGroupGeometry.Alignment) {
         guard let (leaf, objects) = selectedObjects else { return }
-        let bounds = pageComposition(leaf).bounds
-        let reference = objects.count > 1 ? CanvasGroupGeometry.extent(objects.map(\.frame))
-            : PrintGuides.frames(pageSize: bounds.size, settings: book.printSettings ?? PrintSettings()).safe
+        let reference: CGRect
+        if objects.count > 1 {
+            reference = CanvasGroupGeometry.extent(objects.map(\.frame))
+        } else {
+            // One object aligns to the page: a photo to the safe margin, text to the area text may use,
+            // which keeps it off a print service's binding margin.
+            let bounds = pageComposition(leaf).bounds
+            if case .photo = objects[0].layer {
+                reference = PrintGuides.frames(pageSize: bounds.size, settings: book.printSettings ?? PrintSettings()).safe
+            } else {
+                reference = book.textSafeArea(of: leaf, bounds: bounds)
+            }
+        }
         let aligned = CanvasGroupGeometry.align(objects.map(\.frame), alignment, to: reference)
         applyFrames(Dictionary(uniqueKeysWithValues: zip(objects.map(\.layer), aligned)), on: leaf.id,
                     name: alignmentName(alignment))

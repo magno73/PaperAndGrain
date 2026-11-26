@@ -24,8 +24,10 @@ final class GroupSelectionTests: XCTestCase {
         XCTAssertTrue(CanvasDeleteShortcut.extendsSelection([.shift]))
         XCTAssertTrue(CanvasDeleteShortcut.extendsSelection([.command]))
         XCTAssertFalse(CanvasDeleteShortcut.extendsSelection([.option]))
-        XCTAssertTrue(CanvasDeleteShortcut.isSelectAllKey(0, modifiers: [.command], isRepeat: false))
-        XCTAssertFalse(CanvasDeleteShortcut.isSelectAllKey(0, modifiers: [.command, .shift], isRepeat: false))
+        XCTAssertTrue(CanvasDeleteShortcut.isSelectAllKey("a", modifiers: [.command], isRepeat: false))
+        XCTAssertFalse(CanvasDeleteShortcut.isSelectAllKey("a", modifiers: [.command, .shift], isRepeat: false))
+        // On AZERTY the key in the A position types Q: ⌘Q must stay Quit.
+        XCTAssertFalse(CanvasDeleteShortcut.isSelectAllKey("q", modifiers: [.command], isRepeat: false))
     }
 
     func testSelectionRectangleSelectsEveryObjectItTouches() {
@@ -62,6 +64,46 @@ final class GroupSelectionTests: XCTestCase {
         XCTAssertEqual(CanvasGroupGeometry.clampedTranslation(CGSize(width: 40, height: 5), extent: bleeding, bounds: bounds),
                        CGSize(width: 40, height: 0))
         XCTAssertEqual(CanvasGroupGeometry.movementArea(extent: extent, bounds: bounds), bounds)
+    }
+
+    func testAFullBleedPhotoDoesNotFreezeTheGroup() {
+        let bounds = CGRect(x: 0, y: 0, width: 600, height: 600)
+        let bleed = CGRect(x: -9, y: -9, width: 618, height: 618)
+        let box = CGRect(x: 100, y: 100, width: 200, height: 50)
+        let members = [
+            CanvasGroupGeometry.Member(frame: bleed, limits: CanvasPhotoGeometry.movementBounds(for: bleed.size, in: bounds)),
+            CanvasGroupGeometry.Member(frame: box, limits: bounds),
+        ]
+        // The box sets the limits; the photo may overflow as far as a single drag lets it.
+        XCTAssertEqual(CanvasGroupGeometry.clampedTranslation(CGSize(width: -500, height: 40), members: members),
+                       CGSize(width: -100, height: 40))
+        XCTAssertEqual(CanvasGroupGeometry.clampedTranslation(CGSize(width: 500, height: 0), members: members).width, 300)
+        // A member already past its limits never goes further out.
+        let stuck = CanvasGroupGeometry.Member(frame: CGRect(x: -20, y: 0, width: 100, height: 100), limits: bounds)
+        XCTAssertEqual(CanvasGroupGeometry.clampedTranslation(CGSize(width: -5, height: 0), members: [stuck]).width, 0)
+        XCTAssertEqual(CanvasGroupGeometry.clampedTranslation(CGSize(width: 30, height: 0), members: [stuck]).width, 30)
+        XCTAssertEqual(CanvasGroupGeometry.movementArea(members).minX, -109)
+    }
+
+    func testOneTextObjectAlignsInsideAPrintServicesBindingMargin() throws {
+        var book = Book(title: "T", pages: [BookPage(), BookPage()], template: .atlas)
+        book.printSettings = PrintSettings()
+        let profile = try XCTUnwrap(PrintProfileCatalog.bundled.profile("pixartprinting-photobook-hardcover"))
+        book.printSettings?.choose(profile, size: profile.size(matching: book.format))
+        let bounds = CGRect(origin: .zero, size: book.format.pageSize)
+        let right = BookPDF.rightPageIDs(book)
+        let inner = 15 * 72 / 25.4
+        for page in book.pages {
+            let area = book.textSafeArea(of: page, bounds: bounds)
+            if right.contains(page.id) {
+                XCTAssertGreaterThanOrEqual(area.minX, inner - 0.01)
+            } else {
+                XCTAssertLessThanOrEqual(area.maxX, bounds.maxX - inner + 0.01)
+            }
+        }
+        // Without a print service it is the plain safe margin.
+        book.printSettings = PrintSettings()
+        XCTAssertEqual(book.textSafeArea(of: book.pages[0], bounds: bounds), bounds.insetBy(dx: 10 * 72 / 25.4, dy: 10 * 72 / 25.4))
     }
 
     func testMovingAGroupOnAPageKeepsIdsAndFixesAutomaticFrames() throws {

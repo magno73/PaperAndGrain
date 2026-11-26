@@ -31,23 +31,54 @@ struct CanvasGroupSelection: Equatable, Sendable {
 
 /// The geometry of acting on several frames at once. Every function is pure, in one coordinate system.
 enum CanvasGroupGeometry {
-    /// Limits a move so the group stays on the page as a whole, like `BookPage.moveStoryGroup`: an extent
-    /// inside the page cannot leave it, and one already past an edge (a bleeding photo) can only come back.
-    static func clampedTranslation(_ translation: CGSize, extent: CGRect, bounds: CGRect) -> CGSize {
-        guard !extent.isNull, !bounds.isEmpty else { return .zero }
-        func limit(_ delta: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
-            min(max(0, upper), max(min(0, lower), delta))
-        }
-        return CGSize(width: limit(translation.width, lower: bounds.minX - extent.minX, upper: bounds.maxX - extent.maxX),
-                      height: limit(translation.height, lower: bounds.minY - extent.minY, upper: bounds.maxY - extent.maxY))
+    /// One object of a moving selection: its frame and the area it may move in (the page for text; for a
+    /// photo the area a single drag allows, which lets a bleeding photo keep its overflow).
+    struct Member: Equatable, Sendable {
+        var frame: CGRect
+        var limits: CGRect
     }
 
-    /// The rectangle the extent may occupy while it moves, for snapping.
-    static func movementArea(extent: CGRect, bounds: CGRect) -> CGRect {
-        let low = clampedTranslation(CGSize(width: -1e9, height: -1e9), extent: extent, bounds: bounds)
-        let high = clampedTranslation(CGSize(width: 1e9, height: 1e9), extent: extent, bounds: bounds)
+    /// The moves the whole selection may make on each axis: the intersection of what each member may do.
+    /// A member already past its limits can only come back, never go further out; every range holds zero.
+    static func translationRange(_ members: [Member]) -> (low: CGSize, high: CGSize) {
+        var low = CGSize(width: -CGFloat.greatestFiniteMagnitude, height: -CGFloat.greatestFiniteMagnitude)
+        var high = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        for member in members where !member.frame.isNull && !member.limits.isEmpty {
+            low.width = max(low.width, min(0, member.limits.minX - member.frame.minX))
+            high.width = min(high.width, max(0, member.limits.maxX - member.frame.maxX))
+            low.height = max(low.height, min(0, member.limits.minY - member.frame.minY))
+            high.height = min(high.height, max(0, member.limits.maxY - member.frame.maxY))
+        }
+        if members.isEmpty { return (.zero, .zero) }
+        return (low, high)
+    }
+
+    static func clampedTranslation(_ translation: CGSize, members: [Member]) -> CGSize {
+        let range = translationRange(members)
+        return CGSize(width: min(range.high.width, max(range.low.width, translation.width)),
+                      height: min(range.high.height, max(range.low.height, translation.height)))
+    }
+
+    /// Limits a move so the group stays on the page as a whole, like `BookPage.moveStoryGroup`: an extent
+    /// inside the page cannot leave it, and one already past an edge can only come back.
+    static func clampedTranslation(_ translation: CGSize, extent: CGRect, bounds: CGRect) -> CGSize {
+        guard !extent.isNull, !bounds.isEmpty else { return .zero }
+        return clampedTranslation(translation, members: [Member(frame: extent, limits: bounds)])
+    }
+
+    /// The rectangle the selection's extent may occupy while it moves, for snapping.
+    static func movementArea(_ members: [Member]) -> CGRect {
+        let extent = extent(members.map(\.frame))
+        guard !extent.isNull else { return .null }
+        let range = translationRange(members)
+        let low = CGSize(width: max(range.low.width, -1e6), height: max(range.low.height, -1e6))
+        let high = CGSize(width: min(range.high.width, 1e6), height: min(range.high.height, 1e6))
         return CGRect(x: extent.minX + low.width, y: extent.minY + low.height,
                       width: extent.width + high.width - low.width, height: extent.height + high.height - low.height)
+    }
+
+    static func movementArea(extent: CGRect, bounds: CGRect) -> CGRect {
+        movementArea([Member(frame: extent, limits: bounds)])
     }
 
     static func extent(_ frames: [CGRect]) -> CGRect {
@@ -114,12 +145,14 @@ enum CanvasGroupGeometry {
 }
 
 extension BookPage {
-    /// The story's extent on the page: its visible blocks with text and their backdrop; nil without text.
+    /// The story's extent on the page, measured as `moveStoryGroup` clamps it: every block with a frame and
+    /// the backdrop. Nil without text.
     static func storyExtent(of page: BookPage, book: Book, in composition: PageComposition) -> CGRect? {
         guard page.hasStoryText else { return nil }
         let blocks = composition.storyBlocks(page: page, book: book)
         let backings = composition.storyBackgroundFrames(page: page, blocks: blocks)
-        let extent = CanvasGroupGeometry.extent(blocks.filter { $0.text.length > 0 && !$0.frame.isEmpty }.map(\.frame) + backings)
+        let parts = blocks.filter { $0.role != .combined && !$0.frame.isEmpty }.map(\.frame)
+        let extent = CanvasGroupGeometry.extent(parts + backings.filter { !$0.isEmpty })
         return extent.isNull ? nil : extent
     }
 

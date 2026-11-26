@@ -492,6 +492,7 @@ struct EditorView: View, Localizing {
             CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
                                  onNudge: handleArrowKey, onClick: { selectObject(at: $0, modifiers: $1) },
                                  onPointerDown: { point in
+                groupDrag.resetAll()
                 if dropFrames[.canvasViewport]?.contains(point) == true {
                     editorInput.target = .canvas
                 } else if !isNavigatorPoint(point) {
@@ -522,6 +523,8 @@ struct EditorView: View, Localizing {
             recheckIssues()
             pruneGroupSelection()
         }
+        .onChange(of: canvasGroup) { groupDrag.resetAll() }
+        .onChange(of: selection) { groupDrag.resetAll() }
         // A single selection anywhere (a library photo, the cover) ends a selection of several.
         .onChange(of: selectedPhoto != nil || selectedBox != nil || selectedEditorial != nil || coverSide != nil) { _, single in
             if single, canvasGroup.isActive { canvasGroup = CanvasGroupSelection() }
