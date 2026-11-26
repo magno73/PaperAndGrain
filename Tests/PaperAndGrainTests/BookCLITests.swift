@@ -48,4 +48,23 @@ final class BookCLITests: XCTestCase {
         _ = try BookCLI.execute(["build", spec.path, project.path])
         XCTAssertEqual(try BookStorage.read(from: project).ignoredSpellings, ["Swakopmund", "Etosha"])
     }
+
+    func testAPrintServiceKeepsTheTypedTrimInsideTheSizesRange() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let spec = root.appendingPathComponent("spec.json")
+        // WhiteWall gives the trim per order: 270 x 352 mm is inside the range of the 27 x 35.6 cm size.
+        try Data(#"{"version":1,"title":"T","format":{"widthMM":270,"heightMM":352},"printService":{"profile":"whitewall-coffee-table-book","size":"27x35.6"},"assets":[],"pages":[{"layout":"gallery"}]}"#.utf8).write(to: spec)
+        let project = root.appendingPathComponent("A.papergrain")
+        _ = try BookCLI.execute(["build", spec.path, project.path])
+        XCTAssertEqual(try BookStorage.read(from: project).format, BookFormat(widthMM: 270, heightMM: 352))
+        // Without a format the size's own trim is used; a trim outside the range is an error.
+        try Data(#"{"version":1,"title":"T","printService":{"profile":"whitewall-coffee-table-book","size":"27x35.6"},"assets":[],"pages":[{"layout":"gallery"}]}"#.utf8).write(to: spec)
+        let typical = root.appendingPathComponent("B.papergrain")
+        _ = try BookCLI.execute(["build", spec.path, typical.path])
+        XCTAssertEqual(try BookStorage.read(from: typical).format, BookFormat(widthMM: 270, heightMM: 356))
+        try Data(#"{"version":1,"title":"T","format":{"widthMM":300,"heightMM":352},"printService":{"profile":"whitewall-coffee-table-book","size":"27x35.6"},"assets":[],"pages":[{"layout":"gallery"}]}"#.utf8).write(to: spec)
+        XCTAssertThrowsError(try BookCLI.execute(["build", spec.path, root.appendingPathComponent("C.papergrain").path]))
+    }
 }

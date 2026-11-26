@@ -350,7 +350,9 @@ enum BookCLI {
             var settings = PrintSettings()
             settings.choose(profile, size: size, paperID: service.paper)
             book.printSettings = settings
-            book.format = size.format
+            // A size given per order accepts a range: keep the trim the spec typed, which `printService` checked
+            // against it, and take the size's own trim only when the spec has none.
+            book.format = spec.format ?? size.format
         }
         var ids: [String: UUID] = [:]
         for asset in spec.assets {
