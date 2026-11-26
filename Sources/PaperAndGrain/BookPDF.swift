@@ -342,6 +342,7 @@ enum BookPDF {
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
                 checkGamut(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
+            if composition.map?.isEmpty == true { report.blockers.append(at.issue(.mapWithoutPlaces)) }
             for caption in composition.captions where !caption.fits {
                 var place = at
                 place.target = .caption(caption.photoID)
@@ -798,10 +799,13 @@ enum BookPDF {
     private static func draw(_ page: BookPage, pageNumber: Int, book: Book, directory: URL,
                              context: CGContext, bleed: Double, images: ImageOutput) throws {
         // Frames stay at the editor's size; photos reaching the trim are carried into the bleed by paint.
+        if page.isMapPage { _ = MapDataStore.shared.geography() }
         let composition = PageComposition(page: page, book: book)
         let style = book.editorialStyle
         context.setFillColor(EditorialStyle.fillColor(style.paper))
         context.fill(composition.bounds.insetBy(dx: -bleed, dy: -bleed))
+        // A map lies under everything else on its page, as paths and text; without located photos, nothing.
+        if let map = composition.map { MapRenderer.draw(map, style: style, in: context, bleed: bleed) }
         if let rule = composition.rule {
             context.setFillColor(EditorialStyle.color(style.accent))
             context.fill(rule)

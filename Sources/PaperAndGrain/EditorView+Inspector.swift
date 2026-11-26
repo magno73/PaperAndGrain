@@ -197,6 +197,7 @@ extension EditorView {
                     intro(tr("%lld photos waiting for a slot.", waiting))
                 }
             }
+            if page.isMapPage { mapInspector(page) }
             textBoxInspector(page)
             let storyLayout = page.effectiveLayout == .text || page.effectiveLayout == .mixed
             let showsBody = storyLayout || page.storyFrame != nil

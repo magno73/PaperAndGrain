@@ -27,6 +27,8 @@ extension EditorView {
         let compareOriginal: Bool
         let comparePhotoOriginal: UUID?
         let language: String
+        /// The bundled map data arrived: map pages redraw with their geography.
+        let mapReady: Bool
     }
 
     var navigatorKey: NavigatorKey {
@@ -36,7 +38,7 @@ extension EditorView {
                             hoveredGap: hoveredGap, insertionID: insertion?.id, insertionAfter: insertion?.after,
                             draggingPage: draggingPage, scrollDirection: navigatorScrollDirection,
                             compareOriginal: compareOriginal, comparePhotoOriginal: comparePhotoOriginal,
-                            language: language)
+                            language: language, mapReady: mapDataReady)
     }
 
     /// The navigator floats as a glass pane on macOS 26 and sits in a classic sidebar column before.
@@ -291,7 +293,7 @@ extension EditorView {
     func navigatorPreview<Content: View>(for target: EditorDropTarget,
                                                   @ViewBuilder content: @escaping () -> Content) -> some View {
         NavigatorPreview(target: target, book: book, directory: directory, original: compareOriginal,
-                         originalPhoto: comparePhotoOriginal, content: content)
+                         originalPhoto: comparePhotoOriginal, mapReady: mapDataReady, content: content)
             .equatable()
     }
 
@@ -306,6 +308,7 @@ extension EditorView {
             let bounds = scaled(composition.bounds, by: scale)
             ZStack(alignment: .topLeading) {
                 Color(cgColor: EditorialStyle.color(style.paper))
+                if let map = composition.map { mapLayer(map, bounds: composition.bounds, scale: scale) }
                 if let rule = composition.rule {
                     positioned(Color(cgColor: EditorialStyle.color(style.accent)), in: scaled(rule, by: scale))
                 }

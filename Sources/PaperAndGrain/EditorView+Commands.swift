@@ -96,7 +96,8 @@ extension EditorView {
     }
 
     static let insertableTemplates: [PageArrangement?] = [
-        nil, .textOnly, .textBesidePhoto, .photoAboveText, .textOverPhoto, .fullBleed, .fullSpread, .twoAcross, .fourGrid
+        nil, .textOnly, .textBesidePhoto, .photoAboveText, .textOverPhoto, .fullBleed, .fullSpread, .twoAcross, .fourGrid,
+        .map, .mapAboveText
     ]
 
     @ViewBuilder var insertMenuItems: some View {
@@ -106,6 +107,7 @@ extension EditorView {
         Button(tr("Page Heading"), systemImage: "textformat.size", action: insertPageHeading)
             .disabled(page == nil)
         Button(tr("Title Page"), systemImage: "text.alignleft", action: insertTitlePage)
+        Button(tr("Map Page"), systemImage: "map", action: insertMapPage)
         Divider()
         // The same page templates as the inspector, so new pages never use the legacy layouts.
         Menu(tr("Page with Template")) {
@@ -182,6 +184,7 @@ extension EditorView {
         commands.insertTextBox = insertTextBox
         commands.insertHeading = insertPageHeading
         commands.insertTitlePage = insertTitlePage
+        commands.insertMapPage = insertMapPage
         commands.chooseLayout = {
             if coverSide == nil, page != nil { showLayoutPopover = true }
         }

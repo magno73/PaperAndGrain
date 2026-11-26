@@ -78,6 +78,8 @@ struct BookPage: Identifiable, Codable, Hashable, Sendable {
     var titleFrame: PageRect? = nil
     var storyFrame: PageRect? = nil
     var storyBackdropFrames: [PageRect]? = nil
+    /// The settings of a map page (`PageArrangement.map`, `.mapAboveText`); absent in older books.
+    var map: PageMap? = nil
 
     mutating func freezeStoryBackdrop(_ backdrops: [CGRect], in bounds: CGRect) {
         guard storyBackdropFrames == nil, !bounds.isEmpty else { return }

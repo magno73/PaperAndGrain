@@ -178,6 +178,8 @@ struct EditorView: View, Localizing {
     @State var canvasGroup = CanvasGroupSelection()
     /// The selection's drag and selection rectangle, read only by the views that show them.
     @State var groupDrag = CanvasGroupDrag()
+    /// The bundled map data is in memory; read once, off the main thread, when the book has a map page.
+    @State var mapDataReady = false
 
     @State var issues = IssueMonitor(extra: EditorView.liveSpelling)
 
@@ -522,6 +524,9 @@ struct EditorView: View, Localizing {
         .onPreferenceChange(EditorDropFrames.self) { dropFrames = $0 }
         .onPreferenceChange(CanvasHitMaps.self) { canvasHits.maps = $0 }
         .task { recheckIssues(immediately: true) }
+        .task(id: book.pages.contains { $0.isMapPage }) {
+            if !mapDataReady, book.pages.contains(where: \.isMapPage) { mapDataReady = await MapDataStore.shared.prepare() }
+        }
         .onChange(of: book) {
             recheckIssues()
             pruneGroupSelection()
@@ -702,13 +707,14 @@ struct NavigatorPreview<Content: View>: View, Equatable {
     let directory: URL
     let original: Bool
     let originalPhoto: UUID?
+    var mapReady = false
     @ViewBuilder let content: () -> Content
 
     var body: some View { content() }
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.target == rhs.target && lhs.book == rhs.book && lhs.directory == rhs.directory
-            && lhs.original == rhs.original && lhs.originalPhoto == rhs.originalPhoto
+            && lhs.original == rhs.original && lhs.originalPhoto == rhs.originalPhoto && lhs.mapReady == rhs.mapReady
     }
 }
 

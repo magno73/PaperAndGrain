@@ -52,6 +52,7 @@ struct EditorCommandSet {
     var insertTextBox: () -> Void = {}
     var insertHeading: () -> Void = {}
     var insertTitlePage: () -> Void = {}
+    var insertMapPage: () -> Void = {}
     var chooseLayout: () -> Void = {}
     var previousPage: () -> Void = {}
     var nextPage: () -> Void = {}
@@ -175,6 +176,8 @@ struct EditorMenus: Commands, Localizing {
             Button(tr("Page Heading")) { editor?.insertHeading() }
                 .disabled(editor?.hasPage != true)
             Button(tr("Title Page")) { editor?.insertTitlePage() }
+                .disabled(editor == nil)
+            Button(tr("Map Page")) { editor?.insertMapPage() }
                 .disabled(editor == nil)
         }
 

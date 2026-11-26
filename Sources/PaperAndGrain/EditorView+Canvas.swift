@@ -372,6 +372,10 @@ extension EditorView {
         let incomingPhoto = incomingPhotoPlacement(on: leaf, composition: composition, bounds: bounds, textFrames: textFrames)
         return ZStack(alignment: .topLeading) {
             Color(cgColor: EditorialStyle.color(style.paper))
+            if let map = composition.map {
+                mapLayer(map, bounds: composition.bounds, scale: scale)
+                mapNotice(map, scale: scale)
+            }
             if leaf.arrangement != nil {
                 // A slot is empty when no photo covers it, also after a photo was moved out of it.
                 ForEach(composition.emptySlots, id: \.index) { slot in

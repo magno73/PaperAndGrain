@@ -21,6 +21,13 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 
+### Map pages
+
+- **Insert › Map Page** and the **Map** and **Map above text** page templates draw the trip from the photos' locations: land, lakes and country borders in the template's colors, a dot per place, the route in capture order and place names in the caption style, as vectors in the PDF. Nothing is sent to a map service: the data is Natural Earth's, bundled with the app.
+- The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. **Issues** reports a map with no located photo.
+- A book with a map page is saved as a newer format: Paper & Grain 0.10 does not open it.
+- Command line: `"arrangement": "map"` (or `mapAboveText`) with a `map` object in the build spec and through `patch`.
+
 ### Copy and paste
 
 - **Edit › Cut, Copy, Paste** and **Edit › Duplicate** work on the selected canvas objects; while text is typed they keep their text meaning. Pasted objects keep their place and order and become the selection; stories become the page's story or a text box; photos stay in their own book and are not placed twice on a page. Plain text from other apps pastes as a text box, and copied text pastes as plain text elsewhere.

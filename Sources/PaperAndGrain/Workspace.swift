@@ -15,9 +15,15 @@ final class Workspace: ObservableObject {
     var isReadOnly: Bool { readOnlyReason != nil }
     /// The manifest as it was last read or written, so unchanged books are never rewritten.
     private var lastSaved: Book?
-    /// Revision of the manifest written by this build. Raise it when a release adds data
-    /// that older builds would drop: they then open the book read-only instead of rewriting it.
-    nonisolated static let writerVersion = 1
+    /// The newest manifest revision this build reads. Raise it when a release adds data that older builds
+    /// would drop: they then open the book read-only instead of rewriting it. Revision 2 adds map pages.
+    nonisolated static let writerVersion = 2
+
+    /// The revision a book needs: 2 only when it has a map page (a page arrangement 0.10 cannot read),
+    /// so every other book stays readable by 0.10 as before.
+    nonisolated static func writerVersion(for book: Book) -> Int {
+        book.pages.contains { $0.isMapPage } ? 2 : 1
+    }
     @Published private(set) var importing = false
     @Published private(set) var importProgress = ""
     @Published private(set) var analysisProgress: (done: Int, total: Int)?
@@ -801,7 +807,7 @@ final class Workspace: ObservableObject {
     /// The book as this build writes it, with its writer version.
     nonisolated static func stamped(_ book: Book) -> Book {
         var stamped = book
-        stamped.writerVersion = writerVersion
+        stamped.writerVersion = writerVersion(for: book)
         return stamped
     }
 

@@ -5,6 +5,9 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
     case fullBleed, fullSpread, bleedTwoAcross, bleedTwoStacked, bleedThreeAcross, bleedFourGrid, bleedHeroAboveTwo
     case twoAcross, twoStacked, fourGrid, heroAboveTwo, twoAboveHero
     case textAbovePhoto, photoAboveText, textBesidePhoto, textOverPhoto, textOnly
+    /// A map of the book's photo locations (`BookPage.map`): the whole page, or above the story.
+    /// A book that uses one is written with `Workspace.writerVersion` 2.
+    case map, mapAboveText
 
     var id: Self { self }
 
@@ -24,14 +27,15 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
         case .fullSpread: .fullSpread
         case .twoAcross, .twoStacked, .fourGrid, .heroAboveTwo, .twoAboveHero,
              .bleedTwoAcross, .bleedTwoStacked, .bleedThreeAcross, .bleedFourGrid, .bleedHeroAboveTwo: .gallery
-        case .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: .mixed
+        case .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto, .mapAboveText: .mixed
         case .textOnly: .text
+        case .map: .gallery
         }
     }
 
     var photoCapacity: Int {
         switch self {
-        case .textOnly: 0
+        case .textOnly, .map, .mapAboveText: 0
         case .fullBleed, .fullSpread, .textAbovePhoto, .photoAboveText, .textBesidePhoto, .textOverPhoto: 1
         case .twoAcross, .twoStacked, .bleedTwoAcross, .bleedTwoStacked: 2
         case .heroAboveTwo, .twoAboveHero, .bleedThreeAcross, .bleedHeroAboveTwo: 3
@@ -39,10 +43,14 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var isMap: Bool { self == .map || self == .mapAboveText }
+
     struct Geometry {
         var photos: [CGRect]
         var story: CGRect? = nil
         var storyBackground: CGRect? = nil
+        /// The map's area on a map page; `PageComposition` widens a whole-page map to the trim for some templates.
+        var map: CGRect? = nil
     }
 
     /// All rectangles use the caller's units and a top-left origin. The bounds include the
@@ -99,6 +107,11 @@ enum PageArrangement: String, Codable, CaseIterable, Identifiable, Sendable {
             return Geometry(photos: [bounds], story: panel.insetBy(dx: padding, dy: padding), storyBackground: panel)
         case .textOnly:
             return Geometry(photos: [], story: safe)
+        case .map:
+            return Geometry(photos: [], map: safe)
+        case .mapAboveText:
+            let (map, story) = split(safe, along: .minYEdge, fraction: 0.62)
+            return Geometry(photos: [], story: story, map: map)
         }
     }
 }

@@ -255,6 +255,8 @@ struct PageComposition {
     let captions: [Caption]
     /// The height every automatic slot gave up for captions below or above; 0 when none did.
     let captionBand: CGFloat
+    /// The map of a map page, drawn under everything else on the page.
+    let map: MapComposition?
 
     func caption(for photoID: UUID) -> Caption? { captions.first { $0.photoID == photoID } }
 
@@ -264,7 +266,9 @@ struct PageComposition {
         let bounds = CGRect(x: 0, y: 0, width: layout == .fullSpread ? size.width * 2 : size.width,
                             height: size.height)
         self.bounds = bounds
-        let full = layout == .fullPage || layout == .fullSpread || page.arrangement?.isFullBleed == true
+        // A whole-page map reaches the trim in templates whose photographs do, and keeps the margins elsewhere.
+        let mapFillsTrim = page.arrangement == .map && [.essential, .berlinQuarter, .postcard].contains(book.template)
+        let full = layout == .fullPage || layout == .fullSpread || page.arrangement?.isFullBleed == true || mapFillsTrim
         let style = book.editorialStyle
         let safe = bounds.insetBy(dx: book.contentInsetPoints, dy: book.contentInsetPoints)
         rule = full ? nil : style.pageRule(in: safe)
@@ -278,6 +282,9 @@ struct PageComposition {
 
         if let arrangement = page.arrangement {
             let geometry = arrangement.geometry(in: bounds, inside: safe, gap: style.imageGap)
+            map = geometry.map.map { area in
+                MapComposition(page: page, book: book, frame: mapFillsTrim ? bounds : area, fillsTrim: mapFillsTrim)
+            }
             arrangementPhotoSlots = geometry.photos
             if arrangement == .textOverPhoto, let panel = book.template?.storyOverlayPanel(in: safe) {
                 let padding = min(safe.width, safe.height) * 0.043
@@ -336,6 +343,7 @@ struct PageComposition {
         }
 
         let parts = BookLayoutGeometry.mixedArea(in: safe, placement: page.textPlacement, spacing: 12)
+        map = nil
         arrangementPhotoSlots = []
         story = mixed || layout == .text ? style.textArea(in: mixed ? parts.text : safe, mixed: mixed, fullColumn: fullColumn) : nil
         storyBackground = nil

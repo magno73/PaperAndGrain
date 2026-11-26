@@ -74,6 +74,8 @@ struct PageArrangementPicker: View, Localizing {
         case .bleedThreeAcross: "Three across, full bleed"
         case .bleedFourGrid: "Four-photo grid, full bleed"
         case .bleedHeroAboveTwo: "Large above two, full bleed"
+        case .map: "Map"
+        case .mapAboveText: "Map above text"
         }
         return L10n.string(title, language: language)
     }
@@ -196,6 +198,15 @@ private struct PageArrangementDiagram: View {
                 for (index, slot) in geometry.photos.enumerated() {
                     let fill = arrangement.isFullBleed ? Color(white: tones[index % tones.count]) : photo
                     context.fill(Path(slot), with: .color(fill))
+                }
+                if let map = geometry.map {
+                    context.fill(Path(map), with: .color(Color(red: 0.80, green: 0.85, blue: 0.78)))
+                    let route = Path { path in
+                        path.move(to: CGPoint(x: map.minX + map.width * 0.25, y: map.minY + map.height * 0.65))
+                        path.addLine(to: CGPoint(x: map.minX + map.width * 0.5, y: map.minY + map.height * 0.35))
+                        path.addLine(to: CGPoint(x: map.minX + map.width * 0.75, y: map.minY + map.height * 0.55))
+                    }
+                    context.stroke(route, with: .color(ink), lineWidth: 0.8)
                 }
                 if let background = geometry.storyBackground {
                     context.fill(Path(background), with: .color(paper.opacity(0.9)))

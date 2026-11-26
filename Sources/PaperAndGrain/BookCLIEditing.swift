@@ -25,6 +25,7 @@ enum BookCLIEditing {
         }
         try mutate(&book, stage)
         book.id = UUID()
+        if Workspace.writerVersion(for: book) > (book.writerVersion ?? 1) { book.writerVersion = Workspace.writerVersion(for: book) }
         try validatePackage(book, in: stage)
         try BookStorage.writeExisting(book, to: stage)
         guard try BookStorage.read(from: stage) == book else { throw Failure("Output verification failed") }
@@ -397,6 +398,9 @@ enum BookCLIEditing {
             }
             for (offset, box) in (page.textBoxes ?? []).enumerated() {
                 try checkFrame(box.frame, "\(name) textBoxes[\(offset)].frame")
+            }
+            if let zoom = page.map?.zoom, !PageMap.zoomRange.contains(zoom) {
+                throw Failure("\(name) map.zoom must be between 0.25 and 8 (found \(zoom))")
             }
         }
         if let frame = book.cover?.frontTitleFrame { try checkFrame(frame, "cover.frontTitleFrame") }

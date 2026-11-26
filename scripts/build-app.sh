@@ -21,6 +21,7 @@ cp Resources/AppIcon.icns "$app/Contents/Resources/"
 cp -R Resources/FilmLooks "$app/Contents/Resources/"
 cp -R Resources/PrintProfiles "$app/Contents/Resources/"
 if [ -d Resources/ICCProfiles ]; then cp -R Resources/ICCProfiles "$app/Contents/Resources/"; fi
+cp -R Resources/MapData "$app/Contents/Resources/"
 cp Resources/it.lproj/InfoPlist.strings "$app/Contents/Resources/it.lproj/"
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$app/Contents/Resources"
 codesign --force --sign - --entitlements Resources/PhotoLibrary.entitlements "$app"

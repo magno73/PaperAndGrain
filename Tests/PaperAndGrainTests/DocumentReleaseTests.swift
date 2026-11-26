@@ -127,7 +127,8 @@ final class DocumentReleaseTests: XCTestCase {
         await workspace.openProject(at: package).value
         workspace.book.title = "After"
         try await waitUntil { (try? BookStorage.read(from: package).title) == "After" }
-        XCTAssertEqual(try BookStorage.read(from: package).writerVersion, Workspace.writerVersion)
+        // A book without a map page keeps the revision 0.10 reads.
+        XCTAssertEqual(try BookStorage.read(from: package).writerVersion, 1)
         XCTAssertEqual(try BookStorage.read(from: package), workspace.book)
     }
 

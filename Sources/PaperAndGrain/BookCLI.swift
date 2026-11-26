@@ -41,6 +41,8 @@ enum BookCLI {
             let layerOrder: [String]?
             /// The manifest's `PhotoPlacement` (frame, crop, captionPosition), keyed by asset id.
             let photoPlacements: [String: PhotoPlacement]?
+            /// The manifest's `PageMap`, for a page with arrangement `map` or `mapAboveText`.
+            let map: PageMap?
         }
         /// A print-service product from `print-profiles`: it sets the print settings, and the format when
         /// the spec gives none.
@@ -281,9 +283,14 @@ enum BookCLI {
         try checkTypographyKeys(spec["typography"], at: "typography", caption: true)
         try checkEachKeys(spec["assets"], ["id", "path", "caption"], at: "assets")
         try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text", "typography", "textBoxes",
-                                          "layerOrder", "photoPlacements"], at: "pages")
+                                          "layerOrder", "photoPlacements", "map"], at: "pages")
         for (index, page) in (spec["pages"] as? [[String: Any]] ?? []).enumerated() {
             try checkTypographyKeys(page["typography"], at: "pages[\(index)].typography")
+            try checkKeys(page["map"], ["photos", "showsRoute", "showsLabels", "showsBorders", "zoom", "centerOffset", "labels"],
+                          at: "pages[\(index)].map")
+            let map = page["map"] as? [String: Any]
+            try checkKeys(map?["centerOffset"], ["x", "y"], at: "pages[\(index)].map.centerOffset")
+            try checkEachKeys(map?["labels"], ["key", "name", "hidden"], at: "pages[\(index)].map.labels")
             if let placements = page["photoPlacements"], !(placements is NSNull) {
                 guard let map = placements as? [String: Any] else {
                     throw Failure("Expected an object at pages[\(index)].photoPlacements")
@@ -396,6 +403,7 @@ enum BookCLI {
                 }
                 built.photoPlacements = resolved
             }
+            built.map = page.map
             built.layerOrder = try page.layerOrder.map { entries in
                 try entries.map { entry in try layer(entry, on: built, photoID: { ids[$0] }, at: index) }
             }
@@ -411,6 +419,8 @@ enum BookCLI {
         }
         try BookCLIEditing.checkTextStyles(book)
         try BookCLIEditing.validatePackage(book, in: staging)
+        // A book with a map page is marked for this version, so an older app does not rewrite it.
+        if Workspace.writerVersion(for: book) > 1 { book.writerVersion = Workspace.writerVersion(for: book) }
         try BookStorage.write(book, to: staging)
         // Atomic no-clobber publication even when another process creates the output concurrently.
         guard renamex_np(staging.path, output.path, UInt32(RENAME_EXCL)) == 0 else {

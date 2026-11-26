@@ -42,7 +42,7 @@ final class PageArrangementTests: XCTestCase {
     }
 
     func testEveryArrangementRespectsItsCapacityAndMarginsInEachFormat() throws {
-        XCTAssertEqual(PageArrangement.allCases.count, 17)
+        XCTAssertEqual(PageArrangement.allCases.count, 19)
         for format in [BookFormat.square, .portrait, .landscape] {
             let bounds = CGRect(origin: CGPoint(x: 12, y: 22), size: format.pageSize)
             let safe = bounds.insetBy(dx: 30, dy: 30)

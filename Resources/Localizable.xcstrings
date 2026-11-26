@@ -853,6 +853,24 @@
         }
       }
     },
+    "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom. The map shows countries and regions, not streets.": {
+      "comment": "Help: the Create the book topic, about map pages and their limit.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom. The map shows countries and regions, not streets."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Inserisci › Pagina con mappa** disegna dove sono state scattate le foto, dalle loro posizioni; la scheda Pagina regola percorso, nomi, confini e zoom. La mappa mostra paesi e regioni, non strade."
+          }
+        }
+      }
+    },
     "**Insert › Text Box** or **Page Heading**. Double-click to type on the page.": {
       "extractionState": "manual",
       "localizations": {
@@ -905,6 +923,24 @@
         }
       }
     },
+    "100% fits every place on the map": {
+      "comment": "Help of the map zoom slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100% fits every place on the map"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100% mostra tutti i luoghi sulla mappa"
+          }
+        }
+      }
+    },
     "6 to 120 points. Clear the value to use the inherited size.": {
       "extractionState": "manual",
       "localizations": {
@@ -952,6 +988,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Griglia, carta chiara e folio. Per paesaggi, tappe e sequenze."
+          }
+        }
+      }
+    },
+    "A line through the places in the order the photos were taken": {
+      "comment": "Help of the map Route switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A line through the places in the order the photos were taken"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una linea tra i luoghi nell’ordine in cui sono state scattate le foto"
+          }
+        }
+      }
+    },
+    "A name for this place; empty uses the suggested one": {
+      "comment": "Help of a map place name field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A name for this place; empty uses the suggested one"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un nome per questo luogo; vuoto usa quello suggerito"
           }
         }
       }
@@ -1503,6 +1575,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tutti i concetti"
+          }
+        }
+      }
+    },
+    "All in the library": {
+      "comment": "Map photos: every photo in the Photo Library.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All in the library"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutte quelle della libreria"
           }
         }
       }
@@ -2550,6 +2640,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Spessore del bordo"
+          }
+        }
+      }
+    },
+    "Borders as Natural Earth draws them; disputed ones are dashed": {
+      "comment": "Help of the Country borders switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borders as Natural Earth draws them; disputed ones are dashed"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confini come li disegna Natural Earth; quelli contesi sono tratteggiati"
           }
         }
       }
@@ -3874,6 +3982,42 @@
         }
       }
     },
+    "Country Borders": {
+      "comment": "Undo action name for the Country borders switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country Borders"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confini nazionali"
+          }
+        }
+      }
+    },
+    "Country borders": {
+      "comment": "Map page: switch for the country borders.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country borders"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confini nazionali"
+          }
+        }
+      }
+    },
     "Cover": {
       "extractionState": "manual",
       "localizations": {
@@ -4711,6 +4855,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Modifica didascalia"
+          }
+        }
+      }
+    },
+    "Edit Place Name": {
+      "comment": "Undo action name for renaming or hiding a map place.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Place Name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifica nome del luogo"
           }
         }
       }
@@ -7116,6 +7278,132 @@
         }
       }
     },
+    "Map": {
+      "comment": "Map page: section title, accessibility label and page template name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mappa"
+          }
+        }
+      }
+    },
+    "Map Page": {
+      "comment": "Insert menu: a new map page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map Page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagina con mappa"
+          }
+        }
+      }
+    },
+    "Map Photos": {
+      "comment": "Undo action name for the map's photo choice.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto della mappa"
+          }
+        }
+      }
+    },
+    "Map Place Names": {
+      "comment": "Undo action name for the map's Place names switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map Place Names"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi dei luoghi"
+          }
+        }
+      }
+    },
+    "Map Route": {
+      "comment": "Undo action name for the map's Route switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map Route"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percorso sulla mappa"
+          }
+        }
+      }
+    },
+    "Map Zoom": {
+      "comment": "Undo action name for the map zoom.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map Zoom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom della mappa"
+          }
+        }
+      }
+    },
+    "Map above text": {
+      "comment": "Page template: a map with the story below.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map above text"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mappa sopra il testo"
+          }
+        }
+      }
+    },
     "Match Book": {
       "extractionState": "manual",
       "localizations": {
@@ -7521,6 +7809,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cromo smorzato"
+          }
+        }
+      }
+    },
+    "Names next to the places, in the book's caption style": {
+      "comment": "Help of the Place names switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Names next to the places, in the book's caption style"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi accanto ai luoghi, nello stile delle didascalie del libro"
           }
         }
       }
@@ -7968,6 +8274,24 @@
         }
       }
     },
+    "No name": {
+      "comment": "Placeholder of a map place without a suggested name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senza nome"
+          }
+        }
+      }
+    },
     "No other photo is close enough to this one to be replaced.": {
       "extractionState": "manual",
       "localizations": {
@@ -7998,6 +8322,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nessuna foto"
+          }
+        }
+      }
+    },
+    "No photo in this book has a location": {
+      "comment": "Map page with no located photo: canvas note and issue.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photo in this book has a location"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto di questo libro ha una posizione"
           }
         }
       }
@@ -9061,6 +9403,24 @@
         }
       }
     },
+    "Photos": {
+      "comment": "Map page: which photos the map shows.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
     "Photos Albums": {
       "extractionState": "manual",
       "localizations": {
@@ -9180,6 +9540,42 @@
         }
       }
     },
+    "Place name": {
+      "comment": "Accessibility label of a map place name field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome del luogo"
+          }
+        }
+      }
+    },
+    "Place names": {
+      "comment": "Map page: switch for the place names.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place names"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi dei luoghi"
+          }
+        }
+      }
+    },
     "Place, date or a few words": {
       "comment": "Placeholder of the caption field.",
       "extractionState": "manual",
@@ -9194,6 +9590,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Luogo, data o poche parole"
+          }
+        }
+      }
+    },
+    "Placed in the book": {
+      "comment": "Map photos: only photos placed on pages or the cover.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Placed in the book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserite nel libro"
+          }
+        }
+      }
+    },
+    "Places": {
+      "comment": "Map page: list of the places on the map.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Places"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luoghi"
           }
         }
       }
@@ -10178,6 +10610,24 @@
         }
       }
     },
+    "Route": {
+      "comment": "Map page: switch for the route line.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percorso"
+          }
+        }
+      }
+    },
     "Safe margin (mm)": {
       "extractionState": "manual",
       "localizations": {
@@ -10825,6 +11275,24 @@
         }
       }
     },
+    "Show or hide this name": {
+      "comment": "Help of a map place switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show or hide this name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra o nasconde questo nome"
+          }
+        }
+      }
+    },
     "Show problems and warnings found in the book": {
       "extractionState": "manual",
       "localizations": {
@@ -10838,6 +11306,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra i problemi e gli avvisi trovati nel libro"
+          }
+        }
+      }
+    },
+    "Show the name": {
+      "comment": "Accessibility label of a map place switch.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra il nome"
           }
         }
       }
@@ -12126,6 +12612,42 @@
         }
       }
     },
+    "The map data is missing from this copy of the app.": {
+      "comment": "Canvas note when the bundled map data cannot be read.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The map data is missing from this copy of the app."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In questa copia dell’app mancano i dati della mappa."
+          }
+        }
+      }
+    },
+    "The map is drawn from Natural Earth's public-domain data: it shows countries and regions, not streets.": {
+      "comment": "Map page: note on the map's data and its limit.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The map is drawn from Natural Earth's public-domain data: it shows countries and regions, not streets."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La mappa è disegnata con i dati di pubblico dominio di Natural Earth: mostra paesi e regioni, non strade."
+          }
+        }
+      }
+    },
     "The page’s photos will remain available in the book.": {
       "extractionState": "manual",
       "localizations": {
@@ -13277,6 +13799,24 @@
         }
       }
     },
+    "Which photos the map shows": {
+      "comment": "Help of the map photos picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which photos the map shows"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quali foto mostra la mappa"
+          }
+        }
+      }
+    },
     "White": {
       "extractionState": "manual",
       "localizations": {
@@ -13618,6 +14158,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "I tuoi viaggi, pagina dopo pagina."
+          }
+        }
+      }
+    },
+    "Zoom": {
+      "comment": "Map page: the zoom slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom"
           }
         }
       }

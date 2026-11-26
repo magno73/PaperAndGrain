@@ -21,9 +21,26 @@ enum BookStorage {
 
     static func read(from directory: URL) throws -> Book {
         let manifest = directory.appendingPathComponent("manifest.json")
-        let book = try JSONDecoder().decode(Book.self, from: Data(contentsOf: manifest))
+        let data = try Data(contentsOf: manifest)
+        let book: Book
+        do {
+            book = try JSONDecoder().decode(Book.self, from: data)
+        } catch let error as DecodingError {
+            // A newer app may write values this one cannot decode: say so instead of calling it damaged.
+            if let header = try? JSONDecoder().decode(Header.self, from: data),
+               (header.writerVersion ?? 0) > Workspace.writerVersion {
+                throw AppError.newerFormat(title: header.title ?? "")
+            }
+            throw error
+        }
         try validate(book)
         return book
+    }
+
+    /// The fields read before the rest of a manifest.
+    private struct Header: Decodable {
+        var title: String?
+        var writerVersion: Int?
     }
 
     static func write(_ book: Book, to directory: URL) throws {

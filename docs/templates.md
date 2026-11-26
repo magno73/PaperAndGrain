@@ -53,6 +53,10 @@ Checked on 26 November 2026 by exporting a synthetic book (gallery of three, fou
 | Road Log | American Typewriter (instead of Georgia) | 9.5 pt | #5E584E |
 | Basic (no template) | Baskerville | 11.25 pt | #636260 |
 
+## Map pages
+
+A map uses the template's colors: the sea is the paper, land the paper with 10 % of the ink, coasts, lake shores and borders a 0.35 pt line of the ink at 42 %, places filled dots of the ink, the route a 0.9 pt line of the accent, and names the caption style. On dark paper (Gallery, Berlin Notebook, Nocturne) land is a lighter tint. A whole-page map reaches the trim (and the bleed) in Essential, Berlin Notebook and Postcard, whose photographs do; elsewhere it keeps the margins and gets a hairline frame. Checked with synthetic shapes on Journal, Swiss Grid and Nocturne; the real data is still to be checked on all twelve.
+
 ## Cover and spine
 
 Each template has a scale for the cover title (`EditorialStyle.coverTitleScale`). A title that does not fit the band at full scale falls back to the page heading size. If the spine is at least 5 mm wide, the print PDF and the flat cover of a print-service profile carry the title on it, reading top to bottom with the foot towards the front, in the template's heading typeface and color.

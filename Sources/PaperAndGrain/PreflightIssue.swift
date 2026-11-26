@@ -117,6 +117,8 @@ extension BookPDF {
             case missingMeasure(PrintMeasure, tableLimit: Int?)
             /// A caption on its photo taller than half the photo, or a caption that crosses the trim.
             case captionDoesNotFit
+            /// A map page, but no photo the map counts has a location: nothing would print.
+            case mapWithoutPlaces
             /// A word the spell checker does not know, with a few words around it.
             case possibleMisspelling(word: String, context: String)
             /// The CMYK output profile cannot be used: its copy is missing, changed or not a CMYK output
@@ -143,6 +145,7 @@ extension BookPDF {
                 case let .pageCount(limit, _, _): "pageCount." + limit.key
                 case let .missingMeasure(measure, _): "missingMeasure." + measure.rawValue
                 case .captionDoesNotFit: "captionDoesNotFit"
+                case .mapWithoutPlaces: "mapWithoutPlaces"
                 case .possibleMisspelling: "possibleMisspelling"
                 case .colorProfileUnusable: "colorProfileUnusable"
                 case .colorModeNotAccepted: "colorModeNotAccepted"
@@ -171,6 +174,7 @@ extension BookPDF {
                 case .pageCount: "book.pages"
                 case .missingMeasure: "ruler"
                 case .captionDoesNotFit: "text.below.photo"
+                case .mapWithoutPlaces: "map"
                 case .possibleMisspelling: "textformat.abc"
                 case .colorProfileUnusable: "paintpalette"
                 case .colorModeNotAccepted: "drop.halffull"
@@ -298,6 +302,7 @@ extension BookPDF {
             case let .possibleMisspelling(word, context):
                 [place, "“" + word + "”", context.isEmpty ? nil : context]
             case .captionDoesNotFit: [place, excerpt.map { "“" + $0 + "”" }, L10n.string("Caption does not fit", language: language)]
+            case .mapWithoutPlaces: [place, L10n.string("No photo in this book has a location", language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")
         }
