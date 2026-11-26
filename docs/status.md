@@ -255,7 +255,7 @@ None of this was seen on screen (no GUI access in this run). With the bundle fro
 - **Tested only on macOS 27.** macOS 14, 15 and 26 are supported but untested.
 - **Spine never printed.** The spine geometry has been checked in PDFs only; a real printed spine has never been checked.
 - **Font embedding.** The templates use fonts that ship with macOS. Their license for embedding in PDFs of books that are sold has not been checked.
-- **One print-service entry.** The catalog holds only the Pixartprinting 21 × 21 cm hardcover; the other services of the 0.11 plan come as data (T11). Other products use the generic print PDF with the bleed and spine of the product's specifications.
+- **Few print-service entries.** The catalog holds Pixartprinting (21 × 21 cm only), Peecho, WhiteWall, Lulu and Mixam's hardcover. Saal Digital, Blurb, Mixam layflat and Pixartprinting's other sizes are missing for the reasons in `docs/print-services.md`. Other products use the generic print PDF with the bleed and spine of the product's specifications.
 - **One safe margin.** The layout keeps one safe margin on every side. A product's larger binding margin (15 mm for Pixartprinting) is not applied to the layout: the guides show it and the preflight warns about text inside it.
 - **sRGB only.** PDFs are written in sRGB; check the color requirements of the product you order.
 - **Analysis is a suggestion.** Vision labels describe what the model recognizes. They do not establish where a photo was taken or who appears in it. The animal detector locates only cats and dogs; wildlife relies on scene labels.
