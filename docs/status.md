@@ -14,6 +14,8 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of ch
 
 ### Documents
 
+- String Catalog merge driver (`scripts/l10n-merge.py`, T0): unit tests run it on the catalog merged with itself (byte-identical), on two branches adding different keys (both kept, sorted) and on two Italian translations of one key (exit 1, key named, file untouched). A real `git merge` with the `git config merge.l10n-catalog.driver` entry set was run in a scratch clone.
+
 - Unit tests: opening and closing a book leaves `manifest.json` byte-identical; a package renamed while open keeps its edits after quit and reopen; a missing package reports the move and can still be saved elsewhere; a book from a newer version opens read-only and is never rewritten; a book in a read-only location opens without errors and **Save As** makes it editable; every draft is listed beyond the recents limit; **Save As** from a draft moves the draft to the Trash; **Delete Draft…** moves only a draft to the Trash; **Save As** runs off the main thread and keeps edits made meanwhile; the editor session changes for another package with the same book ID but not on **Save As**; quitting saves the book without a window; error messages exist in English and Italian.
 - Older projects without the optional fields (`layerOrder`, text box styles, cover placements, adjustments) open with their previous appearance.
 
