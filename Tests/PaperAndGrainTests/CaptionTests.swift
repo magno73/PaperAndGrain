@@ -296,6 +296,20 @@ final class CaptionTests: XCTestCase {
                                    storyPanel: nil, lookup: book.photo))
     }
 
+    func testUseThisOneCarriesTheCaptionOver() {
+        var chosen = BookPhoto(name: "a", filename: "a.jpg", pixelWidth: 10, pixelHeight: 10)
+        var first = BookPhoto(name: "b", filename: "b.jpg", pixelWidth: 10, pixelHeight: 10)
+        var second = BookPhoto(name: "c", filename: "c.jpg", pixelWidth: 10, pixelHeight: 10)
+        XCTAssertEqual(SimilarPhotos.captionCarry(chosen: chosen, replaced: [first, second]), .none)
+        second.caption = "Etosha"
+        first.caption = "  "
+        XCTAssertEqual(SimilarPhotos.captionCarry(chosen: chosen, replaced: [first, second]), .copy("Etosha"))
+        chosen.caption = "Etosha"
+        XCTAssertEqual(SimilarPhotos.captionCarry(chosen: chosen, replaced: [first, second]), .none)
+        chosen.caption = "Okaukuejo"
+        XCTAssertEqual(SimilarPhotos.captionCarry(chosen: chosen, replaced: [first, second]), .keepsOwn)
+    }
+
     // MARK: Text
 
     func testAutomaticCaptionFromPlaceAndDate() {

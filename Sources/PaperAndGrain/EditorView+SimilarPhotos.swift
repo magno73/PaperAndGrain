@@ -93,6 +93,15 @@ extension EditorView {
                 for other in others { pages[index].substitutePhoto(other, with: chosen) }
             }
         }
+        // The caption belongs to the photo: carry it over when the chosen one has none. Same undo step.
+        if case let .copy(caption) = captionCarry(chosen, replacing: others), let index = photoIndex(chosen) {
+            let previous = book.photos[index].caption
+            book.photos[index].caption = caption
+            if let undoManager {
+                undoTarget.registerPhotoValue(undoManager, binding: $book, bookID: book.id, photoID: chosen,
+                                              key: \.caption, previous: previous, name: name)
+            }
+        }
         for side in [CoverSide.front, .back] {
             guard let current = coverPhotoID(side), others.contains(current) else { continue }
             let key: WritableKeyPath<BookCover, UUID?> = side == .front ? \.frontPhotoID : \.backPhotoID
@@ -105,14 +114,24 @@ extension EditorView {
         }
     }
 
-    /// Where `chosen` would replace others, for the sheet to say before the click.
+    func captionCarry(_ chosen: UUID, replacing others: [UUID]) -> SimilarPhotos.CaptionCarry {
+        guard let photo = indexedPhoto(chosen) else { return .none }
+        return SimilarPhotos.captionCarry(chosen: photo, replaced: others.compactMap(indexedPhoto))
+    }
+
+    /// Where `chosen` would replace others, for the sheet to say before the click, and what happens to captions.
     func useThisOneEffect(_ chosen: UUID, among members: [UUID], locations: [UUID: [PhotoUsageIndex.Location]]) -> String {
         let others = SimilarPhotos.replaceable(by: chosen, in: members, entries: SimilarPhotos.entries(book.photos))
         if others.isEmpty { return tr("No other photo is close enough to this one to be replaced.") }
         var seen = Set<String>()
         let places = others.flatMap { locations[$0] ?? [] }.map(usageDescription).filter { seen.insert($0).inserted }
-        if places.isEmpty { return tr("The similar photos are not placed, so no page changes.") }
-        return tr("Replaces the similar photos on: %@", places.joined(separator: ", "))
+        let effect = places.isEmpty ? tr("The similar photos are not placed, so no page changes.")
+            : tr("Replaces the similar photos on: %@", places.joined(separator: ", "))
+        switch captionCarry(chosen, replacing: others) {
+        case .none: return effect
+        case let .copy(caption): return effect + " " + tr("Takes the caption “%@”.", caption)
+        case .keepsOwn: return effect + " " + tr("Keeps its own caption; a replaced photo has a different one.")
+        }
     }
 
     // MARK: Compare sheet

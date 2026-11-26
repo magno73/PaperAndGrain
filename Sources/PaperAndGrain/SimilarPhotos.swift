@@ -91,6 +91,25 @@ enum SimilarPhotos {
         }
     }
 
+    /// What **Use This One** does with captions, which belong to the photo and would otherwise be lost
+    /// with the replaced pictures.
+    enum CaptionCarry: Equatable, Sendable {
+        /// Nothing to change: no replaced photo has a caption, or they all match the chosen one's.
+        case none
+        /// The chosen photo has no caption and takes this one, the first among the replaced photos.
+        case copy(String)
+        /// The chosen photo keeps its own caption although a replaced photo has a different one.
+        case keepsOwn
+    }
+
+    static func captionCarry(chosen: BookPhoto, replaced: [BookPhoto]) -> CaptionCarry {
+        let theirs = replaced.compactMap(\.printedCaption)
+        if let own = chosen.printedCaption {
+            return theirs.contains { $0 != own } ? .keepsOwn : .none
+        }
+        return replaced.first(where: { $0.printedCaption != nil })?.caption.map(CaptionCarry.copy) ?? .none
+    }
+
     private static func before(_ a: Entry, _ b: Entry) -> Bool {
         switch (a.time, b.time) {
         case let (x?, y?) where x != y: return x < y

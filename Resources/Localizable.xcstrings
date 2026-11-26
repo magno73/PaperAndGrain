@@ -5973,6 +5973,24 @@
         }
       }
     },
+    "Keeps its own caption; a replaced photo has a different one.": {
+      "comment": "Compare sheet: the chosen photo keeps its caption, which differs from a replaced photo's.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeps its own caption; a replaced photo has a different one."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantiene la propria didascalia; una foto sostituita ne ha una diversa."
+          }
+        }
+      }
+    },
     "Kodachrome": {
       "comment": "Book template name; a proper name, not translated.",
       "extractionState": "manual",
@@ -10529,6 +10547,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Accetta al massimo %1$lld pagine (ne ha %2$lld)"
+          }
+        }
+      }
+    },
+    "Takes the caption “%@”.": {
+      "comment": "Compare sheet: Use This One copies a replaced photo's caption to the chosen one.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takes the caption “%@”."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prende la didascalia «%@»."
           }
         }
       }
