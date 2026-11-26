@@ -139,6 +139,30 @@ final class IssuesTests: XCTestCase {
         XCTAssertTrue(report.groups(of: .warning).isEmpty)
     }
 
+    func testAPhotoPlacedTwiceKeepsDistinctStableIds() {
+        let photo = lowPhoto("twice.png", side: 300)
+        var book = Book(title: "Twice", photos: [photo],
+                        pages: [BookPage(layout: .gallery, photoIDs: [photo.id, photo.id])])
+        book.printSettings = PrintSettings(targetPPI: 300)
+        let first = BookPDF.preflight(book, directory: nil, profile: .print).warnings
+        let second = BookPDF.preflight(book, directory: nil, profile: .print).warnings
+        XCTAssertEqual(first.count, 2)
+        XCTAssertEqual(Set(first.map(\.id)).count, 2, "\(first.map(\.id))")
+        XCTAssertEqual(first.map(\.id), second.map(\.id))
+    }
+
+    func testOverflowMessagesNameTheirSubject() {
+        var book = sampleBook()
+        book.pages[2].text = String(repeating: "Una riga di racconto che non finisce mai. ", count: 400)
+        let lines = BookPDF.printWarnings(book).filter { $0.contains("Text overflows") }
+        XCTAssertEqual(lines.count, 2, "\(lines)")
+        XCTAssertEqual(Set(lines).count, 2, "\(lines)")
+        XCTAssertTrue(lines.contains { $0.contains("Story") }, "\(lines)")
+        XCTAssertTrue(lines.contains { $0.contains("“Troppo testo Troppo testo”") }, "\(lines)")
+        let it = Issue(location: .cover, problem: .textOverflows, target: .cover(front: true))
+        XCTAssertEqual(it.message(language: "it"), "Copertina · Fronte · Il testo eccede lo spazio")
+    }
+
     func testPlacelessMessageLeavesOutThePage() {
         let issue = Issue(location: .page(2), problem: .missingFile("a.png"))
         XCTAssertEqual(issue.message(language: "en"), "p. 2 · a.png · Photo file missing")

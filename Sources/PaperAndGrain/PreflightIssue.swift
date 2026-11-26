@@ -131,17 +131,25 @@ extension BookPDF {
         /// The page the issue belongs to; the page number in `location` can change, the id cannot.
         var pageID: UUID?
         var target: IssueTarget?
+        /// Which occurrence of the target on the page, when a photo is placed twice (0 for the first).
+        var occurrence = 0
+        /// The first words of the text box the issue is about, to tell boxes apart in a message.
+        var excerpt: String?
 
-        init(location: Location? = nil, problem: Problem, pageID: UUID? = nil, target: IssueTarget? = nil) {
+        init(location: Location? = nil, problem: Problem, pageID: UUID? = nil, target: IssueTarget? = nil,
+             occurrence: Int = 0, excerpt: String? = nil) {
             self.location = location
             self.problem = problem
             self.pageID = pageID
             self.target = target
+            self.occurrence = occurrence
+            self.excerpt = excerpt
         }
 
         /// Built from the kind, the page and the object, so a list keeps its rows between runs.
         var id: String {
-            [problem.kind, pageID?.uuidString ?? "-", target?.key ?? "-"].joined(separator: "|")
+            [problem.kind, pageID?.uuidString ?? "-", target?.key ?? "-"]
+                .joined(separator: "|") + (occurrence > 0 ? "|" + String(occurrence) : "")
         }
 
         /// The page or cover face to show, or nil for an issue about the whole book.
@@ -155,6 +163,18 @@ extension BookPDF {
             case .story?, .cover?, nil: nil
             }
             return owner.map { .page($0.id) }
+        }
+
+        /// What overflows, so two lines of one page are never identical: the story, the box's first
+        /// words, or the face of the cover.
+        private func overflowSubject(language: String) -> String? {
+            switch target {
+            case .story?: L10n.string("Story", language: language)
+            case .textBox?:
+                excerpt.map { "“" + $0 + "”" } ?? L10n.string("Text Box", language: language)
+            case let .cover(front)?: L10n.string(front ? "Front" : "Back", language: language)
+            case .photo?, .caption?, nil: nil
+            }
         }
 
         /// "location · subject · problem", in `language`. The CLI reads it in English. A list that
@@ -172,7 +192,7 @@ extension BookPDF {
             case let .unreadableLUT(name): [place, name, L10n.string("Unreadable LUT", language: language)]
             case let .lowResolution(photo, ppi, target):
                 [place, photo, String(format: "%.0f ppi < %.0f ppi", ppi, target)]
-            case .textOverflows: [place, L10n.string("Text overflows", language: language)]
+            case .textOverflows: [place, overflowSubject(language: language), L10n.string("Text overflows", language: language)]
             case let .blankPages(pages):
                 [place, L10n.string("Blank pages for alignment", language: language),
                  pages.map(String.init).joined(separator: ", ")]

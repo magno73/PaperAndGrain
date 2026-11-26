@@ -148,9 +148,12 @@ enum BookPDF {
             var location: PreflightIssue.Location
             var pageID: UUID?
             var target: IssueTarget?
+            var occurrence = 0
+            var excerpt: String?
 
             func issue(_ problem: PreflightIssue.Problem) -> PreflightIssue {
-                PreflightIssue(location: location, problem: problem, pageID: pageID, target: target)
+                PreflightIssue(location: location, problem: problem, pageID: pageID, target: target,
+                               occurrence: occurrence, excerpt: excerpt)
             }
         }
         func checkFiles(_ photo: BookPhoto, at place: Place) {
@@ -184,15 +187,20 @@ enum BookPDF {
         }
         let style = book.editorialStyle
         for leaf in slots.compactMap({ $0 }) where leaf.half == 0 {
+            // A cancelled live run is discarded, so stop working on it.
+            if Task.isCancelled { break }
             let page = leaf.page
             let at = Place(location: .page(leaf.number), pageID: page.id)
             if page.photoIDs.contains(where: { book.photo($0) == nil }) {
                 report.blockers.append(at.issue(.missingPhoto))
             }
             let composition = PageComposition(page: page, book: book)
+            var placed = [UUID: Int]()
             for slot in composition.photos {
                 var place = at
                 place.target = .photo(slot.photo.id)
+                place.occurrence = placed[slot.photo.id, default: 0]
+                placed[slot.photo.id, default: 0] += 1
                 checkFiles(slot.photo, at: place)
                 checkResolution(slot.photo, frame: slot.frame, fills: slot.fills, crop: slot.crop, at: place)
             }
@@ -208,6 +216,7 @@ enum BookPDF {
                                              in: frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)) {
                     var place = at
                     place.target = .textBox(box.id)
+                    place.excerpt = Self.excerpt(of: box.text)
                     report.blockers.append(place.issue(.textOverflows))
                 }
             }
@@ -233,6 +242,13 @@ enum BookPDF {
             }
         }
         return report
+    }
+
+    /// The first words of a box's text, short enough for a list row; nil for an empty box.
+    private static func excerpt(of text: String) -> String? {
+        let words = text.split(whereSeparator: \.isWhitespace).prefix(4).joined(separator: " ")
+        guard !words.isEmpty else { return nil }
+        return words.count > 28 ? String(words.prefix(28)) + "…" : words
     }
 
     private struct Leaf {

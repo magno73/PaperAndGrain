@@ -230,7 +230,7 @@ final class PrintReleaseTests: XCTestCase {
         let report = BookPDF.preflight(book, directory: folder, profile: .print)
         let blockers = report.blockers.map { $0.message(language: "en") }
         XCTAssertEqual(blockers.count, 4, "\(blockers)")
-        XCTAssertTrue(blockers.contains("p. 2 · Text overflows"), "\(blockers)")
+        XCTAssertTrue(blockers.contains("p. 2 · “Troppo testo Troppo testo” · Text overflows"), "\(blockers)")
         XCTAssertTrue(blockers.contains("p. 3 · Missing photo"), "\(blockers)")
         XCTAssertTrue(blockers.contains("p. 3 · lost.png · Photo file missing"))
         XCTAssertTrue(blockers.contains("p. 4 · broken.cube · Unreadable LUT"))

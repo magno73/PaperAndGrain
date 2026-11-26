@@ -154,6 +154,10 @@ struct EditorView: View, Localizing {
 
     @State var showsIssues = false
 
+    /// The popover opened from the menu, anchored to the canvas so it shows even when the toolbar
+    /// has no Issues item (removed with Customize Toolbar, or a layout saved by 0.10).
+    @State var showsIssuesFromMenu = false
+
     enum Inspector: String, CaseIterable {
         case page, text, photo, film
     }
@@ -467,6 +471,12 @@ struct EditorView: View, Localizing {
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
         }
+        .overlay(alignment: .topTrailing) {
+            Color.clear.frame(width: 1, height: 1)
+                .popover(isPresented: $showsIssuesFromMenu, arrowEdge: .bottom) { issuesPopover }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .foregroundStyle(ink)
         .tint(pine)
         .coordinateSpace(name: EditorDropTarget.coordinateSpace)
@@ -474,6 +484,8 @@ struct EditorView: View, Localizing {
         .onPreferenceChange(CanvasHitMaps.self) { canvasHits.maps = $0 }
         .task { recheckIssues(immediately: true) }
         .onChange(of: book) { recheckIssues() }
+        // A package renamed or moved in Finder changes where the photo files are looked up.
+        .onChange(of: directory) { recheckIssues(immediately: true) }
         .onChange(of: book.photos.map(\.id), initial: true) { _, ids in
             photoIndices = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
         }

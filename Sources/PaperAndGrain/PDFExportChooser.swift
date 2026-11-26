@@ -13,6 +13,10 @@ struct PDFExportChooser: View, Localizing {
     let language: String
     let cancel: () -> Void
     let export: (PDFExportRequest) -> Void
+    /// The remedy a row offers. The sheet is opened by the app scene, which cannot reach the editor
+    /// that performs fixes, so the scene passes nothing today; a task that adds a fix passes the
+    /// editor's provider here and the rows stay identical to the Issues popover.
+    let fix: (BookPDF.PreflightIssue) -> IssueFix?
 
     @State private var profile: Profile = .proof
     @State private var spine: String
@@ -23,12 +27,14 @@ struct PDFExportChooser: View, Localizing {
     }
 
     init(book: Book, directory: URL? = nil, language: String, cancel: @escaping () -> Void,
+         fix: @escaping (BookPDF.PreflightIssue) -> IssueFix? = { _ in nil },
          export: @escaping (PDFExportRequest) -> Void) {
         self.book = book
         self.directory = directory
         self.language = language
         self.cancel = cancel
         self.export = export
+        self.fix = fix
         let number = FloatingPointFormatStyle<Double>.number.locale(Locale(identifier: language))
             .precision(.fractionLength(0...2)).grouping(.never)
         _spine = State(initialValue: book.cover.flatMap { $0.spineMM > 0 ? $0.spineMM.formatted(number) : nil } ?? "")
@@ -129,7 +135,7 @@ struct PDFExportChooser: View, Localizing {
                 .accessibilityAddTraits(.isHeader)
             if let report {
                 IssueScroll(maxHeight: 210) {
-                    IssueList(report: report, language: language, emptyText: tr("No problems found"))
+                    IssueList(report: report, language: language, emptyText: tr("No problems found"), fix: fix)
                 }
                 if !report.blockers.isEmpty {
                     Text(tr("Fix these problems to export the PDF."))

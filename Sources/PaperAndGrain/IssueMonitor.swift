@@ -37,7 +37,9 @@ final class IssueMonitor {
                 do { try await sleep(delay) } catch { return }
             }
             if Task.isCancelled { return }
-            let found = await Task.detached(priority: .utility) { check(book, directory, profile) }.value
+            let work = Task.detached(priority: .utility) { check(book, directory, profile) }
+            // An overtaken run also cancels the check itself, which stops at the next page.
+            let found = await withTaskCancellationHandler { await work.value } onCancel: { work.cancel() }
             if Task.isCancelled { return }
             self?.report = found
         }

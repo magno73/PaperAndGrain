@@ -63,18 +63,19 @@ struct IssueList: View, Localizing {
     private func row(_ issue: BookPDF.PreflightIssue, severity: BookPDF.IssueSeverity) -> some View {
         let tint: Color = severity == .blocker ? .red : .orange
         let message = issue.message(language: language, includingPlace: false)
+        let spoken = issue.message(language: language)
         let kind = severity == .blocker ? tr("Problem") : tr("Warning")
         return HStack(spacing: 6) {
             if let open {
                 Button { open(issue) } label: { content(issue, message: message, tint: tint) }
                     .buttonStyle(.plain)
                     .help(tr("Go to the page and select it"))
-                    .accessibilityLabel(kind + ": " + message)
+                    .accessibilityLabel(kind + ": " + spoken)
                     .accessibilityHint(tr("Go to the page and select it"))
             } else {
                 content(issue, message: message, tint: tint)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(kind + ": " + message)
+                    .accessibilityLabel(kind + ": " + spoken)
             }
             if let fix = fix(issue) {
                 Button(fix.title) { fix.perform() }

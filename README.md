@@ -136,7 +136,7 @@ Every look choice or slider drag is a single ⌘Z step.
 **Book & Print** sets the format, bleed, safe margin, target resolution, PDF type, the side of the first page and the cover with spine width.
 
 - **Export for Print** writes `Interior.pdf` and, if enabled, `Cover.pdf`. It flags photos below the target resolution and the filler pages that panoramas need.
-- **Issues** (⇧⌘I, or the triangle in the toolbar next to **Export**) runs the same preflight check while you work, a moment after your last change, and shows the number of problems and warnings; a check mark means none. The popover lists problems first, then warnings, under the page they belong to. Click a row to go to the page and select the photo, text box, story or cover face. The list uses the Generic Print profile.
+- **Issues** (⇧⌘I, or the toolbar button next to **Export**, a triangle or, when something blocks the export, an octagon) runs the same preflight check while you work, a moment after your last change, and shows the number of problems and warnings; a check mark means none. The popover lists problems first, then warnings, under the page they belong to. Click a row to go to the page and select the photo, text box, story or cover face. The list uses the Generic Print profile.
 - Before an export, a preflight check lists what would stop it, such as text that overflows its frame or a missing photo file, and the warnings, such as low resolution. Problems must be fixed before you can continue; warnings can be ignored.
 - **Export PDF** offers **Viewing PDF**, **Generic Print** and **Pixartprinting · 21 × 21 cm**. The Pixartprinting profile writes one 1:1 PDF: a flat hardcover with the spine width from your quote, then single 216 × 216 mm pages with 3 mm bleed. PDFs are sRGB.
 

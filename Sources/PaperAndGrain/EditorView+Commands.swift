@@ -155,7 +155,7 @@ extension EditorView {
         var commands = EditorCommandSet()
         let current = index
         commands.hasPage = page != nil
-        commands.showsIssues = showsIssues
+        commands.showsIssues = showsIssues || showsIssuesFromMenu
         commands.hasPhotoSelection = canvasPhotoSelection != nil
         commands.canMoveEarlier = current.map { $0 > 0 } ?? false
         commands.canMoveLater = current.map { $0 < book.pages.count - 1 } ?? false
@@ -194,7 +194,14 @@ extension EditorView {
         commands.toggleNavigator = { showsNavigator.toggle() }
         commands.toggleInspector = { showsInspector.toggle() }
         commands.toggleTray = { showsTray.toggle() }
-        commands.toggleIssues = { showsIssues.toggle() }
+        commands.toggleIssues = {
+            if showsIssues || showsIssuesFromMenu {
+                showsIssues = false
+                showsIssuesFromMenu = false
+            } else {
+                showsIssuesFromMenu = true
+            }
+        }
         commands.setSpread = { value in if coverSide == nil { showSpread = value } }
         commands.zoomIn = { stepZoom(1) }
         commands.zoomOut = { stepZoom(-1) }

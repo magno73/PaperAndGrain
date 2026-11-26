@@ -25,7 +25,8 @@ extension EditorView {
                     Text(blockers + warnings, format: .number)
                         .foregroundStyle(blockers > 0 ? Color.red : Color.primary)
                 } icon: {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    // A different shape when something blocks the export, so color is not the only cue.
+                    Image(systemName: blockers > 0 ? "xmark.octagon.fill" : "exclamationmark.triangle.fill")
                         .symbolRenderingMode(.multicolor)
                 }
                 .labelStyle(.titleAndIcon)

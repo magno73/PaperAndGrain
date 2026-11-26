@@ -1,6 +1,6 @@
 # Status
 
-The state of testing for Paper & Grain 0.10.0 (25 November 2026). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
+The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work in progress for 0.11.0 (so far T1, the live Issues list). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
 
 ## How the app is checked
 
@@ -60,7 +60,7 @@ None of this was seen on screen (no GUI access in this run). With the bundle fro
 3. Type a long text in a text box until it overflows: a row under **Problems** appears about 0.6 s after you stop typing; click it and the box is selected. Shorten the text: the row goes away and the count falls. While typing, the window must not stutter.
 4. Do the same for the story (heading and text of a page) and for the cover title on the front and the back: the row selects the story, or shows that cover face.
 5. With no issues the popover says "The book is ready for print." and the toolbar shows the check mark.
-6. **View › Show Issues** (⇧⌘I) opens and closes the popover, and the menu item then reads **Hide Issues**. Check ⇧⌘I does not collide with a system shortcut. If **Issues** is removed from the toolbar through **Customize Toolbar…**, the menu item does nothing.
+6. **View › Show Issues** (⇧⌘I) opens and closes the popover, and the menu item then reads **Hide Issues**. Check ⇧⌘I does not collide with a system shortcut. Remove **Issues** from the toolbar with **Customize Toolbar…** and press ⇧⌘I again: the popover must still open, near the top right corner of the canvas. With the toolbar button present, ⇧⌘I opens the popover under the button instead (two popovers are never open at once). Rename the open package in Finder: the list is rechecked, with no stale "Photo file missing". With a blocker the button shows an octagon, with only warnings a triangle.
 7. **File › Export PDF**: the sheet shows the same rows (not clickable), grouped by page, with a scroll area when there are many. **Continue** stays disabled while a problem remains.
 8. Italian: switch **Settings › Language** to Italian and check the button help, the popover headings (Problemi, Avvisi, Pagina N, Tutto il libro) and the help topic **Stampa**.
 9. Dark appearance and a narrow window: the popover stays 360 pt wide and readable.
