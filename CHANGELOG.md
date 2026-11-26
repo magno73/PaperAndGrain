@@ -56,6 +56,8 @@ The eleven features of this version, grouped by feature. Books saved by 0.10 ope
 
 ### Map pages
 
+- A map page also uses photos imported before their positions were kept in the book: it reads the coordinates once from the photo files, or from Photos when access is granted, and saves them in the book.
+
 - **Insert › Map Page** and the **Map** and **Map above text** page templates draw the trip from the photos' locations: land, lakes and country borders in the template's colors, a dot per place, the route in capture order and place names in the caption style, as vectors in the PDF. Nothing is sent to a map service: the data is Natural Earth's, bundled with the app.
 - The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. **Issues** reports a map with no located photo.
 - A book with a map page is saved as a newer format: Paper & Grain 0.10 opens it read-only and says it comes from a newer version. Books without a map page stay as before.

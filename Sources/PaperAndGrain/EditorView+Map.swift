@@ -42,6 +42,34 @@ extension EditorView {
         insert(arrangement: .map)
     }
 
+    /// Photos whose coordinates are not in the book yet. Books made before locations were saved on
+    /// import keep them only in the files or in Photos; a map page reads them once, like the Photo
+    /// Library's sorting by place.
+    var mapLocationsToRead: [PlaceAsset] {
+        guard book.pages.contains(where: \.isMapPage) else { return [] }
+        return book.photos.compactMap { photo in
+            guard photo.location?.latitude == nil else { return nil }
+            let asset = PlaceAsset(id: photo.id, filename: photo.filename, sourceID: photo.sourceID)
+            return scannedPlaceAssets.contains(asset) ? nil : asset
+        }
+    }
+
+    /// Reads the missing coordinates and keeps them in the book, so the map, Issues, the PDF and the
+    /// command line all see them. Not an undo step: it records facts about the photos, not an edit.
+    func readMapLocations() async {
+        adoptReadLocations()
+        let pending = mapLocationsToRead
+        guard !pending.isEmpty else { return }
+        await readPhotoPlaces(pending)
+        adoptReadLocations()
+    }
+
+    func adoptReadLocations() {
+        guard book.pages.contains(where: \.isMapPage), !actions.isReadOnly,
+              let photos = Book.photosAdopting(placesRead, in: book.photos) else { return }
+        book.photos = photos
+    }
+
     /// Changes the map of a page as one undo step.
     func changeMap(on pageID: UUID, name: String, _ change: (inout PageMap) -> Void) {
         guard let index = book.pages.firstIndex(where: { $0.id == pageID }) else { return }

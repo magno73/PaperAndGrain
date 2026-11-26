@@ -418,4 +418,24 @@ final class MapTests: XCTestCase {
         XCTAssertEqual(MapZoomSlider.zoom(atStep: 3.2), PageMap.zoomRange.upperBound)
         XCTAssertEqual(MapZoomSlider.zoom(atStep: -3), PageMap.zoomRange.lowerBound)
     }
+
+    /// Books made before locations were saved on import: coordinates read later are kept in the book,
+    /// a place name already there survives, and photos that already have coordinates are untouched.
+    func testReadLocationsAreAdoptedWhereTheBookHasNone() {
+        var named = BookPhoto(name: "a", filename: "a.jpg", pixelWidth: 10, pixelHeight: 10)
+        named.location = PhotoLocation(name: "Sossusvlei")
+        let bare = BookPhoto(name: "b", filename: "b.jpg", pixelWidth: 10, pixelHeight: 10)
+        var placed = BookPhoto(name: "c", filename: "c.jpg", pixelWidth: 10, pixelHeight: 10)
+        placed.location = PhotoLocation(latitude: -22.9, longitude: 14.5)
+        let read: [UUID: PhotoLocation] = [
+            named.id: PhotoLocation(latitude: -24.7, longitude: 15.3),
+            bare.id: PhotoLocation(name: "Windhoek", latitude: -22.56, longitude: 17.08),
+            placed.id: PhotoLocation(latitude: 0, longitude: 0)
+        ]
+        let photos = Book.photosAdopting(read, in: [named, bare, placed])
+        XCTAssertEqual(photos?[0].location, PhotoLocation(name: "Sossusvlei", latitude: -24.7, longitude: 15.3))
+        XCTAssertEqual(photos?[1].location, PhotoLocation(name: "Windhoek", latitude: -22.56, longitude: 17.08))
+        XCTAssertEqual(photos?[2].location, placed.location)
+        XCTAssertNil(Book.photosAdopting([:], in: [named, bare, placed]))
+    }
 }

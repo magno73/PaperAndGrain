@@ -246,10 +246,13 @@ extension EditorView {
                     locations[asset.id] = location
                 }
             }
-            let missing = pending.filter { locations[$0.id] == nil }
+            // A file may carry a place name but no coordinates: Photos can still supply them.
+            let missing = pending.filter { locations[$0.id]?.latitude == nil }
             let fromPhotos = PhotoLibrary.locations(for: missing.compactMap(\.sourceID))
             for asset in missing {
-                locations[asset.id] = asset.sourceID.flatMap { fromPhotos[$0] }
+                guard let found = asset.sourceID.flatMap({ fromPhotos[$0] }) else { continue }
+                locations[asset.id] = PhotoLocation(name: locations[asset.id]?.name, latitude: found.latitude,
+                                                    longitude: found.longitude)
             }
             return locations
         }

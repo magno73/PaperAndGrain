@@ -527,6 +527,7 @@ struct EditorView: View, Localizing {
         .task(id: book.pages.contains { $0.isMapPage }) {
             if !mapDataReady, book.pages.contains(where: \.isMapPage) { mapDataReady = await MapDataStore.shared.prepare() }
         }
+        .task(id: mapLocationsToRead) { await readMapLocations() }
         .onChange(of: book) {
             recheckIssues()
             pruneGroupSelection()

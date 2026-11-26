@@ -546,3 +546,20 @@ enum MapRenderer {
         return (path, size)
     }
 }
+
+extension Book {
+    /// Photos with the coordinates read from their files or from Photos added where the book has none;
+    /// nil when nothing changes. A place name already in the book is kept.
+    static func photosAdopting(_ read: [UUID: PhotoLocation], in photos: [BookPhoto]) -> [BookPhoto]? {
+        var result = photos
+        var changed = false
+        for index in result.indices where result[index].location?.latitude == nil {
+            guard let found = read[result[index].id], let latitude = found.latitude,
+                  let longitude = found.longitude else { continue }
+            result[index].location = PhotoLocation(name: result[index].location?.name ?? found.name,
+                                                   latitude: latitude, longitude: longitude)
+            changed = true
+        }
+        return changed ? result : nil
+    }
+}
