@@ -14,7 +14,7 @@ Open a book and choose **File › Book Templates…**, **Style** in the toolbar,
 | Monograph | `monograph` | Warm paper #F6F3EC, Iowan Old Style for headings and text, an oxblood accent. One photo per page in a constant frame with 13% margins. The text is in a centered column a third of the way down the page. On the cover, a print mounted in the middle. | Photos that stand on their own, calm sequences. Inspired by *The Americans* and *American Prospects*. |
 | Postcard | `postcard` | Warm white, red Futura Bold headings, Avenir Next text, no page numbers. The photo frame stays in the same place on every page, and two or three photos stack inside it. On the cover, a poster title and a photo over three quarters of the face. | Graphic, sunny trips. Inspired by Teju Cole's *Fernweh* (MACK). |
 | Nocturne | `nocturne` | Black pages #141414, light Didot headings, Avenir Next text. Floating photos with a medium border; the text starts halfway down the page. | Nights, cities, low light, or a dark chapter inside another book. |
-| Kodachrome | `kodachrome` | Ivory #F2EDE3, Gill Sans SemiBold for headings, text in Palatino, sky blue and folios. Framed prints, never full bleed, in pairs: with three photos, one large above and two below. | Pairs that answer each other in color or shape. Inspired by Luigi Ghirri's *Kodachrome*. |
+| Slide | `kodachrome` | Ivory #F2EDE3, Gill Sans SemiBold for headings, text in Palatino, sky blue and folios. Framed prints, never full bleed, in pairs: with three photos, one large above and two below. | Pairs that answer each other in color or shape. Inspired by Luigi Ghirri's book *Kodachrome*. Its stored id stays `kodachrome`, so books saved with the earlier name open with the same template. |
 | Road Log | `roadLog` | Manila paper #EFE6D2, American Typewriter headings, Georgia text, a rust rule and page numbers. The gallery is a dense contact sheet in travel order. | Dense, chronological diaries. Inspired by Stephen Shore's *American Surfaces*. |
 
 In automatic galleries, Swiss Grid aligns the photos in modular cells. If the last row would be incomplete, the first photo widens over the empty cells. Berlin Notebook gives weight to the first photo with a side strip of smaller images. Japanese Interval places up to three staggered prints with wide space between them.
@@ -49,7 +49,7 @@ Checked on 26 November 2026 by exporting a synthetic book (gallery of three, fou
 | Monograph | Iowan Old Style Italic (instead of Roman) | 9.5 pt | #5F5B57 |
 | Postcard | Avenir Next Regular | 9.5 pt | #565656 |
 | Nocturne | Avenir Next Regular | 9.25 pt | #B5B2AD |
-| Kodachrome | Palatino | 10 pt | #5F5D59 |
+| Slide | Palatino | 10 pt | #5F5D59 |
 | Road Log | American Typewriter (instead of Georgia) | 9.5 pt | #5E584E |
 | Basic (no template) | Baskerville | 11.25 pt | #636260 |
 

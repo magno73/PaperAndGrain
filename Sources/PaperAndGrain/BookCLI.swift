@@ -84,7 +84,7 @@ enum BookCLI {
         .diary: "Diario", .atlas: "Atlante", .gallery: "Galleria", .essential: "Essenziale",
         .swissGrid: "Griglia svizzera", .berlinQuarter: "Quaderno berlinese",
         .japaneseInterval: "Intervallo giapponese", .monograph: "Monografia", .postcard: "Cartolina",
-        .nocturne: "Notturno", .kodachrome: "Kodachrome", .roadLog: "Diario di bordo",
+        .nocturne: "Notturno", .slide: "Diapositiva", .roadLog: "Diario di bordo",
     ]
 
     static func run(_ args: [String]) async -> Int32 {

@@ -19,9 +19,9 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 - **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and print-service profiles that follow a printer's product: Pixartprinting's 21 × 21 cm hardcover, Saal Digital's hardcover photo book, Peecho's hardcover, layflat and softcover books, WhiteWall's Coffee Table Book, Lulu's hardcover casewrap and paperback, and Mixam's hardcover (see [Print services](docs/print-services.md)). A preflight check flags photos below the target resolution and, for a print service, sizes and page counts the product does not take.
 - **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
 
-![Three spreads exported from Paper & Grain with the Monograph, Postcard and Kodachrome templates](docs/images/sample-spreads.jpg)
+![Three spreads exported from Paper & Grain with the Monograph, Postcard and Slide templates](docs/images/sample-spreads.jpg)
 
-*Spreads exported by the app with the Monograph, Postcard and Kodachrome templates, using the sample photo and synthetic images.*
+*Spreads exported by the app with the Monograph, Postcard and Slide templates, using the sample photo and synthetic images.*
 
 ## Download
 
@@ -108,7 +108,7 @@ Choose **Style** in the toolbar, the **Book Template** row in the Page tab, or *
 
 - **Classics:** Journal, Atlas, Gallery and Essential.
 - **Studio:** Swiss Grid, Berlin Notebook and Japanese Interval.
-- **Photobook:** Monograph, Postcard, Nocturne, Kodachrome and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's *Kodachrome* and *American Surfaces*.
+- **Photobook:** Monograph, Postcard, Nocturne, Slide and Road Log. They draw on *The Americans*, *Fernweh*, Luigi Ghirri's book *Kodachrome* (the template itself is called Slide) and *American Surfaces*.
 
 Each template sets paper color, typefaces, margins, the automatic gallery, text-over-photo panels and a cover title scaled to the template. From a spine width of 5 mm, the spine carries the book title. **Show Page Numbers** turns printed folios on or off. [Template notes](docs/templates.md).
 

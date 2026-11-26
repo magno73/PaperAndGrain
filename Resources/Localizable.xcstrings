@@ -6497,24 +6497,6 @@
         }
       }
     },
-    "Kodachrome": {
-      "comment": "Book template name; a proper name, not translated.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kodachrome"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kodachrome"
-          }
-        }
-      }
-    },
     "Landscape": {
       "extractionState": "manual",
       "localizations": {
@@ -10749,6 +10731,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Formati: %@"
+          }
+        }
+      }
+    },
+    "Slide": {
+      "comment": "Book template name (stored as “kodachrome”).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slide"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diapositiva"
           }
         }
       }

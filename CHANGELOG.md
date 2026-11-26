@@ -4,6 +4,10 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ## 0.11.0 · unreleased
 
+### Templates
+
+- The **Photobook** template that was called *Kodachrome* is now **Slide** (**Diapositiva** in Italian), because Kodachrome is a registered film name. Books saved with it open with the same template; the command line still lists and accepts it under its stored id, `kodachrome`.
+
 ### Print services
 
 - **Book & Print › Print service** chooses a printer's product and size. It sets bleed and safe margin from the product, lists its page-count and margin rules, and offers the product's sizes, closest first, when the book's size is not one of them; the size changes only when you click **Use …**.
@@ -92,7 +96,7 @@ The first public release. The interface is redesigned for current macOS, and muc
 
 ### Book templates
 
-- Five **Photobook** templates: Monograph, Postcard, Nocturne, Kodachrome and Road Log. With the earlier seven, the twelve templates are grouped in three families (**Classics**, **Studio**, **Photobook**).
+- Five **Photobook** templates: Monograph, Postcard, Nocturne, Slide and Road Log. With the earlier seven, the twelve templates are grouped in three families (**Classics**, **Studio**, **Photobook**).
 - A new book opens on the **Book Templates** chooser. The template can also be changed from **Style** in the toolbar.
 - Each template scales the cover title, and a spine of 5 mm or more carries the book title.
 - Swiss Grid no longer leaves empty cells with three photos.

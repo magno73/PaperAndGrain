@@ -565,7 +565,7 @@ private extension BookTemplate {
             case 2: return [place(0.02, 0.24, 0.47, 0.44), place(0.51, 0.24, 0.47, 0.44)]
             default: return nil
             }
-        case .kodachrome:
+        case .slide:
             // Framed prints that rhyme in pairs, never cropped to the trim.
             switch count {
             case 1: return [place(0.07, 0.16, 0.86, 0.64)]
@@ -597,7 +597,7 @@ private extension BookTemplate {
         case .monograph: panel = CGRect(x: 0, y: 0.74, width: 0.62, height: 0.26)
         case .postcard: panel = CGRect(x: 0, y: 0, width: 0.78, height: 0.28)
         case .nocturne: panel = CGRect(x: 0.20, y: 0.70, width: 0.60, height: 0.30)
-        case .kodachrome: panel = CGRect(x: 0.40, y: 0.72, width: 0.60, height: 0.28)
+        case .slide: panel = CGRect(x: 0.40, y: 0.72, width: 0.60, height: 0.28)
         case .roadLog: panel = CGRect(x: 0, y: 0.72, width: 0.70, height: 0.28)
         default: return nil
         }

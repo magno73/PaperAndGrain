@@ -59,9 +59,9 @@ final class PhotoDropTests: XCTestCase {
         let photos = [a, b, tall]
         var page = BookPage(layout: .gallery, photoIDs: [a.id, b.id])
         var book = Book(title: "Drop", photos: photos, pages: [page])
-        book.template = .kodachrome
+        book.template = .slide
         let before = PageComposition(page: page, book: book)
-        XCTAssertTrue(before.photos.allSatisfy(\.fills), "Kodachrome lays pairs out in fixed frames")
+        XCTAssertTrue(before.photos.allSatisfy(\.fills), "Slide lays pairs out in fixed frames")
         XCTAssertEqual(page.replacePhoto(a.id, with: tall, in: before), .fitted)
         book.pages = [page]
         let placed = try XCTUnwrap(PageComposition(page: page, book: book).photos.first { $0.id == tall.id }?.frame)

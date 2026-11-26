@@ -4,8 +4,9 @@ import CoreText
 
 enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
     case diary, atlas, gallery, essential, swissGrid, berlinQuarter, japaneseInterval
-    case monograph, postcard, nocturne, kodachrome, roadLog
+    case monograph, postcard, nocturne, slide = "kodachrome", roadLog
 
+    /// The stored value of `slide` stays `kodachrome`, so books saved before the rename open with the same template.
     var id: Self { self }
 
     /// Families shown as sections in the template chooser.
@@ -35,7 +36,7 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
         switch self {
         case .diary, .atlas, .gallery, .essential: .classic
         case .swissGrid, .berlinQuarter, .japaneseInterval: .studio
-        case .monograph, .postcard, .nocturne, .kodachrome, .roadLog: .photobook
+        case .monograph, .postcard, .nocturne, .slide, .roadLog: .photobook
         }
     }
 
@@ -55,7 +56,7 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
         case .monograph: "Monograph"
         case .postcard: "Postcard"
         case .nocturne: "Nocturne"
-        case .kodachrome: "Kodachrome"
+        case .slide: "Slide"
         case .roadLog: "Road Log"
         }
     }
@@ -79,7 +80,7 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
             L10n.string("A fixed picture box, red Futura headlines and a travel-poster cover.", language: language)
         case .nocturne:
             L10n.string("Black pages and floating prints, for nights, cities and low light.", language: language)
-        case .kodachrome:
+        case .slide:
             L10n.string("Framed prints in pairs on ivory paper, with Gill Sans and a sky blue.", language: language)
         case .roadLog:
             L10n.string("Manila paper, typewriter headings and dense contact sheets in travel order.", language: language)
@@ -139,7 +140,7 @@ enum BookTemplate: String, Codable, CaseIterable, Identifiable, Sendable {
                            columnFraction: 0.66, imageGap: 16, rule: false, folio: false, titleTracking: -0.4,
                            textTopFraction: 0.55, coverWindow: CGRect(x: 0.20, y: 0.36, width: 0.60, height: 0.42),
                            identity: self, coverTitleScale: 1.3)
-        case .kodachrome:
+        case .slide:
             EditorialStyle(paper: 0xF2EDE3, ink: 0x2C2B28, accent: 0x3E7CB1, titleFont: "GillSans-SemiBold",
                            bodyFont: "Palatino-Roman", titleSize: 28, bodySize: 12.5, insetFraction: 0.11,
                            columnFraction: 0.74, imageGap: 20, rule: false, folio: true, titleTracking: 0.4,
@@ -240,7 +241,7 @@ struct EditorialStyle {
         case .berlinQuarter: floor = 24
         case .japaneseInterval: floor = 16
         case .postcard, .roadLog: floor = 20
-        case .monograph, .nocturne, .kodachrome: floor = 18
+        case .monograph, .nocturne, .slide: floor = 18
         default: return override
         }
         guard override.pointSize == nil, width > 0, let heading, !heading.isEmpty,

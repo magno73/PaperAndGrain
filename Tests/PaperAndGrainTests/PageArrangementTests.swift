@@ -315,7 +315,7 @@ final class PageArrangementTests: XCTestCase {
         let photos = (1...5).map { index in
             BookPhoto(name: "Photo \(index)", filename: "photo-\(index).jpg", pixelWidth: 600, pixelHeight: 400)
         }
-        let templates: [BookTemplate] = [.monograph, .postcard, .nocturne, .kodachrome, .roadLog, .swissGrid]
+        let templates: [BookTemplate] = [.monograph, .postcard, .nocturne, .slide, .roadLog, .swissGrid]
         for template in templates {
             for format in [BookFormat.square, .portrait, .landscape] {
                 for count in 1...5 {
@@ -340,5 +340,18 @@ final class PageArrangementTests: XCTestCase {
         let mm = 72.0 / 25.4
         XCTAssertNil(BookPDF.spineTitle(book, spineWidth: 4 * mm))
         XCTAssertEqual(BookPDF.spineTitle(book, spineWidth: 6 * mm)?.string, "Sardegna")
+    }
+}
+
+final class SlideTemplateRenameTests: XCTestCase {
+    /// The Slide template keeps the stored value it had under its earlier name, so saved books open unchanged.
+    func testSlideKeepsItsStoredId() throws {
+        XCTAssertEqual(BookTemplate.slide.rawValue, "kodachrome")
+        XCTAssertEqual(BookTemplate(rawValue: "kodachrome"), .slide)
+        let book = try JSONDecoder().decode(Book.self, from: Data(#"{"id":"7C1C4F0A-3B5D-4D6E-9F10-2A3B4C5D6E7F","title":"Old","format":{"widthMM":210,"heightMM":210},"template":"kodachrome","photos":[],"pages":[],"schemaVersion":1}"#.utf8))
+        XCTAssertEqual(book.template, .slide)
+        XCTAssertTrue(String(decoding: try JSONEncoder().encode(book), as: UTF8.self).contains("\"kodachrome\""))
+        XCTAssertEqual(BookTemplate.slide.englishName, "Slide")
+        XCTAssertEqual(BookCLI.italianTemplateNames[.slide], "Diapositiva")
     }
 }

@@ -228,7 +228,7 @@ MANUAL = {
     "This book": (unit("This book"), unit("Questo libro"), "Subject of an error message when the book has no title."),
     "error.damaged_book": (unit("The book"), unit("il libro"),
                            "Stands for an untitled package in the damaged-manifest error; lowercase in Italian, where it follows “Impossibile aprire”."),
-    "Kodachrome": (unit("Kodachrome"), unit("Kodachrome"), "Book template name; a proper name, not translated."),
+    "Slide": (unit("Slide"), unit("Diapositiva"), "Book template name (stored as “kodachrome”)."),
     "Full bleed": (unit("Full bleed"), unit("Foto al vivo"), "Page template name: one photo to the page edges."),
     "“%@”": (unit("“%@”"), unit("«%@»"), "A book or file name in quotation marks."),
     "“%@” is unavailable or not in a readable format.": (

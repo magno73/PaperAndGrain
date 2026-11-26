@@ -72,7 +72,7 @@ final class CaptionTests: XCTestCase {
     // MARK: Layout
 
     func testGalleryOfThreeWithOneCaptionGivesUpACommonBand() throws {
-        for template in [nil, BookTemplate.swissGrid, .kodachrome, .postcard, .diary] {
+        for template in [nil, BookTemplate.swissGrid, .slide, .postcard, .diary] {
             let plain = photos(3)
             let captioned = photos(3, captions: ["Etosha, 12 May 2024"]).enumerated().map { index, photo -> BookPhoto in
                 var copy = photo; copy.id = plain[index].id; return copy
