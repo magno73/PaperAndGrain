@@ -2,11 +2,78 @@
 
 User-visible changes in each version of Paper & Grain, newest first. What has been tested, and what has not, is in [docs/status.md](docs/status.md).
 
-## 0.11.0 · unreleased
+## 0.11.0 · 2026-11-26
 
-### Templates
+The eleven features of this version, grouped by feature. Books saved by 0.10 open in 0.11 and look the same, with one exception: a book that used the template now called **Slide** under its earlier name no longer opens (see **Templates**). A book that uses a map page needs 0.11 to be edited.
 
-- The **Photobook** template **Slide** (**Diapositiva** in Italian) replaces the earlier template that carried a film brand name. Books saved with that earlier template can no longer be opened.
+### Issues
+
+- **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
+- Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
+
+### Print guides
+
+- **View › Show Print Guides** (also in the zoom menu on the canvas) draws the safe margin as a dashed line and the bleed as a thin line outside each page. They never appear in thumbnails, **Browse the Book** or the PDF.
+- Two new warnings in **Issues**: text that crosses the safe margin, and a photo edge that ends between 0.25 mm and the bleed inside the page edge.
+
+### Pages
+
+- **Page › Duplicate Page** (⌘D, also in the Pages context menu) copies a page right after itself and selects the copy. One undo step.
+
+### Captions
+
+- A photo can have a **Caption**, typed at the top of the **Photo** tab or on the page with a double-click. It follows the photo onto every page where it is placed.
+- **Position**, per page: **Automatic**, **Below**, **Above**, **On Photo** (a band at the bottom of the picture) or **Hidden**. Automatic puts it below, or on the photo when there is no room, as with full-bleed photos and panoramas. In galleries and fixed layouts the photos make room together, so they keep a common size and the captions line up.
+- **Fill from Place and Date** writes the place and capture date in the interface language; **Photo › Caption Photos on This Page** fills every empty caption on the page in one step.
+- One caption style per book, from the template, in **Book & Print › Book Typography › Captions**.
+- Captions keep inside the safe margin and, with a print service, off its wider margin along the binding.
+- **Use This One** (similar photos) carries a caption over: the chosen photo takes a replaced photo's caption when it has none, and keeps its own otherwise; the compare sheet says which.
+- The Issues list warns when a caption does not fit: on its photo and taller than half of it, across the trim, or cut because it is longer than 12 lines or 600 characters; the safe-margin warning covers captions too.
+- Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
+
+### Multiple selection
+
+- ⇧-click or ⌘-click adds an object to the selection; dragging on blank paper draws a selection rectangle; ⌘A selects every object on the page.
+- A selection of several objects moves together by drag or arrow keys, stops at the page edges as a whole, snaps by its bounding box, is removed with Delete and keeps its order with the layer commands.
+- **Arrange › Align** (six edges and centers), **Distribute Horizontally / Vertically** and **Make Same Width / Height**, also in the context menu and in the Page tab, which shows how many objects are selected. One object aligns to the page's safe margin.
+
+### Copy and paste
+
+- **Edit › Cut, Copy, Paste** and **Edit › Duplicate** work on the selected canvas objects; while text is typed they keep their text meaning. Pasted objects keep their place and order and become the selection; stories become the page's story or a text box; photos stay in their own book and are not placed twice on a page. Plain text from other apps pastes as a text box, and copied text pastes as plain text elsewhere.
+- ⌘D duplicates the selected text boxes or story; otherwise, photos included, it still duplicates the page. While a sheet such as **Book & Print** is open the canvas takes no Cut, Copy or Paste.
+
+### Missing photos
+
+- A photo whose file is missing now shows a placeholder instead of an endless spinner. **Relink…** (issue row, photo context menu, **Photo** tab) copies a chosen image into the book and keeps the photo's id, placements, crops, adjustments and film look. **Relink All from Folder…** matches several missing photos to files by name. **Copy Again from Photos** fetches the original again when access to Photos is already allowed. Relinking is not undoable.
+
+### Similar photos
+
+- **Stack Similar Photos** in the Photo Library menu groups near-duplicate photos under one thumbnail with a count. Click the count to open the group; **Compare…** shows the photos side by side, and **Use This One** swaps the others for it wherever they are placed, in one undo step.
+
+### Spelling
+
+- **Edit › Spelling and Grammar** and spell checking while typing in every book text. **Issues** lists possible misspellings (Italian and English), without place names of your photos, capitals, numbers and short words; **Ignore in This Book** and **Learn Spelling** on each row. **Settings › Check spelling in the issues list** switches it off. A book saved by 0.10 opens unchanged.
+
+### Map pages
+
+- **Insert › Map Page** and the **Map** and **Map above text** page templates draw the trip from the photos' locations: land, lakes and country borders in the template's colors, a dot per place, the route in capture order and place names in the caption style, as vectors in the PDF. Nothing is sent to a map service: the data is Natural Earth's, bundled with the app.
+- The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. **Issues** reports a map with no located photo.
+- A book with a map page is saved as a newer format: Paper & Grain 0.10 opens it read-only and says it comes from a newer version. Books without a map page stay as before.
+- Command line: `"arrangement": "map"` (or `mapAboveText`) with a `map` object in the build spec and through `patch`.
+
+### Color output
+
+- **Book & Print › Color**: sRGB or CMYK. For CMYK choose GRACoL 2006 or FOGRA39 (included with the app), PSO Coated v3 (**Download PSO Coated v3 from ECI…** contacts eci.org once, on your click; the profile belongs to ECI), a CMYK profile installed on the Mac, or **Choose ICC Profile…**. With a print service that names a profile, Book & Print says which one and chooses it when it is at hand. The profile is copied into the book when you apply.
+- Text, rules and borders in near-gray inks (every template's ink and caption ink) print with black ink only.
+- CMYK print PDFs convert the finished photos once (relative colorimetric with black point compensation), print black and gray text, rules and borders with black ink only, and name and embed the profile as the output intent. They are not labelled PDF/X; the export sheet says so.
+- A print service that asks for flattened transparency gets translucent panels blended into the photo beneath, with the text kept as text.
+- **Issues** reports a missing or unusable color profile, and a print service that asks for the other color mode.
+- Command line: `export-pdf --color srgb|cmyk [--icc PATH|ID]`.
+
+### Soft proof
+
+- **View › Proof Colors** shows the canvas photos as the book's CMYK profile prints them, with a **Proof:** tag on the page. It is not saved in the book; thumbnails stay sRGB.
+- **Issues** warns when 10 % or more of a photo is outside the printer's range: "Colors will be duller in print (18 % of the photo is outside the printer's range)".
 
 ### Print services
 
@@ -20,57 +87,6 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - A print-service file that cannot be read is skipped and named in **Book & Print**; the others stay available.
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
-
-### Map pages
-
-- **Insert › Map Page** and the **Map** and **Map above text** page templates draw the trip from the photos' locations: land, lakes and country borders in the template's colors, a dot per place, the route in capture order and place names in the caption style, as vectors in the PDF. Nothing is sent to a map service: the data is Natural Earth's, bundled with the app.
-- The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. **Issues** reports a map with no located photo.
-- A book with a map page is saved as a newer format: Paper & Grain 0.10 opens it read-only and says it comes from a newer version. Books without a map page stay as before.
-- Command line: `"arrangement": "map"` (or `mapAboveText`) with a `map` object in the build spec and through `patch`.
-
-### Copy and paste
-
-- **Edit › Cut, Copy, Paste** and **Edit › Duplicate** work on the selected canvas objects; while text is typed they keep their text meaning. Pasted objects keep their place and order and become the selection; stories become the page's story or a text box; photos stay in their own book and are not placed twice on a page. Plain text from other apps pastes as a text box, and copied text pastes as plain text elsewhere.
-- ⌘D duplicates the selected text boxes or story; otherwise, photos included, it still duplicates the page. While a sheet such as **Book & Print** is open the canvas takes no Cut, Copy or Paste.
-
-### Multiple selection
-
-- ⇧-click or ⌘-click adds an object to the selection; dragging on blank paper draws a selection rectangle; ⌘A selects every object on the page.
-- A selection of several objects moves together by drag or arrow keys, stops at the page edges as a whole, snaps by its bounding box, is removed with Delete and keeps its order with the layer commands.
-- **Arrange › Align** (six edges and centers), **Distribute Horizontally / Vertically** and **Make Same Width / Height**, also in the context menu and in the Page tab, which shows how many objects are selected. One object aligns to the page's safe margin.
-
-### Captions
-
-- A photo can have a **Caption**, typed at the top of the **Photo** tab or on the page with a double-click. It follows the photo onto every page where it is placed.
-- **Position**, per page: **Automatic**, **Below**, **Above**, **On Photo** (a band at the bottom of the picture) or **Hidden**. Automatic puts it below, or on the photo when there is no room, as with full-bleed photos and panoramas. In galleries and fixed layouts the photos make room together, so they keep a common size and the captions line up.
-- **Fill from Place and Date** writes the place and capture date in the interface language; **Photo › Caption Photos on This Page** fills every empty caption on the page in one step.
-- One caption style per book, from the template, in **Book & Print › Book Typography › Captions**.
-- Captions keep inside the safe margin and, with a print service, off its wider margin along the binding.
-- **Use This One** (similar photos) carries a caption over: the chosen photo takes a replaced photo's caption when it has none, and keeps its own otherwise; the compare sheet says which.
-- The Issues list warns when a caption does not fit: on its photo and taller than half of it, across the trim, or cut because it is longer than 12 lines or 600 characters; the safe-margin warning covers captions too.
-- Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
-
-### Soft proof
-
-- **View › Proof Colors** shows the canvas photos as the book's CMYK profile prints them, with a **Proof:** tag on the page. It is not saved in the book; thumbnails stay sRGB.
-- **Issues** warns when 10 % or more of a photo is outside the printer's range: "Colors will be duller in print (18 % of the photo is outside the printer's range)".
-
-### Color output
-
-- **Book & Print › Color**: sRGB or CMYK. For CMYK choose GRACoL 2006 or FOGRA39 (included with the app), PSO Coated v3 (**Download PSO Coated v3 from ECI…** contacts eci.org once, on your click; the profile belongs to ECI), a CMYK profile installed on the Mac, or **Choose ICC Profile…**. With a print service that names a profile, Book & Print says which one and chooses it when it is at hand. The profile is copied into the book when you apply.
-- Text, rules and borders in near-gray inks (every template's ink and caption ink) print with black ink only.
-- CMYK print PDFs convert the finished photos once (relative colorimetric with black point compensation), print black and gray text, rules and borders with black ink only, and name and embed the profile as the output intent. They are not labelled PDF/X; the export sheet says so.
-- A print service that asks for flattened transparency gets translucent panels blended into the photo beneath, with the text kept as text.
-- **Issues** reports a missing or unusable color profile, and a print service that asks for the other color mode.
-- Command line: `export-pdf --color srgb|cmyk [--icc PATH|ID]`.
-
-### Issues
-
-- **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
-- Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
-
-### Print services
-
 - Blurb: ImageWrap hardcover (five formats, four papers) and softcover (three formats). CMYK, not certified PDF/X-3:2002. The Standard Landscape spine is tabled; the other spines and cover panels are typed from Blurb's calculator.
 - Saal Digital: the hardcover photo book in five sizes, for the default cover and paper; one PDF page per double page, spine, fold-over and cover width from Saal's tables.
 - Mixam: the hardcover book in 24 sizes; the spine is typed from the Mixam cart.
@@ -78,26 +94,9 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - WhiteWall: the Coffee Table Book in six sizes and six papers; the exact page and cover sizes, bleed, fold, wrap and spine are typed from WhiteWall's configurator.
 - Peecho: hardcover, layflat and softcover books (8, 3 and 5 sizes). Each writes one PDF of single pages with the covers first and last, no bleed. [docs/print-services.md](docs/print-services.md) lists every service, what each writes, what you still enter, and the services that cannot take a PDF.
 
-### Spelling
+### Templates
 
-- **Edit › Spelling and Grammar** and spell checking while typing in every book text. **Issues** lists possible misspellings (Italian and English), without place names of your photos, capitals, numbers and short words; **Ignore in This Book** and **Learn Spelling** on each row. **Settings › Check spelling in the issues list** switches it off. A book saved by 0.10 opens unchanged.
-
-### Similar photos
-
-- **Stack Similar Photos** in the Photo Library menu groups near-duplicate photos under one thumbnail with a count. Click the count to open the group; **Compare…** shows the photos side by side, and **Use This One** swaps the others for it wherever they are placed, in one undo step.
-
-### Missing photos
-
-- A photo whose file is missing now shows a placeholder instead of an endless spinner. **Relink…** (issue row, photo context menu, **Photo** tab) copies a chosen image into the book and keeps the photo's id, placements, crops, adjustments and film look. **Relink All from Folder…** matches several missing photos to files by name. **Copy Again from Photos** fetches the original again when access to Photos is already allowed. Relinking is not undoable.
-
-### Print guides
-
-- **View › Show Print Guides** (also in the zoom menu on the canvas) draws the safe margin as a dashed line and the bleed as a thin line outside each page. They never appear in thumbnails, **Browse the Book** or the PDF.
-- Two new warnings in **Issues**: text that crosses the safe margin, and a photo edge that ends between 0.25 mm and the bleed inside the page edge.
-
-### Pages
-
-- **Page › Duplicate Page** (⌘D, also in the Pages context menu) copies a page right after itself and selects the copy. One undo step.
+- The **Photobook** template **Slide** (**Diapositiva** in Italian) replaces the earlier template that carried a film brand name. Books saved with that earlier template can no longer be opened.
 
 ## 0.10.0 · 2026-11-25
 

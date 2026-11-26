@@ -17,6 +17,10 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 - **Stories.** Write next to your photos. **Suggested photos** finds pictures that match the text, using on-device labels in English and Italian.
 - **Photo editing.** Auto enhance, light, color, black & white, detail, curves, levels and selective color. Film looks: built-in presets, 14 film-emulation LUTs and your own `.cube` or HaldCLUT files, for the whole book or a single photo.
 - **Print output.** A proof PDF, a generic print PDF with bleed (`Interior.pdf` and `Cover.pdf` with spine) and print-service profiles that follow a printer's product: Pixartprinting's 21 × 21 cm hardcover, Saal Digital's hardcover photo book, Peecho's hardcover, layflat and softcover books, WhiteWall's Coffee Table Book, Lulu's hardcover casewrap and paperback, Mixam's hardcover, and Blurb's ImageWrap hardcover and softcover (see [Print services](docs/print-services.md)). A preflight check flags photos below the target resolution and, for a print service, sizes and page counts the product does not take.
+- **Maps.** A map page draws the trip from the photos' locations, as vectors, from public-domain data bundled with the app.
+- **Checks while you work.** **Issues** runs the print preflight as you edit: text that overflows, photos below the print resolution, missing files (with **Relink…**), text and photos near the trim, captions that do not fit, a printer's page-count and size rules, colors the printer cannot reach and possible misspellings. Print guides draw the safe margin and the bleed on the canvas.
+- **Working with many photos.** Select several objects to align and distribute them, cut, copy, paste and duplicate objects, duplicate a page, and stack near-duplicate photos in the Photo Library.
+- **Color output.** Print PDFs in sRGB or in CMYK with the printer's profile, and a proof view of the canvas in the profile's colors.
 - **Command line.** A CLI to build, analyse, edit and export books from JSON, so scripts and AI agents can work on a book.
 
 ![Three spreads exported from Paper & Grain with the Monograph, Postcard and Slide templates](docs/images/sample-spreads.jpg)
@@ -193,10 +197,11 @@ See the [CLI guide](docs/cli.md) for every command and the JSON formats.
 - [Architecture and document format](docs/architecture.md)
 - [Status](docs/status.md): what has been tested, what has not, and known limitations.
 - [Templates](docs/templates.md)
+- [Print services](docs/print-services.md): the catalog of printers' products and the services that cannot take a PDF
 - [CLI](docs/cli.md), [editing commands](docs/cli-editing.md) and [media commands](docs/cli-media.md)
 
 ## Licensing
 
-The film-emulation LUTs in `Resources/FilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FilmLooks/CREDITS.md) for the original file of each look. The app names the looks descriptively and uses no film or camera trademark. The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
+The film-emulation LUTs in `Resources/FilmLooks` come from [FujifilmCameraProfiles by abpy](https://github.com/abpy/FujifilmCameraProfiles). They are licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/), which forbids commercial use; see [CREDITS](Resources/FilmLooks/CREDITS.md) for the original file of each look. The app names the looks descriptively and uses no film or camera trademark. The CMYK profiles GRACoL 2006 and FOGRA39 in `Resources/ICCProfiles` come from the ICC Profile Registry, whose terms allow them to be embedded and shared unaltered; see [CREDITS](Resources/ICCProfiles/CREDITS.md). Map pages draw on Natural Earth, public-domain data; see [CREDITS](Resources/MapData/CREDITS.md). The fonts are the ones that ship with macOS. Check their embedding license before you sell printed books.
 
 The source code is available under the [PolyForm Noncommercial License 1.0.0](LICENSE). You may use, study, modify and share it for any noncommercial purpose: personal projects, research, education, nonprofits. Selling the app or using the code in a commercial product is not allowed. For commercial licensing, write to [marco@magno.me](mailto:marco@magno.me). The bundled LUTs keep their own license, described above.

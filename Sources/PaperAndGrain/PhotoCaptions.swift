@@ -92,7 +92,7 @@ extension PageComposition {
     }
 }
 
-/// Lays out captions for one page. Rules (PRD T4): a caption is as wide as its photo and as tall as
+/// Lays out captions for one page. Rules: a caption is as wide as its photo and as tall as
 /// its text; it sits half a line below or above the frame, or on a band at the bottom of the photo;
 /// automatic placement prefers below and falls back to the photo when the text would cross the safe
 /// line. Automatic slots give up one shared band so photos keep a common size.

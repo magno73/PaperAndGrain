@@ -3,7 +3,7 @@ import PDFKit
 import XCTest
 @testable import PaperAndGrain
 
-/// The rules of Appendix A that need more than a fixed length (sizes, boards and bleeds per order, a
+/// The rules of the planning research that need more than a fixed length (sizes, boards and bleeds per order, a
 /// fold-over inside the board, page limits per paper, endpapers), the binding margin in the safe-margin
 /// check, and a catalog that survives a broken file.
 final class PrintProfileStructureTests: XCTestCase {

@@ -275,7 +275,7 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(imagewrap.papers?.map(\.id), ["premium", "standard", "prophoto-pearl", "layflat-pearl"])
         XCTAssertEqual(imagewrap.pageRules(for: imagewrap.size("large-square"), paper: imagewrap.papers?.last).maximum, 110)
         XCTAssertEqual(imagewrap.pageRules(for: imagewrap.size("large-square"), paper: imagewrap.papers?.first).maximum, 240)
-        // Trims, in points, as the PRD's table gives them.
+        // Trims, in points, as Blurb's calculator gave them during planning.
         for (id, w, h) in [("small-square", 486.0, 477.0), ("standard-portrait", 576, 720), ("standard-landscape", 684, 576),
                            ("large-landscape", 900, 765), ("large-square", 846, 846)] {
             let format = try XCTUnwrap(imagewrap.size(id)).format
@@ -302,7 +302,7 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(softSpine.value(pages: 240, paper: "premium").map { ($0 * 72 / 25.4).rounded() }, 54)
     }
 
-    /// The PRD's 20-page examples for Standard Landscape: ImageWrap cover 1483 x 648 pt (trim line 1439 x 604, spine 33) and
+    /// Blurb's 20-page examples for Standard Landscape: ImageWrap cover 1483 x 648 pt (trim line 1439 x 604, spine 33) and
     /// softcover cover 1390 x 594 pt (spine 4); the inside page is 693 x 594 pt.
     func testBlurbStandardLandscapeRendersTheDocumentedPageAndCoverSizes() throws {
         for (id, coverW, coverH, spinePT) in [("blurb-imagewrap-hardcover", 1483.0, 648.0, 33.0), ("blurb-softcover", 1390, 594, 4)] {

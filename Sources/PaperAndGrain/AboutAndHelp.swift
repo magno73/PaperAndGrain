@@ -116,6 +116,8 @@ struct HelpView: View, Localizing {
                 tr("Right-click an object for crop, adjustments and **Bring to Front / Send to Back**. Double-click a photo to crop it."),
                 tr("With objects selected, **Edit › Copy**, **Cut**, **Paste** and **Duplicate** (⌘D) work on them; text copied elsewhere pastes as a text box."),
                 tr("⇧-click or ⌘-click selects several objects, and a drag on blank paper draws a selection rectangle. Drag one of them to move them all; **Arrange › Align** and **Distribute** line them up."),
+                tr("**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead."),
+                tr("Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."),
                 tr("When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Drag further to pull it away, or hold ⌥ to move freely."),
             ]),
             Topic(id: "text", symbol: "3.circle", title: tr("Write"), lines: [

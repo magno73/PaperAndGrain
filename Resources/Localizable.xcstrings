@@ -14900,6 +14900,40 @@
           }
         }
       }
+    },
+    "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Page › Duplicate Page** (⌘D) or the Pages context menu puts a copy of the page right after it. Cut, copy and paste work on text boxes and stories; ⌘D then duplicates the selected box or story instead."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Pagina › Duplica pagina** (⌘D) o il menu contestuale di Pagine mette una copia della pagina subito dopo. Taglia, copia e incolla funzionano su riquadri di testo e racconti; ⌘D allora duplica il riquadro o il racconto selezionato."
+          }
+        }
+      }
+    },
+    "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos with no file show a grey placeholder: **Issues** lists them, and **Relink…** (or **Relink All from Folder…**) points them to a file again."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le foto senza file mostrano un segnaposto grigio: **Problemi** le elenca e **Ricollega…** (o **Ricollega tutte da una cartella…**) le riporta a un file."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
