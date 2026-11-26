@@ -93,8 +93,37 @@ final class ColorOutputTests: XCTestCase {
         XCTAssertGreaterThan(Double(gray.components?[3] ?? 0), 0.3)
         XCTAssertEqual(converter.color(red: 1, green: 1, blue: 1, blackOnly: true).components?.prefix(4).map { Double($0) }, [0, 0, 0, 0])
         // A warm ink is not neutral and uses all four inks; an area fill never uses black alone.
-        XCTAssertGreaterThan(Double(converter.color(red: 0.2, green: 0.15, blue: 0.1, blackOnly: true).components?[0] ?? 0), 0)
+        XCTAssertGreaterThan(Double(converter.color(red: 0.3, green: 0.1, blue: 0.05, blackOnly: true).components?[0] ?? 0), 0)
         XCTAssertGreaterThan(Double(converter.color(red: 0.1, green: 0.1, blue: 0.1, blackOnly: false).components?[0] ?? 0), 0)
+    }
+
+    func testTemplateInksAndCaptionInksPrintWithBlackInkOnly() throws {
+        let converter = try converter()
+        func channels(_ rgb: UInt32) -> (Double, Double, Double) {
+            (Double((rgb >> 16) & 255) / 255, Double((rgb >> 8) & 255) / 255, Double(rgb & 255) / 255)
+        }
+        var checked = 0
+        for template in BookTemplate.allCases.map(Optional.some) + [nil] {
+            var book = Book(title: "T")
+            book.template = template
+            let style = book.editorialStyle
+            for (name, ink) in [("ink", style.ink), ("caption", style.captionInk), ("caption over photo", style.overlayCaptionInk)] {
+                let (r, g, b) = channels(ink)
+                let lab = converter.lab(red: r, green: g, blue: b)
+                let components = try XCTUnwrap(converter.color(red: r, green: g, blue: b, blackOnly: true).components)
+                let blackOnly = components[0] == 0 && components[1] == 0 && components[2] == 0
+                let label = "\(template?.rawValue ?? "classic") \(name) \(String(ink, radix: 16)) L \(Int(lab.L))"
+                if lab.L < 60 {
+                    // Every dark ink and caption ink of every template prints with black ink only.
+                    XCTAssertTrue(blackOnly, label)
+                    XCTAssertGreaterThan(Double(components[3]), 0.3, label)
+                    checked += 1
+                } else {
+                    XCTAssertEqual(blackOnly, hypot(lab.a, lab.b) <= CMYKConverter.neutralChroma, label)
+                }
+            }
+        }
+        XCTAssertGreaterThanOrEqual(checked, 20)
     }
 
     // MARK: PDF

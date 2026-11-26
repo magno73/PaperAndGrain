@@ -40,8 +40,8 @@ struct ICCProfileInfo: Hashable, Sendable {
 }
 
 /// Converts the finished sRGB print render to a CMYK output profile: relative colorimetric intent with
-/// black point compensation, computed once into a 33-step table and applied with vImage. Neutral grays
-/// used for text, rules and borders print with black ink only.
+/// black point compensation, computed once into a 33-step table and applied with vImage. Near-grays
+/// (Lab C* ≤ 7) used for text, rules and borders print with black ink only, matched to their lightness.
 ///
 /// ColorSync converts with the relative intent, but its own black point compensation option moves paper
 /// white and the hue of neutrals (observed on macOS 27 with FOGRA39 and GRACoL profiles), so the
@@ -61,6 +61,7 @@ final class CMYKConverter: @unchecked Sendable {
     private let blackInkL: [Double]
     private let lock = NSLock()
     private var cache = [UInt32: [Double]]()
+    private var inkCache = [UInt32: [CGFloat]]()
 
     static let gridSize = 33
     private static let whiteD50 = (0.9642, 1.0, 0.8249)
@@ -124,27 +125,51 @@ final class CMYKConverter: @unchecked Sendable {
         return value
     }
 
-    /// Black ink alone for a neutral gray, matching its lightness after black point compensation.
-    func blackInk(gray: Double) -> Double {
-        let lab = Self.run(toLab, [Float(gray), Float(gray), Float(gray)], inChannels: 3, outChannels: 3)
-        let target = Self.lab(fromXYZ: Self.compensate(Self.xyz(fromLab: (Double(lab[0]) * 100, 0, 0)), black: blackXYZ)).0
+    /// The largest Lab chroma (C*) a text, rule or border color may have to print with black ink only.
+    /// Template inks are warm or cool dark grays up to C* 6.8 (Road Log's caption ink); a color with
+    /// C* above 7 is visibly tinted and keeps its four inks.
+    static let neutralChroma = 7.0
+
+    /// CIELAB (D50) of an sRGB color, through ColorSync.
+    func lab(red: Double, green: Double, blue: Double) -> (L: Double, a: Double, b: Double) {
+        let lab = Self.run(toLab, [Float(red), Float(green), Float(blue)], inChannels: 3, outChannels: 3)
+        return (Double(lab[0]) * 100, Double(lab[1]) * 255 - 128, Double(lab[2]) * 255 - 128)
+    }
+
+    /// True for the near-grays text, rules and borders use: Lab chroma at most `neutralChroma`.
+    func isNeutral(red: Double, green: Double, blue: Double) -> Bool {
+        let value = lab(red: red, green: green, blue: blue)
+        return hypot(value.a, value.b) <= Self.neutralChroma
+    }
+
+    /// Black ink alone matching a lightness L* (0 to 100), after black point compensation.
+    func blackInk(lightness: Double) -> Double {
+        let target = Self.lab(fromXYZ: Self.compensate(Self.xyz(fromLab: (lightness, 0, 0)), black: blackXYZ)).0
         // Black ink gets darker as it grows: the first step at least as dark as the target.
         let index = blackInkL.firstIndex { $0 <= target + 0.0001 } ?? blackInkL.count - 1
         return Double(index) / Double(blackInkL.count - 1)
     }
 
-    /// True for the grays text, rules and borders use: equal channels, within one step.
-    static func isNeutral(red: Double, green: Double, blue: Double) -> Bool {
-        let values = [red, green, blue].map { ($0 * 255).rounded() }
-        return (values.max() ?? 0) - (values.min() ?? 0) <= 1
-    }
+    /// Black ink alone for a gray value of sRGB (0 to 1).
+    func blackInk(gray: Double) -> Double { blackInk(lightness: lab(red: gray, green: gray, blue: gray).L) }
 
     func color(red: Double, green: Double, blue: Double, alpha: Double = 1, blackOnly: Bool) -> CGColor {
+        let key = UInt32((red * 255).rounded()) << 16 | UInt32((green * 255).rounded()) << 8 | UInt32((blue * 255).rounded())
+        lock.lock()
+        let known = blackOnly ? inkCache[key] : nil
+        lock.unlock()
         let components: [CGFloat]
-        if blackOnly && Self.isNeutral(red: red, green: green, blue: blue) {
-            components = [0, 0, 0, CGFloat(blackInk(gray: (red + green + blue) / 3))]
+        if let known {
+            components = known
+        } else if blackOnly && isNeutral(red: red, green: green, blue: blue) {
+            components = [0, 0, 0, CGFloat(blackInk(lightness: lab(red: red, green: green, blue: blue).L))]
         } else {
             components = cmyk(red: red, green: green, blue: blue).map { CGFloat($0) }
+        }
+        if blackOnly && known == nil {
+            lock.lock()
+            inkCache[key] = components
+            lock.unlock()
         }
         return CGColor(colorSpace: space, components: components + [CGFloat(alpha)])
             ?? CGColor(colorSpace: space, components: [0, 0, 0, 1, CGFloat(alpha)])!
