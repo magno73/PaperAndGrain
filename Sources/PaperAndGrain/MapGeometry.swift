@@ -84,6 +84,17 @@ enum MapGeometry {
                       wrapStart: wrap)
     }
 
+    /// The offset after a drag of `translation` on a map shown `shownSize` large: the map follows the pointer.
+    /// The offset is a share of the fitted region (independent of the page's size), so a move of the whole
+    /// shown width at zoom `zoom` is 1 / zoom.
+    static func panned(_ offset: MapOffset, by translation: CGSize, shownSize: CGSize, zoom: Double,
+                       limit: Double = 2) -> MapOffset {
+        guard shownSize.width > 0, shownSize.height > 0, zoom > 0 else { return offset }
+        func clamp(_ value: Double) -> Double { min(limit, max(-limit, value)) }
+        return MapOffset(x: clamp(offset.x - Double(translation.width / shownSize.width) / zoom),
+                         y: clamp(offset.y - Double(translation.height / shownSize.height) / zoom))
+    }
+
     /// Merges points closer than `threshold`, in order: each point joins the first place within reach of it,
     /// whose position stays where it was first seen. Returns, for each place, its point and its members.
     static func merge(_ points: [CGPoint], threshold: CGFloat) -> [(point: CGPoint, members: [Int])] {

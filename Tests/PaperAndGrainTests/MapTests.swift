@@ -194,8 +194,10 @@ final class MapTests: XCTestCase {
                                                          MapLabel(key: map.places[2].key, hidden: true)])
         let edited = MapComposition(page: page, book: book, frame: frame, fillsTrim: false, language: "en", store: store)
         XCTAssertEqual(edited.places[0].name, "Home")
-        XCTAssertNil(edited.places[2].name)
-        XCTAssertNil(edited.places[2].label)
+        // A hidden place is gone: no dot, no name; it stays listed for the Page tab.
+        XCTAssertEqual(edited.places.count, 4)
+        XCTAssertFalse(edited.places.contains { $0.key == map.places[2].key })
+        XCTAssertEqual(edited.hiddenPlaces.map(\.suggestedName), ["Sossusvlei"])
         XCTAssertTrue(edited.route.isEmpty)
         for place in map.places { XCTAssertTrue(frame.contains(place.point)) }
     }
@@ -437,5 +439,72 @@ final class MapTests: XCTestCase {
         XCTAssertEqual(photos?[1].location, PhotoLocation(name: "Windhoek", latitude: -22.56, longitude: 17.08))
         XCTAssertEqual(photos?[2].location, placed.location)
         XCTAssertNil(Book.photosAdopting([:], in: [named, bare, placed]))
+    }
+
+    func testAHiddenPlaceLeavesTheMapAndTheFit() throws {
+        let store = try store()
+        // Departure photos in Milan and Munich, then the trip in Namibia.
+        var book = namibia()
+        var milano = BookPhoto(name: "m", filename: "m.jpg", pixelWidth: 10, pixelHeight: 10)
+        milano.location = PhotoLocation(name: "Milano", latitude: 45.46, longitude: 9.19)
+        milano.capturedAt = Date(timeIntervalSince1970: 1_600_000_000)
+        var monaco = BookPhoto(name: "b", filename: "b.jpg", pixelWidth: 10, pixelHeight: 10)
+        monaco.location = PhotoLocation(name: "Monaco di Baviera", latitude: 48.14, longitude: 11.58)
+        monaco.capturedAt = Date(timeIntervalSince1970: 1_600_000_100)
+        book.photos += [milano, monaco]
+        book.pages[0].photoIDs += [milano.id, monaco.id]
+        let frame = CGRect(x: 40, y: 40, width: 500, height: 500)
+        let wide = MapComposition(page: book.pages[1], book: book, frame: frame, fillsTrim: false, language: "en", store: store)
+        XCTAssertEqual(wide.places.count, 7 - 2 - 1, "Europe and Africa: Namibia's nearby places merge")
+        XCTAssertGreaterThan(try XCTUnwrap(wide.region).height, 40)
+        // Hiding Milan and Munich: no dot, no name, off the route, out of the fit.
+        let keys = wide.places.filter { $0.name == "Milano" || $0.name == "Monaco di Baviera" }.map(\.key)
+        XCTAssertEqual(keys.count, 2)
+        var page = book.pages[1]
+        page.map = PageMap(labels: keys.map { MapLabel(key: $0, hidden: true) })
+        let trip = MapComposition(page: page, book: book, frame: frame, fillsTrim: false, language: "en", store: store)
+        XCTAssertEqual(trip.places.count, 5)
+        XCTAssertFalse(trip.places.contains { $0.name == "Milano" || $0.name == "Monaco di Baviera" })
+        XCTAssertEqual(Set(trip.hiddenPlaces.map(\.suggestedName)), ["Milano", "Monaco di Baviera"])
+        XCTAssertEqual(trip.route.count, 5)
+        XCTAssertLessThan(try XCTUnwrap(trip.region).width, 20, "fitted to Namibia")
+        for place in trip.places { XCTAssertTrue(frame.contains(place.point)) }
+        // Every place hidden: the map still shows its land, with no dot, and it is not "without places".
+        page.map = PageMap(labels: (keys + trip.places.map(\.key)).map { MapLabel(key: $0, hidden: true) })
+        let none = MapComposition(page: page, book: book, frame: frame, fillsTrim: false, language: "en", store: store)
+        XCTAssertTrue(none.places.isEmpty)
+        XCTAssertFalse(none.isEmpty)
+        XCTAssertNotNil(none.region)
+    }
+
+    func testFramingIsIndependentOfTheShownSizeAndTownsReachFurtherOnWideMaps() throws {
+        let store = try store()
+        let book = namibia()
+        var page = book.pages[1]
+        page.map = PageMap(zoom: 1.5, centerOffset: MapOffset(x: 0.2, y: -0.1))
+        // The canvas at any zoom, the thumbnails and the PDF compose the same page in page points.
+        let page1 = MapComposition(page: page, book: book, frame: CGRect(x: 0, y: 0, width: 400, height: 300),
+                                   fillsTrim: false, store: store)
+        let page2 = MapComposition(page: page, book: book, frame: CGRect(x: 10, y: 10, width: 800, height: 600),
+                                   fillsTrim: false, store: store)
+        XCTAssertEqual(try XCTUnwrap(page1.region), try XCTUnwrap(page2.region))
+        // A drag moves the map with the pointer: a whole width at 200 % is half the fitted span.
+        let moved = MapGeometry.panned(MapOffset(x: 0, y: 0), by: CGSize(width: -400, height: 150),
+                                       shownSize: CGSize(width: 400, height: 300), zoom: 2)
+        XCTAssertEqual(moved.x, 0.5, accuracy: 1e-9)
+        XCTAssertEqual(moved.y, -0.25, accuracy: 1e-9)
+        XCTAssertEqual(MapGeometry.panned(MapOffset(x: 1.9, y: 0), by: CGSize(width: -400, height: 0),
+                                          shownSize: CGSize(width: 400, height: 300), zoom: 1).x, 2, "limited")
+        // Names: 50 km on a regional map, up to 150 km on a wide one.
+        let regional = try XCTUnwrap(MapGeometry.region(for: [MapCoordinate(longitude: 17, latitude: -22)], aspect: 1))
+        XCTAssertEqual(MapComposition.labelReach(for: regional), 50)
+        let world = try XCTUnwrap(MapGeometry.region(for: [MapCoordinate(longitude: 9, latitude: 45),
+                                                           MapCoordinate(longitude: 17, latitude: -22)], aspect: 1))
+        XCTAssertEqual(MapComposition.labelReach(for: world), 150)
+        let place = try XCTUnwrap(store.geography()?.places.first)
+        let nearby = MapCoordinate(longitude: place.coordinate.longitude + 1, latitude: place.coordinate.latitude)
+        XCTAssertNil(MapComposition.nearestTown(to: nearby, in: try XCTUnwrap(store.geography()), language: "en"))
+        XCTAssertEqual(MapComposition.nearestTown(to: nearby, in: try XCTUnwrap(store.geography()), language: "en", within: 150),
+                       place.name)
     }
 }

@@ -54,6 +54,8 @@ extension EditorView {
             Group {
                 if let cropSession {
                     cropToolbar(cropSession)
+                } else if let mapAdjust {
+                    mapAdjustToolbar(mapAdjust)
                 } else if let coverSide {
                     coverTools(coverSide)
                 } else if let page {
@@ -422,6 +424,10 @@ extension EditorView {
             }
             canvasCaptionEditor(leaf, composition: composition, scale: scale)
                 .zIndex(10_000)
+            if let map = composition.map {
+                mapAdjustSurface(leaf, map: map, scale: scale)
+                    .zIndex(30_000)
+            }
             if let folio = composition.folio {
                 let label = style.typography(String(number(of: leaf)), heading: nil, mixed: true)
                 positioned(editorialText(label, scale: scale), in: scaled(folio, by: scale))

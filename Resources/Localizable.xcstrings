@@ -853,20 +853,20 @@
         }
       }
     },
-    "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom. The map shows countries and regions, not streets.": {
+    "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom, and hides places the map should leave out. Double-click the map to move and zoom it, then **Done**. The map shows countries and regions, not streets.": {
       "comment": "Help: the Create the book topic, about map pages and their limit.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom. The map shows countries and regions, not streets."
+            "value": "**Insert › Map Page** draws where the photos were taken, from the photos' locations; the Page tab sets the route, names, borders and zoom, and hides places the map should leave out. Double-click the map to move and zoom it, then **Done**. The map shows countries and regions, not streets."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "**Inserisci › Pagina con mappa** disegna dove sono state scattate le foto, dalle loro posizioni; la scheda Pagina regola percorso, nomi, confini e zoom. La mappa mostra paesi e regioni, non strade."
+            "value": "**Inserisci › Pagina con mappa** disegna dove sono state scattate le foto, dalle loro posizioni; la scheda Pagina regola percorso, nomi, confini e zoom e nasconde i luoghi da lasciare fuori. Fai doppio clic sulla mappa per spostarla e ingrandirla, poi **Fine**. La mappa mostra paesi e regioni, non strade."
           }
         }
       }
@@ -1367,6 +1367,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Regola"
+          }
+        }
+      }
+    },
+    "Adjust Map": {
+      "comment": "Map page: start framing the map on the canvas; also the undo action name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adjust Map"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regola mappa"
           }
         }
       }
@@ -4773,6 +4791,42 @@
         }
       }
     },
+    "Drag the map to move it and pinch or scroll to zoom; Done or Esc to finish": {
+      "comment": "Help of Adjust Map.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag the map to move it and pinch or scroll to zoom; Done or Esc to finish"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina la mappa per spostarla e avvicina le dita o scorri per lo zoom; Fine o Esc per terminare"
+          }
+        }
+      }
+    },
+    "Drag to move the map; pinch or scroll to zoom": {
+      "comment": "Accessibility hint of the map being framed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to move the map; pinch or scroll to zoom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina per spostare la mappa; avvicina le dita o scorri per lo zoom"
+          }
+        }
+      }
+    },
     "Drag to reorder the page": {
       "extractionState": "manual",
       "localizations": {
@@ -5474,6 +5528,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adatta alla larghezza"
+          }
+        }
+      }
+    },
+    "Fit to Places": {
+      "comment": "Map: reset zoom and centre to show every shown place; also the undo action name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fit to Places"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adatta ai luoghi"
           }
         }
       }
@@ -7418,6 +7490,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mappa sopra il testo"
+          }
+        }
+      }
+    },
+    "Map framing": {
+      "comment": "Accessibility label of the map while it is framed.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map framing"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inquadratura della mappa"
           }
         }
       }
@@ -11276,6 +11366,24 @@
         }
       }
     },
+    "Show every place again, centered": {
+      "comment": "Help of Fit to Places.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show every place again, centered"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra di nuovo tutti i luoghi, centrati"
+          }
+        }
+      }
+    },
     "Show in Finder": {
       "extractionState": "manual",
       "localizations": {
@@ -11310,20 +11418,20 @@
         }
       }
     },
-    "Show or hide this name": {
+    "Show or hide this place: a hidden place has no dot, no name, is left off the route and the map no longer fits it": {
       "comment": "Help of a map place switch.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show or hide this name"
+            "value": "Show or hide this place: a hidden place has no dot, no name, is left off the route and the map no longer fits it"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostra o nasconde questo nome"
+            "value": "Mostra o nasconde questo luogo: un luogo nascosto non ha punto né nome, esce dal percorso e la mappa non lo include più"
           }
         }
       }
@@ -11341,24 +11449,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra i problemi e gli avvisi trovati nel libro"
-          }
-        }
-      }
-    },
-    "Show the name": {
-      "comment": "Accessibility label of a map place switch.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show the name"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra il nome"
           }
         }
       }
@@ -11427,6 +11517,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mostra le foto simili"
+          }
+        }
+      }
+    },
+    "Show this place": {
+      "comment": "Accessibility label of a map place switch, followed by the place name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show this place"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra questo luogo"
           }
         }
       }

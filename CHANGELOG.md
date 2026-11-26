@@ -59,7 +59,9 @@ The eleven features of this version, grouped by feature. Books saved by 0.10 ope
 - A map page also uses photos imported before their positions were kept in the book: it reads the coordinates once from the photo files, or from Photos when access is granted, and saves them in the book.
 
 - **Insert › Map Page** and the **Map** and **Map above text** page templates draw the trip from the photos' locations: land, lakes and country borders in the template's colors, a dot per place, the route in capture order and place names in the caption style, as vectors in the PDF. Nothing is sent to a map service: the data is Natural Earth's, bundled with the app.
-- The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. **Issues** reports a map with no located photo.
+- The page tab chooses the photos, route, place names, country borders and zoom, and renames or hides each place. A hidden place leaves the map entirely and the map fits the others. **Issues** reports a map with no located photo.
+- Double-click a map (or **Adjust Map**) to frame it: drag to move, pinch, scroll or the slider to zoom, **Done** or Esc to finish, one ⌘Z step; **Fit to Places** resets it. The framing is kept as a share of the map's region, so the canvas, thumbnails, **Browse the Book** and the PDF show the same.
+- On a map of a wide area, a place without a name of its own takes the nearest town up to 150 km away (50 km on a regional map).
 - A book with a map page is saved as a newer format: Paper & Grain 0.10 opens it read-only and says it comes from a newer version. Books without a map page stay as before.
 - Command line: `"arrangement": "map"` (or `mapAboveText`) with a `map` object in the build spec and through `patch`.
 

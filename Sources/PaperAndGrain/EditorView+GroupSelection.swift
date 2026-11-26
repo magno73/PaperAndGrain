@@ -205,7 +205,7 @@ extension EditorView {
 
     /// A press on blank paper of a page can start a selection rectangle.
     func canBeginMarquee(at point: CGPoint) -> Bool {
-        guard coverSide == nil, cropSession == nil, inlineEditingBox == nil, editingEditorial == nil,
+        guard coverSide == nil, cropSession == nil, mapAdjust == nil, inlineEditingBox == nil, editingEditorial == nil,
               dropFrames[.canvasViewport]?.contains(point) == true, !isCanvasControl(point) else { return false }
         return pageUnder(point).map { canvasTarget(at: point, on: .canvasPage($0.id)) == .paper } ?? false
     }
