@@ -11,6 +11,8 @@ struct CanvasStoryGroup<Content: View>: View {
     let onSelect: () -> Void
     let onNudge: (CGSize) -> Bool
     let onMove: (CGSize) -> Void
+    /// Set while the story belongs to a selection of several objects: a drag moves the whole selection.
+    var groupMove: ((_ translation: CGSize, _ ended: Bool) -> Void)? = nil
     @ViewBuilder let content: () -> Content
 
     @GestureState private var dragPreview: CanvasAlignment.Result?
@@ -62,9 +64,15 @@ struct CanvasStoryGroup<Content: View>: View {
     private var drag: some Gesture {
         DragGesture(minimumDistance: 3, coordinateSpace: .global)
             .updating($dragPreview) { event, state, _ in
+                guard groupMove == nil else { return }
                 state = destination(event.translation)
             }
+            .onChanged { event in groupMove?(event.translation, false) }
             .onEnded { event in
+                if let groupMove {
+                    groupMove(event.translation, true)
+                    return
+                }
                 onSelect()
                 let delta = offset(to: destination(event.translation).frame)
                 if delta != .zero { onMove(delta) }

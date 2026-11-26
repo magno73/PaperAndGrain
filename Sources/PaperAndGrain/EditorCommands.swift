@@ -39,6 +39,9 @@ struct EditorCommandSet {
     var canBringForward = false
     var canSendBackward = false
     var canCaptionPage = false
+    var canAlign = false
+    var canDistribute = false
+    var canMakeSameSize = false
 
     var insertPage: () -> Void = {}
     var insertTextBox: () -> Void = {}
@@ -69,6 +72,11 @@ struct EditorCommandSet {
     var togglePrintGuides: () -> Void = {}
     var browse: () -> Void = {}
     var moveLayer: (PageLayer.Move) -> Void = { _ in }
+    var align: (CanvasGroupGeometry.Alignment) -> Void = { _ in }
+    /// True distributes horizontally.
+    var distribute: (Bool) -> Void = { _ in }
+    /// True makes the same width.
+    var makeSameSize: (Bool) -> Void = { _ in }
 }
 
 private struct EditorCommandsKey: FocusedValueKey {
@@ -213,6 +221,26 @@ struct EditorMenus: Commands, Localizing {
             Button(tr("Send to Back")) { editor?.moveLayer(.back) }
                 .keyboardShortcut("b", modifiers: [.command, .shift])
                 .disabled(editor?.canSendBackward != true)
+            Divider()
+            Menu(tr("Align")) {
+                Button(tr("Align Left")) { editor?.align(.left) }
+                Button(tr("Align Center")) { editor?.align(.center) }
+                Button(tr("Align Right")) { editor?.align(.right) }
+                Divider()
+                Button(tr("Align Top")) { editor?.align(.top) }
+                Button(tr("Align Middle")) { editor?.align(.middle) }
+                Button(tr("Align Bottom")) { editor?.align(.bottom) }
+            }
+            .disabled(editor?.canAlign != true)
+            Menu(tr("Distribute")) {
+                Button(tr("Distribute Horizontally")) { editor?.distribute(true) }
+                Button(tr("Distribute Vertically")) { editor?.distribute(false) }
+            }
+            .disabled(editor?.canDistribute != true)
+            Button(tr("Make Same Width")) { editor?.makeSameSize(true) }
+                .disabled(editor?.canMakeSameSize != true)
+            Button(tr("Make Same Height")) { editor?.makeSameSize(false) }
+                .disabled(editor?.canMakeSameSize != true)
         }
     }
 }

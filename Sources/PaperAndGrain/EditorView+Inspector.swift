@@ -179,6 +179,7 @@ extension EditorView {
 
     @ViewBuilder var pageInspector: some View {
         bookTemplateRow
+        groupInspector
         if let coverSide {
             coverInspector(coverSide)
         } else if let page {

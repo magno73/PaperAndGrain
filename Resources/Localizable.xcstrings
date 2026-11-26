@@ -348,6 +348,48 @@
         }
       }
     },
+    "%lld objects selected": {
+      "comment": "Multiple selection: count announced to VoiceOver and shown in the Page tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld object selected"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld objects selected"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld oggetto selezionato"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld oggetti selezionati"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld pages": {
       "comment": "Page count of a book (toolbar subtitle, navigator, recent books).",
       "extractionState": "manual",
@@ -1128,6 +1170,60 @@
         }
       }
     },
+    "Align": {
+      "comment": "Arrange menu: submenu of the alignment commands.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea"
+          }
+        }
+      }
+    },
+    "Align Bottom": {
+      "comment": "Arrange: align the bottom edges.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align Bottom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea in basso"
+          }
+        }
+      }
+    },
+    "Align Center": {
+      "comment": "Arrange: align the horizontal centres.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align Center"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea al centro"
+          }
+        }
+      }
+    },
     "Align Left": {
       "extractionState": "manual",
       "localizations": {
@@ -1145,6 +1241,24 @@
         }
       }
     },
+    "Align Middle": {
+      "comment": "Arrange: align the vertical centres.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align Middle"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea al centro verticale"
+          }
+        }
+      }
+    },
     "Align Right": {
       "extractionState": "manual",
       "localizations": {
@@ -1158,6 +1272,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Allinea a destra"
+          }
+        }
+      }
+    },
+    "Align Top": {
+      "comment": "Arrange: align the top edges.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Align Top"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allinea in alto"
           }
         }
       }
@@ -3970,6 +4102,60 @@
         }
       }
     },
+    "Distribute": {
+      "comment": "Arrange menu: submenu of the distribution commands.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribute"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribuisci"
+          }
+        }
+      }
+    },
+    "Distribute Horizontally": {
+      "comment": "Arrange: equal horizontal gaps between three or more objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribute Horizontally"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribuisci orizzontalmente"
+          }
+        }
+      }
+    },
+    "Distribute Vertically": {
+      "comment": "Arrange: equal vertical gaps between three or more objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribute Vertically"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distribuisci verticalmente"
+          }
+        }
+      }
+    },
     "Documentary": {
       "extractionState": "manual",
       "localizations": {
@@ -4206,6 +4392,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ingrandisci il box o riduci la dimensione del testo."
+          }
+        }
+      }
+    },
+    "Equal gaps from left to right; the outer two stay": {
+      "comment": "Help of Distribute Horizontally.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equal gaps from left to right; the outer two stay"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spazi uguali da sinistra a destra; i due esterni restano fermi"
+          }
+        }
+      }
+    },
+    "Equal gaps from top to bottom; the outer two stay": {
+      "comment": "Help of Distribute Vertically.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equal gaps from top to bottom; the outer two stay"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spazi uguali dall’alto in basso; i due esterni restano fermi"
           }
         }
       }
@@ -6472,6 +6694,42 @@
         }
       }
     },
+    "Make Same Height": {
+      "comment": "Arrange: give the selected objects the height of the one selected last.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make Same Height"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stessa altezza"
+          }
+        }
+      }
+    },
+    "Make Same Width": {
+      "comment": "Arrange: give the selected objects the width of the one selected last.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make Same Width"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stessa larghezza"
+          }
+        }
+      }
+    },
     "Manila paper, typewriter headings and dense contact sheets in travel order.": {
       "extractionState": "manual",
       "localizations": {
@@ -6689,6 +6947,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sposta dopo"
+          }
+        }
+      }
+    },
+    "Move Objects": {
+      "comment": "Undo action name for moving several selected objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move Objects"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sposta oggetti"
           }
         }
       }
@@ -9138,6 +9414,24 @@
         }
       }
     },
+    "Remove the selected photos and text boxes from the page": {
+      "comment": "Help of Remove from Page for several objects.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove the selected photos and text boxes from the page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toglie dalla pagina le foto e i box di testo selezionati"
+          }
+        }
+      }
+    },
     "Reorder Page": {
       "extractionState": "manual",
       "localizations": {
@@ -11202,6 +11496,24 @@
         }
       }
     },
+    "The height of the object selected last": {
+      "comment": "Help of Make Same Height.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The height of the object selected last"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’altezza dell’oggetto selezionato per ultimo"
+          }
+        }
+      }
+    },
     "The image is unavailable or not in a readable format.": {
       "extractionState": "manual",
       "localizations": {
@@ -11422,6 +11734,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il testo supera lo spazio della copertina."
+          }
+        }
+      }
+    },
+    "The width of the object selected last": {
+      "comment": "Help of Make Same Width.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The width of the object selected last"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La larghezza dell’oggetto selezionato per ultimo"
           }
         }
       }
@@ -13237,6 +13567,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "«%@» non è mai stato salvato in un file. La bozza verrà spostata nel Cestino."
+          }
+        }
+      }
+    },
+    "⇧-click or ⌘-click selects several objects, and a drag on blank paper draws a selection rectangle. Drag one of them to move them all; **Arrange › Align** and **Distribute** line them up.": {
+      "comment": "Help: the Lay out pages topic, about multiple selection.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⇧-click or ⌘-click selects several objects, and a drag on blank paper draws a selection rectangle. Drag one of them to move them all; **Arrange › Align** and **Distribute** line them up."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⇧-clic o ⌘-clic seleziona più oggetti, e trascinando sulla carta vuota si traccia un rettangolo di selezione. Trascinane uno per spostarli tutti; **Disponi › Allinea** e **Distribuisci** li mettono in ordine."
           }
         }
       }

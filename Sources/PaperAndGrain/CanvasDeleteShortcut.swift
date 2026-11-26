@@ -15,13 +15,20 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
     let onDelete: () -> Bool
     let onDeselect: () -> Bool
     let onNudge: (CGSize) -> Bool
-    let onClick: (CGPoint) -> Void
+    /// A completed click and the modifier keys held for it (⇧ or ⌘ add to the selection).
+    let onClick: (CGPoint, NSEvent.ModifierFlags) -> Void
     let onPointerDown: (CGPoint) -> Void
     let onKeyboardTraversal: () -> Void
     var onContextMenu: (CGPoint) -> [EditorMenuEntry]? = { _ in nil }
     /// Returns true when a scroll at this point should turn pages instead of scrolling content.
     var canTurnPages: (CGPoint) -> Bool = { _ in false }
     var onTurnPage: (Int) -> Void = { _ in }
+    /// ⌘A outside text: returns true when it selected objects on the canvas.
+    var onSelectAll: () -> Bool = { false }
+    /// Whether a press here may start a selection rectangle (blank paper of a page).
+    var canBeginMarquee: (CGPoint) -> Bool = { _ in false }
+    /// The selection rectangle from its origin to the pointer; `ended` on release.
+    var onMarquee: (_ origin: CGPoint, _ point: CGPoint, _ ended: Bool) -> Void = { _, _, _ in }
 
     func makeNSView(context: Context) -> Anchor {
         let anchor = Anchor(frame: .zero)
@@ -39,6 +46,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         anchor.onContextMenu = onContextMenu
         anchor.canTurnPages = canTurnPages
         anchor.onTurnPage = onTurnPage
+        anchor.onSelectAll = onSelectAll
+        anchor.canBeginMarquee = canBeginMarquee
+        anchor.onMarquee = onMarquee
     }
 
     static func dismantleNSView(_ anchor: Anchor, coordinator: ()) {
@@ -63,6 +73,15 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         return (keyCode == 53 && shortcut.isEmpty) || (keyCode == 0 && shortcut == [.command, .shift])
     }
 
+    nonisolated static func isSelectAllKey(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags, isRepeat: Bool) -> Bool {
+        !isRepeat && keyCode == 0 && modifiers.intersection([.command, .control, .option, .shift]) == .command
+    }
+
+    /// ⇧ or ⌘ held with a click adds the object to the selection or removes it.
+    nonisolated static func extendsSelection(_ modifiers: NSEvent.ModifierFlags) -> Bool {
+        !modifiers.isDisjoint(with: [.shift, .command])
+    }
+
     nonisolated static func nudgeOffset(_ keyCode: UInt16, modifiers: NSEvent.ModifierFlags) -> CGSize? {
         guard modifiers.isDisjoint(with: [.command, .control, .option]) else { return nil }
         let step: CGFloat = modifiers.contains(.shift) ? 10 : 1
@@ -85,7 +104,12 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
         var onDelete: () -> Bool = { false }
         var onDeselect: () -> Bool = { false }
         var onNudge: (CGSize) -> Bool = { _ in false }
-        var onClick: (CGPoint) -> Void = { _ in }
+        var onClick: (CGPoint, NSEvent.ModifierFlags) -> Void = { _, _ in }
+        var onSelectAll: () -> Bool = { false }
+        var canBeginMarquee: (CGPoint) -> Bool = { _ in false }
+        var onMarquee: (CGPoint, CGPoint, Bool) -> Void = { _, _, _ in }
+        private var marqueeOrigin: CGPoint?
+        private var marqueeActive = false
         var onPointerDown: (CGPoint) -> Void = { _ in }
         var onKeyboardTraversal: () -> Void = {}
         var onContextMenu: (CGPoint) -> [EditorMenuEntry]? = { _ in nil }
@@ -117,6 +141,8 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
 
         func stopMonitoring() {
             pressOrigin = nil
+            marqueeOrigin = nil
+            marqueeActive = false
             if let monitor {
                 NSEvent.removeMonitor(monitor)
                 self.monitor = nil
@@ -155,6 +181,9 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             if CanvasDeleteShortcut.isDeselectKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
                 return onDeselect() ? nil : event
             }
+            if CanvasDeleteShortcut.isSelectAllKey(event.keyCode, modifiers: event.modifierFlags, isRepeat: event.isARepeat) {
+                return onSelectAll() ? nil : event
+            }
             if let offset = CanvasDeleteShortcut.nudgeOffset(event.keyCode, modifiers: event.modifierFlags) {
                 return onNudge(offset) ? nil : event
             }
@@ -185,20 +214,37 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
             case .leftMouseDown:
                 let point = convert(location, from: nil)
                 onPointerDown(point)
+                marqueeOrigin = nil
+                marqueeActive = false
                 if bounds.contains(point),
                    CanvasDeleteShortcut.isPrimaryMousePress(clickCount: event.clickCount, modifiers: event.modifierFlags) {
                     pressOrigin = location
+                    if canBeginMarquee(point) { marqueeOrigin = point }
                 } else {
                     pressOrigin = nil
                 }
             case .rightMouseDown, .otherMouseDown:
                 pressOrigin = nil
+                marqueeOrigin = nil
+                marqueeActive = false
                 onKeyboardTraversal()
             case .leftMouseDragged:
                 if let origin = pressOrigin, !CanvasDeleteShortcut.isWithinClickDistance(from: origin, to: location) {
                     pressOrigin = nil
                 }
+                if let origin = marqueeOrigin {
+                    let point = convert(location, from: nil)
+                    if marqueeActive || !CanvasDeleteShortcut.isWithinClickDistance(from: origin, to: point) {
+                        marqueeActive = true
+                        onMarquee(origin, point, false)
+                    }
+                }
             case .leftMouseUp:
+                if let marquee = marqueeOrigin, marqueeActive {
+                    onMarquee(marquee, convert(location, from: nil), true)
+                }
+                marqueeOrigin = nil
+                marqueeActive = false
                 let origin = pressOrigin
                 pressOrigin = nil
                 guard let origin, CanvasDeleteShortcut.isWithinClickDistance(from: origin, to: location),
@@ -206,11 +252,12 @@ struct CanvasDeleteShortcut: NSViewRepresentable {
                 else { return }
                 let point = convert(location, from: nil)
                 guard bounds.contains(point) else { return }
+                let modifiers = event.modifierFlags
                 // Let AppKit finish dispatching mouse-up before selection changes replace SwiftUI controls.
                 DispatchQueue.main.async { [weak self, weak window] in
                     guard let self, let window, self.window === window, window.isKeyWindow,
                           window.attachedSheet == nil else { return }
-                    self.onClick(point)
+                    self.onClick(point, modifiers)
                 }
             default:
                 break

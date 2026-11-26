@@ -366,6 +366,7 @@ extension EditorView {
         if cropSession?.surface != .canvasPage(leaf.id) { finishCrop() }
         if coverSide != nil || leaf.id != page?.id {
             endInlineTextEditing()
+            if canvasGroup.isActive { canvasGroup = CanvasGroupSelection() }
             canvasPhotoSelection = nil
             selectedPhoto = nil
             selectedBox = nil

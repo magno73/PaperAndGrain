@@ -1,10 +1,10 @@
 # Status
 
-The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work in progress for 0.11.0 (so far T1, the live Issues list; T2, print guides; T3, Duplicate Page; T4, photo captions; and T10, the print-service profile engine). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
+The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work in progress for 0.11.0 (so far T1, the live Issues list; T2, print guides; T3, Duplicate Page; T4, photo captions; T5, multiple selection; T7, relink; T8, similar photos; and T10, the print-service profile engine). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 292 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 301 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
@@ -57,7 +57,22 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 - Caption style on all twelve templates and the basic style: a synthetic book (Demo.png and two `sips` variants; a three-photo gallery with two captions, a four-photo grid, full bleed, text beside photo, a manual frame with a caption below, two stacked bleed photos, text over photo and a panorama) was built with `cli build`, exported with `export-pdf --profile proof` and rendered to PNG with PDFKit. Captions read at their size on every paper, dark papers included; Japanese Interval, Monograph and Road Log were changed to another face of their family (values in [templates](templates.md)). The panorama's band caption stays on the left page. After T10, the same book in Journal and Berlin Notebook was exported through Generic Print, Generic Print with facing-page spreads and the Pixartprinting profile: bands on full-bleed photos run into the 3 mm bleed on the outer edges and stop at the trim on the binding edge of a spread, like the photo under them; the panorama's band runs across the gutter with its text on the left page.
 - Cost, after the review: composing a four-photo gallery page in a release build takes about 0.003 ms with no caption, 0.027 ms with two captions, and 0.30 ms with a pasted caption of 10,000 characters, which is cut to 600 (it took 62 ms before the cut and the single typesetting). A page without printed captions does no caption work. Unit tests cover the cut (characters and lines, with a **Caption does not fit** warning), a frame across the gutter of a panorama (the wider side, or the whole width with a warning) and the absence of caption work on a page without captions.
 
+### Multiple selection (T5)
+
+- Unit tests (`GroupSelectionTests`): ⇧/⌘ toggling and a click on the other page of a spread; the selection rectangle drawn both ways, touching versus missing, and an empty one; the group move clamped at each of the four page edges and for a bleeding photo; a group move on a page keeps page, photo and box ids, fixes the other automatic frames and moves the box; the story moves as one group; the six alignments, also to a safe area; distribution of four frames of unequal size, outer two fixed, equal gaps, horizontally and vertically; same width and same height from the last selected, with and without proportions; front, back, forward and backward on a selection of non-adjacent layers keep their order, and nothing moves past the top. The ⌘A and modifier tests of the monitor.
+
 ## Not yet verified
+
+### Multiple selection (T5)
+
+Nothing of T5 was seen on screen (no GUI access). With a bundle from `./scripts/build-app.sh` and a synthetic two-page spread holding a text box and two photos:
+
+1. Draw a rectangle from blank paper across the box and both photos: all three get an outline and no handles; the Page tab says "3 objects selected"; VoiceOver says it. Drag one photo: all three move together, the guides show for the bounding box, and the group stops at the page edge as a whole. Nudge with → and ⇧→. **Arrange › Align › Align Top**. Then ⌘Z four times: the page is as it started. Save, close, reopen: the frames after the moves are kept when the undos are not made.
+2. ⇧-click one photo out of the selection and back in; ⌘-click a photo on the other page: a new single selection there. ⌘A on the canvas, and in a text field (selects text instead). Esc and ⇧⌘A deselect.
+3. **Distribute Horizontally** with three objects, **Make Same Width** with two photos (proportions kept) and with two boxes; the inspector buttons and the context menu on a selected object show the same actions. **Bring Forward** with two objects keeps their order.
+4. Delete with photos and a box selected: they leave the page, the photos are back in the Photo Library; ⌘Z returns them.
+5. A selected photo with a caption: the caption follows the group drag. Drop a selection onto another photo: no swap.
+6. Single-selection regression list, each to check: click; double-click to crop; double-click to type in a box and in the story; resize by a corner and by a side handle; swap by drop; ⌥-drag to overlap without snapping; context menu on a photo, box and story; layer commands; Delete and ⌘Z; arrow keys; ⌘D duplicates the page.
 
 ### Captions (T4)
 

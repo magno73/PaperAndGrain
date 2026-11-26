@@ -21,6 +21,11 @@ struct CanvasObjectControl<Content: View>: View {
     /// caption follows the photo while it is dragged or resized. It never takes a click, and it sits
     /// under the selection handles, so the object's drag, resize and double-click always win.
     var attachment: ((CGRect) -> AnyView)? = nil
+    /// Part of a selection of several objects: an outline without handles.
+    var outlined = false
+    /// Set while the object belongs to a selection of several: a drag reports its translation (in
+    /// `moveSpace` points, `ended` on release) so the editor moves the whole selection; no swap, no own preview.
+    var groupMove: ((_ translation: CGSize, _ ended: Bool) -> Void)? = nil
     let onSelect: () -> Void
     let onNudge: (CGSize) -> Bool
     let onChange: (CGRect) -> Void
@@ -60,12 +65,22 @@ struct CanvasObjectControl<Content: View>: View {
             .canvasArrowKeys(perform: onNudge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityName)
-            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAddTraits(selected || outlined ? [.isButton, .isSelected] : .isButton)
             .accessibilityAction(.default, onSelect)
             .overlay(alignment: .topLeading) {
                 if let attachment {
                     attachment(visibleFrame)
                         .offset(x: -visibleFrame.minX, y: -visibleFrame.minY)
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if outlined, !selected, !reachable.isEmpty {
+                    Rectangle()
+                        .strokeBorder(.tint, lineWidth: 2)
+                        .frame(width: reachable.width, height: reachable.height)
+                        .offset(x: reachable.minX, y: reachable.minY)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                 }
@@ -99,12 +114,21 @@ struct CanvasObjectControl<Content: View>: View {
     private func drag(_ corner: CanvasCorner? = nil, widthOnly: Bool = false) -> some Gesture {
         DragGesture(minimumDistance: 3, coordinateSpace: moveSpace)
             .updating($dragPreview) { value, preview, _ in
+                guard groupMove == nil || corner != nil else { return }
                 preview = dragDestination(value, resizing: corner, widthOnly: widthOnly)
             }
             .onChanged { value in
+                if let groupMove, corner == nil {
+                    groupMove(value.translation, false)
+                    return
+                }
                 shownPlacement = dragDestination(value, resizing: corner, widthOnly: widthOnly)
             }
             .onEnded { value in
+                if let groupMove, corner == nil {
+                    groupMove(value.translation, true)
+                    return
+                }
                 // Commit what was on screen, not a fresh computation from the release point:
                 // the last pointer move could otherwise snap or unsnap at the very end.
                 let destination = shownPlacement ?? dragDestination(value, resizing: corner, widthOnly: widthOnly)

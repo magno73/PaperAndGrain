@@ -7,7 +7,7 @@ extension EditorView {
         EditorDropTarget.canvasControls.contains { dropFrames[$0]?.contains(point) == true }
     }
 
-    func selectObject(at point: CGPoint) {
+    func selectObject(at point: CGPoint, modifiers: NSEvent.ModifierFlags = []) {
         // Buttons floating over the page act on the selection; they must not clear it.
         guard !isCanvasControl(point) else { return }
         let insideCanvas = dropFrames[.canvasViewport]?.contains(point) == true
@@ -31,6 +31,14 @@ extension EditorView {
         for surface in canvasHits.maps.keys {
             guard case let .canvasPage(id) = surface, let target = canvasTarget(at: point, on: surface),
                   let leaf = id == page?.id ? page : book.pages.first(where: { $0.id == id }) else { continue }
+            // ⇧ or ⌘ adds an object to the selection or takes it out; on blank paper it changes nothing.
+            if CanvasDeleteShortcut.extendsSelection(modifiers) {
+                if layer(for: target) != nil {
+                    endInlineTextEditing()
+                    toggleSelection(target, on: leaf)
+                }
+                return
+            }
             switch target {
             case let .photo(photoID): selectCanvasPhoto(photoID, in: leaf)
             case let .caption(photoID):
@@ -58,6 +66,7 @@ extension EditorView {
     }
 
     func clearCanvasSelection() {
+        if canvasGroup != CanvasGroupSelection() { canvasGroup = CanvasGroupSelection() }
         finishCrop()
         endInlineTextEditing()
         selectedPhoto = nil
@@ -80,7 +89,8 @@ extension EditorView {
             endInlineTextEditing()
             return true
         }
-        guard selectedPhoto != nil || selectedBox != nil || selectedEditorial != nil else { return false }
+        guard selectedPhoto != nil || selectedBox != nil || selectedEditorial != nil || canvasGroup.isActive
+        else { return false }
         clearCanvasSelection()
         return true
     }
@@ -119,6 +129,10 @@ extension EditorView {
             return true
         }
         guard let page, let map = canvasHits.maps[.canvasPage(page.id)] else { return false }
+        if canvasGroup.isActive, canvasGroup.pageID == page.id {
+            moveGroup(by: offset, on: page.id)
+            return true
+        }
         if selectedEditorial == .storyGroup(page.id) {
             moveStoryGroup(on: page.id, by: offset)
             return true
@@ -148,6 +162,7 @@ extension EditorView {
         if cropSession?.surface != .canvasPage(leaf.id) || cropSession?.photoID != id { finishCrop() }
         endInlineTextEditing()
         select(leaf)
+        canvasGroup = CanvasGroupSelection()
         searchingPhotos = false
         selectedBox = nil
         selectedEditorial = nil
@@ -163,6 +178,7 @@ extension EditorView {
         finishCrop()
         if inlineEditingBox != id { endInlineTextEditing() }
         select(leaf)
+        canvasGroup = CanvasGroupSelection()
         selectedBox = id
         selectedEditorial = nil
         canvasPhotoSelection = nil
@@ -192,6 +208,7 @@ extension EditorView {
         finishCrop()
         if editingEditorial != object { endInlineTextEditing() }
         if let leaf { select(leaf) }
+        canvasGroup = CanvasGroupSelection()
         selectedEditorial = object
         selectedBox = nil
         selectedPhoto = nil
@@ -224,7 +241,8 @@ extension EditorView {
             editorInput.target = page.map { .navigatorPage($0.id) } ?? .navigatorCover
             return true
         case .canvas:
-            guard horizontal, canvasPhotoSelection == nil, selectedBox == nil, selectedEditorial == nil else { return false }
+            guard horizontal, canvasPhotoSelection == nil, selectedBox == nil, selectedEditorial == nil,
+                  !canvasGroup.isActive else { return false }
             turnCanvasPage(forward ? 1 : -1)
             editorInput.target = .canvas
             return true
@@ -270,6 +288,7 @@ extension EditorView {
     func deleteSelectedCanvasObject() -> Bool {
         guard cropSession == nil, inlineEditingBox == nil, editingEditorial == nil
         else { return false }
+        if canvasGroup.isActive { return removeGroupFromPage() }
         if let selectedBox, let page, page.textBoxes?.contains(where: { $0.id == selectedBox }) == true {
             changeTextBoxes(on: page.id, name: tr("Remove Box")) { boxes in
                 boxes.removeAll { $0.id == selectedBox }

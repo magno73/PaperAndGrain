@@ -113,6 +113,7 @@ struct HelpView: View, Localizing {
                 tr("Drag photos from the **Photo Library** at the bottom onto the page. On a photo it replaces it without a hidden crop; on an empty slot it fills it. The library menu has **Stack Similar Photos**, which groups near-duplicates; **Compare…** and **Use This One** pick the best."),
                 tr("**Layout** picks the page layout. Drag the **Pages** thumbnails to reorder; ← → and ↑ ↓ move between pages and spreads."),
                 tr("Right-click an object for crop, adjustments and **Bring to Front / Send to Back**. Double-click a photo to crop it."),
+                tr("⇧-click or ⌘-click selects several objects, and a drag on blank paper draws a selection rectangle. Drag one of them to move them all; **Arrange › Align** and **Distribute** line them up."),
                 tr("When you move or resize, guides snap photos and text to other objects and to the page edges, so a photo reaches the edge with no gap. Drag further to pull it away, or hold ⌥ to move freely."),
             ]),
             Topic(id: "text", symbol: "3.circle", title: tr("Write"), lines: [

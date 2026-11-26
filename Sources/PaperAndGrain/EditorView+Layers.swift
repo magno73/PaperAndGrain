@@ -59,6 +59,11 @@ extension EditorView {
     func canvasMenu(at point: CGPoint) -> [EditorMenuEntry]? {
         guard dropFrames[.canvasViewport]?.contains(point) == true, !isCanvasControl(point), cropSession == nil
         else { return nil }
+        // A secondary click on a member of a selection of several acts on all of them.
+        if canvasGroup.isActive, let (leaf, target) = pageTarget(at: point), let layer = layer(for: target),
+           canvasGroup.contains(layer, on: leaf.id) {
+            return groupMenuEntries
+        }
         selectObject(at: point)
         var entries: [EditorMenuEntry] = []
         if let coverSide {
@@ -123,6 +128,13 @@ extension EditorView {
             case .paper, .coverText, .crop:
                 break
             }
+        }
+        // One object aligns to the page's safe area.
+        if coverSide == nil, selectedObjects != nil {
+            entries += CanvasGroupGeometry.Alignment.allCases.map { alignment in
+                EditorMenuEntry(alignmentName(alignment)) { alignSelection(alignment) }
+            }
+            entries.append(.separator)
         }
         if coverSide == nil, page != nil {
             entries += [

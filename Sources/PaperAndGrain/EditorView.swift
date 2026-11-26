@@ -172,6 +172,10 @@ struct EditorView: View, Localizing {
     @State var undoTarget = EditorUndo()
 
     @State var cropSession: CropSession?
+    /// Two or more objects selected on one page; the single selection above is empty meanwhile.
+    @State var canvasGroup = CanvasGroupSelection()
+    /// The selection's drag and selection rectangle, read only by the views that show them.
+    @State var groupDrag = CanvasGroupDrag()
 
     @State var issues = IssueMonitor(extra: EditorView.liveSpelling)
 
@@ -486,7 +490,7 @@ struct EditorView: View, Localizing {
         .background { Theme.table.ignoresSafeArea() }
         .background(alignment: .topLeading) {
             CanvasDeleteShortcut(onDelete: deleteEditorSelection, onDeselect: deselectCanvas,
-                                 onNudge: handleArrowKey, onClick: selectObject(at:),
+                                 onNudge: handleArrowKey, onClick: { selectObject(at: $0, modifiers: $1) },
                                  onPointerDown: { point in
                 if dropFrames[.canvasViewport]?.contains(point) == true {
                     editorInput.target = .canvas
@@ -495,7 +499,9 @@ struct EditorView: View, Localizing {
                 }
             }, onKeyboardTraversal: { editorInput.target = .none },
                                  onContextMenu: canvasMenu(at:), canTurnPages: canTurnPages(at:),
-                                 onTurnPage: turnCanvasPage)
+                                 onTurnPage: turnCanvasPage, onSelectAll: selectAllObjects,
+                                 canBeginMarquee: canBeginMarquee(at:),
+                                 onMarquee: { updateMarquee(from: $0, to: $1, ended: $2) })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
@@ -512,7 +518,14 @@ struct EditorView: View, Localizing {
         .onPreferenceChange(EditorDropFrames.self) { dropFrames = $0 }
         .onPreferenceChange(CanvasHitMaps.self) { canvasHits.maps = $0 }
         .task { recheckIssues(immediately: true) }
-        .onChange(of: book) { recheckIssues() }
+        .onChange(of: book) {
+            recheckIssues()
+            pruneGroupSelection()
+        }
+        // A single selection anywhere (a library photo, the cover) ends a selection of several.
+        .onChange(of: selectedPhoto != nil || selectedBox != nil || selectedEditorial != nil || coverSide != nil) { _, single in
+            if single, canvasGroup.isActive { canvasGroup = CanvasGroupSelection() }
+        }
         // A package renamed or moved in Finder changes where the photo files are looked up.
         .onChange(of: directory) { recheckIssues(immediately: true) }
         .onChange(of: checksSpellingInIssues) { recheckIssues(immediately: true) }

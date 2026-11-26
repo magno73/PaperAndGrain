@@ -344,8 +344,9 @@ extension EditorView {
             ForEach(composition.photos) { item in
                 if cropSession?.surface != .canvasPage(leaf.id) || cropSession?.photoID != item.id {
                     let targets = alignmentTargets(in: composition, at: scale, excluding: .photo(item.id), blocks: blocks)
-                    canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds, scale: scale,
-                                alignmentTargets: targets, textFrames: textFrames)
+                    GroupDragFollower(drag: groupDrag, pageID: leaf.id, member: isGroupMember(.photo(item.id), on: leaf.id),
+                                      content: canvasPhoto(item, leaf: leaf, composition: composition, bounds: bounds,
+                                                           scale: scale, alignmentTargets: targets, textFrames: textFrames))
                         .zIndex(Double(composition.rank(.photo(item.id))))
                 }
             }
@@ -355,11 +356,15 @@ extension EditorView {
                         .zIndex(Double(composition.rank(.photo(caption.photoID))) - 0.25)
                 }
             }
-            canvasStory(leaf, composition: composition, blocks: blocks, backings: backings, bounds: bounds, scale: scale)
+            GroupDragFollower(drag: groupDrag, pageID: leaf.id, member: isGroupMember(.story, on: leaf.id),
+                              content: canvasStory(leaf, composition: composition, blocks: blocks, backings: backings,
+                                                   bounds: bounds, scale: scale))
                 .zIndex(editsStory(on: leaf.id) ? 10_000 : Double(composition.rank(.story)))
             ForEach(composition.textBoxes) { box in
                 let targets = alignmentTargets(in: composition, at: scale, excluding: .textBox(box.id), blocks: blocks)
-                canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale, alignmentTargets: targets)
+                GroupDragFollower(drag: groupDrag, pageID: leaf.id, member: isGroupMember(.textBox(box.id), on: leaf.id),
+                                  content: canvasTextBox(box, leaf: leaf, bounds: bounds, scale: scale,
+                                                         alignmentTargets: targets))
                     .zIndex(inlineEditingBox == box.id ? 10_000 : Double(composition.rank(.textBox(box.id))))
             }
             canvasCaptionEditor(leaf, composition: composition, scale: scale)
@@ -384,6 +389,11 @@ extension EditorView {
             if leaf.id == page?.id {
                 Rectangle().strokeBorder(pine.opacity(0.56), lineWidth: 1.4).allowsHitTesting(false)
             }
+        }
+        .overlay(alignment: .topLeading) {
+            GroupDragOverlay(drag: groupDrag, pageID: leaf.id, scale: scale, tint: pine)
+                .frame(width: bounds.width, height: bounds.height, alignment: .topLeading)
+                .clipped()
         }
         .overlayPreferenceValue(CanvasGuidePreference.self) { guides in
             ZStack(alignment: .topLeading) {
@@ -461,12 +471,13 @@ extension EditorView {
                              backdrops: backings.map { scaled($0, by: scale) },
                              alignmentTargets: composition.photos.map { scaled($0.frame.intersection(composition.bounds), by: scale) }
                                 + composition.textBoxes.map { scaled($0.frame.rect(in: composition.bounds), by: scale) },
-                             selected: selectedEditorial == object,
+                             selected: selectedEditorial == object || isGroupMember(.story, on: leaf.id),
                              moveLabel: tr("Move Story Group"),
                              onSelect: { activateCanvas { selectEditorial(object, on: leaf) } },
                              onNudge: { nudgeFromKeyboard($0) { selectEditorial(object, on: leaf) } },
                              onMove: { delta in moveStoryGroup(on: leaf.id, by: CGSize(width: delta.width / scale,
-                                                                                     height: delta.height / scale)) }) {
+                                                                                     height: delta.height / scale)) },
+                             groupMove: groupMove(.story, on: leaf, scale: scale)) {
                 canvasStoryContents(leaf, composition: composition, blocks: blocks, backings: backings,
                                     bounds: bounds, scale: scale)
             }
@@ -593,6 +604,8 @@ extension EditorView {
                                    onDoubleClickAt: { doubleClickPhoto(item.id, at: $0, frame: frame, composition: composition,
                                                                        scale: scale, leaf: leaf) },
                                    attachment: attachment,
+                                   outlined: isGroupMember(.photo(item.id), on: leaf.id),
+                                   groupMove: groupMove(.photo(item.id), on: leaf, scale: scale),
                                    onSelect: { activateCanvas { selectCanvasPhoto(item.id, in: leaf) } },
                                    onNudge: { nudgeFromKeyboard($0) { selectCanvasPhoto(item.id, in: leaf) } },
                                    onChange: { updatePhotoFrame(item.id, in: leaf, to: PageRect($0, in: bounds)) }) { _ in
@@ -645,6 +658,8 @@ extension EditorView {
                                        textInk: title ? (overPhoto ? style.overlayTitleInk : style.titleInk)
                                            : (overPhoto ? style.overlayInk : style.ink),
                                        textPaper: overPhoto ? style.overlayPaper : style.paper,
+                                       groupMember: isGroupMember(.story, on: leaf.id),
+                                       groupMove: groupMove(.story, on: leaf, scale: scale),
                                        onSelect: { selectEditorial(object, on: leaf) },
                                        onChange: { movePageText(block.role, on: leaf.id, to: PageRect($0, in: bounds)) })
     }
@@ -652,7 +667,8 @@ extension EditorView {
     @ViewBuilder func editableEditorialObject(
         _ object: EditorialObject, content: NSAttributedString, value: Binding<String>, type: EditorialTextStyle,
         label: String, frame: CGRect, bounds: CGRect, scale: CGFloat, targets: [CGRect],
-        textInk: UInt32? = nil, textPaper: UInt32? = nil,
+        textInk: UInt32? = nil, textPaper: UInt32? = nil, groupMember: Bool = false,
+        groupMove: ((CGSize, Bool) -> Void)? = nil,
         onSelect: @escaping () -> Void, onChange: @escaping (CGRect) -> Void
     ) -> some View {
         let style = book.editorialStyle
@@ -684,6 +700,7 @@ extension EditorView {
             CanvasObjectControl(frame: frame, bounds: bounds, selected: selectedEditorial == object,
                                 minimumSize: CGSize(width: 55 * scale, height: 22 * scale), accessibilityName: name,
                                 alignmentTargets: targets, showsWidthHandles: true, onDoubleClick: beginEditing,
+                                outlined: groupMember, groupMove: groupMove,
                                 onSelect: { activateCanvas(onSelect) },
                                 onNudge: { nudgeFromKeyboard($0, selecting: onSelect) }, onChange: onChange) { _ in
                 if content.length == 0 {
@@ -715,6 +732,8 @@ extension EditorView {
                                    accessibilityName: empty ? label : box.text,
                                    alignmentTargets: alignmentTargets, showsWidthHandles: true,
                                    onDoubleClick: { beginInlineBoxEditing(box.id, in: leaf) },
+                                   outlined: isGroupMember(.textBox(box.id), on: leaf.id),
+                                   groupMove: groupMove(.textBox(box.id), on: leaf, scale: scale),
                                    onSelect: { activateCanvas { selectTextBox(box.id, in: leaf) } },
                                    onNudge: { nudgeFromKeyboard($0) { selectTextBox(box.id, in: leaf) } },
                                    onChange: { updateTextBoxFrame(box.id, on: leaf.id, to: PageRect($0, in: bounds)) }) { _ in

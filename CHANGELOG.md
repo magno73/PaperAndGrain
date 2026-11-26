@@ -17,6 +17,12 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
 - Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
 
+### Multiple selection
+
+- ⇧-click or ⌘-click adds an object to the selection; dragging on blank paper draws a selection rectangle; ⌘A selects every object on the page.
+- A selection of several objects moves together by drag or arrow keys, stops at the page edges as a whole, snaps by its bounding box, is removed with Delete and keeps its order with the layer commands.
+- **Arrange › Align** (six edges and centers), **Distribute Horizontally / Vertically** and **Make Same Width / Height**, also in the context menu and in the Page tab, which shows how many objects are selected. One object aligns to the page's safe margin.
+
 ### Captions
 
 - A photo can have a **Caption**, typed at the top of the **Photo** tab or on the page with a double-click. It follows the photo onto every page where it is placed.
