@@ -12,6 +12,12 @@ struct EditorAppActions {
     var exportPrint: () -> Void = {}
     /// Adds Finder images to the open book; the closure reveals the first imported photo.
     var addPhotoFiles: (@escaping (UUID) -> Void) -> Void = { _ in }
+    /// The book is in a place that cannot be written, so nothing can be copied into it.
+    var isReadOnly = false
+    /// Copies the chosen files into the package and points the photos at them; reports when done.
+    var relinkPhotos: ([UUID: URL], @escaping (PhotoRelink.Report) -> Void) -> Void = { _, _ in }
+    /// Fetches the originals of photos that came from the Photos library again.
+    var copyAgainFromPhotos: ([UUID], @escaping (PhotoRelink.Report) -> Void) -> Void = { _, _ in }
 }
 
 /// Commands of the focused editor, published to the menu bar with `focusedSceneValue`.

@@ -118,6 +118,30 @@ struct DroppedPhotos {
         }
     }
 
+    /// Originals fetched again from the Photos library by their local identifiers, in order; a nil
+    /// identifier is reported as unavailable. Access must already be granted: this never asks for it.
+    static func start(photosLibrary sourceIDs: [String?]) throws -> Self? {
+        guard !sourceIDs.isEmpty else { return nil }
+        let directory = try stagingDirectory()
+        let (outcomes, continuation) = AsyncStream<Outcome>.makeStream()
+        let task = Task {
+            for (index, sourceID) in sourceIDs.enumerated() {
+                if Task.isCancelled { break }
+                var photo: BookPhoto?
+                if let sourceID {
+                    photo = try? await PhotoLibrary.importPhoto(
+                        LibraryPhoto(id: sourceID, capturedAt: nil, width: 0, height: 0), into: directory)
+                }
+                continuation.yield(Outcome(index: index, photo: photo, name: nil))
+            }
+            continuation.finish()
+        }
+        return Self(directory: directory, count: sourceIDs.count, outcomes: outcomes) {
+            continuation.finish()
+            task.cancel()
+        }
+    }
+
     func cleanUp() {
         cancelRequests()
         try? FileManager.default.removeItem(at: directory)

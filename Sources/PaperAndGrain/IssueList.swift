@@ -18,6 +18,8 @@ struct IssueList: View, Localizing {
     /// Called when a row is clicked; nil makes the rows plain text, as in the modal export sheet.
     var open: ((BookPDF.PreflightIssue) -> Void)?
     var fix: (BookPDF.PreflightIssue) -> IssueFix? = { _ in nil }
+    /// Buttons for the whole list, such as relinking every missing photo from a folder.
+    var listFixes: (BookPDF.Preflight) -> [IssueFix] = { _ in [] }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -28,6 +30,12 @@ struct IssueList: View, Localizing {
             }
             section(.blocker, title: tr("Problems"))
             section(.warning, title: tr("Warnings"))
+            ForEach(Array(listFixes(report).enumerated()), id: \.offset) { _, fix in
+                Button(fix.title) { fix.perform() }
+                    .controlSize(.small)
+                    .help(fix.help)
+                    .accessibilityHint(fix.help)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

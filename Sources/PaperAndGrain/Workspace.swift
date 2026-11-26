@@ -477,7 +477,8 @@ final class Workspace: ObservableObject {
     }
 
     /// Installs the photos in the session's current package, after any Save As copy in progress.
-    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, session: UUID) async throws {
+    private func appendDroppedPhotos(_ photos: [BookPhoto], from scratch: URL, session: UUID,
+                                     replacing apply: ((inout Book) -> Void)? = nil) async throws {
         while let copyTask {
             await copyTask.value
         }
@@ -487,7 +488,8 @@ final class Workspace: ObservableObject {
         }
         guard let directory else { throw CancellationError() }
         var updated = book
-        updated.photos.append(contentsOf: photos)
+        // A relink changes entries of the book; a plain import appends the new photos.
+        if let apply { apply(&updated) } else { updated.photos.append(contentsOf: photos) }
         let snapshot = updated
         let identity = directoryIdentity
         try await onSaveQueue {
@@ -515,7 +517,103 @@ final class Workspace: ObservableObject {
         guard editorSession == session else { throw CancellationError() }
         // Edits made while the files moved stay: add the photos to the current book.
         if self.directory == directory { lastSaved = snapshot }
-        book.photos.append(contentsOf: photos)
+        if let apply { apply(&book) } else { book.photos.append(contentsOf: photos) }
+    }
+
+    // MARK: Relinking missing photos
+
+    /// Copies each chosen image into the package and points its photo at the copy. The photo keeps its id, so
+    /// placements, crops, adjustments and film looks stay. The copies go through the drop import path, so a
+    /// file that is not an image is refused as it is there. Not undoable: files are copied.
+    @discardableResult
+    func relinkPhotos(_ files: [UUID: URL], language: String,
+                      completion: @escaping (PhotoRelink.Report) -> Void) -> Bool {
+        let ids = files.keys.sorted { $0.uuidString < $1.uuidString }
+        return runRelink(ids: ids, language: language, completion: completion) {
+            try DroppedPhotos.start(files: ids.compactMap { files[$0] })
+        }
+    }
+
+    /// Fetches the originals of photos that came from the Photos library once more. Never asks for access.
+    @discardableResult
+    func copyAgainFromPhotos(_ ids: [UUID], language: String,
+                             completion: @escaping (PhotoRelink.Report) -> Void) -> Bool {
+        let sources = ids.map { id in (id, book.photos.first { $0.id == id }?.sourceID) }
+        guard !sources.isEmpty else { return false }
+        return runRelink(ids: ids, language: language, completion: completion) {
+            try DroppedPhotos.start(photosLibrary: sources.map(\.1))
+        }
+    }
+
+    private func runRelink(ids: [UUID], language: String, completion: @escaping (PhotoRelink.Report) -> Void,
+                           start: () throws -> DroppedPhotos?) -> Bool {
+        guard directory != nil, !importing, !ids.isEmpty else { return false }
+        if let readOnlyReason {
+            problem = readOnlyReason.localizedDescription
+            return false
+        }
+        let session = editorSession
+        let drop: DroppedPhotos
+        do {
+            guard let started = try start() else { return false }
+            drop = started
+        } catch {
+            problem = error.localizedDescription
+            return false
+        }
+        importing = true
+        importProgress = "0 / \(drop.count)"
+        importTask = Task {
+            defer {
+                drop.cleanUp()
+                importing = false
+                importTask = nil
+            }
+            do {
+                var results: [DroppedPhotos.Outcome] = []
+                for await outcome in drop.outcomes {
+                    try Task.checkCancellation()
+                    guard editorSession == session else { return }
+                    results.append(outcome)
+                    importProgress = "\(results.count) / \(drop.count)"
+                }
+                try Task.checkCancellation()
+                guard editorSession == session else { return }
+                var report = PhotoRelink.Report()
+                var pairs: [(id: UUID, photo: BookPhoto)] = []
+                var handled = Set<Int>()
+                for outcome in results.sorted(by: { $0.index < $1.index }) where ids.indices.contains(outcome.index) {
+                    handled.insert(outcome.index)
+                    let id = ids[outcome.index]
+                    guard let new = outcome.photo, let old = book.photos.first(where: { $0.id == id }) else {
+                        report.failed.append(book.photos.first { $0.id == id }?.name ?? outcome.name ?? "")
+                        continue
+                    }
+                    pairs.append((id, new))
+                    if PhotoRelink.proportionsDiffer(old, new) { report.proportionsChanged.append(old.name) }
+                }
+                for (index, id) in ids.enumerated() where !handled.contains(index) {
+                    report.failed.append(book.photos.first { $0.id == id }?.name ?? "")
+                }
+                if !pairs.isEmpty {
+                    try await appendDroppedPhotos(pairs.map(\.photo), from: drop.directory, session: session) { book in
+                        for pair in pairs {
+                            if let index = book.photos.firstIndex(where: { $0.id == pair.id }) {
+                                book.photos[index] = PhotoRelink.relinked(book.photos[index], with: pair.photo)
+                            }
+                        }
+                    }
+                    report.relinked = pairs.count
+                    analyze(language: language, photos: book.photos.filter { photo in pairs.contains { $0.id == photo.id } })
+                }
+                completion(report)
+            } catch is CancellationError {
+                return
+            } catch {
+                problem = error.localizedDescription
+            }
+        }
+        return true
     }
 
     func cancelImport() { importTask?.cancel() }

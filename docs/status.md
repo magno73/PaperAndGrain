@@ -77,6 +77,20 @@ Unit tests cover the copy (only the page id and box ids differ, the layer order 
 5. Italian: **Pagina › Duplica pagina**, and the undo item reads "Annulla Duplica pagina".
 6. Close and reopen the book: the copy is still there.
 
+### Relink (T7)
+
+Unit tests (`PhotoRelinkTests`) cover, with a real workspace and package: one asset deleted, then relinked to an image with other proportions (id, placements and page kept, new file in the package, blocker gone, manifest saved, proportion warning reported); a text file refused with the photo unchanged; a read-only book refuses; folder matching with other case and extension, subfolders, hidden files and non-images; the 1 % proportion rule. Not seen on screen. With a copy of the sample book (never a draft), after deleting one or two files from its `assets` folder in Finder:
+
+1. Open the book: the missing photo shows a grey frame with an icon (and "Photo file missing" on a large frame) on the canvas, in the Pages thumbnails and in the Photo Library tile, at the photo's proportions, with no spinner. **Issues** shows the problem.
+2. Click **Relink…** on the issue row: a file sheet opens on the book window. Choose another image: the photo shows it in the same frame with the same crop; the problem goes; the analysis restarts. Quit and reopen: still linked. ⌘Z does not bring the missing file back (by design).
+3. Choose an image with other proportions: a message names the photo and says the crops may have shifted. Choose a text file: a message says the image is unavailable and the photo stays missing.
+4. Right-click the photo on the canvas, and in the Photo Library: **Relink…**. Select it: the **Photo** tab shows "Photo file missing" with **Relink…**.
+5. Delete two or more files: the Issues list ends with **Relink All from Folder…**. Choose a folder holding the originals under other case or extension: a confirmation says "found N of M", lists the not found and says ⌘Z cannot undo it; **Cancel** changes nothing; **Relink** reports the result.
+6. A photo imported from Photos: **Copy Again from Photos** copies the original when access was granted; with access denied it explains and does not show the system prompt.
+7. Open a book from a read-only volume: the commands are greyed out.
+8. Italian: all of the above.
+9. The export sheet lists the missing file without a button (documented limit).
+
 ### Print guides (T2)
 
 Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-edge rule (on the trim, 0.2 mm, 1.5 mm and 5 mm inside, bleeding), the safe-line rule, both warnings, stable issue ids, the binding edge, and that no template and arrangement of the standard pages raises either warning. Not seen on screen (no GUI access in this run). With the sample book:

@@ -73,6 +73,7 @@ extension EditorView {
             switch target {
             case let .photo(id):
                 let layer = LayerTarget(pageID: leaf.id, layer: .photo(id))
+                entries += relinkEntries(for: id)
                 entries += [
                     EditorMenuEntry(tr("Crop")) { beginCrop(id, in: leaf) },
                     EditorMenuEntry(tr("Adjust Photo…")) { showPhotoSection(film: false) },

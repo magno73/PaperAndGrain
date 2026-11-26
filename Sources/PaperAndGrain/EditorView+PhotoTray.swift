@@ -357,6 +357,13 @@ extension EditorView {
                 Button(used ? tr("Remove from page")
                             : tr("Add to page")) { togglePhoto(photo.id) }
                 .disabled(page == nil && coverSide == nil)
+                if isFileMissing(photo.id) {
+                    Divider()
+                    Button(tr("Relink…")) { relink(photo.id) }.disabled(!canRelink)
+                    if photo.sourceID != nil {
+                        Button(tr("Copy Again from Photos")) { copyAgainFromPhotos(photo.id) }.disabled(!canRelink)
+                    }
+                }
             }
             .libraryPhotoFrame(photo.id)
             .id(photo.id)

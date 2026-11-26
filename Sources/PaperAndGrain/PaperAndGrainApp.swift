@@ -43,7 +43,12 @@ struct PaperAndGrainApp: App, Localizing {
                          saveTitle: saveProjectTitle,
                          saveAs: workspace.saveProjectAs,
                          exportPrint: { workspace.exportPrint(language: language) },
-                         addPhotoFiles: { reveal in workspace.addPhotoFiles(language: language, onImported: reveal) })
+                         addPhotoFiles: { reveal in workspace.addPhotoFiles(language: language, onImported: reveal) },
+                         isReadOnly: workspace.isReadOnly,
+                         relinkPhotos: { files, done in workspace.relinkPhotos(files, language: language, completion: done) },
+                         copyAgainFromPhotos: { ids, done in
+                             workspace.copyAgainFromPhotos(ids, language: language, completion: done)
+                         })
     }
 
     var body: some Scene {

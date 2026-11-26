@@ -18,6 +18,10 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.
 - Each overflowing text box or story is now its own row, so you can go straight to it. The export sheet shows the same list.
 
+### Missing photos
+
+- A photo whose file is missing now shows a placeholder instead of an endless spinner. **Relink…** (issue row, photo context menu, **Photo** tab) copies a chosen image into the book and keeps the photo's id, placements, crops, adjustments and film look. **Relink All from Folder…** matches several missing photos to files by name. **Copy Again from Photos** fetches the original again when access to Photos is already allowed. Relinking is not undoable.
+
 ### Print guides
 
 - **View › Show Print Guides** (also in the zoom menu on the canvas) draws the safe margin as a dashed line and the bleed as a thin line outside each page. They never appear in thumbnails, **Browse the Book** or the PDF.

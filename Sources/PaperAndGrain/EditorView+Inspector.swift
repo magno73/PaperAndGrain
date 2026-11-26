@@ -84,6 +84,7 @@ extension EditorView {
                     photoResolutionRow
                 }
             }
+            missingPhotoRow(photo)
             if !isOnCurrentPage(photo.id) {
                 Button(tr("Add to page")) { togglePhoto(photo.id) }
                     .disabled(page == nil && coverSide == nil)

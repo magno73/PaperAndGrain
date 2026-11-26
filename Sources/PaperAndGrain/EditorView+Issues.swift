@@ -55,7 +55,7 @@ extension EditorView {
                 IssueScroll(maxHeight: 380) {
                     IssueList(report: report, language: language,
                               emptyText: tr("The book is ready for print."),
-                              open: revealIssue, fix: issueFix)
+                              open: revealIssue, fix: issueFix, listFixes: issueListFixes)
                 }
             } else {
                 HStack(spacing: 6) {
@@ -72,7 +72,9 @@ extension EditorView {
     /// compiling here until it says whether it has a fix.
     func issueFix(for issue: BookPDF.PreflightIssue) -> IssueFix? {
         switch issue.problem {
-        case .invalidDimensions, .missingPhoto, .missingFile, .unreadableLUT, .lowResolution, .textOverflows,
+        case .missingFile:
+            relinkFix(for: issue)
+        case .invalidDimensions, .missingPhoto, .unreadableLUT, .lowResolution, .textOverflows,
              .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure:
             nil
         }

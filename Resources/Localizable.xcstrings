@@ -2552,6 +2552,23 @@
         }
       }
     },
+    "Choose a folder; photos are matched to files by their original name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a folder; photos are matched to files by their original name"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli una cartella: le foto sono abbinate ai file dal nome originale"
+          }
+        }
+      }
+    },
     "Choose a page template": {
       "extractionState": "manual",
       "localizations": {
@@ -2616,6 +2633,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scegli il modello del libro: carta, caratteri e margini"
+          }
+        }
+      }
+    },
+    "Choose the folder that holds the original photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the folder that holds the original photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli la cartella che contiene le foto originali"
+          }
+        }
+      }
+    },
+    "Choose the image file for this photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the image file for this photo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli il file immagine di questa foto"
+          }
+        }
+      }
+    },
+    "Choose the image file for “%@”": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the image file for “%@”"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli il file immagine per «%@»"
           }
         }
       }
@@ -2889,6 +2957,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Contrasto"
+          }
+        }
+      }
+    },
+    "Copy Again from Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Again from Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia di nuovo da Foto"
           }
         }
       }
@@ -3998,6 +4083,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preferiti"
+          }
+        }
+      }
+    },
+    "Fetch the original from the Photos library again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fetch the original from the Photos library again"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupera di nuovo l’originale dalla libreria di Foto"
           }
         }
       }
@@ -5886,6 +5988,23 @@
         }
       }
     },
+    "Missing photos found: %1$lld of %2$lld.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing photos found: %1$lld of %2$lld."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto mancanti trovate: %1$lld su %2$lld."
+          }
+        }
+      }
+    },
     "Monochrome": {
       "extractionState": "manual",
       "localizations": {
@@ -6551,6 +6670,40 @@
         }
       }
     },
+    "No access to Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No access to Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun accesso a Foto"
+          }
+        }
+      }
+    },
+    "No file in that folder has the name of a missing photo.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No file in that folder has the name of a missing photo."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun file della cartella ha il nome di una foto mancante."
+          }
+        }
+      }
+    },
     "No issues": {
       "extractionState": "manual",
       "localizations": {
@@ -6564,6 +6717,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nessuna segnalazione"
+          }
+        }
+      }
+    },
+    "No matching photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna foto corrispondente"
           }
         }
       }
@@ -6683,6 +6853,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nessuno (stampa generica)"
+          }
+        }
+      }
+    },
+    "Not found: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not found: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non trovate: %@"
+          }
+        }
+      }
+    },
+    "Not relinked: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not relinked: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non ricollegate: %@"
+          }
+        }
+      }
+    },
+    "OK": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
@@ -7266,6 +7487,23 @@
         }
       }
     },
+    "Paper & Grain does not have access to your Photos library. Allow it in System Settings › Privacy & Security › Photos, then try again, or use Relink… to choose the file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paper & Grain does not have access to your Photos library. Allow it in System Settings › Privacy & Security › Photos, then try again, or use Relink… to choose the file."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paper & Grain non ha accesso alla libreria di Foto. Consenti l’accesso in Impostazioni di Sistema › Privacy e sicurezza › Foto e riprova, oppure usa Ricollega… per scegliere il file."
+          }
+        }
+      }
+    },
     "Paper, type and margins for the whole book": {
       "extractionState": "manual",
       "localizations": {
@@ -7535,6 +7773,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foto nella pagina"
+          }
+        }
+      }
+    },
+    "Photos relinked: %lld.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos relinked: %lld."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto ricollegate: %lld."
           }
         }
       }
@@ -7948,6 +8203,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rosso"
+          }
+        }
+      }
+    },
+    "Relink": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relink"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricollega"
+          }
+        }
+      }
+    },
+    "Relink All from Folder…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relink All from Folder…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricollega tutte da una cartella…"
+          }
+        }
+      }
+    },
+    "Relink Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relink Photos"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricollega foto"
+          }
+        }
+      }
+    },
+    "Relink…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relink…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ricollega…"
           }
         }
       }
@@ -9793,19 +10116,19 @@
         }
       }
     },
-    "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text.": {
+    "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text. For a photo whose file is missing, **Relink…** on its row chooses a replacement file.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text."
+            "value": "The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text. For a photo whose file is missing, **Relink…** on its row chooses a replacement file."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il pulsante **Segnalazioni** nella barra degli strumenti (⇧⌘I) controlla il libro mentre lavori: prima i problemi che bloccherebbero l’esportazione, poi gli avvisi. Fai clic su una riga per andare alla pagina e selezionare la foto o il testo."
+            "value": "Il pulsante **Segnalazioni** nella barra degli strumenti (⇧⌘I) controlla il libro mentre lavori: prima i problemi che bloccherebbero l’esportazione, poi gli avvisi. Fai clic su una riga per andare alla pagina e selezionare la foto o il testo. Per una foto il cui file manca, **Ricollega…** sulla sua riga permette di scegliere un file sostitutivo."
           }
         }
       }
@@ -9892,6 +10215,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il conteggio include %lld pagine di copertina"
+          }
+        }
+      }
+    },
+    "The files are copied into the book. Relinking cannot be undone with ⌘Z.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The files are copied into the book. Relinking cannot be undone with ⌘Z."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I file vengono copiati nel libro. Il ricollegamento non si può annullare con ⌘Z."
           }
         }
       }
@@ -10099,6 +10439,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il formato del prodotto; deve corrispondere a quello del libro."
+          }
+        }
+      }
+    },
+    "The proportions of these photos changed, so their crops may have shifted: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The proportions of these photos changed, so their crops may have shifted: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le proporzioni di queste foto sono cambiate, quindi i ritagli potrebbero essersi spostati: %@"
           }
         }
       }

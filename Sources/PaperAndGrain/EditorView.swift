@@ -89,6 +89,11 @@ struct EditorView: View, Localizing {
 
     @State var importedPhotoToReveal: UUID?
 
+    /// Photos whose file is not in the package, found off the main thread.
+    @State var missingFileIDs: Set<UUID> = []
+
+    @State var missingFileTask: Task<Void, Never>?
+
     @GestureState var dragging: EditorDragPreview?
 
     @State var showSpread = true
@@ -491,6 +496,8 @@ struct EditorView: View, Localizing {
         .onChange(of: book) { recheckIssues() }
         // A package renamed or moved in Finder changes where the photo files are looked up.
         .onChange(of: directory) { recheckIssues(immediately: true) }
+        .onChange(of: book.photos.map(\.filename), initial: true) { refreshMissingFiles() }
+        .onChange(of: directory) { refreshMissingFiles() }
         .onChange(of: book.photos.map(\.id), initial: true) { _, ids in
             photoIndices = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($0.element, $0.offset) })
         }
@@ -816,6 +823,8 @@ struct EditorPreview<Placeholder: View>: View {
 
     @State private var image: NSImage?
     @State private var displayedURL: URL?
+    /// The file this view found missing, so a photo whose file is gone shows a placeholder, not a spinner.
+    @State private var missingURL: URL?
 
     var liveRequest: EditorPreviewRequest {
         guard let filmEdit, let target = filmEdit.target,
@@ -853,6 +862,8 @@ struct EditorPreview<Placeholder: View>: View {
                         .position(x: frame.midX, y: frame.midY)
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
+                } else if missingURL == request.url {
+                    MissingPhotoPlaceholder()
                 } else {
                     placeholder()
                 }
@@ -868,11 +879,42 @@ struct EditorPreview<Placeholder: View>: View {
                     }
                 }
                 let pixels = await EditorPreviewLoader.image(for: request)
+                if pixels == nil, !Task.isCancelled, !FileManager.default.fileExists(atPath: request.url.path) {
+                    missingURL = request.url
+                    return
+                }
                 guard !Task.isCancelled, let pixels else { return }
+                missingURL = nil
                 image = NSImage(cgImage: pixels, size: NSSize(width: pixels.width, height: pixels.height))
                 displayedURL = request.url
             }
         }
         .clipped()
+    }
+}
+
+/// Drawn where a photo's file is gone: a neutral frame at the photo's proportions with an icon, and a
+/// short label when there is room. It sits in the canvas, thumbnails and the Photo Library alike.
+struct MissingPhotoPlaceholder: View {
+    private var label: String { L10n.string("Photo file missing", language: L10n.interfaceLanguage) }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let side = min(geometry.size.width, geometry.size.height)
+            ZStack {
+                Rectangle().fill(Color.secondary.opacity(0.16))
+                VStack(spacing: 4) {
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.system(size: max(10, min(36, side * 0.3))))
+                    if side > 90 {
+                        Text(label)
+                            .font(.caption)
+                    }
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
     }
 }
