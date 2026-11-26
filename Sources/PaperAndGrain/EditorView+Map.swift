@@ -143,7 +143,7 @@ struct MapPlaceRow: View, Localizing {
                 .onChange(of: editing) { _, now in if !now { commit() } }
                 .accessibilityLabel(tr("Place name"))
                 .help(tr("A name for this place; empty uses the suggested one"))
-            Toggle(tr("Show"), isOn: Binding(get: { shown }, set: show))
+            Toggle(tr("Show"), isOn: Binding(get: { shown }, set: { show($0) }))
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .labelsHidden()
