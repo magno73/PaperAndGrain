@@ -1,0 +1,33 @@
+{
+  "id": "test-spreads",
+  "service": "Test Spreads",
+  "product": "Test layflat with one spread per PDF page",
+  "binding": "layflat",
+  "regions": ["EU"],
+  "sourceURL": "https://example.com/spreads",
+  "verifiedOn": "2026-11-26",
+  "interior": {
+    "layout": "spread",
+    "bleed": { "mm": 2.963, "source": "35 px at 300 dpi" },
+    "safe": 8,
+    "firstPage": "left",
+    "ends": "insideCovers",
+    "pages": { "minimum": 26, "maximum": 160, "multiple": 2 }
+  },
+  "cover": {
+    "kind": "flat",
+    "hinge": { "table": { "source": "fold-over in px at 300 dpi", "rows": [
+      { "upToPages": 26, "mm": { "mm": 8.975, "source": "106 px" } },
+      { "upToPages": 160, "mm": { "mm": 17.018, "source": "201 px" } }
+    ] } },
+    "spine": { "formula": { "baseMM": 1.524, "mmPerPage": 0.0572, "source": "pages ÷ 17.48 + 1.524 mm" } },
+    "wrap": 0,
+    "bleed": { "top": 7.027, "bottom": 7.027, "outer": 9.313, "inner": 0 }
+  },
+  "files": { "arrangement": "separate" },
+  "color": { "accepts": ["srgb"] },
+  "sizes": [
+    { "id": "21x28", "widthMM": 210, "heightMM": 280 },
+    { "id": "28x28", "widthMM": 280, "heightMM": 280 }
+  ]
+}

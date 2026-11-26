@@ -45,7 +45,7 @@ final class PrintReleaseTests: XCTestCase {
         // Pixart moves the imposition by one slot; the folios stay the same.
         let pixart = folder.appendingPathComponent("pixart.pdf")
         book.cover = BookCover(title: "Folio")
-        try BookPDF.writePixart(book, directory: folder, spineMM: 7, to: pixart)
+        try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 7), to: pixart)
         let pixartPages = try PrintFixtures.pageWords(pixart)
         let pixartAlfa = try XCTUnwrap(pixartPages.firstIndex { $0.contains("Alfa") })
         XCTAssertTrue(pixartPages[pixartAlfa].contains("1"), "\(pixartPages[pixartAlfa])")
@@ -86,12 +86,11 @@ final class PrintReleaseTests: XCTestCase {
                 let editor = BookCoverGeometry(book: book, front: true)
                 guard editor.titleFrame.map({ EditorialTypesetter.fits(editor.title, in: $0) }) ?? true else { continue }
                 do {
-                    try BookPDF.writePixart(book, directory: folder, spineMM: 8, to: output)
+                    try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 8), to: output)
                 } catch {
                     failures.append("\(template?.rawValue ?? "classic") · \(title) · \(error.localizedDescription)")
                 }
-                let panel = CGSize(width: PixartPrintProfile.panelWidth * 72 / 25.4,
-                                   height: PixartPrintProfile.panelHeight * 72 / 25.4)
+                let panel = CGSize(width: 207 * 72 / 25.4, height: 220 * 72 / 25.4)
                 let face = BookCoverGeometry(book: book, front: true, size: panel)
                 if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
                     failures.append("\(template?.rawValue ?? "classic") · \(title) · panel geometry overflows")
@@ -257,13 +256,13 @@ final class PrintReleaseTests: XCTestCase {
                             pages: [BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)])
             book.printSettings = PrintSettings(bleedMM: 3, targetPPI: 300)
             XCTAssertEqual(BookPDF.printWarnings(book).filter { $0.contains("ppi") }, [], "\(side)")
-            XCTAssertEqual(BookPDF.printWarnings(book, pixart: true).filter { $0.contains("ppi") }, [], "\(side)")
+            XCTAssertEqual(BookPDF.printWarnings(book, profile: .service(.pixart())).filter { $0.contains("ppi") }, [], "\(side)")
         }
         let photo = BookPhoto(name: "low.png", filename: "low.png", pixelWidth: 2400, pixelHeight: 2400)
         var book = Book(title: "Low", photos: [photo],
                         pages: [BookPage(layout: .fullPage, photoIDs: [photo.id], arrangement: .fullBleed)])
         book.printSettings = PrintSettings(targetPPI: 300)
-        XCTAssertEqual(BookPDF.printWarnings(book, pixart: true).filter { $0.contains("ppi") },
+        XCTAssertEqual(BookPDF.printWarnings(book, profile: .service(.pixart())).filter { $0.contains("ppi") },
                        ["p. 1 · low.png · 290 ppi < 300 ppi"])
     }
 
@@ -286,7 +285,7 @@ final class PrintReleaseTests: XCTestCase {
         // Three interior sheets and the cover.
         XCTAssertEqual(print.all, [0, 0.25, 0.5, 0.75, 1, 1])
         let pixart = Values()
-        try BookPDF.writePixart(book, directory: folder, spineMM: 6, to: folder.appendingPathComponent("pixart.pdf"),
+        try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 6), to: folder.appendingPathComponent("pixart.pdf"),
                                 progress: pixart.add)
         XCTAssertEqual(pixart.all.first, 0)
         XCTAssertEqual(pixart.all.last, 1)
@@ -372,7 +371,7 @@ final class PrintReleaseTests: XCTestCase {
         let pixart = folder.appendingPathComponent("pixart.pdf")
         book.printSettings?.firstPageOnRight = false
         book.cover = BookCover(title: "Night")
-        try BookPDF.writePixart(book, directory: folder, spineMM: 6, to: pixart)
+        try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 6), to: pixart)
         let opening = try PrintFixtures.raster(pixart, page: 2, scale: 1)
         let i = (opening.height / 2 * opening.width + opening.width / 2) * 4
         XCTAssertEqual(Array(opening.bytes[i..<(i + 3)]).map(Int.init), expected.map(Int.init), accuracy: 2)
@@ -386,7 +385,7 @@ final class PrintReleaseTests: XCTestCase {
         var book = Book(title: "Band", pages: [BookPage(layout: .text, text: "Uno")])
         book.cover = BookCover(title: "Band", backText: "Retro")
         let url = folder.appendingPathComponent("pixart.pdf")
-        try BookPDF.writePixart(book, directory: folder, spineMM: 8, to: url)
+        try BookPDF.write(book, directory: folder, plan: .pixart(spineMM: 8), to: url)
         let mm = 72 / 25.4
         let cover = try PrintFixtures.raster(url, page: 1, scale: 1)
         // Raster rows run from the top. The band covers the lower part of each face.

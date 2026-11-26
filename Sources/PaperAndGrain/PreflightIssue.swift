@@ -103,6 +103,13 @@ extension BookPDF {
             case photoNearEdge(photo: String, distanceMM: Double)
             /// Blank pages added so the imposition lines up, by sheet position.
             case blankPages([Int])
+            /// The print-service product does not offer the book's trim; `offered` lists its sizes, the
+            /// nearest first.
+            case sizeNotOffered(BookFormat, offered: [BookFormat])
+            /// The page count the printer counts breaks one of the product's limits.
+            case pageCount(PageLimit, has: Int)
+            /// A cover measure the product needs is neither typed nor computable for this page count.
+            case missingMeasure(PrintMeasure)
 
             /// The kind without its details, for the issue's id.
             var kind: String {
@@ -116,6 +123,9 @@ extension BookPDF {
                 case .textOutsideSafeMargin: "textOutsideSafeMargin"
                 case .photoNearEdge: "photoNearEdge"
                 case .blankPages: "blankPages"
+                case .sizeNotOffered: "sizeNotOffered"
+                case let .pageCount(limit, _): "pageCount." + limit.key
+                case let .missingMeasure(measure): "missingMeasure." + measure.rawValue
                 }
             }
 
@@ -131,6 +141,24 @@ extension BookPDF {
                 case .textOutsideSafeMargin: "text.badge.minus"
                 case .photoNearEdge: "photo.badge.exclamationmark"
                 case .blankPages: "doc.on.doc"
+                case .sizeNotOffered: "aspectratio"
+                case .pageCount: "book.pages"
+                case .missingMeasure: "ruler"
+                }
+            }
+        }
+
+        /// A page-count limit of a print-service product.
+        enum PageLimit: Equatable, Sendable {
+            case minimum(Int)
+            case maximum(Int)
+            case multiple(Int)
+
+            var key: String {
+                switch self {
+                case .minimum: "minimum"
+                case .maximum: "maximum"
+                case .multiple: "multiple"
                 }
             }
         }
@@ -210,8 +238,29 @@ extension BookPDF {
             case let .blankPages(pages):
                 [place, L10n.string("Blank pages for alignment", language: language),
                  pages.map(String.init).joined(separator: ", ")]
+            case let .sizeNotOffered(format, offered):
+                [place, L10n.format("The product does not offer %@", language: language,
+                                    [BookFormatPreset.centimetres(format, language: language)]),
+                 L10n.format("Sizes: %@", language: language,
+                             [offered.map { BookFormatPreset.centimetres($0, language: language) }.joined(separator: ", ")])]
+            case let .pageCount(.minimum(limit), count):
+                [place, L10n.format("Needs at least %1$lld pages (has %2$lld)", language: language, [limit, count])]
+            case let .pageCount(.maximum(limit), count):
+                [place, L10n.format("Takes at most %1$lld pages (has %2$lld)", language: language, [limit, count])]
+            case let .pageCount(.multiple(limit), count):
+                [place, L10n.format("Needs a multiple of %1$lld pages (has %2$lld)", language: language, [limit, count])]
+            case let .missingMeasure(measure):
+                [place, L10n.string(Self.missingText(measure), language: language)]
             }
             return parts.compactMap { $0 }.joined(separator: " · ")
+        }
+
+        private static func missingText(_ measure: PrintMeasure) -> String {
+            switch measure {
+            case .spine: "Spine width missing: enter it from the printer’s quote"
+            case .hinge: "Hinge width missing: enter it from the printer’s quote"
+            case .wrap: "Cover wrap missing: enter it from the printer’s quote"
+            }
         }
     }
 }

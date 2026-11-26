@@ -17,7 +17,7 @@ final class PixartPrintTests: XCTestCase {
             for spine in [7.0, 15.0] {
                 book.printSettings = PrintSettings(spreads: true, firstPageOnRight: right)
                 let file = dir.appendingPathComponent("book.pdf")
-                try BookPDF.writePixart(book, directory: dir, spineMM: spine, to: file)
+                try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: spine), to: file)
                 let pdf = try XCTUnwrap(PDFDocument(url: file))
                 XCTAssertEqual(pdf.pageCount, right ? 4 : 6)
                 let cover = try XCTUnwrap(pdf.page(at: 0))
@@ -40,11 +40,16 @@ final class PixartPrintTests: XCTestCase {
         book.pages = [page]
         book.printSettings = PrintSettings(firstPageOnRight: true)
         let file = dir.appendingPathComponent("short.pdf")
-        try BookPDF.writePixart(book, directory: dir, spineMM: 5, to: file)
+        try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: 5), to: file)
         XCTAssertEqual(PDFDocument(url: file)?.pageCount, 2)
-        XCTAssertFalse(PixartPrintProfile.isValidSpine(.nan))
-        XCTAssertFalse(PixartPrintProfile.isValidSpine(0))
-        XCTAssertFalse(PixartPrintProfile.supports(.landscape))
+        let spine = try XCTUnwrap(PrintPlan.pixart().rule(.spine, for: book))
+        XCTAssertFalse(spine.accepts(.nan))
+        XCTAssertFalse(spine.accepts(0))
+        XCTAssertTrue(spine.accepts(100))
+        XCTAssertFalse(spine.accepts(100.5))
+        book.format = .landscape
+        XCTAssertNil(PrintPlan.pixart().size(for: book))
+        XCTAssertThrowsError(try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: 5), to: file))
     }
 
     func testCoverPhotographContinuesIntoWrapAndHingeButLeavesSpineClear() throws {
@@ -61,7 +66,7 @@ final class PixartPrintTests: XCTestCase {
         var book = Book(title: "", photos: [photo], pages: [BookPage(layout: .text)])
         book.cover = BookCover(frontPhotoID: photo.id)
         let url = dir.appendingPathComponent("cover.pdf")
-        try BookPDF.writePixart(book, directory: dir, spineMM: 7, to: url)
+        try BookPDF.write(book, directory: dir, plan: .pixart(spineMM: 7), to: url)
         let document = try XCTUnwrap(CGPDFDocument(url as CFURL))
         let cover = try XCTUnwrap(document.page(at: 1))
         let bitmap = try XCTUnwrap(CGContext(data: nil, width: 481, height: 258, bitsPerComponent: 8,
@@ -88,5 +93,15 @@ final class PixartPrintTests: XCTestCase {
         XCTAssertEqual(trim.minY, inset*points, accuracy: 0.01)
         XCTAssertEqual(trim.width, (width - 2*inset)*points, accuracy: 0.01)
         XCTAssertEqual(trim.height, (height - 2*inset)*points, accuracy: 0.01)
+    }
+}
+
+extension PrintPlan {
+    /// The Pixartprinting 21 × 21 cm hardcover from the bundled catalog, with a spine from the quote.
+    static func pixart(spineMM: Double? = nil) -> PrintPlan {
+        guard let profile = PrintProfileCatalog.bundled.profile(PrintProfileCatalog.pixartID) else {
+            preconditionFailure("The Pixartprinting entry is missing from Resources/PrintProfiles")
+        }
+        return PrintPlan(profile: profile, sizeID: "21x21", measures: PrintMeasures(spineMM: spineMM))
     }
 }

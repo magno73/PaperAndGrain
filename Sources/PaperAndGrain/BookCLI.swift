@@ -38,6 +38,13 @@ enum BookCLI {
             /// `story`, `photo:<asset id>` or `box:<text box UUID>`, back to front.
             let layerOrder: [String]?
         }
+        /// A print-service product from `print-profiles`: it sets the print settings, and the format when
+        /// the spec gives none.
+        struct PrintService: Decodable {
+            let profile: String
+            let size: String?
+            let paper: String?
+        }
         struct Cover: Decodable {
             let title: String?
             let frontPhoto: String?
@@ -55,6 +62,7 @@ enum BookCLI {
         let assets: [Asset]
         let pages: [Page]
         let cover: Cover?
+        let printService: PrintService?
     }
 
     struct Failure: LocalizedError {
@@ -223,12 +231,45 @@ enum BookCLI {
         try checkKeys(typography?["body"], textStyleKeys, at: path + ".body")
     }
 
+    /// The product and size a spec names, checked against the catalog and the spec's format.
+    private static func printService(_ service: Spec.PrintService, format: BookFormat?) throws
+        -> (PrintProfile, PrintProfile.Size) {
+        let id = service.profile == "pixart" ? PrintProfileCatalog.pixartID : service.profile
+        guard let profile = PrintProfileCatalog.bundled.profile(id) else {
+            throw Failure("Unknown printService.profile \(service.profile). Use an id from print-profiles")
+        }
+        if let paper = service.paper, profile.papers?.contains(where: { $0.id == paper }) != true {
+            throw Failure("Unknown printService.paper \(paper) for \(profile.id). Papers: "
+                          + (profile.papers ?? []).map(\.id).joined(separator: ", "))
+        }
+        let size: PrintProfile.Size?
+        if let id = service.size {
+            guard let chosen = profile.size(id) else {
+                throw Failure("Unknown printService.size \(id) for \(profile.id). Sizes: "
+                              + profile.sizes.map(\.id).joined(separator: ", "))
+            }
+            size = chosen
+        } else {
+            size = format.flatMap(profile.size(matching:)) ?? (profile.sizes.count == 1 ? profile.sizes.first : nil)
+        }
+        guard let size else {
+            throw Failure("printService.size is required for \(profile.id). Sizes: "
+                          + profile.sizes.map(\.id).joined(separator: ", "))
+        }
+        if let format, !size.matches(format) {
+            throw Failure("format \(format.widthMM) × \(format.heightMM) mm does not match printService.size \(size.id) "
+                          + "(\(size.widthMM.mm) × \(size.heightMM.mm) mm); leave format out to use the size")
+        }
+        return (profile, size)
+    }
+
     private static func checkSpecKeys(_ data: Data) throws {
         let root = try JSONSerialization.jsonObject(with: data)
         try checkKeys(root, ["version", "title", "format", "template", "showPageNumbers", "typography", "assets", "pages",
-                             "cover"], at: "spec")
+                             "cover", "printService"], at: "spec")
         guard let spec = root as? [String: Any] else { return }
         try checkKeys(spec["format"], ["widthMM", "heightMM"], at: "format")
+        try checkKeys(spec["printService"], ["profile", "size", "paper"], at: "printService")
         try checkTypographyKeys(spec["typography"], at: "typography")
         try checkEachKeys(spec["assets"], ["id", "path"], at: "assets")
         try checkEachKeys(spec["pages"], ["layout", "arrangement", "photos", "heading", "text", "typography", "textBoxes",
@@ -278,6 +319,13 @@ enum BookCLI {
         try files.createDirectory(at: staging.appendingPathComponent("assets"), withIntermediateDirectories: false)
         var book = Book(title: spec.title, format: spec.format ?? .square, template: spec.template,
                         showPageNumbers: spec.showPageNumbers)
+        if let service = spec.printService {
+            let (profile, size) = try printService(service, format: spec.format)
+            var settings = PrintSettings()
+            settings.choose(profile, size: size, paperID: service.paper)
+            book.printSettings = settings
+            book.format = size.format
+        }
         var ids: [String: UUID] = [:]
         for asset in spec.assets {
             guard !asset.id.isEmpty, ids[asset.id] == nil, !asset.path.isEmpty else {

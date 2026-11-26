@@ -15,7 +15,9 @@ enum BookCLIMedia {
         "auto-enhance SOURCE.papergrain --photo UUID --output OUTPUT.papergrain",
         "film-looks",
         "import-lut SOURCE.papergrain (--file PATH | --builtin LOOK_ID) [--photo UUID] --output OUTPUT.papergrain",
-        "export-pdf SOURCE.papergrain --profile proof|print|pixart --output PATH [--spine-mm MM]",
+        "export-pdf SOURCE.papergrain --profile proof|print|pixart|PROFILE_ID --output PATH [--size SIZE_ID] "
+            + "[--paper PAPER_ID] [--spine-mm MM] [--hinge-mm MM] [--wrap-mm MM]",
+        "print-profiles",
     ]
 
     static func run(command: String, arguments: [String], currentDirectory: URL) async throws -> Data? {
@@ -63,8 +65,13 @@ enum BookCLIMedia {
             options = try Options(arguments, positional: true, values: ["--file", "--builtin", "--photo", "--output"])
             return try importLUT(options, currentDirectory: currentDirectory)
         case "export-pdf":
-            options = try Options(arguments, positional: true, values: ["--profile", "--output", "--spine-mm"])
+            options = try Options(arguments, positional: true,
+                                  values: ["--profile", "--output", "--size", "--paper", "--spine-mm", "--hinge-mm", "--wrap-mm"])
             return try exportPDF(options, currentDirectory: currentDirectory)
+        case "print-profiles":
+            _ = try Options(arguments)
+            struct Catalog: Encodable { let profiles: [PrintProfile] }
+            return try BookCLI.encode(Catalog(profiles: PrintProfileCatalog.bundled.profiles))
         default:
             return nil
         }
@@ -140,12 +147,15 @@ enum BookCLIMedia {
 
     private struct PDFResult: Encodable {
         let output: String
-        let profile: PDFProfile
+        let profile: String
+        let size: String?
         let warnings: [String]
     }
 
-    private enum PDFProfile: String, Encodable {
-        case proof, print, pixart
+    /// What `--profile` names: the viewing PDF, Generic Print, or a print-service product.
+    private enum PDFProfile {
+        case proof, print
+        case service(PrintPlan)
     }
 
     private static func requirePhotosAccess(request: Bool) async throws {
@@ -326,43 +336,93 @@ enum BookCLIMedia {
     private static func exportPDF(_ options: Options, currentDirectory: URL) throws -> Data {
         let source = try options.source(relativeTo: currentDirectory)
         let output = try options.url("--output", relativeTo: currentDirectory)
-        guard let profile = PDFProfile(rawValue: try options.required("--profile")) else {
-            throw BookCLI.Failure("Expected --profile proof, print or pixart")
-        }
-        try validateOutput(output, extension: profile == .print ? nil : "pdf", outside: source)
-        let book = try BookCLIEditing.read(source: source)
-        try checkExportable(book, profile: profile)
-        let spineOption = options["--spine-mm"]
-        guard profile == .pixart || spineOption == nil else {
-            throw BookCLI.Failure("--spine-mm is only supported for Pixart exports")
-        }
-        var spine = book.cover?.spineMM
-        if let spineOption {
-            guard let value = Double(spineOption), PixartPrintProfile.isValidSpine(value) else {
-                throw BookCLI.Failure("--spine-mm must be greater than 0 and at most 100")
+        let name = try options.required("--profile")
+        var entry: PrintProfile?
+        if !["proof", "print"].contains(name) {
+            let id = name == "pixart" ? PrintProfileCatalog.pixartID : name
+            guard let found = PrintProfileCatalog.bundled.profile(id) else {
+                throw BookCLI.Failure("Expected --profile proof, print, pixart or an id from print-profiles (found \(name))")
             }
-            spine = value
+            entry = found
+        } else {
+            for option in ["--size", "--paper", "--spine-mm", "--hinge-mm", "--wrap-mm"] where options[option] != nil {
+                throw BookCLI.Failure(option + " is only supported for print-service exports")
+            }
         }
+        let folder = entry.map { $0.files.arrangement == .separate } ?? (name == "print")
+        try validateOutput(output, extension: folder ? nil : "pdf", outside: source)
+        let book = try BookCLIEditing.read(source: source)
+        let profile: PDFProfile = if let entry { .service(try plan(entry, book: book, options: options)) }
+            else { name == "print" ? .print : .proof }
+        let plan: PrintPlan? = if case let .service(plan) = profile { plan } else { nil }
+        try checkExportable(book, plan: plan)
         try publish(output) { staged in
             switch profile {
             case .proof:
                 try BookPDF.write(book, directory: source, to: staged)
             case .print:
                 try BookPDF.writePrint(book, directory: source, to: staged)
-            case .pixart:
-                guard let spine, PixartPrintProfile.isValidSpine(spine) else {
-                    throw BookCLI.Failure("Pixart export requires a valid cover spine or --spine-mm")
-                }
-                try BookPDF.writePixart(book, directory: source, spineMM: spine, to: staged)
+            case let .service(plan):
+                try BookPDF.write(book, directory: source, plan: plan, to: staged)
             }
         }
-        let warnings = profile == .proof ? [] : BookPDF.printWarnings(book, pixart: profile == .pixart)
-        return try BookCLI.encode(PDFResult(output: output.path, profile: profile, warnings: warnings))
+        let warnings: [String] = switch profile {
+        case .proof: []
+        case .print: BookPDF.printWarnings(book)
+        case let .service(plan): BookPDF.printWarnings(book, profile: .service(plan))
+        }
+        return try BookCLI.encode(PDFResult(output: output.path, profile: name, size: plan?.size(for: book)?.id,
+                                            warnings: warnings))
     }
 
+    /// The product, size, paper and measures for a print-service export: the book's own choice when it
+    /// chose this profile, replaced by the options given.
+    private static func plan(_ profile: PrintProfile, book: Book, options: Options) throws -> PrintPlan {
+        let settings = book.printSettings?.profileID == profile.id ? book.printSettings : nil
+        var plan = PrintPlan(profile: profile, sizeID: settings?.profileSizeID, paperID: settings?.profilePaperID,
+                             measures: settings?.profileMeasures ?? PrintMeasures())
+        if let size = options["--size"] {
+            guard profile.size(size) != nil else {
+                throw BookCLI.Failure("Unknown --size \(size) for \(profile.id). Sizes: "
+                                      + profile.sizes.map(\.id).joined(separator: ", "))
+            }
+            plan.sizeID = size
+        }
+        if let paper = options["--paper"] {
+            guard let papers = profile.papers, !papers.isEmpty else {
+                throw BookCLI.Failure("Unknown --paper \(paper): \(profile.id) has no paper choice")
+            }
+            guard papers.contains(where: { $0.id == paper }) else {
+                throw BookCLI.Failure("Unknown --paper \(paper) for \(profile.id). Papers: "
+                                      + papers.map(\.id).joined(separator: ", "))
+            }
+            plan.paperID = paper
+        }
+        for measure in PrintMeasure.allCases {
+            let option = "--\(measure.rawValue)-mm"
+            guard let text = options[option] else { continue }
+            guard let rule = plan.rule(measure, for: book) else {
+                throw BookCLI.Failure("\(option) is not used by \(profile.id)")
+            }
+            guard let value = Double(text), rule.accepts(value) else {
+                if case let .quote(minimum, maximum) = rule {
+                    throw BookCLI.Failure("\(option) must be greater than \(mm(minimum)) and at most \(mm(maximum))")
+                }
+                throw BookCLI.Failure("\(option) must be a length in millimetres from 0 to 1000")
+            }
+            switch measure {
+            case .spine: plan.measures.spineMM = value
+            case .hinge: plan.measures.hingeMM = value
+            case .wrap: plan.measures.wrapMM = value
+            }
+        }
+        return plan
+    }
+
+    private static func mm(_ value: Double) -> String { String(format: "%g", (value * 10).rounded() / 10) }
+
     /// Names the reason the PDF renderer would refuse the book, before any scratch folder is created.
-    private static func checkExportable(_ book: Book, profile: PDFProfile) throws {
-        func mm(_ value: Double) -> String { String(format: "%g", (value * 10).rounded() / 10) }
+    private static func checkExportable(_ book: Book, plan: PrintPlan?) throws {
         guard !book.pages.isEmpty else { throw BookCLI.Failure("The book has no pages to export") }
         let format = book.format
         let minimum = 50 * 25.4 / 72
@@ -374,9 +434,20 @@ enum BookCLIMedia {
             throw BookCLI.Failure("The \(mm(format.widthMM)) × \(mm(format.heightMM)) mm page is too small for its "
                 + "\(mm(margin)) mm margins. Lower printSettings.safeMM or enlarge the format")
         }
-        if profile == .pixart, !PixartPrintProfile.supports(format) {
-            throw BookCLI.Failure("Pixart export requires a 210 × 210 mm book; this book is "
-                + "\(mm(format.widthMM)) × \(mm(format.heightMM)) mm")
+        guard let plan else { return }
+        let profile = plan.profile
+        guard plan.size(for: book) != nil else {
+            let sizes = (plan.sizeID.flatMap(profile.size).map { [$0] } ?? profile.sizes(closestTo: format))
+                .map { "\(mm($0.widthMM.mm)) × \(mm($0.heightMM.mm)) mm" }
+            throw BookCLI.Failure("\(profile.title("en")) requires a book of " + sizes.joined(separator: " or ")
+                + "; this book is \(mm(format.widthMM)) × \(mm(format.heightMM)) mm")
+        }
+        guard plan.coverKind(for: book) == .flat else { return }
+        let pages = BookPDF.interiorPageCount(book, plan: plan)
+        for measure in PrintMeasure.allCases where plan.value(measure, for: book, interiorPages: pages) == nil {
+            throw BookCLI.Failure(measure == .spine
+                ? "\(profile.title("en")) needs the spine width: set cover.spineMM or pass --spine-mm"
+                : "\(profile.title("en")) needs the \(measure.rawValue) width: pass --\(measure.rawValue)-mm")
         }
     }
 

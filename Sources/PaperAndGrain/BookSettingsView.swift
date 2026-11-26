@@ -75,6 +75,7 @@ struct BookSettingsView: View, Localizing {
                     TextField(tr("Width (mm)"), value: $format.widthMM, format: number)
                     TextField(tr("Height (mm)"), value: $format.heightMM, format: number)
                 }
+                printServiceSection
                 Section(tr("Book Typography")) {
                     DisclosureGroup(tr("Headings")) {
                         EditorialTypographyControls(style: $typography.title,
@@ -134,6 +135,81 @@ struct BookSettingsView: View, Localizing {
         }
         .padding(26)
         .frame(width: 690, height: 690)
+    }
+
+    private var catalog: PrintProfileCatalog { .bundled }
+
+    private var chosenProfile: PrintProfile? { catalog.profile(printProfile.profileID) }
+
+    /// The product size chosen, or the one with the book's trim, or the product's first.
+    private var chosenSize: PrintProfile.Size? {
+        guard let profile = chosenProfile else { return nil }
+        return profile.size(printProfile.profileSizeID) ?? profile.size(matching: format) ?? profile.sizes.first
+    }
+
+    /// `profile|size`, or empty for generic print.
+    private var serviceSelection: Binding<String> {
+        Binding(get: {
+            guard let profile = chosenProfile, let size = chosenSize else { return "" }
+            return profile.id + "|" + size.id
+        }, set: { value in
+            let parts = value.split(separator: "|", maxSplits: 1).map(String.init)
+            let profile = parts.first.flatMap { catalog.profile($0) }
+            let size = parts.count == 2 ? profile?.size(parts[1]) : nil
+            printProfile.choose(profile, size: size,
+                                paperID: profile?.id == printProfile.profileID ? printProfile.profilePaperID : nil)
+        })
+    }
+
+    /// **Print service**: a printer's product sets bleed and safe margin and shows its rules. The book's
+    /// size changes only when the author asks for it.
+    @ViewBuilder private var printServiceSection: some View {
+        Section(tr("Print service")) {
+            Picker(tr("Print service"), selection: serviceSelection) {
+                Text(tr("None (generic print)")).tag("")
+                ForEach(catalog.services, id: \.name) { service in
+                    Section(service.name) {
+                        ForEach(service.profiles) { profile in
+                            ForEach(profile.sizes) { size in
+                                Text(profile.product(language) + " · " + size.title(language)).tag(profile.id + "|" + size.id)
+                            }
+                        }
+                    }
+                }
+            }
+            .help(tr("Choosing a printer’s product sets bleed and safe margin from its specification."))
+            if let profile = chosenProfile, let size = chosenSize {
+                if let papers = profile.papers, papers.count > 1 {
+                    Picker(tr("Paper"), selection: Binding(get: { printProfile.profilePaperID ?? papers[0].id },
+                                                           set: { printProfile.profilePaperID = $0 })) {
+                        ForEach(papers) { paper in Text(paper.name(language)).tag(paper.id) }
+                    }
+                    .help(tr("The paper changes the spine width."))
+                }
+                if !size.matches(format) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(tr("This product does not offer %1$@. Its sizes, closest first: %2$@. Changing the size re-flows the pages.",
+                                BookFormatPreset.centimetres(format, language: language),
+                                profile.sizes(closestTo: format).map { $0.title(language) }.joined(separator: ", ")))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(tr("Use %@", size.title(language))) { format = size.format }
+                            .help(tr("Sets the book’s size to the product’s trim."))
+                    }
+                }
+                let plan = PrintPlan(profile: profile, sizeID: size.id, paperID: printProfile.profilePaperID,
+                                     measures: printProfile.profileMeasures ?? PrintMeasures())
+                PrintServiceRules(plan: plan, book: previewBook, language: language)
+                PrintServiceNotice(profile: profile, language: language)
+            }
+        }
+    }
+
+    /// The book as it would be after Apply, for the product's rules.
+    private var previewBook: Book {
+        var preview = book
+        preview.format = format
+        preview.printSettings = printProfile
+        return preview
     }
 
     private var firstPageOnRight: Binding<Bool> {

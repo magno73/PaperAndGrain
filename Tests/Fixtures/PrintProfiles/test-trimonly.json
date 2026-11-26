@@ -1,0 +1,23 @@
+{
+  "id": "test-trimonly",
+  "service": "Test Trim Only",
+  "product": "Test softcover at trim size",
+  "binding": "softcover",
+  "regions": ["EU"],
+  "sourceURL": "https://example.com/trim",
+  "verifiedOn": "2026-11-26",
+  "interior": {
+    "layout": "single",
+    "bleed": 0,
+    "safe": 10,
+    "firstPage": "right",
+    "pages": { "minimum": 24, "maximum": 500, "multiple": 2, "coverPagesCounted": 2 }
+  },
+  "cover": { "kind": "interiorPages" },
+  "files": { "arrangement": "single" },
+  "color": { "accepts": ["srgb"] },
+  "sizes": [
+    { "id": "210x210", "widthMM": 210, "heightMM": 210 },
+    { "id": "a4-landscape", "widthMM": 297, "heightMM": 210 }
+  ]
+}

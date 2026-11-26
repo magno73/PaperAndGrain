@@ -33,7 +33,7 @@ Japanese Interval uses empty space as an invitation to interpretation. [Kenya Ha
 
 ## Cover and spine
 
-Each template has a scale for the cover title (`EditorialStyle.coverTitleScale`). A title that does not fit the band at full scale falls back to the page heading size. If the spine is at least 5 mm wide, the print PDF and the Pixartprinting PDF carry the title on it, reading top to bottom with the foot towards the front, in the template's heading typeface and color.
+Each template has a scale for the cover title (`EditorialStyle.coverTitleScale`). A title that does not fit the band at full scale falls back to the page heading size. If the spine is at least 5 mm wide, the print PDF and the flat cover of a print-service profile carry the title on it, reading top to bottom with the foot towards the front, in the template's heading typeface and color.
 
 ## Sources of the Photobook templates
 

@@ -13,6 +13,8 @@ enum BookPDF {
         case missingImage(String)
         case textOverflow(Int)
         case coverTextOverflow
+        case sizeNotOffered
+        case missingMeasure(PrintMeasure)
 
         /// In the interface language (English in the CLI).
         var errorDescription: String? {
@@ -22,6 +24,9 @@ enum BookPDF {
             case let .missingImage(name): L10n.format("Photo unavailable — %@", language: language, [name])
             case let .textOverflow(number): L10n.format("Text overflows on page %lld", language: language, [number])
             case .coverTextOverflow: L10n.string("Text overflows on the cover", language: language)
+            case .sizeNotOffered: L10n.string("The print service does not offer the book’s size", language: language)
+            case let .missingMeasure(measure):
+                PreflightIssue(problem: .missingMeasure(measure)).message(language: language)
             }
         }
     }
@@ -30,51 +35,100 @@ enum BookPDF {
     /// exporting thread.
     static func write(_ book: Book, directory: URL, to destination: URL,
                       progress: (@Sendable (Double) -> Void)? = nil) throws {
-        let meter = ProgressMeter(total: sheetCount(book, settings: nil, pixart: false), report: progress)
-        try render(book, directory: directory, settings: nil, cover: nil, to: destination, meter: meter)
+        let meter = ProgressMeter(total: sheetCount(book, settings: nil, firstPageRight: false), report: progress)
+        try render(book, directory: directory, output: Output(settings: nil), to: destination, meter: meter)
         meter.finish()
     }
 
     static func writePrint(_ book: Book, directory: URL, to destination: URL,
                            progress: (@Sendable (Double) -> Void)? = nil) throws {
         let settings = book.printSettings ?? PrintSettings()
-        let meter = ProgressMeter(total: sheetCount(book, settings: settings, pixart: false) + (book.cover == nil ? 0 : 1),
+        let meter = ProgressMeter(total: sheetCount(book, settings: settings, firstPageRight: false) + (book.cover == nil ? 0 : 1),
                                   report: progress)
+        let bleed = PageBleed(uniform: settings.bleedMM * pointsPerMM)
+        try writeFolder(destination, names: ["Interior.pdf", "Cover.pdf"]) { scratch in
+            try render(book, directory: directory, output: Output(settings: settings, bleed: bleed),
+                       to: scratch.appendingPathComponent("Interior.pdf"), meter: meter)
+            if let cover = book.cover {
+                try render(book, directory: directory,
+                           output: Output(settings: settings, bleed: bleed, genericCover: cover, interior: false),
+                           to: scratch.appendingPathComponent("Cover.pdf"), meter: meter)
+            }
+        }
+        meter.finish()
+    }
+
+    /// Writes the files of a print-service product (`PrintPlan`): one PDF at `destination`, or a folder
+    /// with the interior and cover files the printer names. Every product goes through this one path.
+    static func write(_ book: Book, directory: URL, plan: PrintPlan, to destination: URL,
+                      progress: (@Sendable (Double) -> Void)? = nil) throws {
+        guard plan.size(for: book) != nil else { throw ExportError.sizeNotOffered }
+        let settings = plan.interiorSettings(for: book)
+        let interiorPages = leaves(book.pages, settings: settings, firstPageRight: plan.firstPageRight).count
+        let kind = plan.coverKind(for: book)
+        let flat = kind == .flat ? try flatCover(book, plan: plan, interiorPages: interiorPages) : nil
+        let bleed = PageBleed(plan.profile.interior.bleed)
+        let coverPages = kind == .interiorPages
+        let meter = ProgressMeter(total: sheetCount(book, settings: settings, firstPageRight: plan.firstPageRight)
+                                  + (flat == nil ? 0 : 1) + (coverPages ? 2 : 0), report: progress)
+        let interior = Output(settings: settings, bleed: bleed, coverPages: coverPages, firstPageRight: plan.firstPageRight)
+        let files = plan.profile.files
+        switch files.arrangement {
+        case .single:
+            var single = interior
+            single.flatCover = flat
+            try render(book, directory: directory, output: single, to: destination, meter: meter)
+        case .separate:
+            let names = [files.interiorName] + (flat == nil ? [] : [files.coverName])
+            try writeFolder(destination, names: names) { scratch in
+                try render(book, directory: directory, output: interior,
+                           to: scratch.appendingPathComponent(files.interiorName), meter: meter)
+                if let flat {
+                    try render(book, directory: directory,
+                               output: Output(settings: settings, bleed: bleed, flatCover: flat, interior: false),
+                               to: scratch.appendingPathComponent(files.coverName), meter: meter)
+                }
+            }
+        }
+        meter.finish()
+    }
+
+    /// Renders files into a scratch folder and moves it to `destination` when complete. Only a folder
+    /// that holds nothing but a previous export of the same names (and `.DS_Store`) is replaced.
+    private static func writeFolder(_ destination: URL, names: [String], render: (URL) throws -> Void) throws {
         let fm = FileManager.default
         // Check the destination before rendering: only a previous package may be replaced.
         if fm.fileExists(atPath: destination.path) {
-            let previous = Set(["Interior.pdf", "Cover.pdf", ".DS_Store"])
+            let previous = Set(names + [".DS_Store"])
             guard let contents = try? fm.contentsOfDirectory(atPath: destination.path),
                   Set(contents).isSubset(of: previous) else { throw CocoaError(.fileWriteFileExists) }
         }
         let scratch = destination.deletingLastPathComponent().appendingPathComponent(UUID().uuidString)
         try fm.createDirectory(at: scratch, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: scratch) }
-        try render(book, directory: directory, settings: settings, cover: nil,
-                   to: scratch.appendingPathComponent("Interior.pdf"), meter: meter)
-        if let cover = book.cover {
-            try render(book, directory: directory, settings: settings, cover: cover,
-                       to: scratch.appendingPathComponent("Cover.pdf"), meter: meter)
-        }
+        try render(scratch)
         try Task.checkCancellation()
         if fm.fileExists(atPath: destination.path) {
             _ = try fm.replaceItemAt(destination, withItemAt: scratch)
         } else {
             try fm.moveItem(at: scratch, to: destination)
         }
-        meter.finish()
     }
 
-    static func writePixart(_ book: Book, directory: URL, spineMM: Double, to destination: URL,
-                            progress: (@Sendable (Double) -> Void)? = nil) throws {
-        guard PixartPrintProfile.supports(book.format), PixartPrintProfile.isValidSpine(spineMM) else {
-            throw ExportError.invalidBook
+    /// The flat cover of a product, in points: faces, hinges and spine from the profile and the author's
+    /// measures. A measure that is neither typed nor computable stops the export.
+    private static func flatCover(_ book: Book, plan: PrintPlan, interiorPages: Int) throws -> FlatCover {
+        let rules = plan.coverRules(for: book)
+        func measure(_ kind: PrintMeasure) throws -> Double {
+            guard let mm = plan.value(kind, for: book, interiorPages: interiorPages) else { throw ExportError.missingMeasure(kind) }
+            return mm * pointsPerMM
         }
-        let settings = pixartSettings(book)
-        let meter = ProgressMeter(total: 1 + sheetCount(book, settings: settings, pixart: true), report: progress)
-        try render(book, directory: directory, settings: settings, cover: nil, to: destination,
-                   pixartSpineMM: spineMM, meter: meter)
-        meter.finish()
+        let panel = rules.panel.map { CGSize(width: $0.widthMM.mm * pointsPerMM, height: $0.heightMM.mm * pointsPerMM) }
+            ?? book.format.pageSize
+        let bleed = rules.bleed ?? PrintProfile.Edges(0)
+        return FlatCover(panel: panel, hinge: try measure(.hinge), spine: try measure(.spine), wrap: try measure(.wrap),
+                         bleedTop: bleed.top.mm * pointsPerMM, bleedBottom: bleed.bottom.mm * pointsPerMM,
+                         bleedOuter: bleed.outer.mm * pointsPerMM)
     }
 
     /// Counts rendered sheets and reports the completed fraction.
@@ -97,27 +151,27 @@ enum BookPDF {
         func finish() { report?(1) }
     }
 
-    private static func sheetCount(_ book: Book, settings: PrintSettings?, pixart: Bool) -> Int {
-        let slots = leaves(book.pages, settings: settings, pixart: pixart).count
+    private static func sheetCount(_ book: Book, settings: PrintSettings?, firstPageRight: Bool) -> Int {
+        let slots = leaves(book.pages, settings: settings, firstPageRight: firstPageRight).count
         return settings?.spreads == true ? (slots + 1) / 2 : slots
     }
 
-    private static func pixartSettings(_ book: Book) -> PrintSettings {
-        var settings = book.printSettings ?? PrintSettings()
-        settings.spreads = false
-        settings.bleedMM = PixartPrintProfile.bleed
-        settings.targetPPI = 300
-        return settings
+    /// The interior pages a product's PDF holds, compensation blanks included: the count its formulas
+    /// and tables read.
+    static func interiorPageCount(_ book: Book, plan: PrintPlan) -> Int {
+        leaves(book.pages, settings: plan.interiorSettings(for: book), firstPageRight: plan.firstPageRight).count
     }
 
-    /// The three exports; the preflight checks what each of them will render.
-    enum Profile: Sendable {
-        case proof, print, pixart
+    /// The exports; the preflight checks what each of them will render.
+    enum Profile: Hashable, Sendable {
+        case proof, print
+        /// A print-service product from the catalog.
+        case service(PrintPlan)
     }
 
     /// Every problem in one list, blockers first, for callers that show a single list.
-    static func printWarnings(_ book: Book, pixart: Bool = false, language: String = "en") -> [String] {
-        let report = preflight(book, directory: nil, profile: pixart ? .pixart : .print)
+    static func printWarnings(_ book: Book, profile: Profile = .print, language: String = "en") -> [String] {
+        let report = preflight(book, directory: nil, profile: profile)
         return (report.blockers + report.warnings).map { $0.message(language: language) }
     }
 
@@ -128,8 +182,9 @@ enum BookPDF {
         let settings: PrintSettings? = switch profile {
         case .proof: nil
         case .print: book.printSettings ?? PrintSettings()
-        case .pixart: pixartSettings(book)
+        case let .service(plan): plan.interiorSettings(for: book)
         }
+        let plan: PrintPlan? = if case let .service(plan) = profile { plan } else { nil }
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
         let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
@@ -180,7 +235,12 @@ enum BookPDF {
             }
         }
 
-        let slots = leaves(book.pages, settings: settings, pixart: profile == .pixart)
+        let slots = leaves(book.pages, settings: settings, firstPageRight: plan?.firstPageRight == true)
+        if let plan {
+            let product = plan.issues(for: book, interiorPages: slots.count)
+            report.blockers += product.blockers
+            report.warnings += product.warnings
+        }
         let blanks = slots.indices.filter { slots[$0] == nil }.map { $0 + 1 }
         if !blanks.isEmpty, settings != nil {
             report.warnings.append(PreflightIssue(problem: .blankPages(blanks)))
@@ -209,8 +269,8 @@ enum BookPDF {
             let guides = settings.map { PrintGuides.frames(pageSize: composition.bounds.size, settings: $0) }
             if let guides {
                 // The binding edge of a single page is not cut, so it can hold a photo near it.
-                // `leaves` puts the first slot on the left, except for Pixart, whose first slot is a right page.
-                let onRight = profile == .pixart ? position.isMultiple(of: 2) : !position.isMultiple(of: 2)
+                // `leaves` puts the first slot on the left, except for a product whose first page is a right page.
+                let onRight = plan?.firstPageRight == true ? position.isMultiple(of: 2) : !position.isMultiple(of: 2)
                 let bound: Set<PrintGuides.Edge> = page.effectiveLayout == .fullSpread ? []
                     : onRight ? [.left] : [.right]
                 var placedAgain = [UUID: Int]()
@@ -254,14 +314,25 @@ enum BookPDF {
                 }
             }
         }
-        if let cover = book.cover, profile != .proof {
+        // The cover faces at the size each export draws them: the page for Generic Print, the board of a
+        // product's flat cover, the page for a cover printed as the first and last page.
+        let faceSize: CGSize?? = switch profile {
+        case .proof: nil
+        case .print: .some(nil)
+        case let .service(plan):
+            switch plan.coverKind(for: book) {
+            case .none: nil
+            case .interiorPages: .some(book.format.pageSize)
+            case .flat: .some(plan.coverRules(for: book).panel.map {
+                CGSize(width: $0.widthMM.mm * pointsPerMM, height: $0.heightMM.mm * pointsPerMM)
+            } ?? book.format.pageSize)
+            }
+        }
+        if let cover = book.cover, let faceSize {
             for (id, front) in [(cover.frontPhotoID, true), (cover.backPhotoID, false)] {
                 let place = Place(location: .cover, target: .cover(front: front))
-                let face = profile == .pixart
-                    ? BookCoverGeometry(book: book, front: front, size: CGSize(
-                        width: PixartPrintProfile.panelWidth * pointsPerMM,
-                        height: PixartPrintProfile.panelHeight * pointsPerMM))
-                    : BookCoverGeometry(book: book, front: front, bleed: bleed)
+                let face = faceSize.map { BookCoverGeometry(book: book, front: front, size: $0) }
+                    ?? BookCoverGeometry(book: book, front: front, bleed: bleed)
                 if let frame = face.titleFrame, !EditorialTypesetter.fits(face.title, in: frame) {
                     report.blockers.append(place.issue(.textOverflows))
                 }
@@ -290,7 +361,9 @@ enum BookPDF {
         let number: Int
     }
 
-    private static func leaves(_ pages: [BookPage], settings: PrintSettings?, pixart: Bool = false) -> [Leaf?] {
+    /// The interior slots in PDF order; nil is a compensation blank. The generic imposition starts with a
+    /// left page; `firstPageRight` shifts it by one for products whose first interior page is a right page.
+    private static func leaves(_ pages: [BookPage], settings: PrintSettings?, firstPageRight: Bool = false) -> [Leaf?] {
         var leaves = [Leaf?]()
         if settings?.firstPageOnRight == true { leaves.append(nil) }
         // Folios follow the editor's numbering, so blanks added for the imposition are not counted.
@@ -304,8 +377,8 @@ enum BookPDF {
             }
         }
         if settings?.spreads == true && !leaves.count.isMultiple(of: 2) { leaves.append(nil) }
-        if pixart {
-            // Generic imposition starts at a left slot; the first physical Pixart interior is right.
+        if firstPageRight {
+            // Generic imposition starts at a left slot; this product's first physical interior page is right.
             if settings?.firstPageOnRight == true { leaves.removeFirst() }
             else { leaves.insert(nil, at: 0) }
         }
@@ -351,16 +424,72 @@ enum BookPDF {
         var placed: (key: Placed, image: CGImage, placement: CGRect)?
     }
 
+    /// Bleed per edge of an interior page, in points. `inner` is the binding edge.
+    private struct PageBleed {
+        var top: Double = 0, bottom: Double = 0, outer: Double = 0, inner: Double = 0
+
+        init() {}
+
+        init(uniform value: Double) { (top, bottom, outer, inner) = (value, value, value, value) }
+
+        init(_ edges: PrintProfile.Edges) {
+            top = edges.top.mm * BookPDF.pointsPerMM
+            bottom = edges.bottom.mm * BookPDF.pointsPerMM
+            outer = edges.outer.mm * BookPDF.pointsPerMM
+            inner = edges.inner.mm * BookPDF.pointsPerMM
+        }
+
+        var all: [Double] { [top, bottom, outer, inner] }
+        var largest: Double { all.max() ?? 0 }
+    }
+
+    /// A product's flat cover in points: back, hinge, spine, hinge, front, with the wrap and the bleed
+    /// beyond it around the trim line.
+    private struct FlatCover {
+        var panel: CGSize
+        var hinge: Double
+        var spine: Double
+        var wrap: Double
+        var bleedTop: Double
+        var bleedBottom: Double
+        var bleedOuter: Double
+
+        var width: Double { 2 * (panel.width + hinge) + spine }
+        var side: Double { wrap + bleedOuter }
+        var top: Double { wrap + bleedTop }
+        var bottom: Double { wrap + bleedBottom }
+    }
+
+    /// What one PDF file holds, in order: a flat cover, the generic cover, the front cover page, the
+    /// interior and the back cover page.
+    private struct Output {
+        /// Nil for the viewing PDF.
+        var settings: PrintSettings?
+        var bleed = PageBleed()
+        /// Generic Print's `Cover.pdf`: the book's cover at the page size, with the uniform bleed.
+        var genericCover: BookCover?
+        var flatCover: FlatCover?
+        /// The front cover as the first page and the back cover as the last, at the page size.
+        var coverPages = false
+        var interior = true
+        /// The first interior page of the PDF is a right page.
+        var firstPageRight = false
+    }
+
+    /// The margins of the media box around the trim box, in points.
+    private struct Insets {
+        var left: Double, right: Double, top: Double, bottom: Double
+    }
+
     /// Streams the PDF into a hidden file next to `url` and moves it into place only when it is complete,
     /// so a failed or cancelled export leaves an existing file untouched.
-    private static func render(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?, to url: URL,
-                               pixartSpineMM: Double? = nil, meter: ProgressMeter? = nil) throws {
+    private static func render(_ book: Book, directory: URL, output: Output, to url: URL,
+                               meter: ProgressMeter? = nil) throws {
         let fm = FileManager.default
         let temporary = url.deletingLastPathComponent()
             .appendingPathComponent(".\(url.deletingPathExtension().lastPathComponent)-\(UUID().uuidString).pdf")
         defer { try? fm.removeItem(at: temporary) }
-        try renderDocument(book, directory: directory, settings: settings, cover: cover, to: temporary,
-                           pixartSpineMM: pixartSpineMM, meter: meter)
+        try renderDocument(book, directory: directory, output: output, to: temporary, meter: meter)
         try Task.checkCancellation()
         if fm.fileExists(atPath: url.path) {
             _ = try fm.replaceItemAt(url, withItemAt: temporary)
@@ -369,18 +498,24 @@ enum BookPDF {
         }
     }
 
-    private static func renderDocument(_ book: Book, directory: URL, settings: PrintSettings?, cover: BookCover?,
-                                       to url: URL, pixartSpineMM: Double?, meter: ProgressMeter?) throws {
+    private static func renderDocument(_ book: Book, directory: URL, output: Output, to url: URL,
+                                       meter: ProgressMeter?) throws {
+        let settings = output.settings
         let w = book.format.widthMM * pointsPerMM
         let h = book.format.heightMM * pointsPerMM
-        let bleed = (settings?.bleedMM ?? 0) * pointsPerMM
+        let bleed = output.bleed
         let safe = book.contentInsetPoints
         let images = settings.map(ImageOutput.print) ?? .proof
-        let spine = (cover?.spineMM ?? 0) * pointsPerMM
+        let spine = (output.genericCover?.spineMM ?? 0) * pointsPerMM
+        let flatMeasures: [Double] = output.flatCover.map {
+            [Double($0.panel.width), Double($0.panel.height), $0.hinge, $0.spine, $0.wrap, $0.bleedTop, $0.bleedBottom,
+             $0.bleedOuter]
+        } ?? []
         guard w.isFinite, h.isFinite, w > 50, h > 50, !book.pages.isEmpty,
-              bleed.isFinite, bleed >= 0, safe >= 0, safe * 2 < min(w,h),
-              images.ppi.isFinite, images.ppi > 0, spine.isFinite, spine >= 0 else { throw ExportError.invalidBook }
-        var media = CGRect(x: 0, y: 0, width: w + bleed * 2, height: h + bleed * 2)
+              bleed.all.allSatisfy({ $0.isFinite && $0 >= 0 }), safe >= 0, safe * 2 < min(w,h),
+              images.ppi.isFinite, images.ppi > 0, spine.isFinite, spine >= 0,
+              flatMeasures.allSatisfy({ $0.isFinite && $0 >= 0 }) else { throw ExportError.invalidBook }
+        var media = CGRect(x: 0, y: 0, width: w + bleed.largest * 2, height: h + bleed.largest * 2)
         var metadata: [String: Any] = [kCGPDFContextTitle as String: book.title]
         if settings != nil {
             // Quartz uses GTS_PDFX for the output-intent dictionary. The profile describes the
@@ -397,29 +532,39 @@ enum BookPDF {
         // Close the file even when a page throws, so the temporary file can be removed.
         var closed = false
         defer { if !closed { ctx.closePDF() } }
-        func begin(width: Double, height: Double, bleed: Double) {
-            let trim = CGRect(x: bleed, y: bleed, width: width, height: height)
-            let full = trim.insetBy(dx: -bleed, dy: -bleed)
+        func begin(width: Double, height: Double, insets: Insets) {
+            let trim = CGRect(x: insets.left, y: insets.bottom, width: width, height: height)
+            // Equal margins are added as twice the margin, so a uniform bleed gives the same boxes as before.
+            let full = CGRect(x: trim.minX - insets.left, y: trim.minY - insets.bottom,
+                              width: width + (insets.left == insets.right ? 2 * insets.left : insets.left + insets.right),
+                              height: height + (insets.top == insets.bottom ? 2 * insets.top : insets.top + insets.bottom))
             ctx.beginPDFPage([kCGPDFContextMediaBox as String: box(full), kCGPDFContextTrimBox as String: box(trim),
                               kCGPDFContextBleedBox as String: box(full)] as CFDictionary)
-            ctx.translateBy(x: bleed, y: bleed + height)
+            ctx.translateBy(x: insets.left, y: insets.bottom + height)
             ctx.scaleBy(x: 1, y: -1)
         }
-        if let spineMM = pixartSpineMM {
-            let panelW = PixartPrintProfile.panelWidth * pointsPerMM
-            let panelH = PixartPrintProfile.panelHeight * pointsPerMM
-            let hinge = PixartPrintProfile.hinge * pointsPerMM
-            let wrap = PixartPrintProfile.wrap * pointsPerMM
-            let width = 2 * (panelW + hinge) + spineMM * pointsPerMM
-            begin(width: width, height: panelH, bleed: wrap)
+        func uniform(_ value: Double) -> Insets { Insets(left: value, right: value, top: value, bottom: value) }
+        /// A single page's insets: the binding edge is on the left of a right page.
+        func pageInsets(right: Bool) -> Insets {
+            Insets(left: right ? bleed.inner : bleed.outer, right: right ? bleed.outer : bleed.inner,
+                   top: bleed.top, bottom: bleed.bottom)
+        }
+        if let flat = output.flatCover {
+            let panelW = flat.panel.width
+            let panelH = flat.panel.height
+            let width = flat.width
+            begin(width: width, height: panelH, insets: Insets(left: flat.side, right: flat.side, top: flat.top,
+                                                               bottom: flat.bottom))
             ctx.setFillColor(EditorialStyle.color(BookCoverGeometry(book: book, front: false).background))
-            ctx.fill(CGRect(x: -wrap, y: -wrap, width: width + 2*wrap, height: panelH + 2*wrap))
-            drawSpine(book, in: CGRect(x: panelW + hinge, y: 0, width: spineMM * pointsPerMM, height: panelH), context: ctx)
+            ctx.fill(CGRect(x: -flat.side, y: -flat.top, width: width + 2 * flat.side,
+                            height: panelH + (flat.top == flat.bottom ? 2 * flat.top : flat.top + flat.bottom)))
+            drawSpine(book, in: CGRect(x: panelW + flat.hinge, y: 0, width: flat.spine, height: panelH), context: ctx)
             for front in [false, true] {
-                // The faces are laid out on the real Pixart panel, so the title is fitted where it is drawn.
+                // The faces are laid out on the real board, so the title is fitted where it is drawn.
                 let face = BookCoverGeometry(book: book, front: front, size: CGSize(width: panelW, height: panelH))
-                let outer = CGRect(x: front ? -hinge : -wrap, y: -wrap,
-                                   width: panelW + hinge + wrap, height: panelH + 2*wrap)
+                let outer = CGRect(x: front ? -flat.hinge : -flat.side, y: -flat.top,
+                                   width: panelW + flat.hinge + flat.side,
+                                   height: panelH + (flat.top == flat.bottom ? 2 * flat.top : flat.top + flat.bottom))
                 ctx.saveGState()
                 if front { ctx.translateBy(x: width - panelW, y: 0) }
                 try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
@@ -429,8 +574,9 @@ enum BookPDF {
             ctx.endPDFPage()
             meter?.sheetDone()
         }
-        if let cover {
-            begin(width: 2 * w + spine, height: h, bleed: bleed)
+        if let cover = output.genericCover {
+            let bleed = bleed.outer
+            begin(width: 2 * w + spine, height: h, insets: uniform(bleed))
             let spread = CGRect(x: 0, y: 0, width: 2 * w + spine, height: h)
             let back = BookCoverGeometry(book: book, front: false, bleed: bleed)
             ctx.setFillColor(EditorialStyle.color(back.background))
@@ -446,21 +592,42 @@ enum BookPDF {
                          outer: frontOuter)
             ctx.endPDFPage()
             meter?.sheetDone()
-        } else {
-            let slots = leaves(book.pages, settings: settings, pixart: pixartSpineMM != nil)
+        }
+        /// A cover face printed as a page of the interior file: the front is a right page, the back a left one.
+        func coverPage(front: Bool) throws {
+            let insets = pageInsets(right: front)
+            begin(width: w, height: h, insets: insets)
+            let face = BookCoverGeometry(book: book, front: front, size: CGSize(width: w, height: h))
+            let outer = CGRect(x: -insets.left, y: -insets.top, width: w + insets.left + insets.right,
+                               height: h + insets.top + insets.bottom)
+            ctx.setFillColor(EditorialStyle.color(face.background))
+            ctx.fill(outer)
+            try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
+                         images: images, book: book, directory: directory, context: ctx, outer: outer)
+            ctx.endPDFPage()
+            meter?.sheetDone()
+        }
+        if output.coverPages { try coverPage(front: true) }
+        if output.interior {
+            let slots = leaves(book.pages, settings: settings, firstPageRight: output.firstPageRight)
             let size = settings?.spreads == true ? 2 : 1
             for first in stride(from: 0, to: slots.count, by: size) {
                 let sheet = slots[first..<(first + size)]
                 try Task.checkCancellation()
-                begin(width: Double(sheet.count)*w, height: h, bleed: bleed)
+                let insets = size == 2
+                    ? Insets(left: bleed.outer, right: bleed.outer, top: bleed.top, bottom: bleed.bottom)
+                    : pageInsets(right: !(first + (output.firstPageRight ? 1 : 0)).isMultiple(of: 2))
+                begin(width: Double(sheet.count)*w, height: h, insets: insets)
                 try autoreleasepool {
                     for (index,slot) in sheet.enumerated() {
                         ctx.saveGState()
                         defer { ctx.restoreGState() }
                         ctx.translateBy(x: Double(index)*w, y: 0)
-                        let left = index == 0 ? bleed : 0
-                        let right = index == sheet.count-1 ? bleed : 0
-                        let leafArea = CGRect(x: -left, y: -bleed, width: w+left+right, height: h+2*bleed)
+                        let left = index == 0 ? insets.left : 0
+                        let right = index == sheet.count-1 ? insets.right : 0
+                        let leafArea = CGRect(x: -left, y: -insets.top, width: w+left+right,
+                                              height: h + (insets.top == insets.bottom ? 2 * insets.top
+                                                                                       : insets.top + insets.bottom))
                         guard let leaf = slot else {
                             // A compensation blank is still a page of the book: print it on the template's paper.
                             ctx.setFillColor(EditorialStyle.color(book.editorialStyle.paper))
@@ -469,14 +636,16 @@ enum BookPDF {
                         }
                         ctx.clip(to: leafArea)
                         ctx.translateBy(x: -Double(leaf.half)*w, y: 0)
+                        // Drawn with the largest bleed and clipped to this page's own edges.
                         try draw(leaf.page, pageNumber: leaf.number, book: book, directory: directory,
-                                 context: ctx, bleed: bleed, images: images)
+                                 context: ctx, bleed: bleed.largest, images: images)
                     }
                 }
                 ctx.endPDFPage()
                 meter?.sheetDone()
             }
         }
+        if output.coverPages { try coverPage(front: false) }
         ctx.closePDF()
         closed = true
     }

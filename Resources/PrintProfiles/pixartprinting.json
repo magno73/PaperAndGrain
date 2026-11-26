@@ -1,0 +1,40 @@
+[
+  {
+    "id": "pixartprinting-photobook-hardcover",
+    "service": "Pixartprinting",
+    "product": { "en": "Photo book, hardcover", "it": "Fotolibro, copertina rigida" },
+    "binding": "hardcover",
+    "regions": ["IT", "EU", "GB"],
+    "sourceURL": "https://www.pixartprinting.it/stampa-riviste-cataloghi-libri/copertina-rigida-nobilitata/",
+    "verifiedOn": "2026-11-26",
+    "notes": {
+      "en": "Cover geometry from the printer's 21 × 21 cm hardcover template. The product page asks for CMYK (FOGRA39); this export writes sRGB, so check the instructions for your quote.",
+      "it": "Geometria della copertina dal modello 21 × 21 cm dello stampatore. La pagina del prodotto chiede CMYK (FOGRA39); questa esportazione scrive sRGB, quindi controlla le istruzioni del tuo preventivo."
+    },
+    "interior": {
+      "layout": "single",
+      "bleed": { "mm": 3, "source": "3 mm per side" },
+      "safe": { "top": 5, "bottom": 5, "outer": 5, "inner": { "mm": 15, "source": "text 15 mm from the inner margin" } },
+      "firstPage": "right",
+      "ends": "pages",
+      "targetPPI": 300,
+      "pages": { "multiple": 2, "coverPagesCounted": 4 }
+    },
+    "cover": {
+      "kind": "flat",
+      "hinge": { "mm": 11, "source": "hardcover template 21 × 21 cm" },
+      "spine": { "quote": { "minMM": 0, "maxMM": 100 } },
+      "wrap": { "mm": 19, "source": "hardcover template 21 × 21 cm: turn-in and bleed" }
+    },
+    "files": { "arrangement": "single" },
+    "color": { "accepts": ["cmyk", "srgb"], "iccProfile": "FOGRA39" },
+    "sizes": [
+      {
+        "id": "21x21",
+        "widthMM": 210,
+        "heightMM": 210,
+        "cover": { "panel": { "widthMM": { "mm": 207, "source": "hardcover template" }, "heightMM": { "mm": 220, "source": "hardcover template" } } }
+      }
+    ]
+  }
+]

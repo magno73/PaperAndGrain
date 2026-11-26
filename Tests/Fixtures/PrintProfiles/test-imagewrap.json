@@ -1,0 +1,45 @@
+{
+  "id": "test-imagewrap",
+  "service": "Test Imagewrap",
+  "product": { "en": "Test hardcover with image wrap", "it": "Copertina rigida di prova" },
+  "binding": "hardcover",
+  "regions": ["US", "EU"],
+  "sourceURL": "https://example.com/imagewrap",
+  "verifiedOn": "2026-11-26",
+  "notes": "Test-only entry: bleed on three edges, a board larger than the page, separate files and a spine table per paper.",
+  "papers": [
+    { "id": "premium", "name": { "en": "Premium", "it": "Premium" } },
+    { "id": "standard", "name": "Standard" }
+  ],
+  "interior": {
+    "layout": "single",
+    "bleed": { "top": { "mm": 3.175, "source": "9 pt" }, "bottom": { "mm": 3.175, "source": "9 pt" },
+               "outer": { "mm": 3.175, "source": "9 pt" }, "inner": 0 },
+    "safe": { "top": 6.35, "bottom": 6.35, "outer": 6.35, "inner": { "mm": 15.875, "source": "45 pt" } },
+    "firstPage": "right",
+    "pages": { "minimum": 20, "maximum": 240, "multiple": 2 }
+  },
+  "cover": {
+    "kind": "flat",
+    "hinge": 5,
+    "spine": { "table": { "source": "spine in pt by page count", "rows": [
+      { "paper": "premium", "upToPages": 40, "mm": { "mm": 11.64 } },
+      { "paper": "premium", "upToPages": 240, "mm": 27.87 },
+      { "paper": "standard", "upToPages": 60, "mm": 11.64 },
+      { "paper": "standard", "upToPages": 240, "mm": 23.28 }
+    ] } },
+    "wrap": { "mm": 7.761, "source": "22 pt" },
+    "bleed": { "top": 1, "bottom": 1, "outer": 2, "inner": 0 },
+    "safe": 6.35
+  },
+  "files": { "arrangement": "separate", "interior": "interior.pdf", "cover": "cover.pdf" },
+  "color": { "accepts": ["cmyk"], "standard": "PDF/X-3:2002" },
+  "sizes": [
+    { "id": "small-square", "name": { "en": "Small Square", "it": "Quadrato piccolo" },
+      "widthMM": { "mm": 171.45, "source": "6.75 in" }, "heightMM": { "mm": 168.275, "source": "6.625 in" },
+      "cover": { "panel": { "widthMM": 177.4, "heightMM": 178.2 } } },
+    { "id": "standard-landscape", "widthMM": { "mm": 241.3, "source": "9.5 in" }, "heightMM": { "mm": 203.2, "source": "8 in" },
+      "pages": { "maximum": 200 },
+      "cover": { "panel": { "widthMM": 248, "heightMM": 213.1 } } }
+  ]
+}

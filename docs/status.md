@@ -1,10 +1,10 @@
 # Status
 
-The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work in progress for 0.11.0 (so far T1, the live Issues list). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
+The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work in progress for 0.11.0 (so far T1, the live Issues list, and T10, the print-service profile engine). The list of changes is in the [changelog](../CHANGELOG.md). Record here what you verify, how, and what remains to be tried. Use only the sample book or synthetic books built with `cli build` from `Resources/Demo.png` and generated images.
 
 ## How the app is checked
 
-- **Unit tests.** `swift test` runs 224 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print and Pixartprinting PDFs, and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
+- **Unit tests.** `swift test` runs 250 tests with no failures (one timing test is skipped unless `PAPERGRAIN_PREFLIGHT_BOOK` names a package). They cover the document model and its compatibility with older projects, saving, opening and moving packages, drafts, imports, page geometry, layers, snapping, photo drops and swaps, typography, the film pipeline and LUT parsing, adjustments, photo analysis and story matching, the print PDF and the print-service catalog (every entry rendered at every size), and every command-line command. Every pull request runs `swift build` and `swift test` on GitHub Actions with Xcode 26.6 and Xcode 27.2.
 - **The app on macOS 27.** Interactive checks are made with the bundle from `./scripts/build-app.sh`, on the sample book or on synthetic books.
 - **PDF output.** Exports are opened and checked for size, boxes, long text, full-page photos and spreads.
 - **Profiling.** The main thread is sampled with `sample <pid> 6 1` on a synthetic book of 50 pages and 150 photos of 12 MP.
@@ -47,6 +47,7 @@ The state of testing for Paper & Grain 0.10.0 (25 November 2026), plus the work 
 - Unit tests: printed folios match the editor when blanks are inserted; the Pixart cover title fits the panel it is drawn in; the print bleed keeps the editor crop inside the trim; preflight lists every blocker; a photo at the target resolution does not warn; progress per sheet; a previous print package is replaced; seam underlaps follow the layer order; blanks use the template paper; the classic cover band runs into the wrap; empty text boxes print only what the author styled.
 - File size and memory on the 50-page synthetic book (release build): print PDF 907 MB to 200 MB, peak memory 2.76 GB to 0.43 GB; viewing PDF 976 MB to 46 MB; Pixart 907 MB to 197 MB. A gradient test shows no banding.
 - The preflight check in the app with a real resolution warning, and the preset sizes in **Book & Print**.
+- Print-service profiles (T10). The Pixartprinting export of a 10-page synthetic book (`cli build` from `Resources/Demo.png` and five generated 2400 × 1800 gradients; full pages, galleries, a full spread, text pages, a cover with front and back photos) was written with the binary of the base commit `88beb03` and with the catalog entry, and compared with `CGPDFDocument`: 13 pages in both, identical media, trim and bleed boxes on every page, and renders of every page at half scale identical to the pixel, cover included. The same holds for the variant with the first page on the right and a 12.5 mm spine (11 pages), for Generic Print (`Interior.pdf` and `Cover.pdf`, both variants) and for the viewing PDF, so a book with no profile exports as before. Unit tests: every catalog entry and the three test-only entries decode, follow the catalog rules and round-trip; broken entries are refused naming the file and the reason; spine and hinge from a table per paper and page count, from a formula and from the quote, with the author's value first; size, page-count and missing-spine issues with the product's numbers; a 0.10 manifest without the new fields decodes and stays generic; every size of every entry renders the media, trim and bleed boxes it describes, including bleed on three edges, no bleed, covers as first and last page, one spread per page and separate files; `export-pdf` with a catalog id, `--size`, `--paper` and `--spine-mm`, `print-profiles`, the build spec's `printService` and the patch checks.
 - Issues list (T1), unit tests only: issue ids are stable across two runs, unique, and follow the page and object rather than the printed number; each target (photo, text box, story, caption, cover face) resolves to its page or face, and one pointing to nothing resolves to nothing; an overflowing box or story is its own blocker with its target and disappears when the text is shortened; a photo whose pixels fall under the target raises a warning on that photo; groups come out book-wide, pages in order, cover last; six changes inside one pause start one run; a run overtaken by a newer change never publishes; stopping the monitor cancels the pending run. The catalog compiles into the debug bundle with the new Italian strings.
 
 ## Not yet verified
@@ -89,6 +90,18 @@ Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-e
 7. Italian: **Vista › Mostra guide di stampa**, the legend and both rows. Dark appearance: both lines are visible on white and on a dark photo.
 8. Not done: guides on the cover faces, and the two warnings for the cover.
 
+### Print-service profiles (T10)
+
+None of this was seen on screen (no GUI access in this run). With the bundle from `./scripts/build-app.sh` and a synthetic 21 × 21 cm book with a cover:
+
+1. **Book & Print › Print service** lists **None (generic print)** and, under **Pixartprinting**, **Photo book, hardcover · 21 × 21 cm**. Choose it: **Bleed** reads 3 and **Safe margin** 5; the rules read "Page count in steps of 2", "The count includes 4 cover pages" and "Keep text 5 mm from the edges and 15 mm from the binding"; the notice shows "Specification checked on 26 November 2026", a working **Printer's page** link and the not-affiliated sentence. **Apply**, reopen the sheet: the choice is kept. ⌘Z undoes it in one step.
+2. Change **Size** to 20 × 20 cm with the product chosen: the section says the product does not offer 20 × 20 cm, lists 21 × 21 cm, and **Use 21 × 21 cm** puts the size back. The size never changes by itself.
+3. **Issues** with the product chosen and no spine width: a problem "Cover · Spine width missing: enter it from the printer's quote". Type a spine in **Book & Print › Spine width (mm)**: the row goes away. Remove pages until the count is odd: a warning "Needs a multiple of 2 pages (has …)".
+4. **File › Export PDF**: the list shows **Viewing PDF**, **Generic Print**, **Pixartprinting · Photo book, hardcover · 21 × 21 cm** with "One PDF with the flat cover first. Single pages of 216 × 216 mm." and **Other print service…**. The product shows the spine field filled from the cover, the sRGB note and the notice. **Other print service…** shows a service menu. Export and open the PDF: flat cover first, then single pages.
+5. A book with no print service: the export sheet has no product row, only **Other print service…**; **Issues** behaves as in 0.10.
+6. New book from an album: the **Print service** menu above **Book Size** filters the sizes to the product's; **Any print service** brings the common sizes back.
+7. Italian: **Libro e stampa › Servizio di stampa**, the rules, the notice and the export sheet rows in Italian; VoiceOver reads the link and the measure fields.
+
 ### Documents
 
 - In the app rather than in unit tests: renaming the open package in Finder, editing, quitting and reopening; ejecting the volume of an open book and using **Save As**; opening a book from a read-only volume; **Delete Draft…** and **Save As** from a draft.
@@ -121,7 +134,7 @@ Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-e
 ### Printing
 
 - A real printed copy: format, paper and binding chosen with the print shop; spine, grain and detail on faces checked on a proof.
-- The Pixartprinting PDF checked against an actual quote.
+- The Pixartprinting PDF checked against an actual quote, and whether Pixartprinting accepts sRGB for this product (open item O1).
 - Text box background and border, and custom text color, in the print PDF.
 
 ### Platforms and accessibility
@@ -136,7 +149,8 @@ Unit tests cover the frames (210 × 210 mm, 3 mm bleed, 10 mm safe), the photo-e
 - **Tested only on macOS 27.** macOS 14, 15 and 26 are supported but untested.
 - **Spine never printed.** The spine geometry has been checked in PDFs only; a real printed spine has never been checked.
 - **Font embedding.** The templates use fonts that ship with macOS. Their license for embedding in PDFs of books that are sold has not been checked.
-- **One print-shop profile.** The Pixartprinting profile exists only for the 21 × 21 cm hardcover. Other products use the generic print PDF with the bleed and spine of the product's specifications.
+- **One print-service entry.** The catalog holds only the Pixartprinting 21 × 21 cm hardcover; the other services of the 0.11 plan come as data (T11). Other products use the generic print PDF with the bleed and spine of the product's specifications.
+- **One safe margin.** The layout keeps one safe margin on every side. A product's larger binding margin (15 mm for Pixartprinting) is shown with its rules, not applied to the layout. `PrintPlan.guideZones` computes it for the print guides, but the canvas does not draw it yet.
 - **sRGB only.** PDFs are written in sRGB; check the color requirements of the product you order.
 - **Analysis is a suggestion.** Vision labels describe what the model recognizes. They do not establish where a photo was taken or who appears in it. The animal detector locates only cats and dogs; wildlife relies on scene labels.
 - **Noncommercial LUTs.** The bundled film-emulation LUTs are CC BY-NC-SA 4.0 and cannot be used commercially.

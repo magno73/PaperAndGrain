@@ -1017,11 +1017,17 @@ final class Workspace: ObservableObject {
             return
         }
         let panel = NSSavePanel()
-        panel.allowedContentTypes = [.pdf]
         let suffix: String
-        if case .pixart = request {
-            suffix = " - Pixartprinting"
+        if case let .service(plan) = request {
+            suffix = " - " + safeFilename(plan.profile.service)
+            if plan.profile.files.arrangement == .separate {
+                // Separate interior and cover files go in a new folder, like Generic Print.
+                panel.message = L10n.string("Choose where to create the PDF folder", language: language)
+            } else {
+                panel.allowedContentTypes = [.pdf]
+            }
         } else {
+            panel.allowedContentTypes = [.pdf]
             suffix = ""
         }
         panel.nameFieldStringValue = safeFilename(book.title) + suffix
@@ -1085,9 +1091,8 @@ final class Workspace: ObservableObject {
                         try BookPDF.write(snapshot, directory: directory, to: destination, progress: progress)
                     case .printPackage:
                         try BookPDF.writePrint(snapshot, directory: directory, to: destination, progress: progress)
-                    case let .pixart(spineMM):
-                        try BookPDF.writePixart(snapshot, directory: directory, spineMM: spineMM, to: destination,
-                                                progress: progress)
+                    case let .service(plan):
+                        try BookPDF.write(snapshot, directory: directory, plan: plan, to: destination, progress: progress)
                     }
                 }
                 try await withTaskCancellationHandler {

@@ -4,6 +4,15 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ## 0.11.0 · unreleased
 
+### Print services
+
+- **Book & Print › Print service** chooses a printer's product and size. It sets bleed and safe margin from the product, lists its page-count and margin rules, and offers the product's sizes, closest first, when the book's size is not one of them; the size changes only when you click **Use …**.
+- **Export PDF** lists the book's print service and **Other print service…** for any product in the catalog, with the date the specification was checked, a link to the printer's page and a note that Paper & Grain is not affiliated with the printer.
+- **Issues** checks the book against its print service: a size the product does not offer, a page count below the minimum, above the maximum or not in the product's steps, and a missing spine width.
+- The new-book size menu can show only the sizes of one print service.
+- Print services are described as data, one file per printer. The Pixartprinting 21 × 21 cm hardcover is the first entry and writes the same PDF as before.
+- Command line: `export-pdf --profile` accepts a catalog id with `--size`, `--paper`, `--spine-mm`, `--hinge-mm` and `--wrap-mm`; `pixart` still works. `print-profiles` lists the catalog. A build spec accepts `printService`.
+
 ### Issues
 
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.

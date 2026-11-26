@@ -1,8 +1,9 @@
 import SwiftUI
 
 extension EditorView {
-    /// The print profile the live check runs. T10 (print-service profiles) will choose it per book.
-    var issuesProfile: BookPDF.Profile { .print }
+    /// The print profile the live check runs: the book's print-service product when it chose one in
+    /// **Book & Print**, otherwise Generic Print.
+    var issuesProfile: BookPDF.Profile { PrintPlan(book: book).map { .service($0) } ?? .print }
 
     /// Runs the check again after the book has been quiet for a moment.
     func recheckIssues(immediately: Bool = false) {
@@ -72,7 +73,7 @@ extension EditorView {
     func issueFix(for issue: BookPDF.PreflightIssue) -> IssueFix? {
         switch issue.problem {
         case .invalidDimensions, .missingPhoto, .missingFile, .unreadableLUT, .lowResolution, .textOverflows,
-             .textOutsideSafeMargin, .photoNearEdge, .blankPages:
+             .textOutsideSafeMargin, .photoNearEdge, .blankPages, .sizeNotOffered, .pageCount, .missingMeasure:
             nil
         }
     }

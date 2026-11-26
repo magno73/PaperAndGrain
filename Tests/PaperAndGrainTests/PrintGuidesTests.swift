@@ -129,8 +129,8 @@ final class PrintGuidesTests: XCTestCase {
         XCTAssertFalse(warns(.print, firstOnRight: false), "left page: the right edge is the binding edge")
         XCTAssertTrue(warns(.print, firstOnRight: true), "right page: the right edge is cut")
         // Pixart: the first physical interior page is on the right, so the book is shifted by one.
-        XCTAssertTrue(warns(.pixart, firstOnRight: true), "right page: the right edge is cut")
-        XCTAssertFalse(warns(.pixart, firstOnRight: false), "left page: the right edge is the binding edge")
+        XCTAssertTrue(warns(.service(.pixart()), firstOnRight: true), "right page: the right edge is cut")
+        XCTAssertFalse(warns(.service(.pixart()), firstOnRight: false), "left page: the right edge is the binding edge")
     }
 
     func testEmptyStyledBoxIsNotATextWarning() {

@@ -30,9 +30,9 @@ final class CoverPhotoPlacementTests: XCTestCase {
         book.cover = BookCover(frontPhotoID: photo.id)
         for pixart in [false, true] {
             book.cover?.frontPhotoPlacement = nil
-            XCTAssertFalse(BookPDF.printWarnings(book, pixart: pixart).contains { $0.contains(photo.name) })
+            XCTAssertFalse(BookPDF.printWarnings(book, profile: pixart ? .service(.pixart()) : .print).contains { $0.contains(photo.name) })
             book.cover?.frontPhotoPlacement = PhotoPlacement(crop: PhotoCrop(zoom: 2))
-            XCTAssertTrue(BookPDF.printWarnings(book, pixart: pixart).contains { $0.contains(photo.name) })
+            XCTAssertTrue(BookPDF.printWarnings(book, profile: pixart ? .service(.pixart()) : .print).contains { $0.contains(photo.name) })
         }
     }
 
@@ -57,7 +57,7 @@ final class CoverPhotoPlacementTests: XCTestCase {
         let generic = directory.appendingPathComponent("print")
         try BookPDF.writePrint(book, directory: directory, to: generic)
         let pixart = directory.appendingPathComponent("pixart.pdf")
-        try BookPDF.writePixart(book, directory: directory, spineMM: 7, to: pixart)
+        try BookPDF.write(book, directory: directory, plan: .pixart(spineMM: 7), to: pixart)
         for file in [generic.appendingPathComponent("Cover.pdf"), pixart] {
             let document = try XCTUnwrap(CGPDFDocument(file as CFURL))
             let page = try XCTUnwrap(document.page(at: 1))

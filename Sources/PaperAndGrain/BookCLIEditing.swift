@@ -400,6 +400,26 @@ enum BookCLIEditing {
             guard print.bleedMM >= 0 else { throw Failure("printSettings.bleedMM must be 0 or more") }
             guard print.safeMM >= 0 else { throw Failure("printSettings.safeMM must be 0 or more") }
             guard print.targetPPI > 0 else { throw Failure("printSettings.targetPPI must be greater than 0") }
+            if let id = print.profileID {
+                guard let profile = PrintProfileCatalog.bundled.profile(id) else {
+                    throw Failure("printSettings.profileID \(id) is not in print-profiles")
+                }
+                if let size = print.profileSizeID, profile.size(size) == nil {
+                    throw Failure("printSettings.profileSizeID \(size) is not a size of \(id). Sizes: "
+                                  + profile.sizes.map(\.id).joined(separator: ", "))
+                }
+                if let paper = print.profilePaperID, profile.papers?.contains(where: { $0.id == paper }) != true {
+                    throw Failure("printSettings.profilePaperID \(paper) is not a paper of \(id)")
+                }
+            } else if print.profileSizeID != nil || print.profilePaperID != nil || print.profileMeasures != nil {
+                throw Failure("printSettings.profileSizeID, profilePaperID and profileMeasures need a profileID")
+            }
+            for (field, value) in [("spineMM", print.profileMeasures?.spineMM), ("hingeMM", print.profileMeasures?.hingeMM),
+                                   ("wrapMM", print.profileMeasures?.wrapMM)] {
+                if let value, !(value.isFinite && value >= 0) {
+                    throw Failure("printSettings.profileMeasures.\(field) must be 0 or more")
+                }
+            }
         }
         guard (book.cover?.spineMM ?? 0) >= 0 else { throw Failure("cover.spineMM must be 0 or more") }
     }

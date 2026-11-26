@@ -38,10 +38,13 @@ The spec accepts only `version`, `files` and `photos`, and `photos` only `albumI
 
 ## PDF
 
-`export-pdf SOURCE.papergrain --profile proof|print|pixart --output PATH [--spine-mm MM]` returns the path, the profile and the print warnings found, in English (for example `p. 3 · Missing photo`). The profiles share the project settings and resources.
+`export-pdf SOURCE.papergrain --profile proof|print|pixart|PROFILE_ID --output PATH [--size SIZE_ID] [--paper PAPER_ID] [--spine-mm MM] [--hinge-mm MM] [--wrap-mm MM]` returns the path, the profile as given, the product size (`size`, for a print service) and the print warnings found, in English (for example `p. 3 · Missing photo` or `Needs at least 24 pages (has 18)`). The profiles share the project settings and resources.
 
 - `proof` saves the interior as a single `.pdf` for viewing.
 - `print` saves `Interior.pdf` and, if the book has a cover, `Cover.pdf` in a new folder.
-- `pixart` saves a single `.pdf` with the cover before the interior pages, following the 21 × 21 cm hardcover profile, and needs a 210 × 210 mm book. It uses the spine width saved in the project, or `--spine-mm` with a value greater than 0 and at most 100.
+- `PROFILE_ID` is an `id` from `print-profiles`: a printer's product. It saves what the product asks for: one `.pdf` (`files.arrangement` `single`), or a new folder with the interior and cover files under the names the printer expects (`separate`). The book must have one of the product's trims; `--size` chooses among them, otherwise the size whose trim matches the book, or the one in `printSettings.profileSizeID` when the book chose this profile. `--paper` chooses the paper for spine tables. A spine given in the printer's quote comes from `--spine-mm`, `printSettings.profileMeasures.spineMM` or `cover.spineMM`, in that order; a spine from a formula or table is computed from the interior page count and `--spine-mm` replaces it. `--hinge-mm` and `--wrap-mm` do the same for hinge and wrap.
+- `pixart` is the catalog entry `pixartprinting-photobook-hardcover`: a single `.pdf` with the flat hardcover before single 216 × 216 mm interior pages, for a 210 × 210 mm book, with a spine greater than 0 and at most 100 mm.
 
-Before it creates any file, the command refuses with a specific error a book with no pages, a format with a side of 17.6 mm or less, and a page too small for its margins. `import-lut` reports a file that is not a `.cube` or a `.png`, or whose size is not between 1 byte and 50 MB.
+`print-profiles` lists the catalog as JSON: `profiles`, each with `id`, `service`, `product` (English and Italian), `binding`, `regions`, `sourceURL`, `verifiedOn`, `interior` (layout, bleed and safe margin per edge, first page side, page rules), `cover`, `files`, `color` and `sizes`. Lengths are millimetres; a length written as `{"mm": …, "source": …}` keeps the printer's own value and unit.
+
+Before it creates any file, the command refuses with a specific error a book with no pages, a format with a side of 17.6 mm or less, a page too small for its margins, a book whose size the product does not offer (naming both sizes), an unknown size or paper, and a missing spine width. `import-lut` reports a file that is not a `.cube` or a `.png`, or whose size is not between 1 byte and 50 MB.

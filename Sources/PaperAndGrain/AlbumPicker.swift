@@ -13,6 +13,8 @@ struct AlbumPicker: View, Localizing {
     @State private var entries: [LibraryPhoto] = []
     @State private var selected = Set<String>()
     @State private var formatChoice = "square-21"
+    /// A print-service profile whose sizes the size menu lists; empty lists the common sizes.
+    @State private var serviceFilter = ""
     @State private var width = "210"
     @State private var height = "210"
     @State private var loading = true
@@ -23,8 +25,13 @@ struct AlbumPicker: View, Localizing {
     private static let customChoice = "custom"
 
     private var album: Album? { albums.first { $0.id == albumID } }
+    private var serviceProfile: PrintProfile? { PrintProfileCatalog.bundled.profile(serviceFilter) }
+
     private var format: BookFormat? {
         if let preset = BookFormatPreset.all.first(where: { $0.id == formatChoice }) { return preset.format }
+        if formatChoice.hasPrefix("size:"), let size = serviceProfile?.size(String(formatChoice.dropFirst(5))) {
+            return size.format
+        }
         do {
             let formatter = NumberFormatter()
             formatter.locale = Locale(identifier: language)
@@ -156,11 +163,36 @@ struct AlbumPicker: View, Localizing {
                         .padding(3)
                     }
                 }
+                if !PrintProfileCatalog.bundled.profiles.isEmpty {
+                    Picker(tr("Print service"), selection: $serviceFilter) {
+                        Text(tr("Any print service")).tag("")
+                        ForEach(PrintProfileCatalog.bundled.services, id: \.name) { service in
+                            Section(service.name) {
+                                ForEach(service.profiles) { profile in Text(profile.title(language)).tag(profile.id) }
+                            }
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: 460, alignment: .leading)
+                    .help(tr("Shows only the sizes this printer’s product offers."))
+                    .onChange(of: serviceFilter) { _, _ in
+                        let current = format ?? .square
+                        if let profile = serviceProfile {
+                            formatChoice = (profile.sizes(closestTo: current).first?.id).map { "size:" + $0 } ?? Self.customChoice
+                        } else {
+                            formatChoice = BookFormatPreset.matching(current)?.id ?? "square-21"
+                        }
+                    }
+                }
                 Picker(tr("Book Size"), selection: $formatChoice) {
-                    ForEach(BookFormatPreset.Shape.allCases, id: \.self) { shape in
-                        Section(shape.title(language)) {
-                            ForEach(BookFormatPreset.presets(shape)) { preset in
-                                Text(preset.name(language)).tag(preset.id)
+                    if let profile = serviceProfile {
+                        ForEach(profile.sizes) { size in Text(size.title(language)).tag("size:" + size.id) }
+                    } else {
+                        ForEach(BookFormatPreset.Shape.allCases, id: \.self) { shape in
+                            Section(shape.title(language)) {
+                                ForEach(BookFormatPreset.presets(shape)) { preset in
+                                    Text(preset.name(language)).tag(preset.id)
+                                }
                             }
                         }
                     }

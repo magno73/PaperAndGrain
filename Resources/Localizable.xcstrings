@@ -553,6 +553,24 @@
         }
       }
     },
+    "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. Check the printer’s current requirements before ordering.": {
+      "comment": "Help, Print topic.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. Check the printer’s current requirements before ordering."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Servizio di stampa** in **Libro e stampa** sceglie il prodotto e il formato di uno stampatore: imposta abbondanza e margini, aggiunge i controlli del prodotto a **Segnalazioni** e la sua esportazione a **Esporta PDF**. Prima di ordinare controlla i requisiti attuali dello stampatore."
+          }
+        }
+      }
+    },
     "6 to 120 points. Clear the value to use the inherited size.": {
       "extractionState": "manual",
       "localizations": {
@@ -1219,6 +1237,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Animali"
+          }
+        }
+      }
+    },
+    "Any print service": {
+      "comment": "New-book size menu filter: no printer chosen.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any print service"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualsiasi servizio di stampa"
           }
         }
       }
@@ -2362,6 +2398,24 @@
         }
       }
     },
+    "Check the printer’s current requirements before ordering. Paper & Grain is not affiliated with %@.": {
+      "comment": "Notice next to a print-service profile; the argument is the printer's name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the printer’s current requirements before ordering. Paper & Grain is not affiliated with %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima di ordinare controlla i requisiti attuali dello stampatore. Paper & Grain non è affiliata a %@."
+          }
+        }
+      }
+    },
     "Check the title and dimensions.": {
       "extractionState": "manual",
       "localizations": {
@@ -2634,6 +2688,23 @@
         }
       }
     },
+    "Choosing a printer’s product sets bleed and safe margin from its specification.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choosing a printer’s product sets bleed and safe margin from its specification."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegliere il prodotto di uno stampatore imposta abbondanza e margine sicuro dalle sue specifiche."
+          }
+        }
+      }
+    },
     "Classics": {
       "extractionState": "manual",
       "localizations": {
@@ -2736,6 +2807,24 @@
         }
       }
     },
+    "Computed from the page count; type a value to replace it.": {
+      "comment": "Help of a cover measure field in the export sheet.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Computed from the page count; type a value to replace it."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Calcolato dal numero di pagine; scrivi un valore per sostituirlo."
+          }
+        }
+      }
+    },
     "Concept": {
       "extractionState": "manual",
       "localizations": {
@@ -2817,6 +2906,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copia foto"
+          }
+        }
+      }
+    },
+    "Copy the value from the printer’s quote.": {
+      "comment": "Help of a cover measure field in the export sheet.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the value from the printer’s quote."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia il valore dal preventivo dello stampatore."
           }
         }
       }
@@ -2936,6 +3043,59 @@
           "stringUnit": {
             "state": "translated",
             "value": "Titolo in copertina"
+          }
+        }
+      }
+    },
+    "Cover wrap": {
+      "comment": "Cover material folded around the board, in mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover wrap"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risvolto della copertina"
+          }
+        }
+      }
+    },
+    "Cover wrap from the quote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover wrap from the quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risvolto dal preventivo"
+          }
+        }
+      }
+    },
+    "Cover wrap missing: enter it from the printer’s quote": {
+      "comment": "Preflight blocker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover wrap missing: enter it from the printer’s quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manca il risvolto della copertina: inseriscilo dal preventivo dello stampatore"
           }
         }
       }
@@ -3382,6 +3542,24 @@
         }
       }
     },
+    "Double pages of %@.": {
+      "comment": "Export sheet; the argument is a size such as 426 × 216 mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double pages of %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doppie pagine di %@."
+          }
+        }
+      }
+    },
     "Draft": {
       "extractionState": "manual",
       "localizations": {
@@ -3684,6 +3862,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Esporta per la stampa…"
+          }
+        }
+      }
+    },
+    "Export for another printer’s product from the catalog.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export for another printer’s product from the catalog."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esporta per il prodotto di un altro stampatore del catalogo."
           }
         }
       }
@@ -4676,6 +4871,59 @@
         }
       }
     },
+    "Hinge width": {
+      "comment": "The groove between a hardcover board and the spine, in mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinge width"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Larghezza della cerniera"
+          }
+        }
+      }
+    },
+    "Hinge width from the quote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinge width from the quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerniera dal preventivo"
+          }
+        }
+      }
+    },
+    "Hinge width missing: enter it from the printer’s quote": {
+      "comment": "Preflight blocker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinge width missing: enter it from the printer’s quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manca la larghezza della cerniera: inseriscila dal preventivo dello stampatore"
+          }
+        }
+      }
+    },
     "Hue": {
       "extractionState": "manual",
       "localizations": {
@@ -5173,6 +5421,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giustifica"
+          }
+        }
+      }
+    },
+    "Keep text %1$@ mm from the edges and %2$@ mm from the binding": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep text %1$@ mm from the edges and %2$@ mm from the binding"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni il testo a %1$@ mm dai bordi e a %2$@ mm dalla legatura"
           }
         }
       }
@@ -5944,6 +6209,42 @@
         }
       }
     },
+    "Needs a multiple of %1$lld pages (has %2$lld)": {
+      "comment": "Preflight warning from a print-service profile.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs a multiple of %1$lld pages (has %2$lld)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servono pagine in multipli di %1$lld (ne ha %2$lld)"
+          }
+        }
+      }
+    },
+    "Needs at least %1$lld pages (has %2$lld)": {
+      "comment": "Preflight warning from a print-service profile.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs at least %1$lld pages (has %2$lld)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servono almeno %1$lld pagine (ne ha %2$lld)"
+          }
+        }
+      }
+    },
     "Neutrals": {
       "extractionState": "manual",
       "localizations": {
@@ -6369,6 +6670,23 @@
         }
       }
     },
+    "None (generic print)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None (generic print)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuno (stampa generica)"
+          }
+        }
+      }
+    },
     "On Cover": {
       "extractionState": "manual",
       "localizations": {
@@ -6420,19 +6738,53 @@
         }
       }
     },
-    "One PDF with a wraparound hardcover and 216 × 216 mm single pages.": {
+    "One PDF with the cover as first and last page.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "One PDF with a wraparound hardcover and 216 × 216 mm single pages."
+            "value": "One PDF with the cover as first and last page."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "PDF unico con copertina rigida stesa e facciate da 216 × 216 mm."
+            "value": "Un PDF con la copertina come prima e ultima pagina."
+          }
+        }
+      }
+    },
+    "One PDF with the flat cover first.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One PDF with the flat cover first."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un PDF che inizia con la copertina distesa."
+          }
+        }
+      }
+    },
+    "One PDF without the cover.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One PDF without the cover."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un PDF senza copertina."
           }
         }
       }
@@ -6607,6 +6959,23 @@
         }
       }
     },
+    "Other print service…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other print service…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altro servizio di stampa…"
+          }
+        }
+      }
+    },
     "Outdoors": {
       "extractionState": "manual",
       "localizations": {
@@ -6744,6 +7113,23 @@
         }
       }
     },
+    "Page count in steps of %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page count in steps of %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numero di pagine a passi di %lld"
+          }
+        }
+      }
+    },
     "Page with Template": {
       "extractionState": "manual",
       "localizations": {
@@ -6791,6 +7177,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Larghezza delle pagine"
+          }
+        }
+      }
+    },
+    "Pages: %1$lld to %2$lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pages: %1$lld to %2$lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagine: da %1$lld a %2$lld"
+          }
+        }
+      }
+    },
+    "Pages: at least %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pages: at least %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagine: almeno %lld"
+          }
+        }
+      }
+    },
+    "Pages: at most %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pages: at most %lld"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagine: al massimo %lld"
           }
         }
       }
@@ -7323,6 +7760,23 @@
         }
       }
     },
+    "Print service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Print service"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servizio di stampa"
+          }
+        }
+      }
+    },
     "Print: %1$@, below the recommended %2$lld ppi": {
       "extractionState": "manual",
       "localizations": {
@@ -7354,6 +7808,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stampa: %@"
+          }
+        }
+      }
+    },
+    "Printer’s page": {
+      "comment": "Link to the printer's specification page.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Printer’s page"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagina dello stampatore"
           }
         }
       }
@@ -8211,6 +8683,23 @@
         }
       }
     },
+    "Separate interior and cover files.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Separate interior and cover files."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "File separati per interno e copertina."
+          }
+        }
+      }
+    },
     "Set Cover Photo": {
       "extractionState": "manual",
       "localizations": {
@@ -8228,19 +8717,19 @@
         }
       }
     },
-    "Set the book size to 21 × 21 cm in Book & Print.": {
+    "Sets the book’s size to the product’s trim.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Set the book size to 21 × 21 cm in Book & Print."
+            "value": "Sets the book’s size to the product’s trim."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imposta il formato del libro a 21 × 21 cm in Libro e stampa."
+            "value": "Imposta il formato del libro sul formato rifilato del prodotto."
           }
         }
       }
@@ -8466,6 +8955,23 @@
         }
       }
     },
+    "Shows only the sizes this printer’s product offers.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows only the sizes this printer’s product offers."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra solo i formati offerti dal prodotto di questo stampatore."
+          }
+        }
+      }
+    },
     "Single Page": {
       "extractionState": "manual",
       "localizations": {
@@ -8500,6 +9006,24 @@
         }
       }
     },
+    "Single pages of %@.": {
+      "comment": "Export sheet; the argument is a size such as 216 × 216 mm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Single pages of %@."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagine singole di %@."
+          }
+        }
+      }
+    },
     "Six-column grid, compact bold type and a caption panel marked in red.": {
       "extractionState": "manual",
       "localizations": {
@@ -8530,6 +9054,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Formato"
+          }
+        }
+      }
+    },
+    "Sizes: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sizes: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Formati: %@"
           }
         }
       }
@@ -8636,19 +9177,37 @@
         }
       }
     },
-    "Spine Width": {
+    "Specification checked on %@": {
+      "comment": "The argument is a date.",
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Spine Width"
+            "value": "Specification checked on %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dorso"
+            "value": "Specifiche verificate il %@"
+          }
+        }
+      }
+    },
+    "Spine width": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spine width"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Larghezza del dorso"
           }
         }
       }
@@ -8683,6 +9242,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dorso dal preventivo"
+          }
+        }
+      }
+    },
+    "Spine width missing: enter it from the printer’s quote": {
+      "comment": "Preflight blocker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spine width missing: enter it from the printer’s quote"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manca la larghezza del dorso: inseriscila dal preventivo dello stampatore"
           }
         }
       }
@@ -8887,6 +9464,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Carattere di sistema"
+          }
+        }
+      }
+    },
+    "Takes at most %1$lld pages (has %2$lld)": {
+      "comment": "Preflight warning from a print-service profile.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takes at most %1$lld pages (has %2$lld)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accetta al massimo %1$lld pagine (ne ha %2$lld)"
           }
         }
       }
@@ -9284,6 +9879,57 @@
         }
       }
     },
+    "The count includes %lld cover pages": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The count includes %lld cover pages"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il conteggio include %lld pagine di copertina"
+          }
+        }
+      }
+    },
+    "The first and last pages are glued to the covers and stay blank": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first and last pages are glued to the covers and stay blank"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La prima e l’ultima pagina sono incollate alla copertina e restano bianche"
+          }
+        }
+      }
+    },
+    "The first and last pages print on the inside of the covers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first and last pages print on the inside of the covers"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La prima e l’ultima pagina sono stampate all’interno della copertina"
+          }
+        }
+      }
+    },
     "The image is unavailable or not in a readable format.": {
       "extractionState": "manual",
       "localizations": {
@@ -9335,6 +9981,23 @@
         }
       }
     },
+    "The paper changes the spine width.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The paper changes the spine width."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La carta cambia la larghezza del dorso."
+          }
+        }
+      }
+    },
     "The photo's pixels over its printed size, crop included.": {
       "extractionState": "manual",
       "localizations": {
@@ -9348,6 +10011,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pixel della foto rispetto alla dimensione stampata, con il ritaglio."
+          }
+        }
+      }
+    },
+    "The print service does not offer the book’s size": {
+      "comment": "PDF export error.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The print service does not offer the book’s size"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il servizio di stampa non offre il formato del libro"
+          }
+        }
+      }
+    },
+    "The printer and product to export for.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The printer and product to export for."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo stampatore e il prodotto per cui esportare."
+          }
+        }
+      }
+    },
+    "The printer asks for %@. This file is not certified as such; check it with the printer’s preflight.": {
+      "comment": "The argument is a PDF standard such as PDF/X-3:2002.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The printer asks for %@. This file is not certified as such; check it with the printer’s preflight."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo stampatore chiede %@. Questo file non è certificato come tale; controllalo con la verifica dello stampatore."
+          }
+        }
+      }
+    },
+    "The product does not offer %@": {
+      "comment": "Preflight blocker; the argument is the book size in cm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The product does not offer %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il prodotto non offre il formato %@"
+          }
+        }
+      }
+    },
+    "The product size; it must match the book’s size.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The product size; it must match the book’s size."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il formato del prodotto; deve corrispondere a quello del libro."
           }
         }
       }
@@ -9417,6 +10168,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Questa foto ha un look proprio."
+          }
+        }
+      }
+    },
+    "This printer asks for CMYK. This PDF uses sRGB; the printer may convert or refuse it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This printer asks for CMYK. This PDF uses sRGB; the printer may convert or refuse it."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo stampatore chiede CMYK. Questo PDF usa sRGB; lo stampatore potrebbe convertirlo o rifiutarlo."
+          }
+        }
+      }
+    },
+    "This product does not offer %1$@. Its sizes, closest first: %2$@. Changing the size re-flows the pages.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This product does not offer %1$@. Its sizes, closest first: %2$@. Changing the size re-flows the pages."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo prodotto non offre il formato %1$@. I suoi formati, dal più vicino: %2$@. Cambiare formato ridistribuisce le pagine."
+          }
+        }
+      }
+    },
+    "This product does not offer the book’s size. Choose one of its sizes in Book & Print: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This product does not offer the book’s size. Choose one of its sizes in Book & Print: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo prodotto non offre il formato del libro. Scegli uno dei suoi formati in Libro e stampa: %@"
           }
         }
       }
@@ -9808,6 +10610,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aggiorna analisi"
+          }
+        }
+      }
+    },
+    "Use %@": {
+      "comment": "Button that sets the book size; the argument is a size such as 21 × 21 cm.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa %@"
           }
         }
       }
