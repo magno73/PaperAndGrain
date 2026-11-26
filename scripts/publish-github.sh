@@ -11,7 +11,7 @@ private_email="${PAPERGRAIN_PRIVATE_EMAIL:-$(git config user.email)}"
 public_email="${PAPERGRAIN_PUBLIC_EMAIL:-175606015+magno73@users.noreply.github.com}"
 branch="$(git rev-parse --abbrev-ref HEAD)"
 # Files that must never appear in the public history, not even in old commits.
-removed_paths=(docs/layout-comparison.md docs/release-plan.md)
+removed_paths=(docs/layout-comparison.md docs/release-plan.md docs/prd-0.11.md)
 force=""
 tag=""
 while [ $# -gt 0 ]; do
