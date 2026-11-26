@@ -204,23 +204,26 @@ final class SpellingTests: XCTestCase {
     }
 
     /// The first pass over a 50-page book: the total, and the longest time the main thread is held at once.
+    /// Timing depends on the machine and on a cold start, so it runs only when `PAPERGRAIN_SPELLING_TIMING` is set.
     func testFirstPassOverAFiftyPageBookIsSliced() async throws {
+        guard ProcessInfo.processInfo.environment["PAPERGRAIN_SPELLING_TIMING"] != nil else {
+            throw XCTSkip("PAPERGRAIN_SPELLING_TIMING is not set")
+        }
         let languages = NSSpellChecker.shared.availableLanguages
         try XCTSkipUnless(languages.contains { $0.hasPrefix("it") })
         let story = String(repeating: "Una giornata bellisima nel deserto con il cielo azzurro e la sabbia rossa. ", count: 12)
-        var book = Book(title: "Big", pages: (0..<50).map { BookPage(layout: .text, text: story + String($0)) })
-        book.pages[0].text += " markettt"
+        let pages = (0..<50).map { story + String($0) }
         let checker = SystemSpellChecker()
-        var longest = 0.0, total = 0.0
         var slices: [Double] = []
-        for page in book.pages {
+        for text in pages {
             let start = ContinuousClock.now
-            _ = checker.misspellings(in: page.text)
-            let ms = Double((ContinuousClock.now - start).components.attoseconds) / 1e15
-            longest = max(longest, ms); total += ms; slices.append(ms)
+            _ = checker.misspellings(in: text)
+            let elapsed = ContinuousClock.now - start
+            slices.append(Double(elapsed.components.seconds) * 1000 + Double(elapsed.components.attoseconds) / 1e15)
         }
         let rest = slices.dropFirst().sorted()
-        print(String(format: "SPELL 50 stories (900 chars): %.0f ms in all; first (cold) slice %.1f ms, then median %.1f ms, longest %.1f ms", total, slices[0], rest[rest.count / 2], rest.last ?? 0))
+        print(String(format: "SPELL 50 stories (900 chars): %.0f ms in all; first (cold) slice %.1f ms, then median %.1f ms, longest %.1f ms",
+                     slices.reduce(0, +), slices[0], rest[rest.count / 2], rest.last ?? 0))
         XCTAssertLessThan(rest.last ?? 0, 40)
     }
 }
