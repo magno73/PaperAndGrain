@@ -2,6 +2,8 @@ import SwiftUI
 
 struct BookSettingsView: View, Localizing {
     let book: Book
+    /// The book package, where a chosen color profile is copied.
+    let directory: URL?
     let language: String
     let close: () -> Void
     let apply: (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void
@@ -12,10 +14,14 @@ struct BookSettingsView: View, Localizing {
     @State private var cover: BookCover
     @State private var hasCover: Bool
     @State private var typography: EditorialTypography
+    /// A color profile chosen in this sheet, copied into the package on Apply only.
+    @State private var pendingProfile: PendingICCProfile?
+    @State private var applyProblem: String?
 
-    init(book: Book, language: String, close: @escaping () -> Void,
+    init(book: Book, directory: URL? = nil, language: String, close: @escaping () -> Void,
          apply: @escaping (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void) {
         self.book = book
+        self.directory = directory
         self.language = language
         self.close = close
         self.apply = apply
@@ -112,6 +118,11 @@ struct BookSettingsView: View, Localizing {
                     Toggle(tr("Export facing-page spreads"), isOn: $printProfile.spreads)
                     Toggle(tr("First interior page on the right"), isOn: firstPageOnRight)
                 }
+                ColorOutputSection(output: $printProfile.colorOutput, pending: $pendingProfile, directory: directory,
+                                   serviceAccepts: chosenProfile?.color.accepts,
+                                   printerProfile: chosenProfile?.color.accepts.contains(.cmyk) == true
+                                       ? chosenProfile?.color.iccProfile : nil,
+                                   language: language)
                 Section(tr("Cover")) {
                     Toggle(tr("Export a separate cover"), isOn: $hasCover)
                     if hasCover {
@@ -129,6 +140,9 @@ struct BookSettingsView: View, Localizing {
                     Text(tr("Check the title and dimensions."))
                         .foregroundStyle(.secondary).font(.callout)
                 }
+                if let applyProblem {
+                    Text(applyProblem).foregroundStyle(.secondary).font(.callout)
+                }
                 Spacer()
                 Button(tr("Cancel"), action: close).keyboardShortcut(.cancelAction)
                 Button(tr("Apply")) {
@@ -136,6 +150,14 @@ struct BookSettingsView: View, Localizing {
                     var updatedCover = cover
                     if cover.frontPhotoID != book.cover?.frontPhotoID { updatedCover.frontPhotoPlacement = nil }
                     if cover.backPhotoID != book.cover?.backPhotoID { updatedCover.backPhotoPlacement = nil }
+                    if let pendingProfile, printProfile.colorOutput?.profile == pendingProfile.reference, let directory {
+                        do {
+                            try BookStorage.installICCProfile(pendingProfile.data, as: pendingProfile.reference, in: directory)
+                        } catch {
+                            applyProblem = error.localizedDescription
+                            return
+                        }
+                    }
                     apply(title.trimmingCharacters(in: .whitespacesAndNewlines), format, printProfile,
                           hasCover ? updatedCover : nil, type)
                 }

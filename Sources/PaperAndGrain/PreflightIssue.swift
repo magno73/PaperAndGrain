@@ -116,6 +116,11 @@ extension BookPDF {
             case captionDoesNotFit
             /// A word the spell checker does not know, with a few words around it.
             case possibleMisspelling(word: String, context: String)
+            /// The CMYK output profile cannot be used: its copy is missing, changed or not a CMYK output
+            /// profile. The name is the profile's.
+            case colorProfileUnusable(String)
+            /// The print service asks for a color mode the book does not write (`cmyk` or `srgb`).
+            case colorModeNotAccepted(asked: PrintProfile.ColorMode)
 
             /// The kind without its details, for the issue's id.
             var kind: String {
@@ -134,6 +139,8 @@ extension BookPDF {
                 case let .missingMeasure(measure, _): "missingMeasure." + measure.rawValue
                 case .captionDoesNotFit: "captionDoesNotFit"
                 case .possibleMisspelling: "possibleMisspelling"
+                case .colorProfileUnusable: "colorProfileUnusable"
+                case .colorModeNotAccepted: "colorModeNotAccepted"
                 }
             }
 
@@ -159,6 +166,8 @@ extension BookPDF {
                 case .missingMeasure: "ruler"
                 case .captionDoesNotFit: "text.below.photo"
                 case .possibleMisspelling: "textformat.abc"
+                case .colorProfileUnusable: "paintpalette"
+                case .colorModeNotAccepted: "drop.halffull"
                 }
             }
         }
@@ -267,6 +276,12 @@ extension BookPDF {
             case let .missingMeasure(measure, limit?):
                 [place, L10n.format("%1$@: the printer’s table stops at %2$lld pages. Enter the value from the quote",
                                     language: language, [measure.label(language), limit])]
+            case let .colorProfileUnusable(name):
+                [place, L10n.format("The color profile %@ is missing or is not a CMYK output profile", language: language, [name])]
+            case .colorModeNotAccepted(.cmyk):
+                [place, L10n.string("The printer asks for CMYK; the book writes sRGB", language: language)]
+            case .colorModeNotAccepted(.srgb):
+                [place, L10n.string("The printer asks for sRGB; the book writes CMYK", language: language)]
             case let .missingMeasure(measure, nil):
                 [place, L10n.format("%@ missing: enter it from the printer’s quote", language: language,
                                     [measure.label(language)])]

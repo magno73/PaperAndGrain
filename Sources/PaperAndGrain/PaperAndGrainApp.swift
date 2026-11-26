@@ -280,7 +280,8 @@ private struct BookSettingsSheets: ViewModifier, Localizing {
                 }
             }
             .sheet(isPresented: $showSettings) {
-                BookSettingsView(book: workspace.book, language: language, close: { showSettings = false }) {
+                BookSettingsView(book: workspace.book, directory: workspace.directory, language: language,
+                                 close: { showSettings = false }) {
                     title, format, printSettings, cover, typography in
                     workspace.applyBookPrintSettings(title: title, format: format, printSettings: printSettings,
                                                      cover: cover, typography: typography, undoManager: undoManager,

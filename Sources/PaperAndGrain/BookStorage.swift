@@ -180,7 +180,7 @@ enum BookStorage {
         return support.appendingPathComponent("PaperAndGrain/Drafts", isDirectory: true)
     }
 
-    private static func validFilename(_ name: String) -> Bool {
+    static func validFilename(_ name: String) -> Bool {
         !name.isEmpty && name != "." && name != ".." && !name.contains("/") &&
             !name.contains("\u{0000}") && !name.contains(":")
     }

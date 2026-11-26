@@ -14,6 +14,8 @@ struct PrintSettings: Codable, Hashable, Sendable {
     var profilePaperID: String? = nil
     /// Cover measures the author typed over the profile's values.
     var profileMeasures: PrintMeasures? = nil
+    /// The color of the print PDFs; nil is sRGB, as in 0.10. The viewing PDF and the editor stay sRGB.
+    var colorOutput: ColorOutput? = nil
 }
 
 struct BookCover: Codable, Hashable, Sendable {

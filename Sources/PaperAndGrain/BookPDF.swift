@@ -40,18 +40,26 @@ enum BookPDF {
         meter.finish()
     }
 
-    static func writePrint(_ book: Book, directory: URL, to destination: URL,
+    /// Replaces the book's color output for one export (the command line's `--color` and `--icc`).
+    enum ColorOverride: Sendable {
+        case srgb
+        case cmyk(CMYKConverter)
+    }
+
+    static func writePrint(_ book: Book, directory: URL, to destination: URL, color: ColorOverride? = nil,
                            progress: (@Sendable (Double) -> Void)? = nil) throws {
         let settings = book.printSettings ?? PrintSettings()
         let meter = ProgressMeter(total: sheetCount(book, settings: settings) + (book.cover == nil ? 0 : 1),
                                   report: progress)
         let bleed = PageBleed(uniform: settings.bleedMM * pointsPerMM)
+        let converter = try colorConverter(book, directory: directory, override: color)
         try writeFolder(destination, names: ["Interior.pdf", "Cover.pdf"]) { scratch in
-            try render(book, directory: directory, output: Output(settings: settings, bleed: bleed),
+            try render(book, directory: directory, output: Output(settings: settings, bleed: bleed, converter: converter),
                        to: scratch.appendingPathComponent("Interior.pdf"), meter: meter)
             if let cover = book.cover {
                 try render(book, directory: directory,
-                           output: Output(settings: settings, bleed: bleed, genericCover: cover, interior: false),
+                           output: Output(settings: settings, bleed: bleed, genericCover: cover, interior: false,
+                                          converter: converter),
                            to: scratch.appendingPathComponent("Cover.pdf"), meter: meter)
             }
         }
@@ -60,7 +68,7 @@ enum BookPDF {
 
     /// Writes the files of a print-service product (`PrintPlan`): one PDF at `destination`, or a folder
     /// with the interior and cover files the printer names. Every product goes through this one path.
-    static func write(_ book: Book, directory: URL, plan: PrintPlan, to destination: URL,
+    static func write(_ book: Book, directory: URL, plan: PrintPlan, to destination: URL, color: ColorOverride? = nil,
                       progress: (@Sendable (Double) -> Void)? = nil) throws {
         guard plan.size(for: book) != nil else { throw ExportError.sizeNotOffered }
         let settings = plan.interiorSettings(for: book)
@@ -76,7 +84,10 @@ enum BookPDF {
         let coverPages = kind == .interiorPages
         let meter = ProgressMeter(total: sheetCount(book, settings: settings, imposition: imposition)
                                   + (flat == nil ? 0 : 1) + (coverPages ? 2 : 0), report: progress)
-        let interior = Output(settings: settings, bleed: bleed, coverPages: coverPages, imposition: imposition)
+        let converter = try colorConverter(book, directory: directory, override: color)
+        let flattens = plan.profile.color.flattenTransparency == true
+        let interior = Output(settings: settings, bleed: bleed, coverPages: coverPages, imposition: imposition,
+                              converter: converter, flattensTransparency: flattens)
         let files = plan.profile.files
         switch files.arrangement {
         case .single:
@@ -90,7 +101,8 @@ enum BookPDF {
                            to: scratch.appendingPathComponent(files.interiorName), meter: meter)
                 if let flat {
                     try render(book, directory: directory,
-                               output: Output(settings: settings, bleed: bleed, flatCover: flat, interior: false),
+                               output: Output(settings: settings, bleed: bleed, flatCover: flat, interior: false,
+                                              converter: converter, flattensTransparency: flattens),
                                to: scratch.appendingPathComponent(files.coverName), meter: meter)
                 }
             }
@@ -270,7 +282,18 @@ enum BookPDF {
         }
 
         let slots = leaves(book.pages, settings: settings, imposition: plan?.imposition(for: book) ?? Imposition())
+        if settings != nil, let output = book.printSettings?.colorOutput, output.mode == .cmyk {
+            let name = output.profile?.name ?? "CMYK"
+            let usable: Bool = if let reference = output.profile {
+                directory.map { (try? BookStorage.converter(for: reference, in: $0)) != nil } ?? true
+            } else { false }
+            if !usable { report.blockers.append(PreflightIssue(problem: .colorProfileUnusable(name))) }
+        }
         if let plan {
+            let writes: PrintProfile.ColorMode = book.printSettings?.writesCMYK == true ? .cmyk : .srgb
+            if !plan.profile.color.accepts.contains(writes), let asked = plan.profile.color.accepts.first {
+                report.warnings.append(PreflightIssue(problem: .colorModeNotAccepted(asked: asked)))
+            }
             let bookPages = slots.filter { $0 != nil }.count
             let product = plan.issues(for: book, interiorPages: slots.count, bookPages: bookPages)
             report.blockers += product.blockers
@@ -452,8 +475,12 @@ enum BookPDF {
         return leaves
     }
 
+    /// An area color in the PDF's color: sRGB, or the output profile while a CMYK PDF is written.
     private static func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, alpha: CGFloat = 1) -> CGColor {
-        CGColor(colorSpace: .sRGBSpace, components: [red, green, blue, alpha])!
+        if let converter = PrintColor.converter {
+            return converter.color(red: Double(red), green: Double(green), blue: Double(blue), alpha: Double(alpha), blackOnly: false)
+        }
+        return CGColor(colorSpace: .sRGBSpace, components: [red, green, blue, alpha])!
     }
 
     private static func box(_ rect: CGRect) -> Data {
@@ -541,6 +568,23 @@ enum BookPDF {
         var interior = true
         /// How the interior is laid out; the generic imposition by default.
         var imposition = Imposition()
+        /// The CMYK output profile, or nil for sRGB.
+        var converter: CMYKConverter?
+        /// The printer asks for no live transparency.
+        var flattensTransparency = false
+    }
+
+    /// The converter for the book's color output: nil for sRGB; a missing or changed profile stops the
+    /// export (the preflight reports it first).
+    static func colorConverter(_ book: Book, directory: URL, override: ColorOverride? = nil) throws -> CMYKConverter? {
+        switch override {
+        case .srgb?: return nil
+        case let .cmyk(converter)?: return converter
+        case nil: break
+        }
+        guard let output = book.printSettings?.colorOutput, output.mode == .cmyk else { return nil }
+        guard let profile = output.profile else { throw BookStorage.ProfileError.missing("CMYK") }
+        return try BookStorage.converter(for: profile, in: directory)
     }
 
     /// The margins of the media box around the trim box, in points.
@@ -556,7 +600,12 @@ enum BookPDF {
         let temporary = url.deletingLastPathComponent()
             .appendingPathComponent(".\(url.deletingPathExtension().lastPathComponent)-\(UUID().uuidString).pdf")
         defer { try? fm.removeItem(at: temporary) }
-        try renderDocument(book, directory: directory, output: output, to: temporary, meter: meter)
+        // Every color drawn while the document is written reads the output profile from here.
+        try PrintColor.$converter.withValue(output.converter) {
+            try PrintColor.$flattensTransparency.withValue(output.flattensTransparency) {
+                try renderDocument(book, directory: directory, output: output, to: temporary, meter: meter)
+            }
+        }
         try Task.checkCancellation()
         if fm.fileExists(atPath: url.path) {
             _ = try fm.replaceItemAt(url, withItemAt: temporary)
@@ -584,7 +633,16 @@ enum BookPDF {
               flatMeasures.allSatisfy({ $0.isFinite && $0 >= 0 }) else { throw ExportError.invalidBook }
         var media = CGRect(x: 0, y: 0, width: w + bleed.largest * 2, height: h + bleed.largest * 2)
         var metadata: [String: Any] = [kCGPDFContextTitle as String: book.title]
-        if settings != nil {
+        if let converter = output.converter {
+            // The output intent names the CMYK profile and embeds it. The file is not labelled PDF/X
+            // (decision D6): Quartz only uses GTS_PDFX as the name of the output-intent dictionary.
+            metadata[kCGPDFContextOutputIntent as String] = [
+                kCGPDFXOutputIntentSubtype as String: "GTS_PDFX",
+                kCGPDFXOutputConditionIdentifier as String: converter.name,
+                kCGPDFXInfo as String: converter.name,
+                kCGPDFXDestinationOutputProfile as String: converter.space
+            ] as [String: Any]
+        } else if settings != nil {
             // Quartz uses GTS_PDFX for the output-intent dictionary. The profile describes the
             // exchange RGB space; this exporter does not certify PDF/X or a press condition.
             metadata[kCGPDFContextOutputIntent as String] = [
@@ -622,7 +680,7 @@ enum BookPDF {
             let width = flat.width
             begin(width: width, height: panelH, insets: Insets(left: flat.side, right: flat.side, top: flat.top,
                                                                bottom: flat.bottom))
-            ctx.setFillColor(EditorialStyle.color(BookCoverGeometry(book: book, front: false).background))
+            ctx.setFillColor(EditorialStyle.fillColor(BookCoverGeometry(book: book, front: false).background))
             ctx.fill(CGRect(x: -flat.side, y: -flat.top, width: width + 2 * flat.side,
                             height: panelH + (flat.top == flat.bottom ? 2 * flat.top : flat.top + flat.bottom)))
             drawSpine(book, in: CGRect(x: panelW + flat.hinge, y: 0, width: flat.spine, height: panelH), context: ctx)
@@ -646,7 +704,7 @@ enum BookPDF {
             begin(width: 2 * w + spine, height: h, insets: uniform(bleed))
             let spread = CGRect(x: 0, y: 0, width: 2 * w + spine, height: h)
             let back = BookCoverGeometry(book: book, front: false, bleed: bleed)
-            ctx.setFillColor(EditorialStyle.color(back.background))
+            ctx.setFillColor(EditorialStyle.fillColor(back.background))
             ctx.fill(spread.insetBy(dx: -bleed, dy: -bleed))
             let backOuter = CGRect(x: -bleed, y: -bleed, width: w + bleed, height: h + 2 * bleed)
             try drawFace(back, photoID: cover.backPhotoID, images: images, book: book, directory: directory, context: ctx,
@@ -667,7 +725,7 @@ enum BookPDF {
             let face = BookCoverGeometry(book: book, front: front, size: CGSize(width: w, height: h))
             let outer = CGRect(x: -insets.left, y: -insets.top, width: w + insets.left + insets.right,
                                height: h + insets.top + insets.bottom)
-            ctx.setFillColor(EditorialStyle.color(face.background))
+            ctx.setFillColor(EditorialStyle.fillColor(face.background))
             ctx.fill(outer)
             try drawFace(face, photoID: front ? book.cover?.frontPhotoID : book.cover?.backPhotoID,
                          images: images, book: book, directory: directory, context: ctx, outer: outer)
@@ -697,7 +755,7 @@ enum BookPDF {
                                                                                        : insets.top + insets.bottom))
                         guard let leaf = slot else {
                             // A compensation blank is still a page of the book: print it on the template's paper.
-                            ctx.setFillColor(EditorialStyle.color(book.editorialStyle.paper))
+                            ctx.setFillColor(EditorialStyle.fillColor(book.editorialStyle.paper))
                             ctx.fill(leafArea)
                             continue
                         }
@@ -722,7 +780,7 @@ enum BookPDF {
         // Frames stay at the editor's size; photos reaching the trim are carried into the bleed by paint.
         let composition = PageComposition(page: page, book: book)
         let style = book.editorialStyle
-        context.setFillColor(EditorialStyle.color(style.paper))
+        context.setFillColor(EditorialStyle.fillColor(style.paper))
         context.fill(composition.bounds.insetBy(dx: -bleed, dy: -bleed))
         if let rule = composition.rule {
             context.setFillColor(EditorialStyle.color(style.accent))
@@ -749,14 +807,68 @@ enum BookPDF {
                           book: book, directory: directory, context: context, underlap: underlap,
                           trim: composition.bounds, outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed))
                 if let caption = composition.caption(for: id) {
-                    drawCaption(caption, style: style, trim: composition.bounds,
-                                outer: composition.bounds.insetBy(dx: -bleed, dy: -bleed), context: context)
+                    let outer = composition.bounds.insetBy(dx: -bleed, dy: -bleed)
+                    if PrintColor.flattensTransparency, let band = caption.band, style.overlayOpacity < 1 {
+                        // The band is flattened into the photo under it; the caption stays text.
+                        let area = bleedArea(of: band, trim: composition.bounds, outer: outer)
+                        try flatten(area, into: context, images: images) { bitmap in
+                            bitmap.setFillColor(EditorialStyle.fillColor(style.paper))
+                            bitmap.fill(area)
+                            try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop,
+                                      images: ImageOutput(ppi: images.ppi, quality: images.quality), book: book,
+                                      directory: directory, context: bitmap, trim: composition.bounds, outer: outer)
+                            bitmap.setAlpha(style.overlayOpacity)
+                            bitmap.setFillColor(EditorialStyle.fillColor(style.overlayPaper))
+                            bitmap.fill(area)
+                        }
+                        EditorialTypesetter.draw(caption.text, in: caption.frame, context: context)
+                    } else {
+                        drawCaption(caption, style: style, trim: composition.bounds, outer: outer, context: context)
+                    }
                 }
             case .story:
-                if !backgrounds.isEmpty {
+                if !backgrounds.isEmpty, PrintColor.flattensTransparency {
+                    // No live transparency: each panel is rendered with the paper and the photos beneath it
+                    // at print resolution and placed as an opaque image; the text stays text.
+                    let below = composition.layers.prefix { $0 != layer }
+                    for panel in backgrounds {
+                        try flatten(panel, into: context, images: images) { bitmap in
+                            bitmap.setFillColor(EditorialStyle.fillColor(style.paper))
+                            bitmap.fill(panel)
+                            // Everything under the panel goes into the image: photos with their captions,
+                            // and text boxes, so nothing disappears beneath it.
+                            let outer = composition.bounds.insetBy(dx: -bleed, dy: -bleed)
+                            for item in below {
+                                switch item {
+                                case let .photo(id):
+                                    guard let slot = composition.photos.first(where: { $0.id == id }) else { continue }
+                                    try paint(slot.photo, rect: slot.frame, fills: slot.fills, crop: slot.crop,
+                                              images: ImageOutput(ppi: images.ppi, quality: images.quality),
+                                              book: book, directory: directory, context: bitmap,
+                                              trim: composition.bounds, outer: outer)
+                                    if let caption = composition.caption(for: id) {
+                                        drawCaption(caption, style: style, trim: composition.bounds, outer: outer, context: bitmap)
+                                    }
+                                case let .textBox(id):
+                                    guard let box = composition.textBoxes.first(where: { $0.id == id }) else { continue }
+                                    try drawTextBox(box, composition: composition, book: book, pageNumber: pageNumber,
+                                                    context: bitmap)
+                                case .story:
+                                    break
+                                }
+                            }
+                            bitmap.setAlpha(style.overlayOpacity)
+                            bitmap.setFillColor(EditorialStyle.fillColor(style.overlayPaper))
+                            bitmap.fill(panel)
+                        }
+                    }
+                    context.setFillColor(EditorialStyle.color(style.overlayAccent))
+                    context.addRects(backgrounds.compactMap { style.overlayMark(in: $0) })
+                    context.fillPath()
+                } else if !backgrounds.isEmpty {
                     context.saveGState()
                     context.setAlpha(style.overlayOpacity)
-                    context.setFillColor(EditorialStyle.color(style.overlayPaper))
+                    context.setFillColor(EditorialStyle.fillColor(style.overlayPaper))
                     context.addRects(backgrounds)
                     context.fillPath()
                     context.restoreGState()
@@ -768,21 +880,8 @@ enum BookPDF {
                     try drawText(block.text, in: block.frame, overflow: .textOverflow(pageNumber), context: context)
                 }
             case let .textBox(id):
-                guard let box = composition.textBoxes.first(where: { $0.id == id }),
-                      box.prints(paper: style.paper, ink: style.ink) else { continue }
-                let frame = box.frame.rect(in: composition.bounds)
-                if let fill = box.printedFill(paper: style.paper) {
-                    context.setFillColor(EditorialStyle.color(fill))
-                    context.fill(frame)
-                }
-                if let border = box.border(ink: style.ink) {
-                    context.setStrokeColor(EditorialStyle.color(border.color))
-                    context.setLineWidth(border.width)
-                    context.stroke(frame.insetBy(dx: border.width / 2, dy: border.width / 2))
-                }
-                let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
-                try drawText(PageComposition.boxText(box: box, book: book),
-                             in: textFrame, overflow: .textOverflow(pageNumber), context: context)
+                guard let box = composition.textBoxes.first(where: { $0.id == id }) else { continue }
+                try drawTextBox(box, composition: composition, book: book, pageNumber: pageNumber, context: context)
             }
         }
         if let folio = composition.folio {
@@ -798,12 +897,32 @@ enum BookPDF {
         if let band = caption.band {
             context.saveGState()
             context.setAlpha(style.overlayOpacity)
-            context.setFillColor(EditorialStyle.color(style.overlayPaper))
+            context.setFillColor(EditorialStyle.fillColor(style.overlayPaper))
             context.fill(bleedArea(of: band, trim: trim, outer: outer))
             context.restoreGState()
         }
         // The frame is as tall as the text needs, so nothing is cut; a caption that does not fit is an issue.
         EditorialTypesetter.draw(caption.text, in: caption.frame, context: context)
+    }
+
+    /// A text box: its fill, border and text, when it prints anything.
+    private static func drawTextBox(_ box: PageTextBox, composition: PageComposition, book: Book, pageNumber: Int,
+                                    context: CGContext) throws {
+        let style = book.editorialStyle
+        guard box.prints(paper: style.paper, ink: style.ink) else { return }
+        let frame = box.frame.rect(in: composition.bounds)
+        if let fill = box.printedFill(paper: style.paper) {
+            context.setFillColor(EditorialStyle.fillColor(fill))
+            context.fill(frame)
+        }
+        if let border = box.border(ink: style.ink) {
+            context.setStrokeColor(EditorialStyle.color(border.color))
+            context.setLineWidth(border.width)
+            context.stroke(frame.insetBy(dx: border.width / 2, dy: border.width / 2))
+        }
+        let textFrame = frame.insetBy(dx: box.textInsetPoints, dy: box.textInsetPoints)
+        try drawText(PageComposition.boxText(box: box, book: book),
+                     in: textFrame, overflow: .textOverflow(pageNumber), context: context)
     }
 
     /// How far a photo extends under each neighbor painted after it.
@@ -863,7 +982,8 @@ enum BookPDF {
             }
             let padded: CGImage
             (padded, placement) = mirrorPadded(rendered, placement: cropped, toCover: area)
-            image = jpegBacked(padded, quality: images.quality)
+            // A CMYK PDF gets CMYK JPEG data, which Quartz embeds as it is (DCT, four ICC-based components).
+            image = jpegBacked(PrintColor.converter.flatMap { $0.convert(padded) } ?? padded, quality: images.quality)
             cache.placed = (placedKey, image, placement)
         }
         if underlap != Underlap() {
@@ -896,6 +1016,28 @@ enum BookPDF {
         context.saveGState()
         context.clip(to: area)
         drawImage(image, at: placement, in: context)
+        context.restoreGState()
+    }
+
+    /// Renders `area` of the page in sRGB at print resolution with `draw` (in page coordinates), converts it
+    /// to the PDF's color and places it as one opaque image: a translucent panel flattened into what is
+    /// beneath it.
+    private static func flatten(_ area: CGRect, into context: CGContext, images: ImageOutput,
+                                draw: (CGContext) throws -> Void) throws {
+        let scale = images.ppi / 72
+        let width = max(1, Int(ceil(area.width * scale))), height = max(1, Int(ceil(area.height * scale)))
+        guard !area.isEmpty, let bitmap = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                                    bytesPerRow: 0, space: .sRGBSpace,
+                                                    bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return }
+        bitmap.translateBy(x: 0, y: CGFloat(height))
+        bitmap.scaleBy(x: CGFloat(width) / area.width, y: -CGFloat(height) / area.height)
+        bitmap.translateBy(x: -area.minX, y: -area.minY)
+        try PrintColor.$converter.withValue(nil) { try draw(bitmap) }
+        guard let rendered = bitmap.makeImage() else { return }
+        let image = jpegBacked(PrintColor.converter.flatMap { $0.convert(rendered) } ?? rendered, quality: images.quality)
+        context.saveGState()
+        context.clip(to: area)
+        drawImage(image, at: area, in: context)
         context.restoreGState()
     }
 
@@ -984,8 +1126,23 @@ enum BookPDF {
         }
         // A band or rule that reaches the trim continues into the bleed, wrap and hinge like the photo.
         if let band = face.band {
-            context.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
-            context.fill(bleedArea(of: band, trim: face.bounds, outer: outer))
+            let area = bleedArea(of: band, trim: face.bounds, outer: outer)
+            if PrintColor.flattensTransparency {
+                try flatten(area, into: context, images: images) { bitmap in
+                    bitmap.setFillColor(EditorialStyle.fillColor(face.background))
+                    bitmap.fill(area)
+                    if let id = photoID, let photo = book.photo(id) {
+                        try paint(photo, rect: face.photoFrame, fills: face.fills, crop: face.photoCrop,
+                                  images: ImageOutput(ppi: images.ppi, quality: images.quality), book: book,
+                                  directory: directory, context: bitmap, trim: face.bounds, outer: outer)
+                    }
+                    bitmap.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
+                    bitmap.fill(area)
+                }
+            } else {
+                context.setFillColor(color(0.97, 0.97, 0.97, alpha: 0.94))
+                context.fill(area)
+            }
         }
         if let rule = face.rule {
             context.setFillColor(EditorialStyle.color(book.editorialStyle.accent))

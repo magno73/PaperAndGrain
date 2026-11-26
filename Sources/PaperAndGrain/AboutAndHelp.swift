@@ -129,6 +129,7 @@ struct HelpView: View, Localizing {
             ]),
             Topic(id: "print", symbol: "5.circle", title: tr("Print"), lines: [
                 tr("**Book & Print** sets size, bleed, margins and the cover with spine. **Export PDF** runs the preflight check and offers print profiles. **View › Show Print Guides** draws the safe margin (dashed) and the bleed on the canvas."),
+                tr("**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. **Download PSO Coated v3 from ECI…** contacts eci.org once; the profile belongs to ECI. The editor and the viewing PDF stay sRGB."),
                 tr("**Print service** in **Book & Print** picks a printer’s product and size: it sets bleed and margins, adds the product’s checks to **Issues** and its export to **Export PDF**. The catalog has Pixartprinting, Saal Digital, Peecho, WhiteWall, Lulu and Mixam. Check the printer’s current requirements before ordering."),
                 tr("The **Issues** button in the toolbar (⇧⌘I) checks the book as you work: problems that would stop the export, then warnings. Click a row to go to the page and select the photo or text. For a photo whose file is missing, **Relink…** on its row chooses a replacement file."),
                 tr("An orange or red triangle in the corner of a photo means a low print resolution: make the photo smaller or use a larger original."),
