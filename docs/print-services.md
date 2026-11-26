@@ -34,6 +34,19 @@ File `whitewall.json`; one entry, six sizes (cm): Portfolio A3 portrait 27 × 35
 - **Differences from Appendix A.** None in the numbers; the pages say the safety area is 5 mm and the spine margin 2 mm, as Appendix A does. The article "Setting the correct dimensions" confirms bleed on three edges only.
 - Sources: [PDF upload](https://www.whitewall.com/eu/coffee-table-book/pdf-upload), [file requirements](https://service.whitewall.com/hc/en-us/articles/4411222658321), [dimensions](https://service.whitewall.com/hc/en-us/articles/4411250911377), [design notes](https://service.whitewall.com/hc/en-us/articles/4411236486929), [formats and papers](https://www.whitewall.com/eu/coffee-table-book).
 
+### Lulu · hardcover casewrap, paperback
+
+File `lulu.json`; two entries, seven trims each: Small Square 7.5 × 7.5 in, Square 8.5 × 8.5 in, Small Landscape 9 × 7 in, US Letter 8.5 × 11 in and its landscape, A4 210 × 297 mm and its landscape (the trims useful for photo books, from the guide's table of 20; inch sizes are kept exactly, so 7.5 in is 190.5 mm).
+
+- **Pages.** Hardcover 24 to 800, paperback 32 to 800, an even number, covers not counted. (Hardcover's 800 is the end of Lulu's spine table; paperback's from the products page.)
+- **What the export writes.** Two files in a folder: `Interior.pdf`, single pages at trim plus 0.125 in (3.175 mm) bleed on every side, and `Cover.pdf`, one flat spread (back, spine, front) with the same bleed. sRGB (Lulu's printers use sRGB IEC61966-2.1); a CMYK file stays CMYK at Lulu, which names Coated GRACoL 2006 and a total ink of at most 270 %. 300 to 600 ppi, fonts embedded, transparency flattened, no marks, no password.
+- **Margins.** Text 0.5 in (12.7 mm) inside the trim (0.75 in on hardcover covers). The gutter should grow with the page count (the guide's table is in the entry's notes); the entry checks 12.7 mm.
+- **Spine.** Paperback: pages ÷ 17.48 + 1.524 mm. Hardcover: Lulu's table of 27 steps from 24 to 800 pages (6 mm up to 84 pages, 13 mm to 140, 16 mm to 168, and so on to 54 mm at 800), taken whole. No spine text at 80 pages or fewer.
+- **Quote-typed.** The hardcover casewrap's board size, fold (about 6 mm from the spine) and wrap come from the cover template Lulu generates after the interior is uploaded; the author types them. Casewrap covers are bound 0.75 in from each edge and have overhang of 0.125 to 0.25 in on three sides.
+- **Differences from Appendix A.** Lulu's guide is newer than the PRD's reading: the safety margin on both the interior and the cover is 0.5 in; the help page asks for 0.25 in minimum and 0.75 in on casewrap covers, so the hardcover entry uses 0.75 in for its cover. The guide's gutter text says "0.2 in/2.08 mm" (0.2 in is 5.08 mm): not used. The hardcover spine table runs to 800 pages (Appendix A stops at 250). The bleed applies to every edge, the binding edge included.
+- **Not confirmed.** Which of the seven trims Lulu offers for hardcover casewrap: the guide lists trims for all bindings, and the products page does not list casewrap sizes. Check Lulu's pricing calculator before ordering; see `docs/status.md`.
+- Sources: [Book Creation Guide](https://assets.lulu.com/media/guides/en/lulu-book-creation-guide.pdf), [PDF settings](https://help.lulu.com/en/support/solutions/articles/64000255519), [casewrap cover](https://help.lulu.com/en/support/solutions/articles/64000308572-creating-your-hardcover-casewrap-cover), [products](https://www.lulu.com/products).
+
 ## Not added yet
 
 ### Saal Digital

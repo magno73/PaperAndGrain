@@ -107,6 +107,35 @@ final class PrintCatalogEntriesTests: XCTestCase {
         XCTAssertEqual(profile.papers?.count, 6)
     }
 
+    func testLuluSpineTableAndFormulaFollowTheGuide() throws {
+        let bleed = PrintProfile.EdgeValues(top: 3.175, bottom: 3.175, outer: 3.175, inner: 3.175)
+        let sizes = ["small-square", "square", "small-landscape", "us-letter", "us-letter-landscape", "a4", "a4-landscape"]
+        try verify([
+            Facts(id: "lulu-hardcover-casewrap", service: "Lulu", binding: .hardcover, minimum: 24, maximum: 800, multiple: 2,
+                  coverKind: .flat, interiorBleed: bleed, sizes: sizes, colors: [.srgb, .cmyk]),
+            Facts(id: "lulu-paperback", service: "Lulu", binding: .softcover, minimum: 32, maximum: 800, multiple: 2,
+                  coverKind: .flat, interiorBleed: bleed, sizes: sizes, colors: [.srgb, .cmyk]),
+        ])
+        let hardcover = try XCTUnwrap(catalog.profile("lulu-hardcover-casewrap"))
+        let spine = try XCTUnwrap(hardcover.cover.spine)
+        for (pages, mm) in [(24, 6.0), (84, 6), (85, 13), (140, 13), (141, 16), (169, 17), (195, 19), (223, 21), (251, 22),
+                            (500, 35), (501, 37), (799, 52), (800, 54)] {
+            XCTAssertEqual(spine.value(pages: pages, paper: nil), mm, "\(pages) pages")
+        }
+        XCTAssertNil(spine.value(pages: 801, paper: nil), "past the printer's table")
+        XCTAssertEqual(spine.tableLimit(paper: nil), 800)
+        XCTAssertTrue(hardcover.cover.wrap?.isTyped == true && hardcover.cover.panel?.widthMM.isTyped == true,
+                      "the casewrap wrap and board come from Lulu's cover template")
+        XCTAssertEqual(hardcover.cover.safe?.mm, 19.05)
+        let paperback = try XCTUnwrap(catalog.profile("lulu-paperback"))
+        let formula = try XCTUnwrap(paperback.cover.spine)
+        XCTAssertEqual(try XCTUnwrap(formula.value(pages: 100, paper: nil)), 100 / 17.48 + 1.524, accuracy: 0.001)
+        XCTAssertEqual(try XCTUnwrap(formula.value(pages: 32, paper: nil)), 3.354, accuracy: 0.001)
+        XCTAssertEqual(paperback.interior.safe.fixedValues.largest, 12.7)
+        XCTAssertEqual(try XCTUnwrap(paperback.size("small-square")).format.widthMM, 190.5, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(paperback.size("a4")).format, BookFormat(widthMM: 210, heightMM: 297))
+    }
+
     // MARK: Text keeps inside the safe margin
 
     /// A page of text in every size of every entry stays inside the product's margin on the edges that are cut.
