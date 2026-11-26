@@ -2,6 +2,8 @@ import SwiftUI
 
 struct BookSettingsView: View, Localizing {
     let book: Book
+    /// The book package, where a chosen color profile is copied.
+    let directory: URL?
     let language: String
     let close: () -> Void
     let apply: (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void
@@ -13,9 +15,10 @@ struct BookSettingsView: View, Localizing {
     @State private var hasCover: Bool
     @State private var typography: EditorialTypography
 
-    init(book: Book, language: String, close: @escaping () -> Void,
+    init(book: Book, directory: URL? = nil, language: String, close: @escaping () -> Void,
          apply: @escaping (String, BookFormat, PrintSettings, BookCover?, EditorialTypography?) -> Void) {
         self.book = book
+        self.directory = directory
         self.language = language
         self.close = close
         self.apply = apply
@@ -112,6 +115,8 @@ struct BookSettingsView: View, Localizing {
                     Toggle(tr("Export facing-page spreads"), isOn: $printProfile.spreads)
                     Toggle(tr("First interior page on the right"), isOn: firstPageOnRight)
                 }
+                ColorOutputSection(output: $printProfile.colorOutput, directory: directory,
+                                   serviceAsks: serviceColorRequest, language: language)
                 Section(tr("Cover")) {
                     Toggle(tr("Export a separate cover"), isOn: $hasCover)
                     if hasCover {
@@ -150,6 +155,13 @@ struct BookSettingsView: View, Localizing {
     }
 
     private var catalog: PrintProfileCatalog { .bundled }
+
+    /// The color mode the chosen print service asks for when the book does not write it.
+    private var serviceColorRequest: PrintProfile.ColorMode? {
+        guard let accepts = chosenProfile?.color.accepts else { return nil }
+        let writes: PrintProfile.ColorMode = printProfile.writesCMYK ? .cmyk : .srgb
+        return accepts.contains(writes) ? nil : accepts.first
+    }
 
     private var chosenProfile: PrintProfile? { catalog.profile(printProfile.profileID) }
 

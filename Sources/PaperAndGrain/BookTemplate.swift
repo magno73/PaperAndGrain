@@ -272,10 +272,27 @@ struct EditorialStyle {
         return CGRect(x: left, y: safe.minY + top, width: width, height: max(0, safe.height - top))
     }
 
+    /// A color for text, rules and borders. While a CMYK print PDF is written (`PrintColor.converter`),
+    /// it is in the output profile, and a neutral gray uses black ink only.
     static func color(_ rgb: UInt32) -> CGColor {
         let r = CGFloat((rgb >> 16) & 255) / 255
         let g = CGFloat((rgb >> 8) & 255) / 255
         let b = CGFloat(rgb & 255) / 255
+        if let converter = PrintColor.converter {
+            return converter.color(red: Double(r), green: Double(g), blue: Double(b), blackOnly: true)
+        }
+        return CGColor(srgbRed: r, green: g, blue: b, alpha: 1)
+    }
+
+    /// A color for an area (paper, panels, box fills): in the output profile while a CMYK print PDF is
+    /// written, with all four inks for a gray, so a dark page does not print as flat black ink.
+    static func fillColor(_ rgb: UInt32) -> CGColor {
+        let r = CGFloat((rgb >> 16) & 255) / 255
+        let g = CGFloat((rgb >> 8) & 255) / 255
+        let b = CGFloat(rgb & 255) / 255
+        if let converter = PrintColor.converter {
+            return converter.color(red: Double(r), green: Double(g), blue: Double(b), blackOnly: false)
+        }
         return CGColor(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 

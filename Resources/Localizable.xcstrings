@@ -210,6 +210,24 @@
         }
       }
     },
+    "%@ is not a CMYK output profile": {
+      "comment": "The argument is a file or profile name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not a CMYK output profile"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ non è un profilo di uscita CMYK"
+          }
+        }
+      }
+    },
     "%@ missing: enter it from the printer’s quote": {
       "comment": "Preflight blocker; the argument is a measure such as Spine width.",
       "extractionState": "manual",
@@ -796,6 +814,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "**Libro e stampa** imposta formato, abbondanza, margini e copertina con dorso. **Esporta PDF** offre la verifica prestampa e i profili di stampa. **Vista › Mostra guide di stampa** disegna sul canvas il margine sicuro (tratteggiato) e l’abbondanza."
+          }
+        }
+      }
+    },
+    "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. The editor and the viewing PDF stay sRGB.": {
+      "comment": "Help, Print topic.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Color** in **Book & Print** writes the print PDFs in sRGB or CMYK with the printer’s profile. The editor and the viewing PDF stay sRGB."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Colore** in **Libro e stampa** scrive i PDF di stampa in sRGB o in CMYK con il profilo dello stampatore. L’editor e il PDF di visualizzazione restano sRGB."
           }
         }
       }
@@ -2654,6 +2690,41 @@
         }
       }
     },
+    "CMYK converts the print PDFs to the printer’s profile. The editor and the viewing PDF stay sRGB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CMYK converts the print PDFs to the printer’s profile. The editor and the viewing PDF stay sRGB."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CMYK converte i PDF di stampa nel profilo dello stampatore. L’editor e il PDF di visualizzazione restano sRGB."
+          }
+        }
+      }
+    },
+    "CMYK with %@. Not a certified PDF/X file; check it with your printer’s preflight.": {
+      "comment": "The argument is an ICC profile name.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CMYK with %@. Not a certified PDF/X file; check it with your printer’s preflight."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CMYK con %@. Non è un file PDF/X certificato; controllalo con la verifica del tuo stampatore."
+          }
+        }
+      }
+    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -3103,6 +3174,23 @@
         }
       }
     },
+    "Choose ICC Profile…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose ICC Profile…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli profilo ICC…"
+          }
+        }
+      }
+    },
     "Choose LUT": {
       "extractionState": "manual",
       "localizations": {
@@ -3167,6 +3255,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scegli un album da Foto per impaginare il primo libro, o apri quello dimostrativo."
+          }
+        }
+      }
+    },
+    "Choose a Profile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a Profile"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli un profilo"
           }
         }
       }
@@ -3576,6 +3681,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concetto"
+          }
+        }
+      }
+    },
+    "Contacts eci.org once to download ECI’s profile. The profile belongs to ECI.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contacts eci.org once to download ECI’s profile. The profile belongs to ECI."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contatta eci.org una volta per scaricare il profilo di ECI. Il profilo appartiene a ECI."
           }
         }
       }
@@ -4365,6 +4487,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Doppie pagine di %@."
+          }
+        }
+      }
+    },
+    "Download PSO Coated v3 from ECI…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download PSO Coated v3 from ECI…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scarica PSO Coated v3 da ECI…"
+          }
+        }
+      }
+    },
+    "Download it by hand from eci.org and use Choose ICC Profile….": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download it by hand from eci.org and use Choose ICC Profile…."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scaricalo a mano da eci.org e usa Scegli profilo ICC…."
+          }
+        }
+      }
+    },
+    "Downloading PSO Coated v3 from eci.org…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading PSO Coated v3 from eci.org…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download di PSO Coated v3 da eci.org…"
           }
         }
       }
@@ -6066,6 +6239,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "In corso"
+          }
+        }
+      }
+    },
+    "Included with Paper & Grain": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Included with Paper & Grain"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclusi in Paper & Grain"
           }
         }
       }
@@ -8018,6 +8208,23 @@
         }
       }
     },
+    "On This Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On This Mac"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo Mac"
+          }
+        }
+      }
+    },
     "On the road": {
       "extractionState": "manual",
       "localizations": {
@@ -8286,6 +8493,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "All’aperto"
+          }
+        }
+      }
+    },
+    "PSO Coated v3 could not be downloaded from eci.org.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PSO Coated v3 could not be downloaded from eci.org."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non è stato possibile scaricare PSO Coated v3 da eci.org."
           }
         }
       }
@@ -11556,6 +11780,23 @@
         }
       }
     },
+    "The CMYK output profile the printer names.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The CMYK output profile the printer names."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il profilo di uscita CMYK indicato dallo stampatore."
+          }
+        }
+      }
+    },
     "The book": {
       "comment": "Subject of an error message when the book has no title.",
       "extractionState": "manual",
@@ -11608,6 +11849,58 @@
         }
       }
     },
+    "The color profile %@ in the book has changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The color profile %@ in the book has changed"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il profilo colore %@ nel libro è cambiato"
+          }
+        }
+      }
+    },
+    "The color profile %@ is missing from the book": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The color profile %@ is missing from the book"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il profilo colore %@ manca dal libro"
+          }
+        }
+      }
+    },
+    "The color profile %@ is missing or is not a CMYK output profile": {
+      "comment": "Preflight blocker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The color profile %@ is missing or is not a CMYK output profile"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il profilo colore %@ manca o non è un profilo di uscita CMYK"
+          }
+        }
+      }
+    },
     "The count includes %lld cover pages": {
       "extractionState": "manual",
       "localizations": {
@@ -11621,6 +11914,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Il conteggio include %lld pagine di copertina"
+          }
+        }
+      }
+    },
+    "The file from eci.org is not the expected PSO Coated v3 profile.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file from eci.org is not the expected PSO Coated v3 profile."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il file di eci.org non è il profilo PSO Coated v3 atteso."
           }
         }
       }
@@ -11779,6 +12089,40 @@
         }
       }
     },
+    "The print service asks for CMYK.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The print service asks for CMYK."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il servizio di stampa chiede CMYK."
+          }
+        }
+      }
+    },
+    "The print service asks for sRGB.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The print service asks for sRGB."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il servizio di stampa chiede sRGB."
+          }
+        }
+      }
+    },
     "The print service does not offer the book’s size": {
       "comment": "PDF export error.",
       "extractionState": "manual",
@@ -11828,6 +12172,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lo stampatore chiede %@. Questo file non è certificato come tale; controllalo con la verifica dello stampatore."
+          }
+        }
+      }
+    },
+    "The printer asks for CMYK; the book writes sRGB": {
+      "comment": "Preflight warning.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The printer asks for CMYK; the book writes sRGB"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo stampatore chiede CMYK; il libro scrive sRGB"
+          }
+        }
+      }
+    },
+    "The printer asks for sRGB; the book writes CMYK": {
+      "comment": "Preflight warning.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The printer asks for sRGB; the book writes CMYK"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo stampatore chiede sRGB; il libro scrive CMYK"
           }
         }
       }

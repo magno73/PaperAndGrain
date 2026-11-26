@@ -39,6 +39,14 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 - The Issues list warns when a caption does not fit: on its photo and taller than half of it, across the trim, or cut because it is longer than 12 lines or 600 characters; the safe-margin warning covers captions too.
 - Command line: `caption` on an asset and `photoPlacements` with `captionPosition` on a page in the build spec, `typography.caption` for the book, and the same fields through `patch`; `photos` lists the caption.
 
+### Color output
+
+- **Book & Print › Color**: sRGB or CMYK. For CMYK choose PSO Coated v3 (**Download from ECI…**, the app's only network request, on your click), a CMYK profile installed on the Mac, or **Choose ICC Profile…**; the profile is copied into the book.
+- CMYK print PDFs convert the finished photos once (relative colorimetric with black point compensation), print black and gray text, rules and borders with black ink only, and name and embed the profile as the output intent. They are not labelled PDF/X; the export sheet says so.
+- A print service that asks for flattened transparency gets translucent panels blended into the photo beneath, with the text kept as text.
+- **Issues** reports a missing or unusable color profile, and a print service that asks for the other color mode.
+- Command line: `export-pdf --color srgb|cmyk [--icc PATH|ID]`.
+
 ### Issues
 
 - **Issues** in the toolbar, next to **Export** (**View › Show Issues**, ⇧⌘I): the preflight check now runs while you work. The button shows the number of problems and warnings, or a check mark when there are none. Its popover lists problems first, then warnings, under the page they belong to; click a row to go to the page and select the photo, text box, story or cover face.

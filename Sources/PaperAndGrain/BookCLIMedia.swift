@@ -17,7 +17,7 @@ enum BookCLIMedia {
         "import-lut SOURCE.papergrain (--file PATH | --builtin LOOK_ID) [--photo UUID] --output OUTPUT.papergrain",
         "export-pdf SOURCE.papergrain --profile proof|print|pixart|PROFILE_ID --output PATH [--size SIZE_ID] "
             + "[--paper PAPER_ID] [--spine-mm MM] [--hinge-mm MM] [--wrap-mm MM] [--panel-width-mm MM] "
-            + "[--panel-height-mm MM] [--cover-bleed-mm MM] [--interior-bleed-mm MM]",
+            + "[--panel-height-mm MM] [--cover-bleed-mm MM] [--interior-bleed-mm MM] [--color srgb|cmyk] [--icc PATH|ID]",
         "print-profiles",
     ]
 
@@ -67,7 +67,8 @@ enum BookCLIMedia {
             return try importLUT(options, currentDirectory: currentDirectory)
         case "export-pdf":
             options = try Options(arguments, positional: true,
-                                  values: Set(["--profile", "--output", "--size", "--paper"] + PrintMeasure.allCases.map(\.option)))
+                                  values: Set(["--profile", "--output", "--size", "--paper", "--color", "--icc"]
+                                              + PrintMeasure.allCases.map(\.option)))
             return try exportPDF(options, currentDirectory: currentDirectory)
         case "print-profiles":
             _ = try Options(arguments)
@@ -150,6 +151,8 @@ enum BookCLIMedia {
         let output: String
         let profile: String
         let size: String?
+        /// The color the PDF is written in: sRGB or the CMYK profile's name.
+        let color: String
         let warnings: [String]
     }
 
@@ -353,6 +356,8 @@ enum BookCLIMedia {
         let folder = entry.map { $0.files.arrangement == .separate } ?? (name == "print")
         try validateOutput(output, extension: folder ? nil : "pdf", outside: source)
         let book = try BookCLIEditing.read(source: source)
+        let color = try colorOverride(options, book: book, source: source, currentDirectory: currentDirectory,
+                                      viewing: name == "proof")
         let profile: PDFProfile = if let entry { .service(try plan(entry, book: book, options: options)) }
             else { name == "print" ? .print : .proof }
         let plan: PrintPlan? = if case let .service(plan) = profile { plan } else { nil }
@@ -362,9 +367,9 @@ enum BookCLIMedia {
             case .proof:
                 try BookPDF.write(book, directory: source, to: staged)
             case .print:
-                try BookPDF.writePrint(book, directory: source, to: staged)
+                try BookPDF.writePrint(book, directory: source, to: staged, color: color)
             case let .service(plan):
-                try BookPDF.write(book, directory: source, plan: plan, to: staged)
+                try BookPDF.write(book, directory: source, plan: plan, to: staged, color: color)
             }
         }
         let warnings: [String] = switch profile {
@@ -372,8 +377,64 @@ enum BookCLIMedia {
         case .print: BookPDF.printWarnings(book)
         case let .service(plan): BookPDF.printWarnings(book, profile: .service(plan))
         }
+        let written: String = switch (name, color) {
+        case ("proof", _), (_, .srgb?): "sRGB IEC61966-2.1"
+        case let (_, .cmyk(converter)?): converter.name
+        case (_, nil): book.printSettings?.colorOutput?.mode == .cmyk
+            ? book.printSettings?.colorOutput?.profile?.name ?? "CMYK" : "sRGB IEC61966-2.1"
+        }
         return try BookCLI.encode(PDFResult(output: output.path, profile: name, size: plan?.size(for: book)?.id,
-                                            warnings: warnings))
+                                            color: written, warnings: warnings))
+    }
+
+    /// `--color` and `--icc` for one export: sRGB, or CMYK with a profile file, `eci:PSOcoated_v3` (the
+    /// downloaded PSO Coated v3), a bundled profile id, the name of a profile installed on the Mac, or the
+    /// book's own CMYK profile when `--icc` is left out.
+    private static func colorOverride(_ options: Options, book: Book, source: URL, currentDirectory: URL,
+                                      viewing: Bool) throws -> BookPDF.ColorOverride? {
+        let mode = options["--color"]
+        let icc = options["--icc"]
+        guard mode != nil || icc != nil else { return nil }
+        guard !viewing else { throw BookCLI.Failure("--color and --icc apply to print exports; the viewing PDF is sRGB") }
+        switch mode {
+        case "srgb"?:
+            guard icc == nil else { throw BookCLI.Failure("--icc needs --color cmyk") }
+            return .srgb
+        case "cmyk"?, nil:
+            break
+        case let other?:
+            throw BookCLI.Failure("Expected --color srgb or cmyk (found \(other))")
+        }
+        guard let icc else {
+            guard let reference = book.printSettings?.colorOutput?.profile else {
+                throw BookCLI.Failure("The book has no CMYK profile: pass --icc with a file or a profile id")
+            }
+            return .cmyk(try BookStorage.converter(for: reference, in: source))
+        }
+        let data: Data
+        let file = BookCLI.url(icc, relativeTo: currentDirectory)
+        if FileManager.default.fileExists(atPath: file.path) {
+            data = try Data(contentsOf: file)
+        } else if icc == ECIProfile.id {
+            guard let installed = ECIProfile.installedData() else {
+                throw BookCLI.Failure("PSO Coated v3 is not installed: download it in Book & Print, or pass the file")
+            }
+            data = installed
+        } else if let bundled = ICCProfileSources.bundled.first(where: { $0.id == icc }) {
+            guard let bundledData = ICCProfileSources.bundledData(bundled) else {
+                throw BookCLI.Failure("The bundled profile \(icc) is missing or damaged")
+            }
+            data = bundledData
+        } else if let installed = ICCProfileSources.installed().first(where: { $0.name == icc || $0.url.lastPathComponent == icc }) {
+            data = try Data(contentsOf: installed.url)
+        } else {
+            throw BookCLI.Failure("--icc \(icc) is not a file, eci:PSOcoated_v3, a bundled profile id or an installed CMYK profile")
+        }
+        do {
+            return .cmyk(try PrintColor.converter(for: data))
+        } catch {
+            throw BookCLI.Failure("--icc \(icc) is not a CMYK output profile")
+        }
     }
 
     /// The product, size, paper and measures for a print-service export: the book's own choice when it

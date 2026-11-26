@@ -70,6 +70,13 @@ struct PDFExportChooser: View, Localizing {
             VStack(spacing: 6) {
                 ForEach(choices, id: \.self, content: option)
             }
+            if choice == .printPackage, let name = book.printSettings?.colorOutput?.profile?.name,
+               book.printSettings?.writesCMYK == true {
+                Text(tr("CMYK with %@. Not a certified PDF/X file; check it with your printer’s preflight.", name))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if choice == .other { otherPicker }
             if let plan = basePlan { serviceOptions(plan) }
             preflight
@@ -235,7 +242,12 @@ struct PDFExportChooser: View, Localizing {
                     measureField(measure, plan: plan, interiorPages: interiorPages)
                 }
             }
-            if plan.profile.color.accepts.contains(.cmyk) {
+            if let name = book.printSettings?.colorOutput?.profile?.name, book.printSettings?.writesCMYK == true {
+                Text(tr("CMYK with %@. Not a certified PDF/X file; check it with your printer’s preflight.", name))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if plan.profile.color.accepts.contains(.cmyk) {
                 Text(plan.profile.color.accepts.contains(.srgb)
                      ? tr("This PDF uses sRGB. Check the color profile in the instructions for your quote.")
                      : tr("This printer asks for CMYK. This PDF uses sRGB; the printer may convert or refuse it."))
