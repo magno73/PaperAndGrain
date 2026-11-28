@@ -15,7 +15,13 @@ fi
 PAPERGRAIN_BUNDLE_DIR="$staging" PAPERGRAIN_SKIP_INSTALL=1 ./scripts/build-app.sh release >/dev/null
 mkdir -p dist
 codesign --verify --deep --strict "$app"
-lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/PaperAndGrain"
+architectures="$(lipo -archs "$app/Contents/MacOS/PaperAndGrain")"
+for architecture in arm64 x86_64; do
+    if [[ " $architectures " != *" $architecture "* ]]; then
+        echo "The release bundle is missing the $architecture slice." >&2
+        exit 1
+    fi
+done
 
 archive() {
     rm -f "$zip"
