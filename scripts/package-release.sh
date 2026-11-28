@@ -3,13 +3,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
-app="dist/$version/Paper & Grain.app"
+# Sign on a local volume before publishing the archive to dist.
+staging="$(mktemp -d)"
+trap 'rm -rf "$staging"' EXIT
+app="$staging/Paper & Grain.app"
 zip="dist/Paper-and-Grain-$version.zip"
 if [ -n "${PAPERGRAIN_NOTARY_PROFILE:-}" ] && [ -z "${PAPERGRAIN_SIGNING_IDENTITY:-}" ]; then
     echo "Set PAPERGRAIN_SIGNING_IDENTITY to a Developer ID Application identity before notarizing." >&2
     exit 2
 fi
-PAPERGRAIN_SKIP_INSTALL=1 ./scripts/build-app.sh release >/dev/null
+PAPERGRAIN_BUNDLE_DIR="$staging" PAPERGRAIN_SKIP_INSTALL=1 ./scripts/build-app.sh release >/dev/null
+mkdir -p dist
 codesign --verify --deep --strict "$app"
 lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/PaperAndGrain"
 

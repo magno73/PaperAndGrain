@@ -4,7 +4,8 @@ cd "$(dirname "$0")/.."
 # release (default): optimized universal binary for Apple silicon and Intel. debug: fast local build.
 configuration="${1:-release}"
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
-app="dist/$version/Paper & Grain.app"
+bundle_dir="${PAPERGRAIN_BUNDLE_DIR:-dist/$version}"
+app="$bundle_dir/Paper & Grain.app"
 if [ "$configuration" = "release" ]; then
     flags=(--disable-sandbox --configuration release --arch arm64 --arch x86_64)
 else
@@ -39,7 +40,7 @@ else
 fi
 
 if [ "${PAPERGRAIN_SKIP_INSTALL:-0}" = 1 ]; then
-    printf '%s\n' "$PWD/$app"
+    printf '%s/Paper & Grain.app\n' "$(cd "$bundle_dir" && pwd)"
     exit 0
 fi
 
