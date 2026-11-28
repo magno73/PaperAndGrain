@@ -25,6 +25,12 @@ if [ -d Resources/ICCProfiles ]; then cp -R Resources/ICCProfiles "$app/Contents
 cp -R Resources/MapData "$app/Contents/Resources/"
 cp Resources/it.lproj/InfoPlist.strings "$app/Contents/Resources/it.lproj/"
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$app/Contents/Resources"
+# Finder and File Provider can add attributes that invalidate the generated bundle.
+for attribute in com.apple.FinderInfo com.apple.ResourceFork; do
+    if xattr -r "$app" | grep -F ": $attribute" >/dev/null; then
+        xattr -rd "$attribute" "$app"
+    fi
+done
 if [ -n "${PAPERGRAIN_SIGNING_IDENTITY:-}" ]; then
     codesign --force --options runtime --timestamp --sign "$PAPERGRAIN_SIGNING_IDENTITY" \
         --entitlements Resources/PhotoLibrary.entitlements "$app"

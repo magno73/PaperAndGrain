@@ -15,7 +15,7 @@ lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/PaperAndGrain"
 
 archive() {
     rm -f "$zip"
-    ditto -c -k --keepParent --sequesterRsrc "$app" "$zip"
+    ditto -c -k --keepParent --norsrc --noextattr "$app" "$zip"
 }
 
 archive
