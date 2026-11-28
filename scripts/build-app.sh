@@ -16,6 +16,7 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/it.lproj"
 cp "$build_dir/PaperAndGrain" "$app/Contents/MacOS/"
 cp Resources/Info.plist "$app/Contents/"
+cp LICENSE "$app/Contents/Resources/"
 cp Resources/Demo.png "$app/Contents/Resources/"
 cp Resources/AppIcon.icns "$app/Contents/Resources/"
 cp -R Resources/FilmLooks "$app/Contents/Resources/"
@@ -24,7 +25,18 @@ if [ -d Resources/ICCProfiles ]; then cp -R Resources/ICCProfiles "$app/Contents
 cp -R Resources/MapData "$app/Contents/Resources/"
 cp Resources/it.lproj/InfoPlist.strings "$app/Contents/Resources/it.lproj/"
 xcrun xcstringstool compile Resources/Localizable.xcstrings --output-directory "$app/Contents/Resources"
-codesign --force --sign - --entitlements Resources/PhotoLibrary.entitlements "$app"
+if [ -n "${PAPERGRAIN_SIGNING_IDENTITY:-}" ]; then
+    codesign --force --options runtime --timestamp --sign "$PAPERGRAIN_SIGNING_IDENTITY" \
+        --entitlements Resources/PhotoLibrary.entitlements "$app"
+else
+    codesign --force --sign - --entitlements Resources/PhotoLibrary.entitlements "$app"
+fi
+
+if [ "${PAPERGRAIN_SKIP_INSTALL:-0}" = 1 ]; then
+    printf '%s\n' "$PWD/$app"
+    exit 0
+fi
+
 # Every build also lands in one fixed place, so the latest app is always easy to find.
 install_dir="${PAPERGRAIN_INSTALL_DIR:-$HOME/Applications}"
 installed="$install_dir/$(basename "$app")"

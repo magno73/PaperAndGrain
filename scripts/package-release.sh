@@ -1,15 +1,31 @@
 #!/bin/bash
-# Builds the universal release app and packs it for a GitHub Release:
-#   dist/Paper-and-Grain-<version>.zip and its .sha256.
-# The app is signed ad hoc, not notarized: the README explains how to open it.
+# Build a universal zip for GitHub Releases without replacing the locally installed app.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
-./scripts/build-app.sh release >/dev/null
 app="dist/$version/Paper & Grain.app"
 zip="dist/Paper-and-Grain-$version.zip"
-rm -f "$zip" "$zip.sha256"
-ditto -c -k --keepParent --sequesterRsrc "$app" "$zip"
-(cd dist && shasum -a 256 "$(basename "$zip")" > "$(basename "$zip").sha256")
+if [ -n "${PAPERGRAIN_NOTARY_PROFILE:-}" ] && [ -z "${PAPERGRAIN_SIGNING_IDENTITY:-}" ]; then
+    echo "Set PAPERGRAIN_SIGNING_IDENTITY to a Developer ID Application identity before notarizing." >&2
+    exit 2
+fi
+PAPERGRAIN_SKIP_INSTALL=1 ./scripts/build-app.sh release >/dev/null
 codesign --verify --deep --strict "$app"
+lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/PaperAndGrain"
+
+archive() {
+    rm -f "$zip"
+    ditto -c -k --keepParent --sequesterRsrc "$app" "$zip"
+}
+
+archive
+if [ -n "${PAPERGRAIN_NOTARY_PROFILE:-}" ]; then
+    xcrun notarytool submit "$zip" --keychain-profile "$PAPERGRAIN_NOTARY_PROFILE" --wait
+    xcrun stapler staple "$app"
+    xcrun stapler validate "$app"
+    archive
+fi
+
+unzip -tq "$zip" >/dev/null
+(cd dist && shasum -a 256 "$(basename "$zip")" > "$(basename "$zip").sha256")
 printf '%s\n%s\n' "$PWD/$zip" "$PWD/$zip.sha256"

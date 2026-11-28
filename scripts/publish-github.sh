@@ -14,16 +14,19 @@ branch="$(git rev-parse --abbrev-ref HEAD)"
 removed_paths=(docs/layout-comparison.md docs/release-plan.md docs/prd-0.11.md)
 force=""
 tag=""
+dry_run=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --force)
             # Overwrite only the commit GitHub has now, never work pushed from elsewhere in the meantime.
             current="$(git ls-remote "$remote" refs/heads/main | cut -f1)"
             force="--force-with-lease=main:$current" ;;
+        --dry-run)
+            dry_run="--dry-run" ;;
         --tag)
             # The tag must be made on the rewritten commit, so it is created in the clone below.
             tag="${2:?--tag needs a name such as v0.10.0}"; shift ;;
-        *) echo "Unknown option $1 (use --force and/or --tag vX.Y.Z)" >&2; exit 2 ;;
+        *) echo "Unknown option $1 (use --dry-run, --force or --tag vX.Y.Z)" >&2; exit 2 ;;
     esac
     shift
 done
@@ -53,7 +56,7 @@ for path in "${removed_paths[@]}"; do
     fi
 done
 
-if git log --format='%ae%n%ce%n%B' | grep -qiF "$private_email"; then
+if git log --format='%ae%n%ce%n%B' | grep -iF -- "$private_email" >/dev/null; then
     echo "The private email is still in the history; nothing was pushed." >&2
     exit 1
 fi
@@ -62,8 +65,10 @@ fi
 # Pass --force once after adding a path to removed_paths: the published history changes.
 refs=("$branch:main")
 if [ -n "$tag" ]; then
-    git tag -a "$tag" -m "Paper & Grain ${tag#v}"
+    git -c user.email="$public_email" tag -a "$tag" -m "Paper & Grain ${tag#v}"
     refs+=("refs/tags/$tag")
 fi
-git -c credential.helper= -c credential.helper='!gh auth git-credential' push $force "$remote" "${refs[@]}"
-echo "Published $branch as main to $remote"
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push --atomic $force $dry_run "$remote" "${refs[@]}"
+if [ -z "$dry_run" ]; then
+    echo "Published $(git rev-parse HEAD) as main to $remote"
+fi

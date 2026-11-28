@@ -8,10 +8,12 @@ repo="${PAPERGRAIN_GITHUB_SLUG:-magno73/PaperAndGrain}"
 version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
 tag="v$version"
 zip="dist/Paper-and-Grain-$version.zip"
+flags=(--verify-tag --prerelease)
 [ -f "$zip" ] || { echo "Missing $zip: run scripts/package-release.sh first." >&2; exit 1; }
+(cd dist && shasum -a 256 -c "$(basename "$zip").sha256")
 notes="$(mktemp)"
 trap 'rm -f "$notes"' EXIT
 # The section between "## <version>" and the next "## " heading.
 awk -v v="$version" '$0 ~ "^## " { if (found) exit; if (index($0, v)) { found = 1; next } } found' CHANGELOG.md > "$notes"
 [ -s "$notes" ] || { echo "CHANGELOG.md has no section for $version." >&2; exit 1; }
-gh release create "$tag" "$zip" "$zip.sha256" --repo "$repo" --title "Paper & Grain $version" --notes-file "$notes"
+gh release create "$tag" "$zip" "$zip.sha256" --repo "$repo" "${flags[@]}" --title "Paper & Grain $version · Public Beta" --notes-file "$notes"

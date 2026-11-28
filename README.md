@@ -29,15 +29,13 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 
 ## Download
 
-Get the latest `Paper-and-Grain-<version>.zip` from [Releases](https://github.com/magno73/PaperAndGrain/releases), unzip it and move **Paper & Grain** to your Applications folder. The app runs on Apple silicon and Intel Macs with macOS 14 or later.
+Download `Paper-and-Grain-<version>.zip` from [Releases](https://github.com/magno73/PaperAndGrain/releases), unzip it and move **Paper & Grain** to Applications. The beta is built for Apple silicon and Intel Macs with macOS 14 or later. The release notes list the tested systems and signing status.
 
-The app is signed but **not notarized by Apple**, so macOS blocks it the first time:
+For the public beta, macOS may show a warning on the first launch because the build is signed locally and has no Apple notarization ticket. If you trust the download, attempt to open the app once, then choose **System Settings › Privacy & Security › Open Anyway** for Paper & Grain. [Apple’s instructions](https://support.apple.com/en-us/102445)
 
-- **macOS 15 and later:** open the app once and close the warning. Then go to **System Settings › Privacy & Security**, scroll to the message about Paper & Grain and click **Open Anyway**.
-- **macOS 14:** Control-click the app in Finder, choose **Open**, then **Open** again.
-- **Terminal alternative:** `xattr -dr com.apple.quarantine "/Applications/Paper & Grain.app"`.
+Download the matching `.sha256` file next to the zip and run `shasum -a 256 -c Paper-and-Grain-<version>.zip.sha256` in that folder to verify the download.
 
-Each release lists the SHA-256 of the zip, so you can check the download with `shasum -a 256`.
+Start with **Open the Sample Book**. Try selecting and cropping a photo, inserting a page, and exporting a viewing PDF. [Report an issue](https://github.com/magno73/PaperAndGrain/issues/new) with your macOS version, Mac chip and reproduction steps. Use the sample book or synthetic images in attachments.
 
 ## Requirements
 
@@ -64,7 +62,7 @@ Run the tests with:
 swift test
 ```
 
-`scripts/publish-github.sh` publishes the current branch to GitHub as `main` (add `--tag v<version>` to tag a release; `scripts/github-release.sh` then creates the GitHub Release with the zip). On a temporary copy it replaces the author email with the GitHub noreply address and drops the files listed in `removed_paths` from every commit, so the local history is left untouched. Run it with `--force` once after adding a path.
+See the [release guide](docs/releasing.md) for packaging, signing and publishing a beta.
 
 ## Make your first book
 
