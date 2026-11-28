@@ -8,6 +8,12 @@ It is written in SwiftUI. Photo access uses PhotoKit, photo analysis uses Vision
 
 > **Status:** a working prototype that is used to build real books. It has been run on macOS 27; macOS 14, 15 and 26 are supported but not yet tested. Expect rough edges, and check every PDF with your print shop before ordering.
 
+## Demo
+
+[![Watch the Paper & Grain demo](docs/images/demo-cover.jpg)](docs/demo.md)
+
+[▶ Watch the 50-second demo](docs/demo.md)
+
 ## Features
 
 - **Start from an album.** Pick an album in Photos, or files in Finder. Choose a book size from 21 common photobook formats or a custom one. A first draft is laid out in shooting order.
