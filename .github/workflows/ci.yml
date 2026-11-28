@@ -21,6 +21,7 @@ jobs:
             runner: xcode-27
             xcode: /Applications/Xcode_27.2.app
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
