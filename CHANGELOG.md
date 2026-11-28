@@ -4,7 +4,7 @@ User-visible changes in each version of Paper & Grain, newest first. What has be
 
 ## 0.11.0 · 2026-11-28
 
-First public beta. Download the universal Mac app and its SHA-256 file below. This build is signed ad hoc and has no Apple notarization ticket. See [Download and first launch](https://github.com/magno73/PaperAndGrain#download) for Gatekeeper instructions. Automated tests ran on Apple silicon with macOS 27.0.1. Testers can start with **Open the Sample Book**.
+First public beta. Download the universal Mac app and its SHA-256 file below. This build is signed ad hoc and has no Apple notarization ticket. See [Download and first launch](https://github.com/magno73/PaperAndGrain#download) for Gatekeeper instructions. Automated tests ran on Apple silicon with macOS 27.0.1. Use Xcode 27.2 if building the `v0.11.0` tag from source. Testers can start with **Open the Sample Book**.
 
 The eleven features of this version, grouped by feature. Books saved by 0.10 open in 0.11 and look the same, with one exception: a book that used the template now called **Slide** under its earlier name no longer opens (see **Templates**). A book that uses a map page needs 0.11 to be edited.
 

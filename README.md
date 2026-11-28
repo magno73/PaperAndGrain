@@ -40,7 +40,7 @@ Start with **Open the Sample Book**. Try selecting and cropping a photo, inserti
 ## Requirements
 
 - **To run:** macOS 14 Sonoma or later, Apple silicon or Intel. On macOS 26 and later the panels use Liquid Glass.
-- **To build:** Xcode 26 or later (the macOS 26 SDK). The app is developed with Xcode 27.
+- **To build from `main`:** Xcode 26.6 or later. Use Xcode 27.2 to build the `v0.11.0` tag.
 
 ## Build and run
 

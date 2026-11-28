@@ -264,7 +264,10 @@ enum FilmRenderer {
                     let horizontal = (2 * Float(x) + 1) / Float(w) - 1
                     let vertical = (2 * Float(y) + 1) / Float(h) - 1
                     let radius = max(0, min(1, (horizontal * horizontal + vertical * vertical - 0.15) / 1.65))
-                    color *= 1 - 0.67 * vignette * radius * radius * (3 - 2 * radius)
+                    let edgeFade: Float = 3 - 2 * radius
+                    let vignetteAmount: Float = 0.67 * vignette * radius * radius
+                    let brightness: Float = 1 - vignetteAmount * edgeFade
+                    color *= brightness
                 }
                 if monochromeGrain > 0 {
                     color += RGB(repeating: noise(atX: x, y: y, pitch: monoPitch) * monoAmplitude)
